@@ -1,0 +1,36 @@
+/** Prefix public asset paths when deployed under a subpath (e.g. GitHub Pages). */
+export function publicAsset(path) {
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  return `${basePath}${normalized}`;
+}
+
+export function smoothScrollTo(target, duration = 800) {
+  const targetElement = document.querySelector(target);
+  if (!targetElement) return;
+
+  const startPosition = window.pageYOffset;
+  const targetPosition =
+    targetElement.getBoundingClientRect().top + window.pageYOffset;
+  const distance = targetPosition - startPosition;
+  let startTime = null;
+
+  function animation(currentTime) {
+    if (startTime === null) startTime = currentTime;
+    const timeElapsed = currentTime - startTime;
+    const progress = Math.min(timeElapsed / duration, 1);
+    const ease =
+      progress < 0.5
+        ? 2 * progress * progress
+        : -1 + (4 - 2 * progress) * progress;
+
+    window.scrollTo(0, startPosition + distance * ease);
+    if (timeElapsed < duration) requestAnimationFrame(animation);
+  }
+
+  requestAnimationFrame(animation);
+}
+
+export function showSoon(message) {
+  window.alert(message);
+}
