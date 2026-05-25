@@ -1,5 +1,7 @@
 "use client";
 
+import { withBase } from "../../../../home/utils";
+
 export default function BuilderNotFound() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center">
@@ -16,7 +18,7 @@ export default function BuilderNotFound() {
           Browse the catalog to find other talented builders.
         </p>
         <a
-          href="/builders"
+          href={withBase("/builders")}
           className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#4ade80] text-black font-bold text-sm green-glow hover:bg-[#22c55e] transition-all"
         >
           Browse Builders

@@ -1,5 +1,7 @@
 "use client";
 
+import { withBase } from "../utils";
+
 export default function Navbar({
   navItems,
   activeSection,
@@ -33,7 +35,7 @@ export default function Navbar({
           {navItems.map((item) => (
             <a
               key={`${item.label}-desktop`}
-              href={item.href}
+              href={item.href.startsWith("/") ? withBase(item.href) : item.href}
               className={`nav-link hover:text-[#4ade80] transition-colors whitespace-nowrap ${
                 activeSection === item.href.slice(1) ? "active" : ""
               }`}

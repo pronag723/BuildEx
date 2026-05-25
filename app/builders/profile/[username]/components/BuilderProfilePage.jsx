@@ -6,7 +6,7 @@ import CatalogMobileMenu from "../../../components/CatalogMobileMenu";
 import SiteFooter from "../../../../home/components/SiteFooter";
 import { RANKS } from "../../../data/builders";
 import { getBuilderReviews, getBuilderRatingBreakdown } from "../../../data/reviews";
-import { publicAsset } from "../../../../home/utils";
+import { publicAsset, withBase } from "../../../../home/utils";
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 function IconStar({ className = "w-4 h-4" }) {
@@ -448,9 +448,9 @@ export default function BuilderProfilePage({ builder }) {
 
           {/* Breadcrumb */}
           <nav className="flex items-center gap-1.5 text-sm text-gray-500 mb-6 detail-fade-up flex-wrap" aria-label="Breadcrumb">
-            <a href="/" className="hover:text-[#4ade80] transition-colors">Home</a>
+            <a href={withBase("/")} className="hover:text-[#4ade80] transition-colors">Home</a>
             <IconChevron className="w-3 h-3 opacity-50" />
-            <a href="/builders" className="hover:text-[#4ade80] transition-colors">Builders</a>
+            <a href={withBase("/builders")} className="hover:text-[#4ade80] transition-colors">Builders</a>
             <IconChevron className="w-3 h-3 opacity-50" />
             <span className="truncate max-w-[200px] sm:max-w-xs" aria-current="page">{builder.display_name}</span>
           </nav>

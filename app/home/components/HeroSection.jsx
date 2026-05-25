@@ -1,5 +1,7 @@
 "use client";
 
+import { withBase } from "../utils";
+
 export default function HeroSection({ heroVisualRef, onAnchorClick, onShowSoon }) {
   return (
     <section
@@ -23,7 +25,7 @@ export default function HeroSection({ heroVisualRef, onAnchorClick, onShowSoon }
           </p>
           <div className="flex flex-wrap gap-4 justify-center lg:justify-start">
             <a
-              href="/builders"
+              href={withBase("/builders")}
               onClick={(event) => onAnchorClick(event, "/builders")}
               className="hero-btn-primary px-8 py-4 bg-[#4ade80] text-black font-semibold rounded-full hover:scale-105 transition-all green-glow inline-block text-center"
             >

@@ -1,10 +1,12 @@
 "use client";
 
+import { withBase } from "../../home/utils";
+
 const catalogNavItems = [
-  { href: "/", label: "Home" },
-  { href: "/builders", label: "Browse Builders", active: true },
-  { href: "/#how-it-works", label: "How It Works" },
-  { href: "/#why-buildex", label: "Why BuildEx" },
+  { href: withBase("/"), label: "Home" },
+  { href: withBase("/builders"), label: "Browse Builders", active: true },
+  { href: withBase("/#how-it-works"), label: "How It Works" },
+  { href: withBase("/#why-buildex"), label: "Why BuildEx" },
 ];
 
 export default function CatalogMobileMenu({

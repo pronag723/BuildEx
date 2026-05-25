@@ -1,10 +1,12 @@
 "use client";
 
+import { withBase } from "../../home/utils";
+
 const catalogNavItems = [
-  { href: "/", label: "Home" },
-  { href: "/builders", label: "Browse Builders", active: true },
-  { href: "/#how-it-works", label: "How It Works" },
-  { href: "/#why-buildex", label: "Why BuildEx" },
+  { href: withBase("/"), label: "Home" },
+  { href: withBase("/builders"), label: "Browse Builders", active: true },
+  { href: withBase("/#how-it-works"), label: "How It Works" },
+  { href: withBase("/#why-buildex"), label: "Why BuildEx" },
 ];
 
 export default function CatalogNavbar({
@@ -18,7 +20,7 @@ export default function CatalogNavbar({
     <nav className="catalog-navbar fixed top-3.5 left-1/2 -translate-x-1/2 z-[80] w-full nav-wrapper px-6">
       <div className="glass nav-pill flex items-center justify-between shadow-2xl">
         {/* Logo */}
-        <a href="/" className="flex items-center gap-3 no-underline flex-shrink-0">
+        <a href={withBase("/")} className="flex items-center gap-3 no-underline flex-shrink-0">
           <div className="w-9 h-9 bg-[#4ade80] rounded-2xl flex items-center justify-center text-black font-bold text-2xl logo-font flex-shrink-0">
             B
           </div>

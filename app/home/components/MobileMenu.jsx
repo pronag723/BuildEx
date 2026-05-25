@@ -1,5 +1,7 @@
 "use client";
 
+import { withBase } from "../utils";
+
 export default function MobileMenu({
   navItems,
   activeSection,
@@ -25,7 +27,7 @@ export default function MobileMenu({
         {navItems.map((item) => (
           <a
             key={`${item.label}-mobile`}
-            href={item.href}
+            href={item.href.startsWith("/") ? withBase(item.href) : item.href}
             className={`mobile-nav-link nav-link ${
               activeSection === item.href.slice(1) ? "active" : ""
             }`}

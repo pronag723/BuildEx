@@ -5,6 +5,11 @@ export function publicAsset(path) {
   return `${basePath}${normalized}`;
 }
 
+/** Prefix internal route hrefs with the deployment basePath. */
+export function withBase(path) {
+  return publicAsset(path);
+}
+
 export function smoothScrollTo(target, duration = 800) {
   const targetElement = document.querySelector(target);
   if (!targetElement) return;

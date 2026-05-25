@@ -1,7 +1,7 @@
 "use client";
 
 import { RANKS } from "../data/builders";
-import { publicAsset } from "../../home/utils";
+import { publicAsset, withBase } from "../../home/utils";
 
 function StarIcon({ className = "w-3.5 h-3.5" }) {
   return (
@@ -26,7 +26,7 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
 
   return (
     <a
-      href={`/builders/profile/${builder.username}`}
+      href={withBase(`/builders/profile/${builder.username}`)}
       className="offer-card glass rounded-3xl overflow-hidden flex flex-col group cursor-pointer"
       style={{ animationDelay: `${animationDelay}ms` }}
     >
