@@ -835,10 +835,6 @@ body {
     display: none !important;
   }
 
-  body,
-  html {
-    overflow-x: hidden;
-  }
 }
 
 /* LARGE / WIDE SCREENS (>1800px) */

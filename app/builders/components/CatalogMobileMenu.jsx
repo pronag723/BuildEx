@@ -17,7 +17,7 @@ export default function CatalogMobileMenu({
   return (
     <div
       id="mobile-menu"
-      className={`mobile-menu fixed inset-0 z-[95] flex flex-col pt-24 px-6 pb-8 lg:hidden ${
+      className={`mobile-menu fixed inset-0 z-[70] flex flex-col pt-24 px-6 pb-8 lg:hidden ${
         mobileMenuOpen ? "open" : ""
       }`}
       aria-hidden={!mobileMenuOpen}
