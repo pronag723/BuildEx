@@ -64,22 +64,18 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
           </span>
         </div>
 
-        {/* Rank badge — top left */}
-        <div className={`absolute top-3 left-3 px-2.5 py-1 rounded-full text-xs font-semibold border backdrop-blur-sm ${rank.bgClass} ${rank.textClass} ${rank.borderClass}`}>
-          {rank.label}
-        </div>
-
-        {/* Online indicator — top right */}
+        {/* Online indicator — top left */}
         {builder.online ? (
-          <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full text-xs bg-black/60 text-[#4ade80] backdrop-blur-sm border border-[#4ade80]/30 flex items-center gap-1.5">
+          <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full text-xs bg-black/60 text-[#4ade80] backdrop-blur-sm border border-[#4ade80]/30 flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80] online-dot" />
             Online
           </div>
         ) : (
-          <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full text-xs bg-black/50 text-white/60 backdrop-blur-sm border border-white/10">
+          <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full text-xs bg-black/50 text-white/60 backdrop-blur-sm border border-white/10">
             Offline
           </div>
         )}
+
 
         {/* Portfolio count — bottom left */}
         <div className="absolute bottom-3 left-3 px-2.5 py-1 rounded-full text-xs bg-black/60 text-white/70 backdrop-blur-sm border border-white/10">
@@ -99,9 +95,14 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
             decoding="async"
           />
           <div className="min-w-0 flex-1">
-            <p className="text-base font-bold truncate leading-tight">
-              {builder.display_name}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-base font-bold truncate leading-tight">
+                {builder.display_name}
+              </p>
+              <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border flex-shrink-0 ${rank.bgClass} ${rank.textClass} ${rank.borderClass}`}>
+                {rank.label}
+              </span>
+            </div>
             <p className="text-xs text-gray-500">@{builder.username}</p>
             <div className="flex items-center gap-1.5 mt-1">
               <StarIcon className="w-3 h-3 text-amber-400" />
