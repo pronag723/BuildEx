@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { navItems } from "./home/data";
 import { smoothScrollTo, showSoon } from "./home/utils";
 import Navbar from "./home/components/Navbar";
@@ -12,13 +13,13 @@ import WhyBuildExSection from "./home/components/WhyBuildExSection";
 import SiteFooter from "./home/components/SiteFooter";
 
 export default function BuildExPage() {
+  const router = useRouter();
   const [activeSection, setActiveSection] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [theme, setTheme] = useState(null);
   const gradientRef = useRef(null);
   const edgeGlowRef = useRef(null);
   const heroVisualRef = useRef(null);
-  const projectScrollRef = useRef(null);
 
   useEffect(() => {
     const savedTheme = window.localStorage.getItem("theme");
@@ -275,22 +276,6 @@ export default function BuildExPage() {
   }, []);
 
   useEffect(() => {
-    const projectScroll = projectScrollRef.current;
-    if (!projectScroll) return undefined;
-
-    const preventDefault = (event) => event.preventDefault();
-    projectScroll.addEventListener("touchmove", preventDefault, {
-      passive: false
-    });
-    projectScroll.ondragstart = () => false;
-
-    return () => {
-      projectScroll.removeEventListener("touchmove", preventDefault);
-      projectScroll.ondragstart = null;
-    };
-  }, []);
-
-  useEffect(() => {
     document.body.style.overflow = mobileMenuOpen ? "hidden" : "";
     return () => {
       document.body.style.overflow = "";
@@ -319,6 +304,13 @@ export default function BuildExPage() {
     event.preventDefault();
     setMobileMenuOpen(false);
 
+    // Route paths (e.g. "/builders") — real client-side navigation
+    if (href && href.startsWith("/")) {
+      router.push(href);
+      return;
+    }
+
+    // Hash anchors (e.g. "#projects") — smooth scroll
     if (href && href !== "#") {
       smoothScrollTo(href);
       return;
@@ -358,10 +350,7 @@ export default function BuildExPage() {
           onAnchorClick={handleAnchorClick}
           onShowSoon={showSoon}
         />
-        <ProjectsSection
-          projectScrollRef={projectScrollRef}
-          onAnchorClick={handleAnchorClick}
-        />
+        <ProjectsSection onAnchorClick={handleAnchorClick} />
         <HowItWorksSection />
         <WhyBuildExSection />
       </main>

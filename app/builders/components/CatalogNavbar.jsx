@@ -1,0 +1,95 @@
+"use client";
+
+const catalogNavItems = [
+  { href: "/", label: "Home" },
+  { href: "/builders", label: "Browse Builders", active: true },
+  { href: "/#how-it-works", label: "How It Works" },
+  { href: "/#why-buildex", label: "Why BuildEx" },
+];
+
+export default function CatalogNavbar({
+  isLight,
+  setTheme,
+  mobileMenuOpen,
+  setMobileMenuOpen,
+  onShowSoon,
+}) {
+  return (
+    <nav className="catalog-navbar fixed top-3.5 left-1/2 -translate-x-1/2 z-[80] w-full nav-wrapper px-6">
+      <div className="glass nav-pill flex items-center justify-between shadow-2xl">
+        {/* Logo */}
+        <a href="/" className="flex items-center gap-3 no-underline flex-shrink-0">
+          <div className="w-9 h-9 bg-[#4ade80] rounded-2xl flex items-center justify-center text-black font-bold text-2xl logo-font flex-shrink-0">
+            B
+          </div>
+          <span className="text-2xl font-bold tracking-tight logo-font nav-logo-text">
+            Build<span className="text-[#4ade80] font-extrabold">Ex</span>
+          </span>
+        </a>
+
+        {/* Desktop nav links */}
+        <div className="hidden lg:flex items-center nav-links-gap nav-text font-medium">
+          {catalogNavItems.map((item) => (
+            <a
+              key={item.label}
+              href={item.href}
+              className={`nav-link hover:text-[#4ade80] transition-colors whitespace-nowrap ${
+                item.active ? "active text-[#4ade80]" : ""
+              }`}
+            >
+              {item.label}
+            </a>
+          ))}
+        </div>
+
+        {/* Controls */}
+        <div className="flex items-center nav-controls-gap flex-shrink-0">
+          {/* Theme toggle */}
+          <button
+            id="theme-toggle"
+            type="button"
+            className="theme-switch relative w-14 h-7 flex items-center rounded-full transition-all duration-300 bg-white/10 border border-white/20 hover:border-white/40 flex-shrink-0"
+            aria-label="Toggle color theme"
+            onClick={() =>
+              setTheme((t) => (t === "light" ? "dark" : "light"))
+            }
+          >
+            <span className="theme-switch-thumb absolute left-1 w-5 h-5 rounded-full bg-[#0f172a] shadow-lg transition-all duration-300 flex items-center justify-center text-xs">
+              {isLight ? "☀️" : "🌙"}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onShowSoon("Login flow coming soon")}
+            className="nav-btn-ghost nav-btn-text font-medium rounded-full border border-white/20 hover:border-white/40 transition-all ghost-btn whitespace-nowrap hidden sm:block"
+          >
+            Log in
+          </button>
+          <button
+            type="button"
+            onClick={() => onShowSoon("Sign up flow coming soon")}
+            className="nav-btn-primary nav-btn-text font-semibold rounded-full bg-[#4ade80] text-black transition-all green-glow whitespace-nowrap hidden sm:block"
+          >
+            Join as Builder
+          </button>
+
+          {/* Burger */}
+          <button
+            type="button"
+            className={`lg:hidden flex flex-col justify-center items-center w-9 h-9 gap-1.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 transition-all ${
+              mobileMenuOpen ? "active" : ""
+            }`}
+            aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+            onClick={() => setMobileMenuOpen((v) => !v)}
+            id="burger-btn"
+          >
+            <span className="burger-line w-5 h-0.5 bg-current rounded-full transition-all duration-300" />
+            <span className="burger-line w-5 h-0.5 bg-current rounded-full transition-all duration-300" />
+            <span className="burger-line w-5 h-0.5 bg-current rounded-full transition-all duration-300" />
+          </button>
+        </div>
+      </div>
+    </nav>
+  );
+}

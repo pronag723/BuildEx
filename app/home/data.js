@@ -1,5 +1,5 @@
 export const navItems = [
-  { href: "#projects", label: "Find a Builder" },
+  { href: "/builders", label: "Find a Builder" },
   { href: "#projects", label: "Find Work" },
   { href: "#how-it-works", label: "How It Works" },
   { href: "#why-buildex", label: "Why Buildex" }

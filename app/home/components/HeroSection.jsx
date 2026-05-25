@@ -4,7 +4,7 @@ export default function HeroSection({ heroVisualRef, onAnchorClick, onShowSoon }
   return (
     <section
       id="hero"
-      className="min-h-screen flex items-center hero-pt relative overflow-hidden"
+      className="flex items-center hero-pt relative overflow-hidden"
     >
       <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 hero-gap items-center hero-height relative z-10 w-full">
         <div className="space-y-8 hero-text-space text-center lg:text-left">
@@ -23,8 +23,8 @@ export default function HeroSection({ heroVisualRef, onAnchorClick, onShowSoon }
           </p>
           <div className="flex flex-wrap gap-4 justify-center lg:justify-start">
             <a
-              href="#projects"
-              onClick={(event) => onAnchorClick(event, "#projects")}
+              href="/builders"
+              onClick={(event) => onAnchorClick(event, "/builders")}
               className="hero-btn-primary px-8 py-4 bg-[#4ade80] text-black font-semibold rounded-full hover:scale-105 transition-all green-glow inline-block text-center"
             >
               Browse Builders
@@ -128,6 +128,26 @@ export default function HeroSection({ heroVisualRef, onAnchorClick, onShowSoon }
           </div>
         </div>
       </div>
+
+      <a
+        href="#projects"
+        className="hero-next-link"
+        aria-label="Scroll to projects"
+        onClick={(event) => onAnchorClick(event, "#projects")}
+      >
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          className="h-6 w-6"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.25"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </a>
     </section>
   );
 }

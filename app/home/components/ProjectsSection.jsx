@@ -42,7 +42,7 @@ function ProjectSet({ setIndex }) {
   );
 }
 
-export default function ProjectsSection({ projectScrollRef, onAnchorClick }) {
+export default function ProjectsSection({ onAnchorClick }) {
   return (
     <section id="projects" className="py-32 reveal">
       <div className="w-full px-6">
@@ -71,7 +71,6 @@ export default function ProjectsSection({ projectScrollRef, onAnchorClick }) {
 
         <div className="overflow-hidden min-h-[500px] flex items-center fade-edges">
           <div
-            ref={projectScrollRef}
             className="flex gap-6 project-scroll whitespace-nowrap w-max"
             onMouseDown={(event) => event.preventDefault()}
           >
