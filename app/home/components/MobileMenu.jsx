@@ -1,14 +1,14 @@
 "use client";
 
 import { withBase } from "../utils";
+import { AuthMobileControls } from "../../auth/components/AuthNavControls";
 
 export default function MobileMenu({
   navItems,
   activeSection,
   mobileMenuOpen,
   setMobileMenuOpen,
-  onAnchorClick,
-  onShowSoon
+  onAnchorClick
 }) {
   return (
     <div
@@ -37,20 +37,7 @@ export default function MobileMenu({
           </a>
         ))}
         <div className="border-t border-white/10 mt-4 pt-6 flex flex-col gap-3">
-          <button
-            type="button"
-            onClick={() => onShowSoon("Login flow coming soon")}
-            className="w-full py-3.5 text-base font-medium rounded-2xl border border-white/20 hover:border-white/40 transition-all ghost-btn"
-          >
-            Log in
-          </button>
-          <button
-            type="button"
-            onClick={() => onShowSoon("Sign up flow coming soon")}
-            className="w-full py-3.5 text-base font-semibold rounded-2xl bg-[#4ade80] text-black transition-all green-glow"
-          >
-            Join as Builder
-          </button>
+          <AuthMobileControls onAfter={() => setMobileMenuOpen(false)} />
         </div>
       </div>
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { withBase } from "../utils";
+import AuthNavControls from "../../auth/components/AuthNavControls";
 
 export default function Navbar({
   navItems,
@@ -9,8 +10,7 @@ export default function Navbar({
   setMobileMenuOpen,
   isLight,
   setTheme,
-  onAnchorClick,
-  onShowSoon
+  onAnchorClick
 }) {
   return (
     <nav className="fixed top-3.5 left-1/2 -translate-x-1/2 z-50 w-full nav-wrapper px-6">
@@ -63,20 +63,7 @@ export default function Navbar({
             </span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => onShowSoon("Login flow coming soon")}
-            className="nav-btn-ghost nav-btn-text font-medium rounded-full border border-white/20 hover:border-white/40 transition-all ghost-btn whitespace-nowrap hidden sm:block"
-          >
-            Log in
-          </button>
-          <button
-            type="button"
-            onClick={() => onShowSoon("Sign up flow coming soon")}
-            className="nav-btn-primary nav-btn-text font-semibold rounded-full bg-[#4ade80] text-black transition-all green-glow whitespace-nowrap hidden sm:block"
-          >
-            Join as Builder
-          </button>
+          <AuthNavControls />
 
           <button
             id="burger-btn"

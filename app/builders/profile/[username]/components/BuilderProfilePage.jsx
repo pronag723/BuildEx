@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect, useCallback, useRef } from "react";
 import CatalogNavbar from "../../../components/CatalogNavbar";
 import CatalogMobileMenu from "../../../components/CatalogMobileMenu";
@@ -7,6 +8,7 @@ import SiteFooter from "../../../../home/components/SiteFooter";
 import { RANKS } from "../../../data/builders";
 import { getBuilderReviews, getBuilderRatingBreakdown } from "../../../data/reviews";
 import { publicAsset, withBase } from "../../../../home/utils";
+import { useAuthGate } from "../../../../../lib/auth/useAuthGate";
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 function IconStar({ className = "w-4 h-4" }) {
@@ -320,10 +322,22 @@ export default function BuilderProfilePage({ builder }) {
   const rank = RANKS[builder.rank];
   const reviews = getBuilderReviews(builder.username);
 
+  const gate = useAuthGate();
+
   const showSoon = useCallback((msg) => {
     setToast(msg);
     setTimeout(() => setToast(null), 3500);
   }, []);
+
+  const requireAuthThenSoon = useCallback(
+    (msg) => {
+      gate(() => {
+        setToast(msg);
+        setTimeout(() => setToast(null), 3500);
+      });
+    },
+    [gate]
+  );
 
   // Theme init
   useEffect(() => {
@@ -449,19 +463,19 @@ export default function BuilderProfilePage({ builder }) {
           {/* Breadcrumb + back button */}
           <div className="flex items-center justify-between gap-4 mb-6 detail-fade-up flex-wrap">
             <nav className="flex items-center gap-1.5 text-sm text-gray-500 flex-wrap" aria-label="Breadcrumb">
-              <a href={withBase("/")} className="hover:text-[#4ade80] transition-colors">Home</a>
+              <Link href={withBase("/")} className="hover:text-[#4ade80] transition-colors">Home</Link>
               <IconChevron className="w-3 h-3 opacity-50" />
-              <a href={withBase("/builders")} className="hover:text-[#4ade80] transition-colors">Builders</a>
+              <Link href={withBase("/builders")} className="hover:text-[#4ade80] transition-colors">Builders</Link>
               <IconChevron className="w-3 h-3 opacity-50" />
               <span className="truncate max-w-[200px] sm:max-w-xs" aria-current="page">{builder.display_name}</span>
             </nav>
-            <a
+            <Link
               href={withBase("/builders")}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold border border-[#4ade80]/30 text-[#4ade80] bg-[#4ade80]/10 hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.35)] transition-all"
             >
               <IconChevron className="w-3 h-3 rotate-180" />
               Back to Builders
-            </a>
+            </Link>
           </div>
 
           {/* ── Hero header ───────────────────────────────────────────────── */}
@@ -643,7 +657,7 @@ export default function BuilderProfilePage({ builder }) {
 
             {/* RIGHT: Sticky contact sidebar */}
             <div className="hidden lg:block lg:sticky lg:top-24 lg:self-start">
-              <ContactSidebar builder={builder} onShowSoon={showSoon} />
+              <ContactSidebar builder={builder} onShowSoon={requireAuthThenSoon} />
             </div>
           </div>
         </div>
@@ -660,7 +674,7 @@ export default function BuilderProfilePage({ builder }) {
           </div>
           <button
             type="button"
-            onClick={() => showSoon("Messaging coming soon!")}
+            onClick={() => requireAuthThenSoon("Messaging coming soon!")}
             className="flex-1 py-3 rounded-full bg-[#4ade80] text-black font-bold text-sm green-glow flex items-center justify-center gap-1.5"
           >
             <IconChat className="w-4 h-4" />
@@ -668,7 +682,7 @@ export default function BuilderProfilePage({ builder }) {
           </button>
           <button
             type="button"
-            onClick={() => showSoon("Quote request flow coming soon!")}
+            onClick={() => requireAuthThenSoon("Quote request flow coming soon!")}
             className="py-3 px-4 rounded-full border border-[#4ade80]/40 text-[#4ade80] font-semibold text-sm hover:bg-[#4ade80]/10 transition-all flex items-center gap-1.5 flex-shrink-0"
           >
             <IconQuote className="w-4 h-4" />

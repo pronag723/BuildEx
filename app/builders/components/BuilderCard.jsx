@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { RANKS } from "../data/builders";
 import { publicAsset, withBase } from "../../home/utils";
 
@@ -25,7 +26,7 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
   const cols = Math.max(previews.length, 1);
 
   return (
-    <a
+    <Link
       href={withBase(`/builders/profile/${builder.username}`)}
       className="offer-card glass rounded-3xl overflow-hidden flex flex-col group cursor-pointer"
       style={{ animationDelay: `${animationDelay}ms` }}
@@ -156,6 +157,6 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
           </span>
         </div>
       </div>
-    </a>
+    </Link>
   );
 }

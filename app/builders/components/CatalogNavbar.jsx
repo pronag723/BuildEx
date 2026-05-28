@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { withBase } from "../../home/utils";
+import AuthNavControls from "../../auth/components/AuthNavControls";
 
 const catalogNavItems = [
   { href: withBase("/"), label: "Home" },
@@ -20,19 +22,19 @@ export default function CatalogNavbar({
     <nav className="catalog-navbar fixed top-3.5 left-1/2 -translate-x-1/2 z-[80] w-full nav-wrapper px-6">
       <div className="glass nav-pill flex items-center justify-between shadow-2xl">
         {/* Logo */}
-        <a href={withBase("/")} className="flex items-center gap-3 no-underline flex-shrink-0">
+        <Link href={withBase("/")} className="flex items-center gap-3 no-underline flex-shrink-0">
           <div className="w-9 h-9 bg-[#4ade80] rounded-2xl flex items-center justify-center text-black font-bold text-2xl logo-font flex-shrink-0">
             B
           </div>
           <span className="text-2xl font-bold tracking-tight logo-font nav-logo-text">
             Build<span className="text-[#4ade80] font-extrabold">Ex</span>
           </span>
-        </a>
+        </Link>
 
         {/* Desktop nav links */}
         <div className="hidden lg:flex items-center nav-links-gap nav-text font-medium">
           {catalogNavItems.map((item) => (
-            <a
+            <Link
               key={item.label}
               href={item.href}
               className={`nav-link hover:text-[#4ade80] transition-colors whitespace-nowrap ${
@@ -40,7 +42,7 @@ export default function CatalogNavbar({
               }`}
             >
               {item.label}
-            </a>
+            </Link>
           ))}
         </div>
 
@@ -61,20 +63,7 @@ export default function CatalogNavbar({
             </span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => onShowSoon("Login flow coming soon")}
-            className="nav-btn-ghost nav-btn-text font-medium rounded-full border border-white/20 hover:border-white/40 transition-all ghost-btn whitespace-nowrap hidden sm:block"
-          >
-            Log in
-          </button>
-          <button
-            type="button"
-            onClick={() => onShowSoon("Sign up flow coming soon")}
-            className="nav-btn-primary nav-btn-text font-semibold rounded-full bg-[#4ade80] text-black transition-all green-glow whitespace-nowrap hidden sm:block"
-          >
-            Join as Builder
-          </button>
+          <AuthNavControls />
 
           {/* Burger */}
           <button

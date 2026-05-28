@@ -333,7 +333,6 @@ export default function BuildExPage() {
         isLight={isLight}
         setTheme={setTheme}
         onAnchorClick={handleAnchorClick}
-        onShowSoon={showSoon}
       />
       <MobileMenu
         navItems={navItems}
@@ -341,7 +340,6 @@ export default function BuildExPage() {
         mobileMenuOpen={mobileMenuOpen}
         setMobileMenuOpen={setMobileMenuOpen}
         onAnchorClick={handleAnchorClick}
-        onShowSoon={showSoon}
       />
 
       <main>

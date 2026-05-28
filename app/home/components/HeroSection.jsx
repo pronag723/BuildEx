@@ -1,8 +1,10 @@
 "use client";
 
 import { withBase } from "../utils";
+import { useAuthGate } from "../../../lib/auth/useAuthGate";
 
 export default function HeroSection({ heroVisualRef, onAnchorClick, onShowSoon }) {
+  const gate = useAuthGate();
   return (
     <section
       id="hero"
@@ -33,7 +35,7 @@ export default function HeroSection({ heroVisualRef, onAnchorClick, onShowSoon }
             </a>
             <button
               type="button"
-              onClick={() => onShowSoon("Project posting coming soon")}
+              onClick={() => gate(() => onShowSoon("Project posting coming soon"))}
               className="hero-btn-secondary px-8 py-4 border border-white/30 hover:border-white/60 font-medium rounded-full transition-all post-project-btn"
             >
               Post a Project

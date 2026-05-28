@@ -1,4 +1,5 @@
 import "./globals.css";
+import Providers from "./providers";
 
 export const metadata = {
   title: "BuildEx - Minecraft Builder Marketplace",
@@ -8,9 +9,14 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className="scroll-smooth dark" suppressHydrationWarning>
+    <html
+      lang="en"
+      className="scroll-smooth dark"
+      data-scroll-behavior="smooth"
+      suppressHydrationWarning
+    >
       <body className="overflow-x-hidden transition-colors duration-300 relative">
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

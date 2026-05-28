@@ -43,8 +43,11 @@ export const STYLES = [
   { key: "medieval", label: "Medieval", emoji: "🏰" },
   { key: "fantasy", label: "Fantasy", emoji: "✨" },
   { key: "sci-fi", label: "Sci-Fi", emoji: "🚀" },
+  { key: "cyberpunk", label: "Cyberpunk", emoji: "🌃" },
   { key: "modern", label: "Modern", emoji: "🏙️" },
+  { key: "realistic", label: "Realistic", emoji: "📷" },
   { key: "organic", label: "Organic", emoji: "🌿" },
+  { key: "terrain", label: "Terrain", emoji: "⛰️" },
   { key: "pvp", label: "PvP", emoji: "⚔️" },
   { key: "other", label: "Other", emoji: "🎨" },
 ];
@@ -54,9 +57,12 @@ export const BUILD_TYPES = [
   { key: "lobby", label: "Lobby" },
   { key: "hub", label: "Hub" },
   { key: "arena", label: "Arena" },
-  { key: "decoration", label: "Decoration" },
+  { key: "map", label: "Map" },
+  { key: "terrain", label: "Terrain" },
   { key: "kingdom", label: "Kingdom" },
   { key: "village", label: "Village" },
+  { key: "decoration", label: "Decoration" },
+  { key: "commission", label: "Custom Commission" },
 ];
 
 export const SORT_OPTIONS = [

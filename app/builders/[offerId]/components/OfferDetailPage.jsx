@@ -5,6 +5,7 @@ import CatalogNavbar from "../../components/CatalogNavbar";
 import CatalogMobileMenu from "../../components/CatalogMobileMenu";
 import SiteFooter from "../../../home/components/SiteFooter";
 import { withBase } from "../../../home/utils";
+import { useAuthGate } from "../../../../lib/auth/useAuthGate";
 import {
   RANKS,
   BUILDER_PROFILES,
@@ -469,11 +470,25 @@ export default function OfferDetailPage({ offer }) {
   const features = detail.features || FEATURES_BY_TYPE[offer.build_type] || [];
   const reviews = getOfferReviews(offer.id);
 
-  // Supabase messaging architecture: create/open conversation per builder+buyer pair
+  const gate = useAuthGate();
+
+  // Toast helper for navbar "coming soon" actions (no auth required)
   const showSoon = useCallback((msg) => {
     setToast(msg);
     setTimeout(() => setToast(null), 3500);
   }, []);
+
+  // Auth-gated action: if logged in, show the coming-soon toast.
+  // If logged out, redirect to /login with this offer as the return path.
+  const requireAuthThenSoon = useCallback(
+    (msg) => {
+      gate(() => {
+        setToast(msg);
+        setTimeout(() => setToast(null), 3500);
+      });
+    },
+    [gate]
+  );
 
   // Theme init
   useEffect(() => {
@@ -598,7 +613,7 @@ export default function OfferDetailPage({ offer }) {
 
             {/* RIGHT: Sticky sidebar (desktop only) */}
             <div className="hidden lg:block lg:sticky lg:top-24 lg:self-start">
-              <OrderSidebar offer={offer} rank={rank} profile={profile} onShowSoon={showSoon} />
+              <OrderSidebar offer={offer} rank={rank} profile={profile} onShowSoon={requireAuthThenSoon} />
             </div>
           </div>
         </div>
@@ -615,7 +630,7 @@ export default function OfferDetailPage({ offer }) {
           </div>
           <button
             type="button"
-            onClick={() => showSoon("Checkout flow coming soon!")}
+            onClick={() => requireAuthThenSoon("Checkout flow coming soon!")}
             className="flex-1 py-3 rounded-full bg-[#4ade80] text-black font-bold text-sm green-glow flex items-center justify-center gap-1.5"
           >
             Place Order
@@ -623,7 +638,7 @@ export default function OfferDetailPage({ offer }) {
           </button>
           <button
             type="button"
-            onClick={() => showSoon("Messaging system coming soon!")}
+            onClick={() => requireAuthThenSoon("Messaging system coming soon!")}
             className="py-3 px-4 rounded-full border border-[#4ade80]/40 text-[#4ade80] font-semibold text-sm hover:bg-[#4ade80]/10 hover:border-[#4ade80] transition-all flex items-center gap-1.5 flex-shrink-0"
           >
             <IconChat className="w-4 h-4" />
