@@ -57,51 +57,74 @@ function IconQuote({ className = "w-5 h-5" }) {
   );
 }
 
-// ─── Portfolio card ──────────────────────────────────────────────────────────
-function PortfolioItem({ item, animationDelay = 0 }) {
+// ─── Portfolio carousel ──────────────────────────────────────────────────────
+function PortfolioCarousel({ items }) {
+  const [index, setIndex] = useState(0);
+  const count = items.length;
+
+  const go = (dir) => setIndex((i) => (i + dir + count) % count);
+
   return (
-    <div
-      className="portfolio-card related-card glass rounded-2xl overflow-hidden flex flex-col group flex-shrink-0"
-      style={{ animation: `cardEnter 0.5s cubic-bezier(0.4, 0, 0.2, 1) both`, animationDelay: `${animationDelay}ms` }}
-    >
-      <div className="relative aspect-[16/10] overflow-hidden flex-shrink-0">
-        <img
-          src={publicAsset(item.thumbnail)}
-          alt={item.title}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.06]"
-          loading="lazy"
-          decoding="async"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent pointer-events-none" />
+    <div className="group/media relative rounded-3xl overflow-hidden glass">
+      <div
+        className="flex transition-transform duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]"
+        style={{ transform: `translateX(-${index * 100}%)` }}
+      >
+        {items.map((item) => (
+          <div key={item.id} className="relative w-full flex-shrink-0 aspect-[16/9] overflow-hidden">
+            <img
+              src={publicAsset(item.thumbnail)}
+              alt={item.title}
+              className="w-full h-full object-cover"
+              loading="lazy"
+              decoding="async"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
 
-        {/* Style tag */}
-        <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full text-xs bg-black/55 text-white/85 backdrop-blur-sm border border-white/10 capitalize">
-          {item.style}
-        </div>
-
-        {/* Build type */}
-        <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full text-xs bg-black/55 text-white/85 backdrop-blur-sm border border-white/10 capitalize">
-          {item.build_type}
-        </div>
-
-        {item.featured && (
-          <div className="absolute bottom-3 left-3 px-2.5 py-1 rounded-full text-xs bg-[#4ade80]/20 text-[#4ade80] backdrop-blur-sm border border-[#4ade80]/30 font-semibold flex items-center gap-1">
-            <IconStar className="w-3 h-3" /> Featured
+            {item.featured && (
+              <div className="absolute bottom-4 left-4 px-3 py-1 rounded-full text-xs bg-[#4ade80]/20 text-[#4ade80] backdrop-blur-sm border border-[#4ade80]/30 font-semibold flex items-center gap-1">
+                <IconStar className="w-3 h-3" /> Featured
+              </div>
+            )}
           </div>
-        )}
+        ))}
       </div>
 
-      <div className="p-4 flex flex-col gap-2">
-        <h3 className="font-bold text-sm leading-snug line-clamp-2">{item.title}</h3>
-        <div className="flex flex-wrap gap-1.5">
-          {item.tags.slice(0, 3).map((t) => (
-            <span key={t} className="px-2 py-0.5 text-[10px] rounded-full bg-white/5 border border-white/10 text-gray-500">
-              #{t}
-            </span>
-          ))}
-        </div>
-        <p className="text-[11px] text-gray-500 mt-1">Completed in {item.year}</p>
-      </div>
+      {count > 1 && (
+        <>
+          <button
+            type="button"
+            aria-label="Previous build"
+            onClick={() => go(-1)}
+            className="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-[#4ade80]/25 text-white border border-[#4ade80]/50 backdrop-blur-md shadow-[0_2px_10px_rgba(0,0,0,0.3)] hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.55)] transition-all duration-200"
+          >
+            <IconChevron className="w-5 h-5 rotate-180" />
+          </button>
+          <button
+            type="button"
+            aria-label="Next build"
+            onClick={() => go(1)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-[#4ade80]/25 text-white border border-[#4ade80]/50 backdrop-blur-md shadow-[0_2px_10px_rgba(0,0,0,0.3)] hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.55)] transition-all duration-200"
+          >
+            <IconChevron className="w-5 h-5" />
+          </button>
+
+          {/* Slide dots */}
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2">
+            {items.map((item, i) => (
+              <button
+                key={item.id}
+                type="button"
+                aria-label={`Go to build ${i + 1}`}
+                onClick={() => setIndex(i)}
+                className={`h-2 rounded-full transition-all duration-200 ${
+                  i === index ? "w-6 bg-[#4ade80]" : "w-2 bg-white/50 hover:bg-white/80"
+                }`}
+              />
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -311,7 +334,7 @@ function ReviewsSection({ reviews, builder }) {
 
 // ─── Main page ───────────────────────────────────────────────────────────────
 export default function BuilderProfilePage({ builder }) {
-  const [theme, setTheme] = useState("dark");
+  const [theme, setTheme] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [toast, setToast] = useState(null);
 
@@ -341,11 +364,12 @@ export default function BuilderProfilePage({ builder }) {
 
   // Theme init
   useEffect(() => {
-    const saved = window.localStorage.getItem("theme") || "dark";
-    setTheme(saved);
+    const saved = window.localStorage.getItem("theme");
+    setTheme(saved === "light" ? "light" : "dark");
   }, []);
 
   useEffect(() => {
+    if (!theme) return;
     const html = document.documentElement;
     html.classList.toggle("light", isLight);
     html.classList.toggle("dark", !isLight);
@@ -562,15 +586,7 @@ export default function BuilderProfilePage({ builder }) {
                     This builder hasn&apos;t added portfolio entries yet.
                   </div>
                 ) : (
-                  <div className="portfolio-scroll-wrapper fade-edges -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
-                    <div className="portfolio-scroll flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory">
-                      {builder.portfolio.map((item, i) => (
-                        <div key={item.id} className="snap-start">
-                          <PortfolioItem item={item} animationDelay={i * 60} />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  <PortfolioCarousel items={builder.portfolio} />
                 )}
               </section>
 

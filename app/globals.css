@@ -623,6 +623,33 @@ body {
   transform: translateY(0);
 }
 
+/* Profile dropdown — same blur + entrance/exit feel as the burger menu */
+.profile-menu {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-10px) scale(0.97);
+  transform-origin: top right;
+  background: rgba(28, 28, 28, 0.72);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  transition:
+    opacity 0.25s ease,
+    visibility 0.25s ease,
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.profile-menu.open {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+
+.light .profile-menu {
+  background: rgba(255, 255, 255, 0.82);
+}
+
 .mobile-nav-link {
   display: block;
   padding: 14px 16px;
@@ -1296,6 +1323,7 @@ body {
    ──────────────────────────────────────────────────────────────────────────── */
 
 /* Muted / secondary text */
+.light .catalog-root .text-gray-300 { color: #334155; } /* slate-700 */
 .light .catalog-root .text-gray-400 { color: #475569; } /* slate-600 */
 .light .catalog-root .text-gray-500 { color: #64748b; } /* slate-500 */
 .light .catalog-root .text-gray-600 { color: #475569; }

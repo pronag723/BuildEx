@@ -73,7 +73,7 @@ function BuilderPortfolioStep({ state }) {
       </div>
 
       <OnboardingFooter
-        onBack={() => router.push(`${withBase(STEPS.builderStyles)}?revisit=1`)}
+        onBack={() => router.push(`${withBase(STEPS.builderRates)}?revisit=1`)}
         onNext={handleFinish}
         nextDisabled={!canFinish}
         isSaving={saving}

@@ -55,7 +55,7 @@ function BuilderStylesStep({ state }) {
       return;
     }
     await refresh?.();
-    router.push(withBase(STEPS.builderPortfolio));
+    router.push(withBase(STEPS.builderRates));
   }
 
   return (

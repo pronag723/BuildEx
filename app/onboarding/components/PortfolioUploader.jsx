@@ -34,6 +34,11 @@ export default function PortfolioUploader({ userId, onCountChange, onError }) {
   const [loading, setLoading] = useState(true);
   const [dragOver, setDragOver] = useState(false);
 
+  // Keep the latest onCountChange without making `refresh` depend on it (the
+  // account page passes a fresh inline function every render).
+  const onCountChangeRef = useRef(onCountChange);
+  onCountChangeRef.current = onCountChange;
+
   const refresh = useCallback(async () => {
     const supabase = getSupabaseClient();
     if (!supabase || !userId) return;
@@ -43,8 +48,7 @@ export default function PortfolioUploader({ userId, onCountChange, onError }) {
       return;
     }
     setImages(rows);
-    onCountChange?.(rows.length);
-  }, [userId, onCountChange]);
+  }, [userId, onError]);
 
   useEffect(() => {
     let active = true;
@@ -54,6 +58,14 @@ export default function PortfolioUploader({ userId, onCountChange, onError }) {
       active = false;
     };
   }, [refresh]);
+
+  // Notify the parent of count changes from a passive effect — never from
+  // inside a render-phase state updater, which would trigger a setState in
+  // AuthProvider mid-render ("Cannot update a component while rendering...").
+  useEffect(() => {
+    if (loading) return;
+    onCountChangeRef.current?.(images.length);
+  }, [images.length, loading]);
 
   function fileToValid(file) {
     if (!PORTFOLIO_ACCEPTED_MIME.includes(file.type)) {
@@ -112,11 +124,7 @@ export default function PortfolioUploader({ userId, onCountChange, onError }) {
       onError?.(dbErr?.message || "Failed to save uploaded image.");
       return;
     }
-    setImages((prev) => {
-      const next = [...prev, image];
-      onCountChange?.(next.length);
-      return next;
-    });
+    setImages((prev) => [...prev, image]);
   }
 
   async function handleFiles(fileList) {
@@ -149,12 +157,10 @@ export default function PortfolioUploader({ userId, onCountChange, onError }) {
     const prevImages = images;
     const next = images.filter((i) => i.id !== id);
     setImages(next);
-    onCountChange?.(next.length);
     const { error } = await deletePortfolioImage(supabase, userId, id);
     if (error) {
       onError?.(error.message || "Failed to delete image.");
       setImages(prevImages);
-      onCountChange?.(prevImages.length);
     }
   }
 

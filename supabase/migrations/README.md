@@ -8,6 +8,9 @@ migrations are idempotent (safe to re-run during development).
 | 0001 | `0001_profiles_base.sql` | Baseline `profiles` table from the README, plus a case-insensitive uniqueness index on the `@handle`. Skip if you already created this table per the README. |
 | 0002 | `0002_onboarding_schema.sql` | New profile columns (banner, interests, server type, onboarding flag) + `builder_profiles` + `portfolio_images` tables with RLS. |
 | 0003 | `0003_storage_buckets.sql` | Creates `avatars`, `banners`, and `portfolios` Storage buckets (public read, owner-only write to their `<user_id>/...` subfolder). |
+| 0004 | `0004_builder_tools.sql` | Adds `builder_profiles.tools` (the builder's toolset), replacing the legacy years-of-experience question. |
+| 0005 | `0005_builder_rates.sql` | Adds `builder_profiles.rates` (jsonb) — the builder's self-set pricing tiers (block area → price range per build scale). |
+| 0006 | `0006_delete_account.sql` | Adds the `delete_own_account()` SECURITY DEFINER function so a signed-in user can permanently delete their own account (cascades to profiles + builder data). |
 
 ## Field mapping (matches the app code)
 
@@ -29,5 +32,7 @@ migrations are idempotent (safe to re-run during development).
 | Project types | `builder_profiles.project_types` | `text[]` — commissions, collaborations, etc. |
 | Response time (hours) | `builder_profiles.response_time_hours` | Integer; used by future SLA logic. |
 | Availability | `builder_profiles.availability_status` / `is_available` | Display + filter flag. |
+| Tools | `builder_profiles.tools` | `text[]` of tool keys (WorldEdit, VoxelSniper, ...). |
+| Rates | `builder_profiles.rates` | `jsonb` — per-scale `{ blocks, from, to }` pricing tiers the builder sets themselves. |
 | Portfolio image | `portfolio_images.url` | Public URL in `portfolios` bucket. |
 | Portfolio order | `portfolio_images.position` | Lower position = shown first. |

@@ -21,7 +21,6 @@ import OnboardingShell from "../components/OnboardingShell";
 import OnboardingGate from "../components/OnboardingGate";
 import OnboardingFooter from "../components/OnboardingFooter";
 import AvatarUploader from "../components/AvatarUploader";
-import BannerUploader from "../components/BannerUploader";
 import ChipGrid from "../components/ChipGrid";
 import HandleInput from "../components/HandleInput";
 
@@ -44,7 +43,9 @@ function ClientProfileStep({ state }) {
   const [handle, setHandle] = useState(p.username || "");
   const [handleValid, setHandleValid] = useState(Boolean(p.username));
   const [avatarUrl, setAvatarUrl] = useState(p.avatar_url || null);
-  const [bannerUrl, setBannerUrl] = useState(p.banner_url || null);
+  // Banner/background is no longer collected during onboarding. We still read
+  // and pass through any previously stored value so a re-save doesn't wipe it.
+  const [bannerUrl] = useState(p.banner_url || null);
   const [bio, setBio] = useState(p.bio || "");
   const [interests, setInterests] = useState(
     Array.isArray(p.interests) ? p.interests : []
@@ -123,8 +124,17 @@ function ClientProfileStep({ state }) {
       <div className="text-center mb-8 onb-fade-in onb-fade-in-1">
         <h1 className="onb-section-title">Set up your client profile</h1>
         <p className="onb-section-sub mt-3 mx-auto">
-          Help builders understand what you&apos;re looking for. You can edit any of this later from your account.
+          Help builders understand what you&apos;re looking for.
         </p>
+      </div>
+
+      <div className="onb-fade-in onb-fade-in-1 mb-6">
+        <div className="glass rounded-2xl border border-[#4ade80]/20 bg-[#4ade80]/[0.06] px-4 py-3 flex items-start gap-3">
+          <span className="text-[#4ade80] text-lg leading-none mt-0.5" aria-hidden="true">ℹ️</span>
+          <p className="text-sm text-gray-300 leading-relaxed">
+            Nothing here is permanent — you can change everything on this page anytime from your account settings.
+          </p>
+        </div>
       </div>
 
       <div className="space-y-6">
@@ -167,16 +177,10 @@ function ClientProfileStep({ state }) {
           />
         </div>
 
-        {/* Banner + avatar */}
+        {/* Avatar */}
         <div className="glass onb-card onb-fade-in onb-fade-in-2">
-          <div className="onb-label mb-4">Cover &amp; avatar</div>
-          <BannerUploader
-            userId={user?.id}
-            value={bannerUrl}
-            onChange={setBannerUrl}
-            onError={setError}
-          />
-          <div className="-mt-12 pl-6 flex items-end gap-5">
+          <div className="onb-label mb-4">Avatar</div>
+          <div className="flex items-end gap-5">
             <AvatarUploader
               userId={user?.id}
               value={avatarUrl}

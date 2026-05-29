@@ -458,7 +458,7 @@ function OrderSidebar({ offer, rank, profile, onShowSoon }) {
 
 // ─── Main page component ──────────────────────────────────────────────────────
 export default function OfferDetailPage({ offer }) {
-  const [theme, setTheme] = useState("dark");
+  const [theme, setTheme] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [toast, setToast] = useState(null);
 
@@ -492,11 +492,12 @@ export default function OfferDetailPage({ offer }) {
 
   // Theme init
   useEffect(() => {
-    const saved = window.localStorage.getItem("theme") || "dark";
-    setTheme(saved);
+    const saved = window.localStorage.getItem("theme");
+    setTheme(saved === "light" ? "light" : "dark");
   }, []);
 
   useEffect(() => {
+    if (!theme) return;
     const html = document.documentElement;
     if (isLight) {
       html.classList.add("light");

@@ -1,14 +1,18 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRequireAuth } from "../../lib/auth/useRequireAuth";
 import { useAuth } from "../../lib/auth/AuthContext";
 import { getSupabaseClient } from "../../lib/supabase/client";
 import {
+  deleteOwnAccount,
   fetchOnboardingState,
   listPortfolioImages,
+  saveBuilderAvailability,
   saveBuilderExpertise,
   saveBuilderIdentity,
+  saveBuilderRates,
   saveBuilderStyles,
   saveClientProfile,
 } from "../../lib/onboarding/api";
@@ -18,6 +22,8 @@ import {
   BUILD_TYPES,
   BUILDER_TOOLS,
   CLIENT_INTEREST_STYLES,
+  DISPLAY_NAME_MAX,
+  DISPLAY_NAME_MIN,
   PROJECT_TYPES,
   RESPONSE_TIMES,
   SERVER_TYPES,
@@ -29,17 +35,49 @@ import CatalogNavbar from "../builders/components/CatalogNavbar";
 import CatalogMobileMenu from "../builders/components/CatalogMobileMenu";
 import SiteFooter from "../home/components/SiteFooter";
 import AvatarUploader from "../onboarding/components/AvatarUploader";
-import BannerUploader from "../onboarding/components/BannerUploader";
 import ChipGrid from "../onboarding/components/ChipGrid";
+import HandleInput from "../onboarding/components/HandleInput";
 import PortfolioUploader from "../onboarding/components/PortfolioUploader";
+import {
+  RATE_TIERS,
+  RateCardPreview,
+  RateEditor,
+  mergeRates,
+  normalizeRates,
+  validateRates,
+} from "../onboarding/components/RatesFields";
 
 const TAGLINE_MAX = 80;
+
+// #rrggbb → rgba(), used for the availability slider's tinted highlight.
+function hexToRgba(hex, alpha = 1) {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || "");
+  if (!m) return `rgba(74,222,128,${alpha})`;
+  const r = parseInt(m[1], 16);
+  const g = parseInt(m[2], 16);
+  const b = parseInt(m[3], 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+function responseLabel(hours) {
+  if (hours == null) return null;
+  return (RESPONSE_TIMES.find((r) => r.hours >= hours) || RESPONSE_TIMES.at(-1))?.label || null;
+}
 
 function IconPencil({ className = "w-4 h-4" }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+    </svg>
+  );
+}
+
+function IconClockSmall({ className = "w-4 h-4" }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 6v6l4 2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -80,6 +118,113 @@ function SectionHeader({ title, editing, onEdit, onCancel, onSave, saving, canSa
         </button>
       )}
     </div>
+  );
+}
+
+// ─── Availability (builders) ─────────────────────────────────────────────────
+// A 3-state segmented slider that saves the moment a state is picked — no
+// separate edit/confirm step.
+function AvailabilitySection({ builderProfile, onSaved }) {
+  const { user } = useAuth();
+  const saved = builderProfile?.availability_status || "available";
+  const [value, setValue] = useState(saved);
+  const [status, setStatus] = useState("idle"); // idle | saving | saved | error
+  const statusTimer = useRef(null);
+
+  // Re-sync if the profile is refreshed elsewhere.
+  useEffect(() => {
+    setValue(saved);
+  }, [saved]);
+
+  useEffect(() => () => clearTimeout(statusTimer.current), []);
+
+  const idx = Math.max(0, AVAILABILITY_STATES.findIndex((a) => a.key === value));
+  const active = AVAILABILITY_STATES[idx] || AVAILABILITY_STATES[0];
+
+  async function choose(key) {
+    if (key === value && status !== "error") return;
+    const prev = value;
+    setValue(key); // optimistic
+    setStatus("saving");
+    clearTimeout(statusTimer.current);
+
+    const supabase = getSupabaseClient();
+    if (!supabase || !user?.id) {
+      setValue(prev);
+      setStatus("error");
+      return;
+    }
+    const { error } = await saveBuilderAvailability(supabase, user.id, key);
+    if (error) {
+      setValue(prev);
+      setStatus("error");
+      return;
+    }
+    setStatus("saved");
+    statusTimer.current = setTimeout(() => setStatus("idle"), 1800);
+    onSaved?.();
+  }
+
+  return (
+    <section className="reveal glass rounded-3xl p-6 lg:p-8">
+      <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
+        <h2 className="font-bold text-xl">Availability</h2>
+        <span
+          className={`text-xs font-medium transition-opacity duration-300 inline-flex items-center gap-1.5 ${
+            status === "idle" ? "opacity-0" : "opacity-100"
+          } ${status === "error" ? "text-red-300" : "text-[#4ade80]"}`}
+        >
+          {status === "saving" && (
+            <span className="w-3 h-3 rounded-full border-2 border-[#4ade80]/40 border-t-[#4ade80] animate-spin" />
+          )}
+          {status === "saving" && "Saving…"}
+          {status === "saved" && "✓ Saved"}
+          {status === "error" && "Couldn't save — try again"}
+        </span>
+      </div>
+      <p className="text-xs text-gray-500 mb-4">
+        Let clients know whether you&apos;re taking on new commissions. Changes save instantly.
+      </p>
+
+      <div
+        className="relative grid grid-cols-3 p-1 rounded-full bg-white/[0.04] border border-white/10"
+        role="radiogroup"
+        aria-label="Availability"
+      >
+        {/* Sliding highlight */}
+        <span
+          aria-hidden="true"
+          className="absolute inset-y-1 left-1 rounded-full transition-transform duration-300 ease-out"
+          style={{
+            width: "calc((100% - 0.5rem) / 3)",
+            transform: `translateX(calc(${idx} * 100%))`,
+            backgroundColor: hexToRgba(active.dot, 0.16),
+            boxShadow: `0 0 0 1px ${hexToRgba(active.dot, 0.5)}, 0 0 14px ${hexToRgba(active.dot, 0.22)}`,
+          }}
+        />
+        {AVAILABILITY_STATES.map((opt) => {
+          const isActive = opt.key === value;
+          return (
+            <button
+              key={opt.key}
+              type="button"
+              role="radio"
+              aria-checked={isActive}
+              onClick={() => choose(opt.key)}
+              className={`relative z-10 flex items-center justify-center gap-2 py-2.5 px-2 rounded-full text-xs sm:text-sm font-semibold transition-colors ${
+                isActive ? "text-white" : "text-gray-400 hover:text-gray-200"
+              }`}
+            >
+              <span
+                className="w-2 h-2 rounded-full flex-shrink-0"
+                style={{ background: opt.dot, boxShadow: isActive ? `0 0 10px ${opt.dot}` : "none" }}
+              />
+              <span className="truncate">{opt.short || opt.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -319,7 +464,6 @@ function ExpertiseSection({ builderProfile, onSaved }) {
   const [tools, setTools] = useState(builderProfile?.tools || []);
   const [projectTypes, setProjectTypes] = useState(builderProfile?.project_types || []);
   const [responseKey, setResponseKey] = useState(pickResponse(builderProfile?.response_time_hours));
-  const [availability, setAvailability] = useState(builderProfile?.availability_status || "available");
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
 
@@ -327,7 +471,6 @@ function ExpertiseSection({ builderProfile, onSaved }) {
     setTools(builderProfile?.tools || []);
     setProjectTypes(builderProfile?.project_types || []);
     setResponseKey(pickResponse(builderProfile?.response_time_hours));
-    setAvailability(builderProfile?.availability_status || "available");
     setError(null);
     setEditing(true);
   }
@@ -341,7 +484,9 @@ function ExpertiseSection({ builderProfile, onSaved }) {
       tools,
       projectTypes,
       responseTimeHours,
-      availabilityStatus: availability,
+      // Availability is managed by its own section now — preserve the saved
+      // value so saving tools/response doesn't reset it.
+      availabilityStatus: builderProfile?.availability_status || "available",
     });
     setSaving(false);
     if (err) {
@@ -356,14 +501,11 @@ function ExpertiseSection({ builderProfile, onSaved }) {
   const respLabel = RESPONSE_TIMES.find(
     (r) => r.key === pickResponse(builderProfile?.response_time_hours)
   )?.label;
-  const availMeta = AVAILABILITY_STATES.find(
-    (a) => a.key === (builderProfile?.availability_status || "available")
-  );
 
   return (
     <section className="reveal glass rounded-3xl p-6 lg:p-8">
       <SectionHeader
-        title="Tools & availability"
+        title="Tools & response"
         editing={editing}
         onEdit={startEdit}
         onCancel={() => setEditing(false)}
@@ -401,25 +543,6 @@ function ExpertiseSection({ builderProfile, onSaved }) {
               multi={false}
             />
           </div>
-          <div>
-            <div className="onb-label mb-3">Availability</div>
-            <div className="flex flex-wrap gap-2">
-              {AVAILABILITY_STATES.map((opt) => {
-                const active = availability === opt.key;
-                return (
-                  <button
-                    key={opt.key}
-                    type="button"
-                    onClick={() => setAvailability(opt.key)}
-                    className={`availability-pill ${active ? "is-active" : ""}`}
-                  >
-                    <span className="availability-dot" style={{ background: opt.dot, boxShadow: `0 0 10px ${opt.dot}` }} />
-                    <span>{opt.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
           {error && <div role="alert" className="auth-banner auth-banner-error">{error}</div>}
         </div>
       ) : (
@@ -444,15 +567,6 @@ function ExpertiseSection({ builderProfile, onSaved }) {
           <div>
             <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Response time</p>
             <p className="text-sm text-gray-200">{respLabel || "Not set"}</p>
-          </div>
-          <div>
-            <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Availability</p>
-            {availMeta && (
-              <p className="text-sm text-gray-200 inline-flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full" style={{ background: availMeta.dot, boxShadow: `0 0 10px ${availMeta.dot}` }} />
-                {availMeta.label}
-              </p>
-            )}
           </div>
           <div>
             <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Open to</p>
@@ -539,13 +653,101 @@ function PortfolioSection({ portfolioCount, onSaved }) {
           No builds in your portfolio yet. Click <strong>Manage portfolio</strong> to add some.
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-          {images.map((img) => (
-            <div key={img.id} className="glass rounded-2xl overflow-hidden aspect-[16/10] relative">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={img.url} alt={img.alt || ""} className="w-full h-full object-cover" loading="lazy" />
-            </div>
+        <div className="portfolio-scroll-wrapper fade-edges -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
+          <div className="portfolio-scroll flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory">
+            {images.map((img) => (
+              <div key={img.id} className="snap-start portfolio-card related-card glass rounded-2xl overflow-hidden flex-shrink-0">
+                <div className="relative aspect-[16/10] overflow-hidden">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={img.url} alt={img.alt || ""} className="w-full h-full object-cover" loading="lazy" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+// ─── Rates (builders) ───────────────────────────────────────────────────────
+function RatesSection({ builderProfile, onSaved }) {
+  const { user } = useAuth();
+  const [editing, setEditing] = useState(false);
+  const [rates, setRates] = useState(() => mergeRates(builderProfile?.rates));
+  const [error, setError] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  const hasRates = !!builderProfile?.rates && Object.keys(builderProfile.rates).length > 0;
+  const savedRates = mergeRates(builderProfile?.rates);
+
+  function startEdit() {
+    setRates(mergeRates(builderProfile?.rates));
+    setError(null);
+    setEditing(true);
+  }
+
+  async function save() {
+    const msg = validateRates(rates);
+    if (msg) {
+      setError(msg);
+      return;
+    }
+    const supabase = getSupabaseClient();
+    if (!supabase || !user?.id) return;
+    setSaving(true);
+    const { error: err } = await saveBuilderRates(supabase, user.id, normalizeRates(rates));
+    setSaving(false);
+    if (err) {
+      setError(err.message || "Couldn't save.");
+      return;
+    }
+    setEditing(false);
+    await onSaved?.();
+  }
+
+  return (
+    <section className="reveal glass rounded-3xl p-6 lg:p-8">
+      <SectionHeader
+        title="Rates & Project Scale"
+        editing={editing}
+        onEdit={startEdit}
+        onCancel={() => setEditing(false)}
+        onSave={save}
+        saving={saving}
+        canSave={!validateRates(rates)}
+      />
+      <p className="text-xs text-gray-500 -mt-2 mb-5">
+        Set a price range for each build scale based on its block area. Clients see these as
+        estimated ranges — final quotes always stay negotiable.
+      </p>
+
+      {editing ? (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {RATE_TIERS.map((tier) => (
+              <RateEditor
+                key={tier.key}
+                tier={tier}
+                value={rates[tier.key]}
+                onChange={(v) => setRates((prev) => ({ ...prev, [tier.key]: v }))}
+              />
+            ))}
+          </div>
+          {error && <div role="alert" className="auth-banner auth-banner-error">{error}</div>}
+        </div>
+      ) : hasRates ? (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {RATE_TIERS.map((tier) => (
+            <RateCardPreview key={tier.key} tier={tier} value={savedRates[tier.key]} />
           ))}
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-dashed border-white/15 p-8 text-center">
+          <p className="text-gray-400 text-sm">You haven&apos;t set your rates yet.</p>
+          <p className="text-gray-500 text-xs mt-1">
+            Click <strong>Edit</strong> to add a price range for each build scale.
+          </p>
         </div>
       )}
     </section>
@@ -643,33 +845,232 @@ function ClientPreferencesSection({ profile, onSaved }) {
   );
 }
 
-// ─── Hero header (banner + avatar + name) ───────────────────────────────────
+// ─── Account actions + danger zone ───────────────────────────────────────────
+function AccountActionsSection() {
+  const { user, signOut } = useAuth();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState(null);
+
+  const canDelete = confirmText.trim().toUpperCase() === "DELETE";
+
+  function openConfirm() {
+    setConfirmText("");
+    setError(null);
+    setConfirmOpen(true);
+  }
+
+  function closeConfirm() {
+    if (deleting) return;
+    setConfirmOpen(false);
+  }
+
+  async function handleDelete() {
+    if (!canDelete || deleting) return;
+    const supabase = getSupabaseClient();
+    if (!supabase || !user?.id) return;
+    setDeleting(true);
+    setError(null);
+    const { error: err } = await deleteOwnAccount(supabase);
+    if (err) {
+      setDeleting(false);
+      const missingFn =
+        err.code === "PGRST202" ||
+        /could not find the function|delete_own_account/i.test(err.message || "");
+      setError(
+        missingFn
+          ? "Account deletion isn't enabled on the database yet. Run Supabase migration 0006 (delete_own_account), then try again."
+          : err.message || "Couldn't delete your account. Please try again."
+      );
+      return;
+    }
+    // The account row is gone — sign out clears the session and sends home.
+    await signOut("/");
+  }
+
+  // Close on Escape
+  useEffect(() => {
+    if (!confirmOpen) return undefined;
+    function onKey(e) {
+      if (e.key === "Escape") closeConfirm();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [confirmOpen, deleting]);
+
+  return (
+    <section className="reveal glass rounded-3xl p-6 lg:p-8">
+      <h2 className="font-bold text-xl mb-1">Account</h2>
+      <p className="text-xs text-gray-500 mb-5">Quick links and account controls.</p>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <a
+          href={withBase("/builders")}
+          className="py-3 px-4 text-sm font-medium rounded-2xl border border-white/15 hover:border-white/40 transition-all ghost-btn text-center"
+        >
+          Browse builders
+        </a>
+        <a
+          href={withBase("/")}
+          className="py-3 px-4 text-sm font-medium rounded-2xl border border-white/15 hover:border-white/40 transition-all ghost-btn text-center"
+        >
+          Back to home
+        </a>
+        <button
+          type="button"
+          onClick={() => signOut()}
+          className="py-3 px-4 text-sm font-semibold rounded-2xl border border-white/15 text-gray-200 hover:border-white/40 hover:bg-white/5 transition-all"
+        >
+          Log out
+        </button>
+      </div>
+
+      {/* Danger zone */}
+      <div className="mt-6 pt-6 border-t border-white/10">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-red-400/25 bg-red-500/[0.06] p-5">
+          <div className="min-w-0">
+            <h3 className="font-semibold text-red-200 text-sm">Delete account</h3>
+            <p className="text-xs text-gray-400 mt-1 max-w-md leading-relaxed">
+              Permanently remove your account and everything tied to it — profile, availability,
+              portfolio and rates. This can&apos;t be undone.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={openConfirm}
+            className="flex-shrink-0 py-2.5 px-5 text-sm font-semibold rounded-full bg-red-500/15 text-red-200 border border-red-400/40 hover:bg-red-500/25 hover:border-red-400/60 transition-all"
+          >
+            Delete account
+          </button>
+        </div>
+      </div>
+
+      {/* Confirmation modal — portaled to <body> so it escapes the .glass
+          ancestor (whose backdrop-filter would otherwise become the containing
+          block for this fixed overlay, breaking full-screen centering/dimming). */}
+      {confirmOpen && typeof document !== "undefined" && createPortal(
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-account-title"
+        >
+          <div
+            className="absolute inset-0 bg-black/75 backdrop-blur-md"
+            onClick={closeConfirm}
+          />
+          <div className="relative glass rounded-3xl p-6 sm:p-8 w-full max-w-md detail-fade-up shadow-2xl">
+            <div className="w-12 h-12 rounded-2xl bg-red-500/15 border border-red-400/30 flex items-center justify-center mb-4">
+              <svg viewBox="0 0 24 24" className="w-6 h-6 text-red-300" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <path d="M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <h3 id="delete-account-title" className="text-xl font-bold mb-2">
+              Delete your account?
+            </h3>
+            <p className="text-sm text-gray-400 leading-relaxed mb-5">
+              This permanently deletes your BuildEx account and all associated data — profile,
+              availability, portfolio images and rates.{" "}
+              <strong className="text-red-200">This action cannot be undone.</strong>
+            </p>
+            <label htmlFor="confirm-delete" className="onb-label block mb-2">
+              Type <span className="text-red-200 font-bold">DELETE</span> to confirm
+            </label>
+            <input
+              id="confirm-delete"
+              type="text"
+              className="onb-input"
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              placeholder="DELETE"
+              autoComplete="off"
+              autoFocus
+            />
+            {error && (
+              <div role="alert" className="auth-banner auth-banner-error mt-4">
+                {error}
+              </div>
+            )}
+            <div className="flex items-center justify-end gap-2 mt-6">
+              <button
+                type="button"
+                onClick={closeConfirm}
+                disabled={deleting}
+                className="px-4 py-2 rounded-full text-sm font-semibold border border-white/15 text-gray-300 hover:bg-white/5 transition-all disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting || !canDelete}
+                className="px-5 py-2 rounded-full text-sm font-bold bg-red-500 text-white hover:bg-red-600 transition-all disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-2"
+              >
+                {deleting && (
+                  <span className="w-3.5 h-3.5 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+                )}
+                {deleting ? "Deleting…" : "Delete account"}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+    </section>
+  );
+}
+
+// ─── Hero header (avatar + identity) ─────────────────────────────────────────
+// Mirrors the public builder profile hero (no banner) so what the builder edits
+// reads like what clients will eventually see.
 function AccountHeader({ profile, builderProfile, onSaved }) {
   const { user, updateProfile } = useAuth();
   const [editing, setEditing] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || null);
-  const [bannerUrl, setBannerUrl] = useState(profile?.banner_url || null);
+  const [displayName, setDisplayName] = useState(profile?.display_name || "");
+  const [handle, setHandle] = useState(profile?.username || "");
+  const [handleValid, setHandleValid] = useState(Boolean(profile?.username));
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
   const role = profile?.role;
   const isBuilder = role === "builder" || role === "both";
+
+  const trimmedName = displayName.trim();
+  const nameValid =
+    trimmedName.length >= DISPLAY_NAME_MIN && trimmedName.length <= DISPLAY_NAME_MAX;
+  const canSave = nameValid && handleValid && !!handle;
   // Builders carry a rank (rookie → master); show it instead of a bare "builder".
   const rankMeta = isBuilder ? RANKS[builderProfile?.rank] || RANKS.rookie : null;
 
+  const availability = AVAILABILITY_STATES.find(
+    (a) => a.key === (builderProfile?.availability_status || "available")
+  );
+  const respLabel = responseLabel(builderProfile?.response_time_hours);
+  const specialties = builderProfile?.specialties || [];
+
   function startEdit() {
     setAvatarUrl(profile?.avatar_url || null);
-    setBannerUrl(profile?.banner_url || null);
+    setDisplayName(profile?.display_name || "");
+    setHandle(profile?.username || "");
+    setHandleValid(Boolean(profile?.username));
     setError(null);
     setEditing(true);
   }
 
   async function save() {
+    if (!canSave) return;
     const supabase = getSupabaseClient();
     if (!supabase || !user?.id) return;
     setSaving(true);
+    setError(null);
     const payload = {
+      displayName: trimmedName,
+      handle,
       avatarUrl,
-      bannerUrl,
+      // Banner is no longer editable; preserve whatever's stored so we don't
+      // wipe it with a destructive write.
+      bannerUrl: profile?.banner_url ?? null,
       bio: profile?.bio ?? null,
     };
     const { error: err } = isBuilder
@@ -681,133 +1082,197 @@ function AccountHeader({ profile, builderProfile, onSaved }) {
         });
     setSaving(false);
     if (err) {
-      setError(err.message || "Couldn't save.");
+      if (err.code === "23505" || /duplicate|unique/i.test(err.message || "")) {
+        setError("That handle was just taken. Try another one.");
+        setHandleValid(false);
+      } else {
+        setError(err.message || "Couldn't save.");
+      }
       return;
     }
-    // Push the new avatar/banner into AuthContext right away so the navbar
-    // avatar updates immediately instead of waiting on the background re-fetch.
-    updateProfile?.({ avatar_url: avatarUrl ?? null, banner_url: bannerUrl ?? null });
+    // Push the new identity into AuthContext right away so the navbar avatar
+    // and name update immediately instead of waiting on the background re-fetch.
+    updateProfile?.({
+      avatar_url: avatarUrl ?? null,
+      display_name: trimmedName,
+      username: handle,
+    });
     setEditing(false);
     await onSaved?.();
   }
 
   return (
-    <header className="glass rounded-3xl overflow-hidden mb-8 detail-fade-up">
-      {/* Banner */}
-      <div className="relative">
-        {editing ? (
-          <div className="p-5">
-            <BannerUploader
+    <header className="glass rounded-3xl p-6 sm:p-8 mb-8 detail-fade-up">
+      <div className="flex flex-col sm:flex-row gap-6 items-start">
+        {/* Avatar */}
+        <div className="relative flex-shrink-0 mx-auto sm:mx-0">
+          {editing ? (
+            <AvatarUploader
               userId={user?.id}
-              value={bannerUrl}
-              onChange={setBannerUrl}
+              value={avatarUrl}
+              onChange={setAvatarUrl}
               onError={setError}
+              fallbackInitial={(profile?.display_name || "B").charAt(0).toUpperCase()}
+              size={112}
             />
-          </div>
-        ) : profile?.banner_url ? (
-          <div className="aspect-[5/1.6] sm:aspect-[6/1.5] w-full overflow-hidden">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={profile.banner_url} alt="" className="w-full h-full object-cover" />
-          </div>
-        ) : (
-          <div className="aspect-[5/1.6] sm:aspect-[6/1.5] w-full bg-gradient-to-br from-[#4ade80]/15 via-white/[0.04] to-transparent" />
-        )}
-      </div>
-
-      <div className="p-6 sm:p-8 -mt-12 sm:-mt-16 relative">
-        <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-end">
-          <div className="relative flex-shrink-0">
-            {editing ? (
-              <AvatarUploader
-                userId={user?.id}
-                value={avatarUrl}
-                onChange={setAvatarUrl}
-                onError={setError}
-                fallbackInitial={(profile?.display_name || "B").charAt(0).toUpperCase()}
-                size={112}
-              />
-            ) : profile?.avatar_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={profile.avatar_url}
-                alt={profile.display_name || ""}
-                className="w-28 h-28 rounded-3xl object-cover ring-4 ring-[#1a1a1a] shadow-xl"
-              />
-            ) : (
-              <div className="w-28 h-28 rounded-3xl bg-[#4ade80]/15 border border-[#4ade80]/40 ring-4 ring-[#1a1a1a] flex items-center justify-center text-[#4ade80] font-bold text-4xl">
-                {(profile?.display_name || "B").charAt(0).toUpperCase()}
-              </div>
-            )}
-          </div>
-
-          <div className="flex-1 min-w-0 pt-2 sm:pt-0">
-            <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight logo-font leading-tight">
-              {profile?.display_name || "Your name"}
-            </h1>
-            {role && (
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                {rankMeta && (
-                  <span
-                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${rankMeta.bgClass} ${rankMeta.textClass} ${rankMeta.borderClass}`}
-                  >
-                    <span
-                      className="w-1.5 h-1.5 rounded-full"
-                      style={{ background: rankMeta.dotColor }}
-                    />
-                    {rankMeta.label} {role === "both" ? "Builder & Client" : "Builder"}
-                  </span>
-                )}
-                {!rankMeta && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#4ade80]/15 border border-[#4ade80]/30 text-[#4ade80] capitalize">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80]" />
-                    {role}
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2 self-start sm:self-end">
-            {editing ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setEditing(false)}
-                  className="px-4 py-2 rounded-full text-xs font-semibold border border-white/15 text-gray-300 hover:bg-white/5 transition-all"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={save}
-                  disabled={saving}
-                  className="px-4 py-2 rounded-full text-xs font-bold bg-[#4ade80] text-black hover:bg-[#22c55e] transition-all disabled:opacity-50 inline-flex items-center gap-1.5"
-                >
-                  {saving && (
-                    <span className="w-3 h-3 rounded-full border-2 border-black/40 border-t-black animate-spin" />
-                  )}
-                  Save
-                </button>
-              </>
-            ) : (
-              <button
-                type="button"
-                onClick={startEdit}
-                className="px-3 py-2 rounded-full text-xs font-semibold border border-[#4ade80]/30 text-[#4ade80] bg-[#4ade80]/10 hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.35)] transition-all inline-flex items-center gap-1.5"
-              >
-                <IconPencil className="w-3.5 h-3.5" />
-                Edit cover &amp; avatar
-              </button>
-            )}
-          </div>
+          ) : (
+            <>
+              {profile?.avatar_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={profile.avatar_url}
+                  alt={profile.display_name || ""}
+                  className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl object-cover ring-2 ring-[#4ade80]/30 shadow-xl"
+                />
+              ) : (
+                <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-[#4ade80]/15 border border-[#4ade80]/40 ring-2 ring-[#4ade80]/30 flex items-center justify-center text-[#4ade80] font-bold text-4xl">
+                  {(profile?.display_name || "B").charAt(0).toUpperCase()}
+                </div>
+              )}
+              {isBuilder && availability && (
+                <span
+                  className="absolute bottom-1 right-1 w-5 h-5 rounded-full border-[3px] border-[#1a1a1a]"
+                  style={{ background: availability.dot, boxShadow: `0 0 10px ${availability.dot}` }}
+                  title={availability.label}
+                />
+              )}
+            </>
+          )}
         </div>
 
-        {error && (
-          <div role="alert" className="auth-banner auth-banner-error mt-4">
-            {error}
+        {/* Identity */}
+        <div className="w-full sm:w-auto sm:flex-1 min-w-0 text-center sm:text-left">
+          {editing ? (
+            <div className="space-y-4 text-left">
+              <div>
+                <label htmlFor="acc-display-name" className="onb-label block mb-2">
+                  Your name
+                </label>
+                <input
+                  id="acc-display-name"
+                  type="text"
+                  className={`onb-input ${
+                    displayName && !nameValid ? "is-error" : nameValid ? "is-success" : ""
+                  }`}
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value.slice(0, DISPLAY_NAME_MAX))}
+                  maxLength={DISPLAY_NAME_MAX}
+                  placeholder="Your name"
+                  autoComplete="off"
+                />
+                <p className="mt-1.5 text-xs text-gray-500">
+                  Shown big on your profile. {trimmedName.length}/{DISPLAY_NAME_MAX}
+                </p>
+              </div>
+              <HandleInput
+                value={handle}
+                onChange={setHandle}
+                currentUserId={user?.id}
+                onValidityChange={setHandleValid}
+                label="Your @nickname"
+                hint="Unique to you — used in your profile URL, mentions and DMs."
+              />
+            </div>
+          ) : (
+            <>
+          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2 gap-y-1.5 mb-1.5">
+            <h2 className="text-2xl sm:text-3xl font-extrabold leading-tight break-words min-w-0">
+              {profile?.display_name || "Your name"}
+            </h2>
+            {rankMeta && (
+              <span
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${rankMeta.bgClass} ${rankMeta.textClass} ${rankMeta.borderClass}`}
+              >
+                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: rankMeta.dotColor }} />
+                {rankMeta.label} {role === "both" ? "Builder & Client" : "Builder"}
+              </span>
+            )}
           </div>
-        )}
+
+          {profile?.username && (
+            <p className="text-sm text-gray-500 mb-3 break-all">@{profile.username}</p>
+          )}
+
+          {!rankMeta && role && (
+            <div className="flex justify-center sm:justify-start mb-3">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#4ade80]/15 border border-[#4ade80]/30 text-[#4ade80] capitalize">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80] flex-shrink-0" />
+                {role}
+              </span>
+            </div>
+          )}
+
+          {isBuilder && (
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-5 gap-y-2 text-sm text-gray-400 mb-4">
+              {availability && (
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full" style={{ background: availability.dot, boxShadow: `0 0 8px ${availability.dot}` }} />
+                  {availability.label}
+                </span>
+              )}
+              {respLabel && (
+                <span className="flex items-center gap-1.5">
+                  <IconClockSmall className="w-3.5 h-3.5" />
+                  Replies {respLabel.toLowerCase()}
+                </span>
+              )}
+            </div>
+          )}
+
+          {isBuilder && specialties.length > 0 && (
+            <div className="flex flex-wrap justify-center sm:justify-start gap-2">
+              {specialties.map((s) => (
+                <span key={s} className="px-3 py-1 rounded-full text-xs bg-white/5 border border-white/10 text-gray-400 capitalize">
+                  {s}
+                </span>
+              ))}
+            </div>
+          )}
+            </>
+          )}
+        </div>
+
+        {/* Edit identity control */}
+        <div className="flex items-center gap-2 self-center sm:self-start mx-auto sm:mx-0">
+          {editing ? (
+            <>
+              <button
+                type="button"
+                onClick={() => setEditing(false)}
+                className="px-4 py-2 rounded-full text-xs font-semibold border border-white/15 text-gray-300 hover:bg-white/5 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={save}
+                disabled={saving || !canSave}
+                className="px-4 py-2 rounded-full text-xs font-bold bg-[#4ade80] text-black hover:bg-[#22c55e] transition-all disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+              >
+                {saving && (
+                  <span className="w-3 h-3 rounded-full border-2 border-black/40 border-t-black animate-spin" />
+                )}
+                Save
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={startEdit}
+              className="px-3 py-2 rounded-full text-xs font-semibold border border-[#4ade80]/30 text-[#4ade80] bg-[#4ade80]/10 hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.35)] transition-all inline-flex items-center gap-1.5"
+            >
+              <IconPencil className="w-3.5 h-3.5" />
+              Edit profile
+            </button>
+          )}
+        </div>
       </div>
+
+      {error && (
+        <div role="alert" className="auth-banner auth-banner-error mt-4">
+          {error}
+        </div>
+      )}
     </header>
   );
 }
@@ -834,11 +1299,10 @@ function AccountPageInner() {
     user,
     profile: authProfile,
     profileLoaded,
-    signOut,
     refresh: refreshAuthProfile,
   } = useAuth();
 
-  const [theme, setTheme] = useState("dark");
+  const [theme, setTheme] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [toast, setToast] = useState(null);
   // AuthContext owns the profile row (hydrated from localStorage on mount,
@@ -854,6 +1318,11 @@ function AccountPageInner() {
   const gradientRef = useRef(null);
   const edgeGlowRef = useRef(null);
   const isLight = theme === "light";
+
+  // True once the main content (which mounts the gradient divs) is rendered.
+  // Flips false→true a single time, so the gradient effect below starts only
+  // after its target divs exist — and doesn't restart on later profile swaps.
+  const contentReady = status !== "loading" && !!profile;
 
   // `refresh` reads the latest profile only as a prefetch hint. We keep it in a
   // ref so `refresh`'s identity does NOT change when AuthContext swaps in a new
@@ -892,11 +1361,12 @@ function AccountPageInner() {
   }, []);
 
   useEffect(() => {
-    const saved = window.localStorage.getItem("theme") || "dark";
-    setTheme(saved);
+    const saved = window.localStorage.getItem("theme");
+    setTheme(saved === "light" ? "light" : "dark");
   }, []);
 
   useEffect(() => {
+    if (!theme) return;
     const html = document.documentElement;
     html.classList.toggle("light", isLight);
     html.classList.toggle("dark", !isLight);
@@ -958,7 +1428,7 @@ function AccountPageInner() {
     }
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, []);
+  }, [contentReady]);
 
   // Scroll reveal
   useEffect(() => {
@@ -1042,9 +1512,28 @@ function AccountPageInner() {
 
       <main className="relative z-10 pt-24 lg:pt-28 pb-20">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Page intro */}
+          <div className="mb-6 detail-fade-up">
+            <p className="text-xs font-semibold uppercase tracking-widest text-[#4ade80]/80 mb-1.5">
+              Profile settings
+            </p>
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight logo-font">
+              Your profile
+            </h1>
+            <p className="text-sm text-gray-500 mt-1.5">
+              {isBuilder
+                ? "Manage how you appear to clients across BuildEx — your identity, availability, portfolio and rates."
+                : "Manage your account details and building preferences."}
+            </p>
+          </div>
+
           <AccountHeader profile={profile} builderProfile={builderProfile} onSaved={refresh} />
 
           <div className="space-y-8">
+            {isBuilder && (
+              <AvailabilitySection builderProfile={builderProfile} onSaved={refresh} />
+            )}
+
             <AboutSection
               profile={profile}
               builderProfile={builderProfile}
@@ -1055,6 +1544,7 @@ function AccountPageInner() {
             {isBuilder && (
               <>
                 <PortfolioSection portfolioCount={portfolioCount} onSaved={refresh} />
+                <RatesSection builderProfile={builderProfile} onSaved={refresh} />
                 <SpecialtiesSection builderProfile={builderProfile} onSaved={refresh} />
                 <ExpertiseSection builderProfile={builderProfile} onSaved={refresh} />
               </>
@@ -1064,31 +1554,8 @@ function AccountPageInner() {
               <ClientPreferencesSection profile={profile} onSaved={refresh} />
             )}
 
-            {/* Account actions */}
-            <section className="reveal glass rounded-3xl p-6 lg:p-8">
-              <h2 className="font-bold text-xl mb-4">Account</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <a
-                  href={withBase("/builders")}
-                  className="py-3 px-4 text-sm font-medium rounded-2xl border border-white/15 hover:border-white/40 transition-all ghost-btn text-center"
-                >
-                  Browse builders
-                </a>
-                <a
-                  href={withBase("/")}
-                  className="py-3 px-4 text-sm font-medium rounded-2xl border border-white/15 hover:border-white/40 transition-all ghost-btn text-center"
-                >
-                  Back to home
-                </a>
-                <button
-                  type="button"
-                  onClick={() => signOut()}
-                  className="py-3 px-4 text-sm font-semibold rounded-2xl bg-red-500/15 text-red-200 border border-red-400/30 hover:bg-red-500/25 transition-all"
-                >
-                  Log out
-                </button>
-              </div>
-            </section>
+            {/* Account actions + danger zone */}
+            <AccountActionsSection />
           </div>
         </div>
       </main>

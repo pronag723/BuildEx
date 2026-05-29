@@ -1,21 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { withBase } from "../../home/utils";
+import { isNavActive, catalogNavItems } from "./navItems";
 import { AuthMobileControls } from "../../auth/components/AuthNavControls";
-
-const catalogNavItems = [
-  { href: withBase("/"), label: "Home" },
-  { href: withBase("/builders"), label: "Browse Builders", active: true },
-  { href: withBase("/#how-it-works"), label: "How It Works" },
-  { href: withBase("/#why-buildex"), label: "Why BuildEx" },
-];
 
 export default function CatalogMobileMenu({
   mobileMenuOpen,
   setMobileMenuOpen,
   onShowSoon,
 }) {
+  const pathname = usePathname();
+
   return (
     <div
       id="mobile-menu"
@@ -32,8 +29,8 @@ export default function CatalogMobileMenu({
         {catalogNavItems.map((item) => (
           <Link
             key={item.label}
-            href={item.href}
-            className={`mobile-nav-link nav-link ${item.active ? "active" : ""}`}
+            href={withBase(item.path)}
+            className={`mobile-nav-link nav-link ${isNavActive(pathname, item.path) ? "active" : ""}`}
             onClick={() => setMobileMenuOpen(false)}
           >
             {item.label}

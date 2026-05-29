@@ -1,15 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { withBase } from "../../home/utils";
+import { isNavActive, catalogNavItems } from "./navItems";
 import AuthNavControls from "../../auth/components/AuthNavControls";
-
-const catalogNavItems = [
-  { href: withBase("/"), label: "Home" },
-  { href: withBase("/builders"), label: "Browse Builders", active: true },
-  { href: withBase("/#how-it-works"), label: "How It Works" },
-  { href: withBase("/#why-buildex"), label: "Why BuildEx" },
-];
 
 export default function CatalogNavbar({
   isLight,
@@ -18,6 +13,8 @@ export default function CatalogNavbar({
   setMobileMenuOpen,
   onShowSoon,
 }) {
+  const pathname = usePathname();
+
   return (
     <nav className="catalog-navbar fixed top-3.5 left-1/2 -translate-x-1/2 z-[80] w-full nav-wrapper px-6">
       <div className="glass nav-pill flex items-center justify-between shadow-2xl">
@@ -36,9 +33,9 @@ export default function CatalogNavbar({
           {catalogNavItems.map((item) => (
             <Link
               key={item.label}
-              href={item.href}
+              href={withBase(item.path)}
               className={`nav-link hover:text-[#4ade80] transition-colors whitespace-nowrap ${
-                item.active ? "active text-[#4ade80]" : ""
+                isNavActive(pathname, item.path) ? "active text-[#4ade80]" : ""
               }`}
             >
               {item.label}

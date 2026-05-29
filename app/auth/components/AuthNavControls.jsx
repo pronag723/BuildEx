@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useAuth } from "../../../lib/auth/AuthContext";
 import { withBase } from "../../home/utils";
 
@@ -26,23 +28,46 @@ function Avatar({ user, size = 36 }) {
 export default function AuthNavControls() {
   const { status, displayUser, signOut } = useAuth();
   const [open, setOpen] = useState(false);
+  const [coords, setCoords] = useState(null);
+  const buttonRef = useRef(null);
   const menuRef = useRef(null);
+
+  // Anchor the portaled menu to the button. Right-aligned, 12px below it
+  // (matches the old mt-3). Recomputed on open, scroll and resize.
+  const reposition = useCallback(() => {
+    const rect = buttonRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    setCoords({
+      top: rect.bottom + 12,
+      right: Math.max(8, window.innerWidth - rect.right),
+    });
+  }, []);
 
   useEffect(() => {
     if (!open) return undefined;
+    reposition();
     function onClick(e) {
-      if (menuRef.current && !menuRef.current.contains(e.target)) setOpen(false);
+      if (
+        !buttonRef.current?.contains(e.target) &&
+        !menuRef.current?.contains(e.target)
+      ) {
+        setOpen(false);
+      }
     }
     function onKey(e) {
       if (e.key === "Escape") setOpen(false);
     }
     document.addEventListener("mousedown", onClick);
     document.addEventListener("keydown", onKey);
+    window.addEventListener("resize", reposition);
+    window.addEventListener("scroll", reposition, true);
     return () => {
       document.removeEventListener("mousedown", onClick);
       document.removeEventListener("keydown", onKey);
+      window.removeEventListener("resize", reposition);
+      window.removeEventListener("scroll", reposition, true);
     };
-  }, [open]);
+  }, [open, reposition]);
 
   if (status === "loading") {
     return (
@@ -55,8 +80,9 @@ export default function AuthNavControls() {
 
   if (status === "authenticated" && displayUser) {
     return (
-      <div className="relative" ref={menuRef}>
+      <div className="relative">
         <button
+          ref={buttonRef}
           type="button"
           onClick={() => setOpen((v) => !v)}
           className="flex items-center gap-2 sm:gap-3 pl-1 pr-1 sm:pr-3 py-1 rounded-full border border-white/15 hover:border-[#4ade80]/40 bg-white/5 hover:bg-white/10 transition-all"
@@ -90,10 +116,15 @@ export default function AuthNavControls() {
           </svg>
         </button>
 
-        {open && (
+        {typeof document !== "undefined" && createPortal(
           <div
+            ref={menuRef}
             role="menu"
-            className="absolute right-0 mt-3 w-64 glass rounded-2xl border border-white/10 shadow-2xl overflow-hidden z-[90]"
+            aria-hidden={!open}
+            style={coords ? { top: coords.top, right: coords.right } : { top: -9999, right: 0 }}
+            className={`profile-menu fixed w-64 glass rounded-2xl border border-white/10 shadow-2xl overflow-hidden z-[120] ${
+              open ? "open" : ""
+            }`}
           >
             <div className="px-4 py-4 border-b border-white/10 flex items-center gap-3">
               <Avatar user={displayUser} size={40} />
@@ -108,22 +139,17 @@ export default function AuthNavControls() {
               <Link
                 role="menuitem"
                 href={withBase("/account")}
+                tabIndex={open ? 0 : -1}
+                onClick={() => setOpen(false)}
                 className="flex items-center gap-3 px-4 py-2.5 hover:bg-white/5 transition-colors"
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80]" />
                 My profile
               </Link>
-              <Link
-                role="menuitem"
-                href={withBase("/builders")}
-                className="flex items-center gap-3 px-4 py-2.5 hover:bg-white/5 transition-colors"
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-white/30" />
-                Browse builders
-              </Link>
               <button
                 type="button"
                 role="menuitem"
+                tabIndex={open ? 0 : -1}
                 onClick={() => {
                   setOpen(false);
                   signOut();
@@ -134,7 +160,8 @@ export default function AuthNavControls() {
                 Log out
               </button>
             </nav>
-          </div>
+          </div>,
+          document.body
         )}
       </div>
     );
@@ -161,6 +188,8 @@ export default function AuthNavControls() {
 
 export function AuthMobileControls({ onAfter }) {
   const { status, displayUser, signOut } = useAuth();
+  const pathname = usePathname();
+  const onAccount = pathname === "/account";
 
   if (status === "loading") {
     return (
@@ -186,7 +215,12 @@ export function AuthMobileControls({ onAfter }) {
         <Link
           href={withBase("/account")}
           onClick={() => onAfter?.()}
-          className="w-full py-3.5 text-center text-base font-medium rounded-2xl border border-white/20 hover:border-white/40 transition-all ghost-btn"
+          aria-current={onAccount ? "page" : undefined}
+          className={`w-full py-3.5 text-center text-base font-medium rounded-2xl border transition-all ${
+            onAccount
+              ? "border-[#4ade80]/50 text-[#4ade80] bg-[#4ade80]/10"
+              : "border-white/20 hover:border-white/40 ghost-btn"
+          }`}
         >
           My profile
         </Link>
