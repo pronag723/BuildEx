@@ -33,6 +33,32 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Fail loudly if the Supabase secrets weren't wired into the build.
+      # Without them the deployed site bakes empty strings into the JS bundle,
+      # auth shows "isn't configured", and the failure is silent at deploy
+      # time. Most common cause: secrets added as Environment secrets instead
+      # of Repository secrets (this `build` job has no `environment:` field
+      # so it can only see Repository secrets).
+      - name: Verify Supabase secrets are available
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: |
+          missing=0
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then
+            echo "::error::NEXT_PUBLIC_SUPABASE_URL is empty. Add it under Settings -> Secrets and variables -> Actions -> Repository secrets (NOT Environment secrets)."
+            missing=1
+          else
+            echo "NEXT_PUBLIC_SUPABASE_URL is set (length=${#NEXT_PUBLIC_SUPABASE_URL})"
+          fi
+          if [ -z "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ]; then
+            echo "::error::NEXT_PUBLIC_SUPABASE_ANON_KEY is empty. Add it under Settings -> Secrets and variables -> Actions -> Repository secrets (NOT Environment secrets)."
+            missing=1
+          else
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY is set (length=${#NEXT_PUBLIC_SUPABASE_ANON_KEY})"
+          fi
+          exit $missing
+
       - name: Build static site
         run: npm run build
         env:
