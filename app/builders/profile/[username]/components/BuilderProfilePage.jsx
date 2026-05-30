@@ -359,10 +359,13 @@ export default function BuilderProfilePage({ builder }) {
   // visitors are routed to /login first, then back here. The /chats page resolves
   // the @handle to the builder and starts the conversation.
   const contactBuilder = useCallback(() => {
+    // Next prepends the deployment basePath to router.push automatically, so the
+    // path must stay base-less here — wrapping it in withBase() would double the
+    // prefix (/BuildEx/BuildEx/chats) and 404 on GitHub Pages.
     const target = `/chats?to=${encodeURIComponent(builder.username)}`;
     gate(
       () => {
-        router.push(withBase(target));
+        router.push(target);
       },
       { redirectTo: target }
     );
