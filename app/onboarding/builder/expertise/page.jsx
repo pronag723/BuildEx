@@ -69,7 +69,7 @@ function BuilderExpertiseStep({ state }) {
       return;
     }
     await refresh?.();
-    router.push(withBase(STEPS.builderStyles));
+    router.push(STEPS.builderStyles);
   }
 
   return (
@@ -158,7 +158,7 @@ function BuilderExpertiseStep({ state }) {
       </div>
 
       <OnboardingFooter
-        onBack={() => router.push(`${withBase(STEPS.builderIdentity)}?revisit=1`)}
+        onBack={() => router.push(`${STEPS.builderIdentity}?revisit=1`)}
         onNext={handleContinue}
         nextDisabled={!canContinue}
         isSaving={saving}

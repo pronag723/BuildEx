@@ -100,7 +100,7 @@ function BuilderIdentityStep({ state }) {
       bio: bio.trim() || null,
     });
     await refresh?.();
-    router.push(withBase(STEPS.builderExpertise));
+    router.push(STEPS.builderExpertise);
   }
 
   return (
@@ -235,7 +235,7 @@ function BuilderIdentityStep({ state }) {
       </div>
 
       <OnboardingFooter
-        onBack={() => router.push(`${withBase(STEPS.role)}?revisit=1`)}
+        onBack={() => router.push(`${STEPS.role}?revisit=1`)}
         onNext={handleContinue}
         nextDisabled={!canContinue}
         isSaving={saving}

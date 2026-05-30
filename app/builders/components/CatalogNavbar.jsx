@@ -19,7 +19,7 @@ export default function CatalogNavbar({
     <nav className="catalog-navbar fixed top-3.5 left-1/2 -translate-x-1/2 z-[80] w-full nav-wrapper px-6">
       <div className="glass nav-pill flex items-center justify-between shadow-2xl">
         {/* Logo */}
-        <Link href={withBase("/")} className="flex items-center gap-3 no-underline flex-shrink-0">
+        <Link href="/" className="flex items-center gap-3 no-underline flex-shrink-0">
           <div className="w-9 h-9 bg-[#4ade80] rounded-2xl flex items-center justify-center text-black font-bold text-2xl logo-font flex-shrink-0">
             B
           </div>
@@ -33,7 +33,7 @@ export default function CatalogNavbar({
           {catalogNavItems.map((item) => (
             <Link
               key={item.label}
-              href={withBase(item.path)}
+              href={item.path}
               className={`nav-link hover:text-[#4ade80] transition-colors whitespace-nowrap ${
                 isNavActive(pathname, item.path) ? "active text-[#4ade80]" : ""
               }`}

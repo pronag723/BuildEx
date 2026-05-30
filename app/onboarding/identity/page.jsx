@@ -82,7 +82,7 @@ function IdentityStep({ state }) {
         : role === "builder" || role === "both"
         ? STEPS.builderIdentity
         : STEPS.role;
-    router.push(withBase(next));
+    router.push(next);
   }
 
   return (
@@ -156,7 +156,7 @@ function IdentityStep({ state }) {
       </div>
 
       <OnboardingFooter
-        onBack={() => router.push(`${withBase(STEPS.role)}?revisit=1`)}
+        onBack={() => router.push(`${STEPS.role}?revisit=1`)}
         onNext={handleContinue}
         nextDisabled={!canContinue}
         isSaving={saving}

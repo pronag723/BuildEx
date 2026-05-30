@@ -488,14 +488,14 @@ export default function BuilderProfilePage({ builder }) {
           {/* Breadcrumb + back button */}
           <div className="flex items-center justify-between gap-4 mb-6 detail-fade-up flex-wrap">
             <nav className="flex items-center gap-1.5 text-sm text-gray-500 flex-wrap" aria-label="Breadcrumb">
-              <Link href={withBase("/")} className="hover:text-[#4ade80] transition-colors">Home</Link>
+              <Link href="/" className="hover:text-[#4ade80] transition-colors">Home</Link>
               <IconChevron className="w-3 h-3 opacity-50" />
-              <Link href={withBase("/builders")} className="hover:text-[#4ade80] transition-colors">Builders</Link>
+              <Link href="/builders" className="hover:text-[#4ade80] transition-colors">Builders</Link>
               <IconChevron className="w-3 h-3 opacity-50" />
               <span className="truncate max-w-[200px] sm:max-w-xs" aria-current="page">{builder.display_name}</span>
             </nav>
             <Link
-              href={withBase("/builders")}
+              href="/builders"
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold border border-[#4ade80]/30 text-[#4ade80] bg-[#4ade80]/10 hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.35)] transition-all"
             >
               <IconChevron className="w-3 h-3 rotate-180" />

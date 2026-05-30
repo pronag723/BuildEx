@@ -31,7 +31,7 @@ export default function OnboardingCompletePage() {
       // If they landed here without completing onboarding for some reason,
       // bounce them back to the start of the flow.
       if (row && !row.onboarding_completed_at) {
-        router.replace(withBase(STEPS.role));
+        router.replace(STEPS.role);
       }
     }
     load();

@@ -45,7 +45,7 @@ function RoleStep({ state }) {
       return;
     }
     await refresh?.();
-    router.push(withBase(STEPS.identity));
+    router.push(STEPS.identity);
   }
 
   return (

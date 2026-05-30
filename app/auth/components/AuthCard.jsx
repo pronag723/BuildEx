@@ -42,14 +42,14 @@ export default function AuthCard({ mode = "login" }) {
     if (status !== "authenticated") return;
     if (profileLoaded) {
       const next = resolvePostLoginPath(profile, redirectTarget);
-      router.replace(withBase(next));
+      router.replace(next);
       return;
     }
     const next =
       redirectTarget && redirectTarget !== "/"
         ? `/onboarding?redirect=${encodeURIComponent(redirectTarget)}`
         : "/onboarding";
-    router.replace(withBase(next));
+    router.replace(next);
   }, [status, profile, profileLoaded, redirectTarget, router]);
 
   async function handleSignIn(provider) {

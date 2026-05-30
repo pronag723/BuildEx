@@ -138,7 +138,7 @@ export default function AuthNavControls() {
             <nav className="py-2 text-sm">
               <Link
                 role="menuitem"
-                href={withBase("/account")}
+                href="/account"
                 tabIndex={open ? 0 : -1}
                 onClick={() => setOpen(false)}
                 className="flex items-center gap-3 px-4 py-2.5 hover:bg-white/5 transition-colors"
@@ -171,13 +171,13 @@ export default function AuthNavControls() {
   return (
     <>
       <Link
-        href={withBase("/login")}
+        href="/login"
         className="nav-btn-ghost nav-btn-text font-medium rounded-full border border-white/20 hover:border-white/40 transition-all ghost-btn whitespace-nowrap hidden sm:inline-block"
       >
         Log in
       </Link>
       <Link
-        href={withBase("/signup")}
+        href="/signup"
         className="nav-btn-primary nav-btn-text font-semibold rounded-full bg-[#4ade80] text-black transition-all green-glow whitespace-nowrap hidden sm:inline-block"
       >
         Join as Builder
@@ -213,7 +213,7 @@ export function AuthMobileControls({ onAfter }) {
           </div>
         </div>
         <Link
-          href={withBase("/account")}
+          href="/account"
           onClick={() => onAfter?.()}
           aria-current={onAccount ? "page" : undefined}
           className={`w-full py-3.5 text-center text-base font-medium rounded-2xl border transition-all ${
@@ -241,14 +241,14 @@ export function AuthMobileControls({ onAfter }) {
   return (
     <>
       <Link
-        href={withBase("/login")}
+        href="/login"
         onClick={() => onAfter?.()}
         className="w-full py-3.5 text-center text-base font-medium rounded-2xl border border-white/20 hover:border-white/40 transition-all ghost-btn"
       >
         Log in
       </Link>
       <Link
-        href={withBase("/signup")}
+        href="/signup"
         onClick={() => onAfter?.()}
         className="w-full py-3.5 text-center text-base font-semibold rounded-2xl bg-[#4ade80] text-black transition-all green-glow"
       >

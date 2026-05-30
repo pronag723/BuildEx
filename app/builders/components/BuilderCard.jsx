@@ -46,7 +46,7 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
 
   return (
     <Link
-      href={withBase(`/builders/profile?u=${encodeURIComponent(builder.username)}`)}
+      href={`/builders/profile?u=${encodeURIComponent(builder.username)}`}
       className="offer-card glass rounded-3xl overflow-hidden flex flex-col group cursor-pointer"
       style={{ animationDelay: `${animationDelay}ms` }}
     >

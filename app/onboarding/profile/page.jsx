@@ -116,7 +116,7 @@ function ClientProfileStep({ state }) {
       preferred_server_type: serverType ?? null,
     });
     await refresh?.();
-    router.push(withBase(STEPS.complete));
+    router.push(STEPS.complete);
   }
 
   return (
@@ -254,7 +254,7 @@ function ClientProfileStep({ state }) {
       </div>
 
       <OnboardingFooter
-        onBack={() => router.push(`${withBase(STEPS.role)}?revisit=1`)}
+        onBack={() => router.push(`${STEPS.role}?revisit=1`)}
         onNext={handleContinue}
         nextDisabled={!canContinue}
         nextLabel="Finish setup"

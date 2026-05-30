@@ -29,7 +29,7 @@ export default function CatalogMobileMenu({
         {catalogNavItems.map((item) => (
           <Link
             key={item.label}
-            href={withBase(item.path)}
+            href={item.path}
             className={`mobile-nav-link nav-link ${isNavActive(pathname, item.path) ? "active" : ""}`}
             onClick={() => setMobileMenuOpen(false)}
           >

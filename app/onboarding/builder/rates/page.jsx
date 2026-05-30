@@ -56,7 +56,7 @@ function BuilderRatesStep({ state }) {
       return;
     }
     await refresh?.();
-    router.push(withBase(STEPS.builderPortfolio));
+    router.push(STEPS.builderPortfolio);
   }
 
   return (
@@ -89,7 +89,7 @@ function BuilderRatesStep({ state }) {
       </div>
 
       <OnboardingFooter
-        onBack={() => router.push(`${withBase(STEPS.builderStyles)}?revisit=1`)}
+        onBack={() => router.push(`${STEPS.builderStyles}?revisit=1`)}
         onNext={handleContinue}
         nextDisabled={!canContinue}
         isSaving={saving}

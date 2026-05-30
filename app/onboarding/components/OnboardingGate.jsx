@@ -118,7 +118,7 @@ export default function OnboardingGate({ expectedStep, children, allowFutureStep
     // OAuth error in the URL? Punt to /login where the error UI lives.
     const errorRedirect = detectOAuthErrorRedirect();
     if (errorRedirect) {
-      router.replace(withBase(errorRedirect));
+      router.replace(errorRedirect);
       return;
     }
 
@@ -135,7 +135,7 @@ export default function OnboardingGate({ expectedStep, children, allowFutureStep
       return;
     }
     if (status === "unauthenticated") {
-      router.replace(withBase("/login?redirect=/onboarding"));
+      router.replace("/login?redirect=/onboarding");
       return;
     }
 
@@ -250,7 +250,7 @@ export default function OnboardingGate({ expectedStep, children, allowFutureStep
       // otherwise drop them onto their profile.
       if (result.profile?.onboarding_completed_at) {
         const target = consumePersistedRedirect() || "/account";
-        router.replace(withBase(target));
+        router.replace(target);
         return;
       }
 
@@ -263,7 +263,7 @@ export default function OnboardingGate({ expectedStep, children, allowFutureStep
       // If onboarding is fully complete (resolveNextStep returns null after we
       // already short-circuited above, but just in case)
       if (!target) {
-        router.replace(withBase("/account"));
+        router.replace("/account");
         return;
       }
 
@@ -284,7 +284,7 @@ export default function OnboardingGate({ expectedStep, children, allowFutureStep
         const targetIdx = STEP_ORDER.indexOf(target);
         const forwardRoute = allowFutureSteps && !intentionalRevisit;
         if (forwardRoute || targetIdx < expectedIdx) {
-          router.replace(withBase(target));
+          router.replace(target);
           return;
         }
       }

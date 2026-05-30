@@ -45,7 +45,7 @@ function BuilderPortfolioStep({ state }) {
       return;
     }
     await refresh?.();
-    router.push(withBase(STEPS.complete));
+    router.push(STEPS.complete);
   }
 
   return (
@@ -73,7 +73,7 @@ function BuilderPortfolioStep({ state }) {
       </div>
 
       <OnboardingFooter
-        onBack={() => router.push(`${withBase(STEPS.builderRates)}?revisit=1`)}
+        onBack={() => router.push(`${STEPS.builderRates}?revisit=1`)}
         onNext={handleFinish}
         nextDisabled={!canFinish}
         isSaving={saving}
