@@ -171,7 +171,9 @@ export default function AuthNavControls() {
                 onClick={() => setOpen(false)}
                 className="flex items-center gap-3 px-4 py-2.5 hover:bg-white/5 transition-colors"
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80]" />
+                <span className="w-4 flex justify-center" aria-hidden="true">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80]" />
+                </span>
                 My profile
               </Link>
               <Link
@@ -199,7 +201,9 @@ export default function AuthNavControls() {
                 }}
                 className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-500/10 text-red-300 transition-colors"
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                <span className="w-4 flex justify-center" aria-hidden="true">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                </span>
                 Log out
               </button>
             </nav>

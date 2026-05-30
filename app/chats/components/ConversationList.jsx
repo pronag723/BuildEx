@@ -40,6 +40,7 @@ export default function ConversationList({
   loading,
   activeId,
   onSelect,
+  compact = false,
 }) {
   if (loading) {
     return (
@@ -58,6 +59,15 @@ export default function ConversationList({
   }
 
   if (conversations.length === 0) {
+    if (compact) {
+      return (
+        <div className="flex-1 flex flex-col items-center justify-center px-2 py-8">
+          <div className="w-10 h-10 rounded-2xl bg-[#4ade80]/10 border border-[#4ade80]/30 flex items-center justify-center text-xl">
+            💬
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="flex-1 flex flex-col items-center justify-center text-center px-6 py-12">
         <div className="w-14 h-14 rounded-2xl bg-[#4ade80]/10 border border-[#4ade80]/30 flex items-center justify-center text-2xl mb-4">
@@ -78,6 +88,31 @@ export default function ConversationList({
         const active = c.conversation_id === activeId;
         const name = c.other_display_name || c.other_username || "Builder";
         const unread = Number(c.unread_count) || 0;
+        if (compact) {
+          return (
+            <button
+              key={c.conversation_id}
+              type="button"
+              onClick={() => onSelect(c)}
+              title={name}
+              aria-label={name}
+              className={`w-full flex items-center justify-center px-2 py-2 transition-colors border-l-2 ${
+                active
+                  ? "bg-[#4ade80]/10 border-[#4ade80]"
+                  : "border-transparent hover:bg-white/5"
+              }`}
+            >
+              <span className="relative">
+                <Avatar name={name} url={c.other_avatar_url} />
+                {unread > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#4ade80] text-black text-[10px] font-bold flex items-center justify-center ring-2 ring-[#171717]">
+                    {unread > 9 ? "9+" : unread}
+                  </span>
+                )}
+              </span>
+            </button>
+          );
+        }
         return (
           <button
             key={c.conversation_id}

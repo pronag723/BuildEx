@@ -43,9 +43,10 @@ function mergeMessages(prev, rows, convId) {
 }
 
 // Conversation-list width bounds (desktop only). Telegram-style drag divider.
-const LIST_MIN = 260;
+const LIST_MIN = 76;
 const LIST_MAX = 520;
 const LIST_DEFAULT = 340;
+const LIST_COMPACT_BELOW = 200;
 const LIST_WIDTH_KEY = "buildex-chats-list-width";
 
 export default function ChatsPage() {
@@ -437,17 +438,41 @@ export default function ChatsPage() {
                     showThreadPane && mobileView === "thread" ? "hidden" : "flex"
                   } lg:flex w-full lg:w-80 xl:w-96 flex-shrink-0 flex-col border-r border-white/10 min-h-0`}
                 >
-                  <div className="px-5 py-4 border-b border-white/10 flex-shrink-0">
-                    <h1 className="text-lg font-extrabold">Messages</h1>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      Your conversations with builders & clients
-                    </p>
-                  </div>
+                  {isDesktop && listWidth < LIST_COMPACT_BELOW ? (
+                    <div className="px-3 py-4 border-b border-white/10 flex-shrink-0 flex items-center justify-center h-[68px]">
+                      <span
+                        className="w-10 h-10 rounded-2xl bg-[#4ade80]/10 border border-[#4ade80]/30 flex items-center justify-center text-[#4ade80]"
+                        title="Messages"
+                        aria-label="Messages"
+                      >
+                        <svg
+                          className="w-5 h-5"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                        </svg>
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="px-5 py-4 border-b border-white/10 flex-shrink-0">
+                      <h1 className="text-lg font-extrabold">Messages</h1>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Your conversations with builders & clients
+                      </p>
+                    </div>
+                  )}
                   <ConversationList
                     conversations={conversations}
                     loading={convLoading}
                     activeId={activeConvId}
                     onSelect={handleSelect}
+                    compact={isDesktop && listWidth < LIST_COMPACT_BELOW}
                   />
                 </aside>
 
