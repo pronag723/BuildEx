@@ -21,6 +21,30 @@ function IconBack({ className = "w-5 h-5" }) {
   );
 }
 
+function IconShield({ className = "w-4 h-4" }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+      <path d="M9 12l2 2 4-4" />
+    </svg>
+  );
+}
+
+// Pinned at the very top of every thread: tells both parties the conversation
+// can be reviewed by BuildEx if a dispute is opened.
+function ConflictNotice() {
+  return (
+    <div className="flex items-start gap-2.5 mb-4 px-3.5 py-2.5 rounded-2xl bg-[#4ade80]/[0.07] border border-[#4ade80]/20 text-gray-400">
+      <IconShield className="w-4 h-4 mt-0.5 flex-shrink-0 text-[#4ade80]" />
+      <p className="text-[11px] leading-relaxed">
+        Keep deals inside BuildEx. In the event of a dispute, this conversation
+        can be reviewed by our team to help resolve conflicts — so keep important
+        agreements in writing here.
+      </p>
+    </div>
+  );
+}
+
 function clockTime(iso) {
   if (!iso) return "";
   return new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
@@ -132,12 +156,13 @@ export default function MessageThread({
 
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-5 space-y-1 min-h-0">
+        {!loading && <ConflictNotice />}
         {loading ? (
           <div className="h-full flex items-center justify-center">
             <div className="w-8 h-8 rounded-full border-2 border-[#4ade80] border-t-transparent animate-spin" />
           </div>
         ) : messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-center px-6">
+          <div className="flex flex-col items-center justify-center text-center px-6 py-10">
             <PeerAvatar name={peerName} url={peer?.avatar_url} size={64} />
             <p className="font-semibold text-sm mt-4 mb-1">{peerName}</p>
             <p className="text-xs text-gray-500 max-w-[260px] leading-relaxed">
