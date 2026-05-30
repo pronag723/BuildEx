@@ -46,7 +46,7 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
 
   return (
     <Link
-      href={withBase(`/builders/profile/${builder.username}`)}
+      href={withBase(`/builders/profile?u=${encodeURIComponent(builder.username)}`)}
       className="offer-card glass rounded-3xl overflow-hidden flex flex-col group cursor-pointer"
       style={{ animationDelay: `${animationDelay}ms` }}
     >
@@ -130,15 +130,18 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
           </>
         )}
 
-        {/* Online indicator — top left */}
-        {builder.online ? (
-          <div className="absolute top-3 left-3 z-10 px-2.5 py-1 rounded-full text-xs bg-black/60 text-[#4ade80] backdrop-blur-sm border border-[#4ade80]/30 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80] online-dot" />
-            Online
+        {/* Availability indicator — top left. Mirrors the builder's busyness
+            slider: green = available, amber = limited. "Busy" (red) builders are
+            filtered out of the feed entirely, so they never render here. */}
+        {builder.availability_status === "limited" ? (
+          <div className="absolute top-3 left-3 z-10 px-2.5 py-1 rounded-full text-xs bg-black/60 text-amber-400 backdrop-blur-sm border border-amber-400/30 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+            Limited
           </div>
         ) : (
-          <div className="absolute top-3 left-3 z-10 px-2.5 py-1 rounded-full text-xs bg-black/50 text-white/60 backdrop-blur-sm border border-white/10">
-            Offline
+          <div className="absolute top-3 left-3 z-10 px-2.5 py-1 rounded-full text-xs bg-black/60 text-[#4ade80] backdrop-blur-sm border border-[#4ade80]/30 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80] online-dot" />
+            Available
           </div>
         )}
 
@@ -156,13 +159,19 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
       >
         {/* Header */}
         <div className="flex items-start gap-3">
-          <img
-            src={builder.avatar}
-            alt={builder.display_name}
-            className="w-11 h-11 rounded-full object-cover ring-2 ring-[#4ade80]/25 flex-shrink-0"
-            loading="lazy"
-            decoding="async"
-          />
+          {builder.avatar ? (
+            <img
+              src={builder.avatar}
+              alt={builder.display_name}
+              className="w-11 h-11 rounded-full object-cover ring-2 ring-[#4ade80]/25 flex-shrink-0"
+              loading="lazy"
+              decoding="async"
+            />
+          ) : (
+            <div className="w-11 h-11 rounded-full bg-[#4ade80]/15 border border-[#4ade80]/30 ring-2 ring-[#4ade80]/25 flex-shrink-0 flex items-center justify-center text-[#4ade80] font-bold">
+              {(builder.display_name || "B").charAt(0).toUpperCase()}
+            </div>
+          )}
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <p className="text-base font-bold truncate leading-tight">

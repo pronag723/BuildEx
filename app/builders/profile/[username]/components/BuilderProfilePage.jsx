@@ -9,6 +9,7 @@ import { RANKS } from "../../../data/builders";
 import { getBuilderReviews, getBuilderRatingBreakdown } from "../../../data/reviews";
 import { publicAsset, withBase } from "../../../../home/utils";
 import { useAuthGate } from "../../../../../lib/auth/useAuthGate";
+import { AVAILABILITY_STATES } from "../../../../../lib/onboarding/constants";
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 function IconStar({ className = "w-4 h-4" }) {
@@ -543,16 +544,21 @@ export default function BuilderProfilePage({ builder }) {
                     <IconClock className="w-3.5 h-3.5" />
                     Replies {builder.response_time}
                   </span>
-                  {builder.online ? (
-                    <span className="flex items-center gap-1.5 text-[#4ade80] font-medium">
-                      <span className="w-2 h-2 rounded-full bg-[#4ade80] online-dot" />
-                      Online now
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-1.5 text-gray-500">
-                      Offline
-                    </span>
-                  )}
+                  {(() => {
+                    const avail =
+                      AVAILABILITY_STATES.find(
+                        (a) => a.key === (builder.availability_status || "available")
+                      ) || AVAILABILITY_STATES[0];
+                    return (
+                      <span className="flex items-center gap-1.5 font-medium" style={{ color: avail.dot }}>
+                        <span
+                          className="w-2 h-2 rounded-full"
+                          style={{ background: avail.dot, boxShadow: `0 0 8px ${avail.dot}` }}
+                        />
+                        {avail.label}
+                      </span>
+                    );
+                  })()}
                 </div>
 
                 {/* Specialties */}
@@ -597,20 +603,14 @@ export default function BuilderProfilePage({ builder }) {
                   <p className="text-gray-400 leading-relaxed mb-6">{builder.bio}</p>
                 )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2">Workflow</p>
-                    <p className="text-sm text-gray-300 leading-relaxed">{builder.workflow}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2">Tools used</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {builder.tools.map((t) => (
-                        <span key={t} className="px-2.5 py-1 rounded-full text-xs bg-white/5 border border-white/10 text-gray-300">
-                          {t}
-                        </span>
-                      ))}
-                    </div>
+                <div>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2">Tools used</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {builder.tools.map((t) => (
+                      <span key={t} className="px-2.5 py-1 rounded-full text-xs bg-white/5 border border-white/10 text-gray-300">
+                        {t}
+                      </span>
+                    ))}
                   </div>
                 </div>
 

@@ -3,11 +3,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
-  BUILDERS,
   filterBuilders,
   sortBuilders,
   ITEMS_PER_PAGE,
 } from "../data/builders";
+import { fetchBuilders } from "../data/fetchBuilders";
 
 import CatalogNavbar from "./CatalogNavbar";
 import CatalogMobileMenu from "./CatalogMobileMenu";
@@ -59,6 +59,23 @@ export default function CatalogPage() {
   const minRating = Number(params.get("rating")) || 0;
   const selectedRanks = useMemo(() => parseArray(params.get("rank")), [params]);
   const sort = params.get("sort") || "newest";
+
+  // ── Live builder feed (replaces the old static demo array) ──────────────────
+  const [builders, setBuilders] = useState([]);
+  const [buildersLoading, setBuildersLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setBuildersLoading(true);
+    fetchBuilders().then(({ builders: rows }) => {
+      if (cancelled) return;
+      setBuilders(rows || []);
+      setBuildersLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // ── Local UI state ──────────────────────────────────────────────────────────
   const [pageCount, setPageCount] = useState(1);
@@ -277,7 +294,7 @@ export default function CatalogPage() {
 
   // ── Computed builders ───────────────────────────────────────────────────────
   const filteredBuilders = useMemo(() => {
-    const filtered = filterBuilders(BUILDERS, {
+    const filtered = filterBuilders(builders, {
       query,
       styles: selectedStyles,
       buildTypes: selectedBuildTypes,
@@ -287,7 +304,7 @@ export default function CatalogPage() {
       ranks: selectedRanks,
     });
     return sortBuilders(filtered, sort);
-  }, [query, selectedStyles, selectedBuildTypes, minPrice, maxPrice, minRating, selectedRanks, sort]);
+  }, [builders, query, selectedStyles, selectedBuildTypes, minPrice, maxPrice, minRating, selectedRanks, sort]);
 
   const visibleBuilders = useMemo(
     () => filteredBuilders.slice(0, pageCount * ITEMS_PER_PAGE),
@@ -365,7 +382,7 @@ export default function CatalogPage() {
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-[#4ade80]" />
                 </span>
                 <span>
-                  <span className="text-[#4ade80] font-semibold">{BUILDERS.length}</span> active builders
+                  <span className="text-[#4ade80] font-semibold">{builders.length}</span> active builders
                 </span>
               </div>
 
@@ -485,18 +502,27 @@ export default function CatalogPage() {
                   )}
                 </div>
 
-                {/* Builder grid */}
-                <BuilderGrid
-                  builders={visibleBuilders}
-                  animKey={animKey}
-                />
+                {/* Builder grid (spinner until the live feed resolves) */}
+                {buildersLoading ? (
+                  <div className="flex flex-col items-center justify-center py-24 text-center">
+                    <div className="w-10 h-10 rounded-full border-2 border-[#4ade80] border-t-transparent animate-spin mb-4" />
+                    <p className="text-gray-400 text-sm">Loading builders…</p>
+                  </div>
+                ) : (
+                  <>
+                    <BuilderGrid
+                      builders={visibleBuilders}
+                      animKey={animKey}
+                    />
 
-                {/* Pagination */}
-                <PaginationControls
-                  total={filteredBuilders.length}
-                  shown={visibleBuilders.length}
-                  onLoadMore={() => setPageCount((p) => p + 1)}
-                />
+                    {/* Pagination */}
+                    <PaginationControls
+                      total={filteredBuilders.length}
+                      shown={visibleBuilders.length}
+                      onLoadMore={() => setPageCount((p) => p + 1)}
+                    />
+                  </>
+                )}
               </div>
             </div>
           </div>
