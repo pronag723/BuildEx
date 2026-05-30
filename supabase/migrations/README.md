@@ -11,6 +11,7 @@ migrations are idempotent (safe to re-run during development).
 | 0004 | `0004_builder_tools.sql` | Adds `builder_profiles.tools` (the builder's toolset), replacing the legacy years-of-experience question. |
 | 0005 | `0005_builder_rates.sql` | Adds `builder_profiles.rates` (jsonb) — the builder's self-set pricing tiers (block area → price range per build scale). |
 | 0006 | `0006_delete_account.sql` | Adds the `delete_own_account()` SECURITY DEFINER function so a signed-in user can permanently delete their own account (cascades to profiles + builder data). |
+| 0007 | `0007_chat.sql` | User-to-user chat: `conversations` + `messages` tables with RLS, the `get_or_create_conversation()`, `list_my_conversations()`, and `mark_conversation_read()` RPCs, and adds `messages` to the `supabase_realtime` publication for live delivery. |
 
 ## Field mapping (matches the app code)
 

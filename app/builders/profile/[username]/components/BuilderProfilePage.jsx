@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, useEffect, useCallback, useRef } from "react";
 import CatalogNavbar from "../../../components/CatalogNavbar";
 import CatalogMobileMenu from "../../../components/CatalogMobileMenu";
@@ -156,7 +157,7 @@ function RateCard({ size, info }) {
 }
 
 // ─── Contact sidebar ─────────────────────────────────────────────────────────
-function ContactSidebar({ builder, onShowSoon }) {
+function ContactSidebar({ builder, onShowSoon, onContact }) {
   return (
     <div className="glass rounded-3xl p-6 builder-sidebar-sticky space-y-5">
       {/* Avatar + header */}
@@ -212,7 +213,7 @@ function ContactSidebar({ builder, onShowSoon }) {
       {/* CTAs */}
       <button
         type="button"
-        onClick={() => onShowSoon("Messaging system coming soon — real-time chat powered by Supabase Realtime.")}
+        onClick={onContact}
         className="w-full py-4 rounded-full bg-[#4ade80] text-black font-bold text-base green-glow hover:bg-[#22c55e] transition-all flex items-center justify-center gap-2"
       >
         <IconChat className="w-4 h-4" />
@@ -347,11 +348,25 @@ export default function BuilderProfilePage({ builder }) {
   const reviews = getBuilderReviews(builder.username);
 
   const gate = useAuthGate();
+  const router = useRouter();
 
   const showSoon = useCallback((msg) => {
     setToast(msg);
     setTimeout(() => setToast(null), 3500);
   }, []);
+
+  // Open (or jump to) a chat thread with this builder. Auth-gated: unauthenticated
+  // visitors are routed to /login first, then back here. The /chats page resolves
+  // the @handle to the builder and starts the conversation.
+  const contactBuilder = useCallback(() => {
+    const target = `/chats?to=${encodeURIComponent(builder.username)}`;
+    gate(
+      () => {
+        router.push(withBase(target));
+      },
+      { redirectTo: target }
+    );
+  }, [gate, router, builder.username]);
 
   const requireAuthThenSoon = useCallback(
     (msg) => {
@@ -673,7 +688,7 @@ export default function BuilderProfilePage({ builder }) {
 
             {/* RIGHT: Sticky contact sidebar */}
             <div className="hidden lg:block lg:sticky lg:top-24 lg:self-start">
-              <ContactSidebar builder={builder} onShowSoon={requireAuthThenSoon} />
+              <ContactSidebar builder={builder} onShowSoon={requireAuthThenSoon} onContact={contactBuilder} />
             </div>
           </div>
         </div>
@@ -690,7 +705,7 @@ export default function BuilderProfilePage({ builder }) {
           </div>
           <button
             type="button"
-            onClick={() => requireAuthThenSoon("Messaging coming soon!")}
+            onClick={contactBuilder}
             className="flex-1 py-3 rounded-full bg-[#4ade80] text-black font-bold text-sm green-glow flex items-center justify-center gap-1.5"
           >
             <IconChat className="w-4 h-4" />

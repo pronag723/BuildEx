@@ -146,6 +146,16 @@ export default function AuthNavControls() {
                 <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80]" />
                 My profile
               </Link>
+              <Link
+                role="menuitem"
+                href="/chats"
+                tabIndex={open ? 0 : -1}
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-3 px-4 py-2.5 hover:bg-white/5 transition-colors"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80]" />
+                Chats
+              </Link>
               <button
                 type="button"
                 role="menuitem"
@@ -190,6 +200,7 @@ export function AuthMobileControls({ onAfter }) {
   const { status, displayUser, signOut } = useAuth();
   const pathname = usePathname();
   const onAccount = pathname === "/account";
+  const onChats = pathname === "/chats";
 
   if (status === "loading") {
     return (
@@ -223,6 +234,18 @@ export function AuthMobileControls({ onAfter }) {
           }`}
         >
           My profile
+        </Link>
+        <Link
+          href="/chats"
+          onClick={() => onAfter?.()}
+          aria-current={onChats ? "page" : undefined}
+          className={`w-full py-3.5 text-center text-base font-medium rounded-2xl border transition-all ${
+            onChats
+              ? "border-[#4ade80]/50 text-[#4ade80] bg-[#4ade80]/10"
+              : "border-white/20 hover:border-white/40 ghost-btn"
+          }`}
+        >
+          Chats
         </Link>
         <button
           type="button"
