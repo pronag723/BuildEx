@@ -8,23 +8,6 @@ import { useAuth } from "../../../lib/auth/AuthContext";
 import { useUnread } from "../../../lib/chat/UnreadContext";
 import { withBase } from "../../home/utils";
 
-function IconMessage({ className = "w-4 h-4" }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-    </svg>
-  );
-}
-
 function Avatar({ user, size = 36 }) {
   const initial = (user?.displayName || user?.username || "?").trim().charAt(0).toUpperCase();
   return (
@@ -45,7 +28,7 @@ function Avatar({ user, size = 36 }) {
 
 export default function AuthNavControls() {
   const { status, displayUser, signOut } = useAuth();
-  const { hasUnread, unreadTotal } = useUnread();
+  const { hasUnread } = useUnread();
   const [open, setOpen] = useState(false);
   const [coords, setCoords] = useState(null);
   const buttonRef = useRef(null);
@@ -176,21 +159,6 @@ export default function AuthNavControls() {
                 </span>
                 My profile
               </Link>
-              <Link
-                role="menuitem"
-                href="/chats"
-                tabIndex={open ? 0 : -1}
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-3 px-4 py-2.5 hover:bg-white/5 transition-colors"
-              >
-                <IconMessage className="w-4 h-4 text-[#4ade80]" />
-                <span>My Chats</span>
-                {hasUnread && (
-                  <span className="ml-auto min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
-                    {unreadTotal > 9 ? "9+" : unreadTotal}
-                  </span>
-                )}
-              </Link>
               <button
                 type="button"
                 role="menuitem"
@@ -235,10 +203,8 @@ export default function AuthNavControls() {
 
 export function AuthMobileControls({ onAfter }) {
   const { status, displayUser, signOut } = useAuth();
-  const { hasUnread, unreadTotal } = useUnread();
   const pathname = usePathname();
   const onAccount = pathname === "/account";
-  const onChats = pathname === "/chats";
 
   if (status === "loading") {
     return (
@@ -272,24 +238,6 @@ export function AuthMobileControls({ onAfter }) {
           }`}
         >
           My profile
-        </Link>
-        <Link
-          href="/chats"
-          onClick={() => onAfter?.()}
-          aria-current={onChats ? "page" : undefined}
-          className={`w-full py-3.5 text-base font-medium rounded-2xl border transition-all flex items-center justify-center gap-2 ${
-            onChats
-              ? "border-[#4ade80]/50 text-[#4ade80] bg-[#4ade80]/10"
-              : "border-white/20 hover:border-white/40 ghost-btn"
-          }`}
-        >
-          <IconMessage className="w-4 h-4" />
-          <span>My Chats</span>
-          {hasUnread && (
-            <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-[11px] font-bold flex items-center justify-center">
-              {unreadTotal > 9 ? "9+" : unreadTotal}
-            </span>
-          )}
         </Link>
         <button
           type="button"

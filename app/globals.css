@@ -12,6 +12,14 @@
   box-sizing: border-box;
 }
 
+textarea::-webkit-scrollbar-button {
+  display: none;
+}
+
+textarea {
+  scrollbar-width: thin;
+}
+
 a {
   color: inherit;
   text-decoration: none;
