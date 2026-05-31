@@ -155,7 +155,7 @@ export default function MessageThread({
       </div>
 
       {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-5 space-y-1 min-h-0">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-5 space-y-1 min-h-0 hide-scrollbar">
         {!loading && <ConflictNotice />}
         {loading ? (
           <div className="h-full flex items-center justify-center">
