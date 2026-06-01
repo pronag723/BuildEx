@@ -21,6 +21,10 @@ import {
   builderDeliver,
   buyerConfirmComplete,
   cancelOrder,
+  uploadDeliverable,
+  attachDelivery,
+  fetchDelivery,
+  getDeliveryDownloadUrl,
 } from "../../../lib/orders/api";
 import { formatPrice, SIZE_META } from "../../../lib/pricing";
 import CatalogNavbar from "../../builders/components/CatalogNavbar";
@@ -307,6 +311,13 @@ function OrderDetail({ orderId, meId }) {
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState(null);
 
+  // Stage 6: the optional file delivery attached to the order. Null = no
+  // upload yet; non-null = the row from get_delivery_info (carries the
+  // storage_path, file_name, size_bytes, note, and the `unlocked` flag the
+  // download UI keys on).
+  const [delivery, setDelivery] = useState(null);
+  const [deliverOpen, setDeliverOpen] = useState(false);
+
   const reload = useCallback(() => {
     setLoading(true);
     fetchOrder(orderId).then(({ order: o, error: e }) => {
@@ -314,6 +325,9 @@ function OrderDetail({ orderId, meId }) {
       setOrder(o);
       setLoading(false);
     });
+    // Delivery is fetched alongside the order. It may legitimately be null
+    // (pre-deliver) so we don't surface its errors at the top of the page.
+    fetchDelivery(orderId).then(({ delivery: d }) => setDelivery(d));
   }, [orderId]);
 
   useEffect(() => {
@@ -419,6 +433,15 @@ function OrderDetail({ orderId, meId }) {
         </div>
       </Card>
 
+      {(delivery || order.status === "delivered" || order.status === "completed") && (
+        <DeliveryCard
+          delivery={delivery}
+          order={order}
+          isBuyer={isBuyer}
+          isBuilder={isBuilder}
+        />
+      )}
+
       <Card title="Timeline">
         <Timeline order={order} />
       </Card>
@@ -433,12 +456,23 @@ function OrderDetail({ orderId, meId }) {
           isBuilder={isBuilder}
           busy={busy}
           onStart={() => runAction(() => builderStartWork(order.id))}
-          onDeliver={() => runAction(() => builderDeliver(order.id))}
+          onDeliver={() => setDeliverOpen(true)}
           onConfirm={() => runAction(() => buyerConfirmComplete(order.id))}
           onCancel={() => runAction(() => cancelOrder(order.id))}
           onOpenChat={openChat}
         />
       </Card>
+
+      {deliverOpen && (
+        <DeliverModal
+          orderId={order.id}
+          onClose={() => setDeliverOpen(false)}
+          onDelivered={() => {
+            setDeliverOpen(false);
+            reload();
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -565,10 +599,10 @@ function ActionButtons({
     );
   }
   if (isBuilder && order.status === "in_progress") {
-    // Stage 6 swaps this for an actual upload + builder_attach_delivery.
+    // Stage 6: opens the upload modal that calls builder_attach_delivery.
     buttons.push(
       <Primary key="deliver" onClick={onDeliver} disabled={busy}>
-        Mark delivered
+        Deliver world
       </Primary>
     );
   }
@@ -621,5 +655,293 @@ function Secondary({ onClick, disabled, children }) {
     >
       {children}
     </button>
+  );
+}
+
+// ─── Delivery card (Stage 6) ────────────────────────────────────────────────
+// Shown once an upload exists or the order is past `in_progress`.
+//   • Builder: always sees a working "Download" (so they can re-fetch their
+//     own upload).
+//   • Buyer pre-completion: download is greyed with a "Confirm to unlock"
+//     hint — the storage SELECT policy in migration 0011 is the actual
+//     gatekeeper so this UI lock can't be bypassed by hand-crafting a URL.
+//   • Buyer after completion: live download button.
+function humanFileSize(bytes) {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "—";
+  const units = ["B", "KB", "MB", "GB"];
+  let i = 0;
+  let v = bytes;
+  while (v >= 1024 && i < units.length - 1) {
+    v /= 1024;
+    i += 1;
+  }
+  return `${v.toFixed(v >= 100 || i === 0 ? 0 : 1)} ${units[i]}`;
+}
+
+function DeliveryCard({ delivery, order, isBuyer, isBuilder }) {
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState(null);
+
+  const onDownload = useCallback(async () => {
+    if (downloading) return;
+    setDownloading(true);
+    setDownloadError(null);
+    const { url, locked, error } = await getDeliveryDownloadUrl(order.id);
+    setDownloading(false);
+    if (locked) {
+      setDownloadError("Confirm the delivery first to unlock the download.");
+      return;
+    }
+    if (error || !url) {
+      setDownloadError(error?.message || "Could not generate a download link.");
+      return;
+    }
+    // Open in a new tab so the buyer's chat / order page stay put.
+    window.open(url, "_blank", "noopener,noreferrer");
+  }, [order.id, downloading]);
+
+  // Pre-upload state (builder has hit Mark delivered or the order is past
+  // in_progress but the row hasn't loaded yet) — show a friendly placeholder.
+  if (!delivery) {
+    return (
+      <Card title="Delivery">
+        <p className="text-sm text-gray-400">
+          {order.status === "delivered" || order.status === "completed"
+            ? "The builder marked this as delivered but no file is attached yet."
+            : "The builder hasn't uploaded the world file yet."}
+        </p>
+      </Card>
+    );
+  }
+
+  const unlocked = !!delivery.unlocked;
+  const showLockedHint = isBuyer && !unlocked;
+
+  return (
+    <Card title="Delivery">
+      <div className="space-y-3">
+        <div className="flex items-start gap-3 p-3 rounded-2xl bg-black/30 border border-white/10">
+          <span aria-hidden className="text-2xl mt-0.5">📦</span>
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold text-sm truncate">
+              {delivery.file_name}
+            </p>
+            <p className="text-[11px] text-gray-500">
+              {humanFileSize(Number(delivery.size_bytes))} ·{" "}
+              {new Date(delivery.created_at).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}
+            </p>
+          </div>
+        </div>
+
+        {delivery.note && (
+          <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed p-3 rounded-2xl bg-black/20 border border-white/10">
+            <span className="text-[10px] text-gray-500 uppercase tracking-widest block mb-1">
+              Builder's note
+            </span>
+            {delivery.note}
+          </p>
+        )}
+
+        {showLockedHint && (
+          <p className="text-xs text-gray-400 flex items-start gap-2 leading-relaxed">
+            <span aria-hidden>🔒</span>
+            <span>
+              The download is locked while the file is in escrow. Tap{" "}
+              <strong className="text-[#4ade80]">Confirm &amp; release</strong>{" "}
+              below once you're happy with the build — that releases the
+              payment and unlocks the file.
+            </span>
+          </p>
+        )}
+
+        {downloadError && (
+          <p className="text-sm text-red-400">{downloadError}</p>
+        )}
+
+        <div className="flex flex-wrap gap-2">
+          {isBuilder ? (
+            <Secondary onClick={onDownload} disabled={downloading}>
+              {downloading ? "Preparing…" : "Download your upload"}
+            </Secondary>
+          ) : unlocked ? (
+            <Primary onClick={onDownload} disabled={downloading}>
+              {downloading ? "Preparing…" : "Download world file"}
+            </Primary>
+          ) : (
+            <button
+              type="button"
+              disabled
+              className="px-5 py-2.5 rounded-full text-sm font-semibold border border-white/10 text-gray-500 cursor-not-allowed inline-flex items-center gap-2"
+            >
+              <span aria-hidden>🔒</span> Download locked
+            </button>
+          )}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+// ─── Deliver modal (Stage 6) ────────────────────────────────────────────────
+// Builder side. Takes a .zip + optional note, uploads to the private bucket,
+// then calls builder_attach_delivery to record + transition the order.
+const MAX_DELIVERY_BYTES = 200 * 1024 * 1024; // matches the bucket's file_size_limit
+
+function DeliverModal({ orderId, onClose, onDelivered }) {
+  const [file, setFile] = useState(null);
+  const [note, setNote] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [errMsg, setErrMsg] = useState(null);
+
+  const onPick = useCallback((e) => {
+    const f = e.target.files?.[0] || null;
+    setErrMsg(null);
+    if (!f) {
+      setFile(null);
+      return;
+    }
+    if (f.size > MAX_DELIVERY_BYTES) {
+      setFile(null);
+      setErrMsg(
+        `File is too large (${humanFileSize(f.size)}). Max ${humanFileSize(MAX_DELIVERY_BYTES)}.`
+      );
+      return;
+    }
+    setFile(f);
+  }, []);
+
+  const onSubmit = useCallback(async () => {
+    if (submitting || !file) return;
+    setSubmitting(true);
+    setErrMsg(null);
+    setProgress(0);
+
+    const { path, error: upErr } = await uploadDeliverable(
+      orderId,
+      file,
+      setProgress
+    );
+    if (upErr || !path) {
+      setSubmitting(false);
+      setProgress(0);
+      setErrMsg(upErr?.message || "Upload failed.");
+      return;
+    }
+
+    const { error: attachErr } = await attachDelivery({
+      orderId,
+      path,
+      fileName: file.name,
+      size: file.size,
+      note: note.trim() || null,
+    });
+    setSubmitting(false);
+    if (attachErr) {
+      setErrMsg(
+        attachErr.message ||
+          "Upload succeeded but the order couldn't be marked as delivered."
+      );
+      return;
+    }
+    onDelivered?.();
+  }, [submitting, file, orderId, note, onDelivered]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !submitting) onClose?.();
+      }}
+    >
+      <div className="glass rounded-3xl p-6 sm:p-8 max-w-lg w-full">
+        <h2 className="font-bold text-lg mb-1">Deliver the world</h2>
+        <p className="text-xs text-gray-500 mb-5">
+          Upload the finished build as a <code>.zip</code>. The buyer can
+          preview the order but won't be able to download the file until they
+          confirm completion — that's the escrow lock.
+        </p>
+
+        <label className="block">
+          <span className="text-[11px] text-gray-500 uppercase tracking-widest block mb-1.5">
+            World file
+          </span>
+          <input
+            type="file"
+            accept=".zip,application/zip,application/x-zip-compressed"
+            onChange={onPick}
+            disabled={submitting}
+            className="block w-full text-xs text-gray-300 file:mr-3 file:px-4 file:py-2 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-[#4ade80]/15 file:text-[#4ade80] hover:file:bg-[#4ade80]/25 file:cursor-pointer cursor-pointer"
+          />
+          <p className="text-[11px] text-gray-500 mt-1.5">
+            Up to {humanFileSize(MAX_DELIVERY_BYTES)}.
+            {file && (
+              <>
+                {" "}Selected: <strong className="text-gray-300">{file.name}</strong>{" "}
+                ({humanFileSize(file.size)}).
+              </>
+            )}
+          </p>
+        </label>
+
+        <label className="block mt-4">
+          <span className="text-[11px] text-gray-500 uppercase tracking-widest block mb-1.5">
+            Note (optional)
+          </span>
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            disabled={submitting}
+            rows={4}
+            maxLength={1000}
+            placeholder="Anything the buyer should know before they open the world."
+            className="w-full px-4 py-3 rounded-2xl bg-black/30 border border-white/10 text-sm text-white placeholder:text-gray-500 focus:border-[#4ade80]/60 focus:outline-none focus:ring-2 focus:ring-[#4ade80]/20 resize-y"
+          />
+        </label>
+
+        {submitting && (
+          <div className="mt-4">
+            <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+              <div
+                className="h-full bg-[#4ade80] transition-all"
+                style={{ width: `${Math.round(progress * 100)}%` }}
+              />
+            </div>
+            <p className="text-[11px] text-gray-500 mt-1.5">
+              Uploading… {Math.round(progress * 100)}%
+            </p>
+          </div>
+        )}
+
+        {errMsg && (
+          <p className="mt-4 text-sm text-red-400">{errMsg}</p>
+        )}
+
+        <div className="mt-6 flex items-center justify-end gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={submitting}
+            className="px-5 py-2.5 rounded-full text-sm font-semibold border border-white/10 text-gray-300 hover:bg-white/5 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onSubmit}
+            disabled={submitting || !file}
+            className="px-5 py-2.5 rounded-full text-sm font-bold bg-[#4ade80] text-black green-glow hover:bg-[#22c55e] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {submitting ? "Delivering…" : "Upload & deliver"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
