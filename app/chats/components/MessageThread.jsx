@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { publicAsset } from "../../home/utils";
+import { formatPrice, SIZE_META } from "../../../lib/pricing";
 
 function IconSend({ className = "w-5 h-5" }) {
   return (
@@ -41,6 +42,86 @@ function ConflictNotice() {
         can be reviewed by our team to help resolve conflicts — so keep important
         agreements in writing here.
       </p>
+    </div>
+  );
+}
+
+// ─── Order-event message rendering (Stage 5) ─────────────────────────────────
+// System messages emitted by the order lifecycle RPCs (msg_type='order_event').
+// The PAID event ships the full order summary + brief in meta so it renders as
+// a distinct card; later transitions render as compact centred status lines.
+// Every variant deep-links to the order's detail page.
+const ORDER_EVENT_LABELS = {
+  paid: "Order paid",
+  started: "Builder started work",
+  delivered: "Marked as delivered",
+  completed: "Order completed",
+  cancelled: "Order cancelled",
+};
+
+function OrderEventMessage({ message }) {
+  const meta = message.meta || {};
+  const event = meta.event;
+  const orderId = meta.order_id;
+  const href = orderId ? `/orders/?id=${encodeURIComponent(orderId)}` : "/orders";
+
+  if (event === "paid") {
+    // The card the buyer described: "Order paid" + brief copied into the chat.
+    const sizeLabel = meta.size ? SIZE_META[meta.size]?.label || meta.size : null;
+    return (
+      <div className="flex justify-center my-4 px-2">
+        <Link
+          href={href}
+          className="block max-w-[460px] w-full rounded-2xl border border-[#4ade80]/30 bg-[#4ade80]/[0.08] hover:border-[#4ade80]/60 hover:bg-[#4ade80]/[0.12] transition-all p-4"
+        >
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <span aria-hidden className="text-base">🔒</span>
+              <span className="font-bold text-sm text-[#4ade80]">
+                Order paid · in escrow
+              </span>
+            </div>
+            {meta.price_kopecks != null && (
+              <span className="font-extrabold text-[#4ade80] text-sm flex-shrink-0">
+                {formatPrice(meta.price_kopecks)}
+              </span>
+            )}
+          </div>
+
+          {(sizeLabel || meta.style) && (
+            <p className="text-[11px] text-gray-400 uppercase tracking-wide mb-2">
+              {sizeLabel}
+              {sizeLabel && meta.style ? " · " : ""}
+              <span className="capitalize">{meta.style}</span>
+            </p>
+          )}
+
+          {meta.brief && (
+            <p className="text-xs text-gray-300 whitespace-pre-wrap leading-relaxed max-h-40 overflow-y-auto rounded-xl bg-black/30 border border-white/10 p-2.5">
+              {meta.brief}
+            </p>
+          )}
+
+          <p className="text-[10px] text-gray-500 mt-3 text-right">
+            {clockTime(message.created_at)} · tap to open the order
+          </p>
+        </Link>
+      </div>
+    );
+  }
+
+  // Other lifecycle events render as compact centred lines.
+  const label = ORDER_EVENT_LABELS[event] || message.body || "Order updated";
+  return (
+    <div className="flex justify-center my-3 px-2">
+      <Link
+        href={href}
+        className="inline-flex items-center gap-2 text-[11px] font-medium text-gray-400 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full px-3 py-1 transition-all"
+      >
+        <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80] flex-shrink-0" />
+        <span>{label}</span>
+        <span className="text-gray-500">· {clockTime(message.created_at)}</span>
+      </Link>
     </div>
   );
 }
@@ -171,11 +252,29 @@ export default function MessageThread({
           </div>
         ) : (
           messages.map((m, i) => {
-            const mine = m.sender_id === meId;
             const prev = messages[i - 1];
             const showDay =
               !prev ||
               new Date(prev.created_at).toDateString() !== new Date(m.created_at).toDateString();
+
+            // System messages from the order lifecycle render as cards/lines,
+            // not as left/right chat bubbles. Day chip still leads if needed.
+            if (m.msg_type === "order_event") {
+              return (
+                <div key={m.id}>
+                  {showDay && (
+                    <div className="flex items-center justify-center my-4">
+                      <span className="text-[10px] uppercase tracking-wide text-gray-500 bg-white/5 border border-white/10 rounded-full px-3 py-1">
+                        {dayLabel(m.created_at)}
+                      </span>
+                    </div>
+                  )}
+                  <OrderEventMessage message={m} />
+                </div>
+              );
+            }
+
+            const mine = m.sender_id === meId;
             return (
               <div key={m.id}>
                 {showDay && (
