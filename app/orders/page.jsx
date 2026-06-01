@@ -1,13 +1,14 @@
 import { Suspense } from "react";
-import OrdersStubPage from "./components/OrdersStubPage";
+import OrdersPage from "./components/OrdersPage";
 
 export const metadata = {
   title: "Orders | BuildEx",
   description: "Your orders on BuildEx.",
 };
 
-// Stage 3 ships a stub destination for the post-payment redirect. Stage 4
-// replaces this with role-aware dashboards + an /orders?id=... detail view.
+// One static route, two modes:
+//   /orders            → role-aware dashboard (Incoming + My purchases)
+//   /orders?id=<uuid>  → single-order detail + timeline + actions
 export default function Page() {
   return (
     <Suspense
@@ -17,7 +18,7 @@ export default function Page() {
         </main>
       }
     >
-      <OrdersStubPage />
+      <OrdersPage />
     </Suspense>
   );
 }

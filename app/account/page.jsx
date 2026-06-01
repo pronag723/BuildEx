@@ -46,6 +46,9 @@ import {
   normalizeRates,
   validateRates,
 } from "../onboarding/components/RatesFields";
+import Link from "next/link";
+import { listMyOrders } from "../../lib/orders/api";
+import { formatPrice, SIZE_META } from "../../lib/pricing";
 
 const TAGLINE_MAX = 80;
 
@@ -118,6 +121,101 @@ function SectionHeader({ title, editing, onEdit, onCancel, onSave, saving, canSa
         </button>
       )}
     </div>
+  );
+}
+
+// ─── Active orders (builders) ────────────────────────────────────────────────
+// Surfaces the builder's open workload on their own profile/account view: a
+// count of commissions currently `paid` or `in_progress`, and a peek at the
+// next few. The full dashboard lives at /orders.
+const ACTIVE_STATUSES = new Set(["paid", "in_progress", "delivered"]);
+
+function ActiveOrdersSection({ userId }) {
+  const [orders, setOrders] = useState(null);
+
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    listMyOrders().then(({ orders: rows }) => {
+      if (cancelled) return;
+      // Builder side only — the buyer view of these same rows lives on /orders.
+      setOrders(
+        (rows || []).filter(
+          (o) => o.builder_id === userId && ACTIVE_STATUSES.has(o.status)
+        )
+      );
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
+  return (
+    <section className="reveal glass rounded-3xl p-6 lg:p-8">
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <div>
+          <h2 className="font-bold text-xl">Active orders</h2>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Paid commissions in flight from your clients.
+          </p>
+        </div>
+        <Link
+          href="/orders"
+          className="px-3 py-1.5 rounded-full text-xs font-semibold border border-[#4ade80]/30 text-[#4ade80] bg-[#4ade80]/10 hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.35)] transition-all inline-flex items-center gap-1.5"
+        >
+          Full dashboard →
+        </Link>
+      </div>
+
+      {orders === null ? (
+        <p className="text-sm text-gray-500">Loading…</p>
+      ) : orders.length === 0 ? (
+        <p className="text-sm text-gray-500">
+          No active orders right now. New commissions appear here the moment
+          they're paid.
+        </p>
+      ) : (
+        <ul className="space-y-2">
+          {orders.slice(0, 5).map((o) => {
+            const peer = o.buyer || {};
+            const sizeLabel =
+              SIZE_META[o.building_size]?.label || o.building_size;
+            return (
+              <li key={o.id}>
+                <Link
+                  href={`/orders/?id=${encodeURIComponent(o.id)}`}
+                  className="flex items-center gap-3 p-3 rounded-2xl border border-white/10 hover:border-[#4ade80]/40 hover:bg-white/5 transition-all"
+                >
+                  <img
+                    src={peer.avatar_url || "/avatar-placeholder.png"}
+                    alt={peer.display_name || "?"}
+                    className="w-9 h-9 rounded-full object-cover ring-1 ring-white/10 flex-shrink-0"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-sm truncate">
+                      {peer.display_name || "Unknown buyer"}
+                    </p>
+                    <p className="text-[11px] text-gray-500 truncate capitalize">
+                      {sizeLabel} · {o.style} · {o.status.replace("_", " ")}
+                    </p>
+                  </div>
+                  <span className="font-bold text-[#4ade80] text-sm flex-shrink-0">
+                    {formatPrice(o.price_kopecks)}
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+          {orders.length > 5 && (
+            <li className="text-xs text-gray-500 text-center pt-1">
+              +{orders.length - 5} more on the dashboard
+            </li>
+          )}
+        </ul>
+      )}
+    </section>
   );
 }
 
@@ -1532,6 +1630,8 @@ function AccountPageInner() {
             {isBuilder && (
               <AvailabilitySection builderProfile={builderProfile} onSaved={refresh} />
             )}
+
+            {isBuilder && <ActiveOrdersSection userId={user?.id} />}
 
             <AboutSection
               profile={profile}
