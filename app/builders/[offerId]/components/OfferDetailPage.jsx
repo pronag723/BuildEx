@@ -5,6 +5,7 @@ import CatalogNavbar from "../../components/CatalogNavbar";
 import CatalogMobileMenu from "../../components/CatalogMobileMenu";
 import SiteFooter from "../../../home/components/SiteFooter";
 import { withBase } from "../../../home/utils";
+import { useRouter } from "next/navigation";
 import { useAuthGate } from "../../../../lib/auth/useAuthGate";
 import {
   RANKS,
@@ -366,7 +367,7 @@ function ReviewsSection({ reviews, offer }) {
 }
 
 // ─── Order sidebar ────────────────────────────────────────────────────────────
-function OrderSidebar({ offer, rank, profile, onShowSoon }) {
+function OrderSidebar({ offer, rank, profile, onShowSoon, onOrder }) {
   const fee = Math.round(offer.starting_price * 0.05);
   const total = offer.starting_price + fee;
 
@@ -414,7 +415,7 @@ function OrderSidebar({ offer, rank, profile, onShowSoon }) {
       {/* CTAs */}
       <button
         type="button"
-        onClick={() => onShowSoon("Checkout flow coming soon!")}
+        onClick={onOrder}
         className="w-full py-4 rounded-full bg-[#4ade80] text-black font-bold text-base green-glow hover:bg-[#22c55e] transition-all flex items-center justify-center gap-2"
       >
         Place Order
@@ -471,6 +472,21 @@ export default function OfferDetailPage({ offer }) {
   const reviews = getOfferReviews(offer.id);
 
   const gate = useAuthGate();
+  const router = useRouter();
+
+  // "Order now" CTA — routes the buyer to the placement flow (Stage 3),
+  // targeting the offer's builder by @handle. Auth-gated.
+  const orderNow = useCallback(() => {
+    const handle = offer?.builder?.username;
+    if (!handle) return;
+    const target = `/order/?to=${encodeURIComponent(handle)}`;
+    gate(
+      () => {
+        router.push(target);
+      },
+      { redirectTo: target }
+    );
+  }, [gate, router, offer]);
 
   // Toast helper for navbar "coming soon" actions (no auth required)
   const showSoon = useCallback((msg) => {
@@ -614,7 +630,7 @@ export default function OfferDetailPage({ offer }) {
 
             {/* RIGHT: Sticky sidebar (desktop only) */}
             <div className="hidden lg:block lg:sticky lg:top-24 lg:self-start">
-              <OrderSidebar offer={offer} rank={rank} profile={profile} onShowSoon={requireAuthThenSoon} />
+              <OrderSidebar offer={offer} rank={rank} profile={profile} onShowSoon={requireAuthThenSoon} onOrder={orderNow} />
             </div>
           </div>
         </div>
@@ -631,7 +647,7 @@ export default function OfferDetailPage({ offer }) {
           </div>
           <button
             type="button"
-            onClick={() => requireAuthThenSoon("Checkout flow coming soon!")}
+            onClick={orderNow}
             className="flex-1 py-3 rounded-full bg-[#4ade80] text-black font-bold text-sm green-glow flex items-center justify-center gap-1.5"
           >
             Place Order

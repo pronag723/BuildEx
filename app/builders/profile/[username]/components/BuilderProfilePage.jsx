@@ -158,7 +158,7 @@ function RateCard({ size, info }) {
 }
 
 // ─── Contact sidebar ─────────────────────────────────────────────────────────
-function ContactSidebar({ builder, onShowSoon, onContact }) {
+function ContactSidebar({ builder, onShowSoon, onContact, onOrder }) {
   return (
     <div className="glass rounded-3xl p-6 builder-sidebar-sticky space-y-5">
       {/* Avatar + header */}
@@ -223,11 +223,11 @@ function ContactSidebar({ builder, onShowSoon, onContact }) {
 
       <button
         type="button"
-        onClick={() => onShowSoon("Quote request flow coming soon — describe your project to receive a tailored estimate.")}
+        onClick={onOrder}
         className="w-full py-3.5 rounded-full border border-[#4ade80]/40 text-[#4ade80] font-semibold text-base hover:bg-[#4ade80]/10 hover:border-[#4ade80] hover:shadow-[0_0_20px_rgba(74,222,128,0.2)] transition-all flex items-center justify-center gap-2"
       >
         <IconQuote className="w-4 h-4" />
-        Request Quote
+        Order Now
       </button>
 
       {/* Response info */}
@@ -364,6 +364,18 @@ export default function BuilderProfilePage({ builder }) {
     // path must stay base-less here — wrapping it in withBase() would double the
     // prefix (/BuildEx/BuildEx/chats) and 404 on GitHub Pages.
     const target = `/chats?to=${encodeURIComponent(builder.username)}`;
+    gate(
+      () => {
+        router.push(target);
+      },
+      { redirectTo: target }
+    );
+  }, [gate, router, builder.username]);
+
+  // "Order now" CTA — routes to the buyer placement flow (Stage 3).
+  // Auth-gated so logged-out visitors hit /login first and come back here.
+  const orderNow = useCallback(() => {
+    const target = `/order/?to=${encodeURIComponent(builder.username)}`;
     gate(
       () => {
         router.push(target);
@@ -701,7 +713,7 @@ export default function BuilderProfilePage({ builder }) {
 
             {/* RIGHT: Sticky contact sidebar */}
             <div className="hidden lg:block lg:sticky lg:top-24 lg:self-start">
-              <ContactSidebar builder={builder} onShowSoon={requireAuthThenSoon} onContact={contactBuilder} />
+              <ContactSidebar builder={builder} onShowSoon={requireAuthThenSoon} onContact={contactBuilder} onOrder={orderNow} />
             </div>
           </div>
         </div>
@@ -726,7 +738,8 @@ export default function BuilderProfilePage({ builder }) {
           </button>
           <button
             type="button"
-            onClick={() => requireAuthThenSoon("Quote request flow coming soon!")}
+            onClick={orderNow}
+            aria-label="Order now"
             className="py-3 px-4 rounded-full border border-[#4ade80]/40 text-[#4ade80] font-semibold text-sm hover:bg-[#4ade80]/10 transition-all flex items-center gap-1.5 flex-shrink-0"
           >
             <IconQuote className="w-4 h-4" />

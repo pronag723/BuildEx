@@ -159,12 +159,14 @@ function normalizeProfileRates(rates) {
       out[key] = {
         enabled: true,
         price: Number(tier.from) || 0,
+        blocks: Number.isFinite(blocks) ? blocks : 0,
         label: `${baseLabel}${blocksSuffix}`,
       };
     } else {
       out[key] = {
         enabled: tier.enabled !== false,
         price: Number(tier.price) || 0,
+        blocks: Number.isFinite(blocks) ? blocks : 0,
         label: `${baseLabel}${blocksSuffix}`,
       };
     }
@@ -177,6 +179,10 @@ function mapProfileRow(row) {
   const bp = row.builder || {};
   return {
     ...base,
+    // profiles.id is needed by the order placement RPC (builder_id) and by the
+    // "is this me?" self-check on /order. profiles is publicly readable under
+    // RLS, so exposing the uuid here is no different from selecting it directly.
+    id: row.id,
     response_time: responseTimeLabel(bp.response_time_hours),
     workflow: bp.tagline || "",
     tools: toolLabels(bp.tools),
