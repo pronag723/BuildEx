@@ -64,8 +64,8 @@ function BuilderRatesStep({ state }) {
       <div className="text-center mb-10 onb-fade-in onb-fade-in-1">
         <h1 className="onb-section-title">Set your rates</h1>
         <p className="onb-section-sub mt-3 mx-auto">
-          Give clients a price range for each build scale based on its block area. These show as
-          estimated ranges — final quotes always stay negotiable, and you can change them anytime.
+          Set an exact price for each build scale. Toggle off any sizes you don&apos;t offer — you can
+          change this anytime from your account settings.
         </p>
       </div>
 
@@ -93,7 +93,7 @@ function BuilderRatesStep({ state }) {
         onNext={handleContinue}
         nextDisabled={!canContinue}
         isSaving={saving}
-        helper={canContinue ? null : "Fill in a block area and price range for each build scale"}
+        helper={canContinue ? null : "Enable at least one size and fill in a block area and price"}
       />
     </div>
   );

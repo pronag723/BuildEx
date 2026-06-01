@@ -14,6 +14,7 @@ import {
   RATING_OPTIONS,
   ITEMS_PER_PAGE,
 } from "./offers";
+import { startsFromPrice } from "../../../lib/pricing";
 
 // Re-export shared constants so consumers only need one import.
 export { RANKS, STYLES, BUILD_TYPES, RATING_OPTIONS, ITEMS_PER_PAGE };
@@ -27,28 +28,28 @@ export const SORT_OPTIONS = [
   { key: "orders",     label: "Most Projects" },
 ];
 
-// ─── Rate brackets per rank ─────────────────────────────────────────────────
-// Rates are estimated ranges — final pricing is always negotiated per project.
+// ─── Rate brackets per rank (exact price, kopecks) ──────────────────────────
+// price is stored in kopecks (100 kopecks = 1 ₽).
 const RATE_BY_RANK = {
   rookie: {
-    small:  { from: 200,  to: 500,   label: "Small spawn or arena (under 100×100)" },
-    medium: { from: 500,  to: 900,   label: "Medium hub or lobby (100–200 area)" },
-    large:  { from: 900,  to: 1800,  label: "Large kingdom or network (200+ area)" },
+    small:  { enabled: true, price: 20000,  label: "Small spawn or arena (under 100×100)" },
+    medium: { enabled: true, price: 50000,  label: "Medium hub or lobby (100–200 area)" },
+    large:  { enabled: true, price: 90000,  label: "Large kingdom or network (200+ area)" },
   },
   advanced: {
-    small:  { from: 400,  to: 800,   label: "Small spawn or arena (under 100×100)" },
-    medium: { from: 800,  to: 1500,  label: "Medium hub or lobby (100–250 area)" },
-    large:  { from: 1500, to: 3000,  label: "Large kingdom or network (250+ area)" },
+    small:  { enabled: true, price: 40000,  label: "Small spawn or arena (under 100×100)" },
+    medium: { enabled: true, price: 80000,  label: "Medium hub or lobby (100–250 area)" },
+    large:  { enabled: true, price: 150000, label: "Large kingdom or network (250+ area)" },
   },
   expert: {
-    small:  { from: 600,  to: 1100,  label: "Small spawn or arena (under 150×150)" },
-    medium: { from: 1100, to: 2000,  label: "Medium hub or lobby (150–300 area)" },
-    large:  { from: 2000, to: 4000,  label: "Large kingdom or network (300+ area)" },
+    small:  { enabled: true, price: 60000,  label: "Small spawn or arena (under 150×150)" },
+    medium: { enabled: true, price: 110000, label: "Medium hub or lobby (150–300 area)" },
+    large:  { enabled: true, price: 200000, label: "Large kingdom or network (300+ area)" },
   },
   master: {
-    small:  { from: 900,  to: 1500,  label: "Small spawn or arena (under 150×150)" },
-    medium: { from: 1500, to: 2800,  label: "Medium hub or lobby (150–350 area)" },
-    large:  { from: 2800, to: 6500,  label: "Large kingdom or signature build" },
+    small:  { enabled: true, price: 90000,  label: "Small spawn or arena (under 150×150)" },
+    medium: { enabled: true, price: 150000, label: "Medium hub or lobby (150–350 area)" },
+    large:  { enabled: true, price: 280000, label: "Large kingdom or signature build" },
   },
 };
 
@@ -140,10 +141,9 @@ function buildBuilders() {
       styles,
       build_types,
 
-      // Rates (negotiable ranges, not fixed pricing)
+      // Rates — exact price per size (kopecks)
       rates,
-      starts_from: rates.small.from,
-      ends_at: rates.large.to,
+      starts_from: startsFromPrice(rates),
 
       // Workflow
       workflow: WORKFLOW_BY_RANK[offer.builder.rank],

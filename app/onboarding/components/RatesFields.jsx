@@ -1,135 +1,198 @@
 "use client";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// BuildEx — Builder rates editor primitives
-// Shared between the onboarding "Rates" step and the account settings page so
-// the pricing UI stays identical in both places. `rates` is
-// { small|medium|large: { blocks, from, to } } — mirrors builder_profiles.rates
-// (migration 0005) and the RateCard on public builder pages.
+// BuildEx — Builder rates editor primitives (exact-price shape)
+// Shared between the onboarding "Rates" step and the account settings page.
+//
+// DB shape: { small:{enabled,blocks,price_kopecks}, medium:{…}, large:{…} }
+// Editor state: same keys, but `price` is in whole rubles for display;
+//   normalizeRates() converts back to kopecks before writing to the DB.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const RATE_TIERS = [
-  { key: "small",  title: "Small Build",  icon: "🏠", plus: false, hint: "Spawns, small arenas, starter hubs" },
-  { key: "medium", title: "Medium Build", icon: "🏛️", plus: false, hint: "Hubs, lobbies, mid-size builds" },
-  { key: "large",  title: "Large Build",  icon: "🏰", plus: true,  hint: "Kingdoms, networks, signature builds" },
-];
+import { SIZE_META, SIZES, kopecksToRubles, rublesToKopecks } from "../../../lib/pricing";
 
-export const DEFAULT_RATES = {
-  small:  { blocks: 100, from: 200, to: 500 },
-  medium: { blocks: 200, from: 500, to: 900 },
-  large:  { blocks: 350, from: 900, to: 1800 },
+export const RATE_TIERS = SIZES.map((key) => ({ key, ...SIZE_META[key] }));
+
+// Editor-state defaults (price in rubles)
+const DEFAULT_EDITOR = {
+  small:  { enabled: true, blocks: 100, price: 500  },
+  medium: { enabled: true, blocks: 200, price: 1000 },
+  large:  { enabled: true, blocks: 350, price: 2000 },
 };
 
-// Fill any missing tier/field from the defaults so the editor and cards always
-// have complete values, even on profiles saved before a field existed.
+/**
+ * DB rates (kopecks) → editor state (rubles).
+ * Also handles the legacy {blocks, from, to} shape transparently.
+ */
 export function mergeRates(saved) {
   const out = {};
   for (const tier of RATE_TIERS) {
     const v = (saved && saved[tier.key]) || {};
-    const d = DEFAULT_RATES[tier.key];
-    out[tier.key] = {
-      blocks: v.blocks ?? d.blocks,
-      from: v.from ?? d.from,
-      to: v.to ?? d.to,
-    };
+    const d = DEFAULT_EDITOR[tier.key];
+
+    if ("from" in v && !("price" in v)) {
+      // Legacy shape — treat `from` as kopecks and convert to rubles
+      out[tier.key] = {
+        enabled: true,
+        blocks: Number(v.blocks) || d.blocks,
+        price: Math.max(1, kopecksToRubles(v.from || d.price * 100)),
+      };
+    } else if ("price" in v) {
+      // New DB shape — convert kopecks → rubles for display
+      out[tier.key] = {
+        enabled: v.enabled !== undefined ? Boolean(v.enabled) : d.enabled,
+        blocks: Number(v.blocks) || d.blocks,
+        price: Math.max(0, kopecksToRubles(v.price)),
+      };
+    } else {
+      // No saved data — use defaults
+      out[tier.key] = { ...d };
+    }
   }
   return out;
 }
 
-export function areaLabel(tier, blocks) {
-  const n = blocks || 0;
-  return tier.plus
-    ? `Builds ${n}×${n} blocks and beyond`
-    : `Builds up to ${n}×${n} blocks`;
-}
-
-// Returns an error message string if the rates are incomplete/inconsistent,
-// otherwise null. Used to gate the Save / Continue buttons.
-export function validateRates(r) {
-  for (const tier of RATE_TIERS) {
-    const v = r[tier.key];
-    if (v.blocks === "" || v.from === "" || v.to === "") return "Fill in every field for each tier.";
-    if (Number(v.to) < Number(v.from)) return `${tier.title}: the "to" price can't be lower than "from".`;
-  }
-  return null;
-}
-
-// Coerce the editor's (possibly string) field values into clean numbers for save.
+/** Editor state (rubles) → DB format (kopecks). */
 export function normalizeRates(r) {
   const clean = {};
   for (const tier of RATE_TIERS) {
     const v = r[tier.key];
-    clean[tier.key] = { blocks: Number(v.blocks), from: Number(v.from), to: Number(v.to) };
+    clean[tier.key] = {
+      enabled: Boolean(v.enabled),
+      blocks: Math.max(0, Math.round(Number(v.blocks) || 0)),
+      price: rublesToKopecks(v.price),
+    };
   }
   return clean;
 }
 
+/** Returns an error string if rates are invalid, otherwise null. */
+export function validateRates(r) {
+  const enabled = RATE_TIERS.filter((t) => r[t.key]?.enabled);
+  if (enabled.length === 0) return "Enable at least one build size.";
+  for (const tier of enabled) {
+    const v = r[tier.key];
+    if (!v.blocks || Number(v.blocks) <= 0) {
+      return `${tier.label}: block area must be greater than 0.`;
+    }
+    if (!v.price || Number(v.price) <= 0) {
+      return `${tier.label}: price must be greater than 0.`;
+    }
+  }
+  return null;
+}
+
+// ─── Preview card (read-only, shown in account settings) ─────────────────────
 export function RateCardPreview({ tier, value }) {
+  const blocks = Number(value.blocks) || 0;
+  const areaText = tier.key === "large"
+    ? `${blocks}×${blocks} blocks and beyond`
+    : `Up to ${blocks}×${blocks} blocks`;
+
+  if (!value.enabled) {
+    return (
+      <div className="glass rounded-2xl p-5 flex flex-col gap-2 opacity-40">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-2xl">{tier.icon}</span>
+          <h3 className="font-bold text-base">{tier.label}</h3>
+        </div>
+        <p className="text-xs text-gray-500">Not offered</p>
+      </div>
+    );
+  }
+
   return (
     <div className="glass rounded-2xl p-5 flex flex-col gap-2 transition-all duration-300 hover:border-[#4ade80]/40 hover:shadow-[0_0_24px_rgba(74,222,128,0.12)]">
       <div className="flex items-center gap-2 mb-1">
         <span className="text-2xl">{tier.icon}</span>
-        <h3 className="font-bold text-base">{tier.title}</h3>
+        <h3 className="font-bold text-base">{tier.label}</h3>
       </div>
-      <p className="text-xs text-gray-400 leading-relaxed">{areaLabel(tier, value.blocks)}</p>
+      <p className="text-xs text-gray-400 leading-relaxed">{areaText}</p>
       <div className="mt-2 pt-3 border-t border-white/[0.06]">
-        <p className="text-[10px] text-gray-500 uppercase tracking-wide">Your price range</p>
+        <p className="text-[10px] text-gray-500 uppercase tracking-wide">Exact price</p>
         <p className="text-[#4ade80] font-extrabold text-xl leading-tight">
-          ${Number(value.from).toLocaleString()} – ${Number(value.to).toLocaleString()}
+          ₽{Number(value.price).toLocaleString("ru-RU")}
         </p>
       </div>
     </div>
   );
 }
 
+// ─── Editor card (editable, shown in account settings + onboarding) ───────────
 export function RateEditor({ tier, value, onChange }) {
-  function set(field, raw) {
-    onChange({ ...value, [field]: raw === "" ? "" : Math.max(0, parseInt(raw, 10) || 0) });
+  function setField(field, raw) {
+    if (field === "enabled") {
+      onChange({ ...value, enabled: raw });
+      return;
+    }
+    const n = raw === "" ? "" : Math.max(0, parseInt(raw, 10) || 0);
+    onChange({ ...value, [field]: n });
   }
+
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 space-y-3">
-      <div className="flex items-center gap-2">
-        <span className="text-xl">{tier.icon}</span>
-        <div>
-          <h3 className="font-bold text-sm leading-tight">{tier.title}</h3>
-          <p className="text-[11px] text-gray-500">{tier.hint}</p>
+    <div
+      className={`rounded-2xl border p-4 space-y-3 transition-opacity duration-200 ${
+        value.enabled
+          ? "border-white/10 bg-white/[0.03]"
+          : "border-white/5 bg-white/[0.01] opacity-50"
+      }`}
+    >
+      {/* Header + toggle */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="text-xl">{tier.icon}</span>
+          <div>
+            <h3 className="font-bold text-sm leading-tight">{tier.label}</h3>
+            <p className="text-[11px] text-gray-500">{tier.hint}</p>
+          </div>
         </div>
-      </div>
-      <div>
-        <label className="onb-label block mb-1.5">Build area (blocks per side)</label>
-        <input
-          type="number"
-          min="0"
-          inputMode="numeric"
-          className="onb-input"
-          value={value.blocks}
-          onChange={(e) => set("blocks", e.target.value)}
-        />
-      </div>
-      <div className="grid grid-cols-2 gap-2.5">
-        <div>
-          <label className="onb-label block mb-1.5">Price from ($)</label>
-          <input
-            type="number"
-            min="0"
-            inputMode="numeric"
-            className="onb-input"
-            value={value.from}
-            onChange={(e) => set("from", e.target.value)}
+        <button
+          type="button"
+          role="switch"
+          aria-checked={value.enabled}
+          onClick={() => setField("enabled", !value.enabled)}
+          className={`relative flex-shrink-0 w-10 h-5 rounded-full border transition-all duration-200 ${
+            value.enabled
+              ? "bg-[#4ade80] border-[#4ade80]"
+              : "bg-white/10 border-white/20"
+          }`}
+          title={value.enabled ? "Disable this size" : "Enable this size"}
+        >
+          <span
+            className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200 ${
+              value.enabled ? "translate-x-5" : "translate-x-0"
+            }`}
           />
-        </div>
-        <div>
-          <label className="onb-label block mb-1.5">Price to ($)</label>
-          <input
-            type="number"
-            min="0"
-            inputMode="numeric"
-            className="onb-input"
-            value={value.to}
-            onChange={(e) => set("to", e.target.value)}
-          />
-        </div>
+        </button>
       </div>
+
+      {value.enabled && (
+        <>
+          <div>
+            <label className="onb-label block mb-1.5">Block area (blocks per side)</label>
+            <input
+              type="number"
+              min="0"
+              inputMode="numeric"
+              className="onb-input"
+              value={value.blocks}
+              onChange={(e) => setField("blocks", e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="onb-label block mb-1.5">Price (₽)</label>
+            <input
+              type="number"
+              min="0"
+              inputMode="numeric"
+              className="onb-input"
+              value={value.price}
+              onChange={(e) => setField("price", e.target.value)}
+              placeholder="e.g. 5000"
+            />
+          </div>
+        </>
+      )}
     </div>
   );
 }

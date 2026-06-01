@@ -18,6 +18,7 @@ import {
   BUILDER_TOOLS,
   RESPONSE_TIMES,
 } from "../../../lib/onboarding/constants";
+import { startsFromPrice } from "../../../lib/pricing";
 
 // Columns shared by the feed query and the single-profile query.
 const PROFILE_SELECT =
@@ -38,21 +39,10 @@ function mapPortfolio(rows) {
     }));
 }
 
-// Builder-set rate tiers are { small|medium|large: { blocks, from, to } }.
-// "Rates from" shows the cheapest available tier's floor.
+// Builder rates are { small|medium|large: { enabled, blocks, price_kopecks } }.
+// starts_from = cheapest enabled tier's price in kopecks (0 if none set).
 function deriveStartsFrom(rates) {
-  if (!rates || typeof rates !== "object") return 0;
-  for (const tier of ["small", "medium", "large"]) {
-    const from = Number(rates?.[tier]?.from);
-    if (Number.isFinite(from) && from > 0) return from;
-  }
-  return 0;
-}
-
-function deriveEndsAt(rates, fallback) {
-  if (!rates || typeof rates !== "object") return fallback;
-  const to = Number(rates?.large?.to ?? rates?.medium?.to ?? rates?.small?.to);
-  return Number.isFinite(to) && to > 0 ? to : fallback;
+  return startsFromPrice(rates);
 }
 
 // A builder is hidden from the feed when their availability slider is on red.
@@ -98,10 +88,9 @@ function mapRow(row) {
     styles: specialties,
     build_types: buildTypes,
 
-    // Rates (negotiable ranges, not fixed pricing)
+    // Rates — exact price per enabled size (kopecks)
     rates,
     starts_from: startsFrom,
-    ends_at: deriveEndsAt(rates, startsFrom),
   };
 }
 
@@ -149,24 +138,36 @@ function toolLabels(tools) {
   );
 }
 
-// The RateCard component reads `.from`/`.to`/`.label` unconditionally for each
-// of small/medium/large, so every tier must exist with numeric bounds even when
-// the builder only filled in some of them.
+// Normalize per-size rates for the public profile page.
+// Returns { small|medium|large: { enabled, price, label } } where price is kopecks.
+const BASE_LABELS = {
+  small: "Small spawn or arena",
+  medium: "Medium hub or lobby",
+  large: "Large kingdom or network",
+};
+
 function normalizeProfileRates(rates) {
-  const tiers = {
-    small: "Small spawn or arena",
-    medium: "Medium hub or lobby",
-    large: "Large kingdom or network",
-  };
   const out = {};
-  for (const [key, baseLabel] of Object.entries(tiers)) {
+  for (const key of ["small", "medium", "large"]) {
     const tier = (rates && typeof rates === "object" && rates[key]) || {};
     const blocks = Number(tier.blocks);
-    out[key] = {
-      from: Number(tier.from) || 0,
-      to: Number(tier.to) || 0,
-      label: Number.isFinite(blocks) && blocks > 0 ? `${baseLabel} (~${blocks}×${blocks})` : baseLabel,
-    };
+    const baseLabel = BASE_LABELS[key];
+    const blocksSuffix = Number.isFinite(blocks) && blocks > 0 ? ` (~${blocks}×${blocks})` : "";
+
+    // Support both old shape (from/to) and new shape (enabled/price)
+    if ("from" in tier && !("price" in tier)) {
+      out[key] = {
+        enabled: true,
+        price: Number(tier.from) || 0,
+        label: `${baseLabel}${blocksSuffix}`,
+      };
+    } else {
+      out[key] = {
+        enabled: tier.enabled !== false,
+        price: Number(tier.price) || 0,
+        label: `${baseLabel}${blocksSuffix}`,
+      };
+    }
   }
   return out;
 }

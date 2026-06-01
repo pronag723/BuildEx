@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { RANKS } from "../data/builders";
 import { publicAsset, withBase } from "../../home/utils";
+import { formatPrice } from "../../../lib/pricing";
 
 function StarIcon({ className = "w-3.5 h-3.5" }) {
   return (
@@ -224,7 +225,7 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
               Rates from
             </p>
             <p className="text-[#4ade80] font-bold text-lg leading-none">
-              ${builder.starts_from.toLocaleString()}
+              {builder.starts_from > 0 ? formatPrice(builder.starts_from) : "—"}
             </p>
           </div>
 

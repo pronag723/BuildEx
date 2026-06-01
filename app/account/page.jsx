@@ -718,8 +718,7 @@ function RatesSection({ builderProfile, onSaved }) {
         canSave={!validateRates(rates)}
       />
       <p className="text-xs text-gray-500 -mt-2 mb-5">
-        Set a price range for each build scale based on its block area. Clients see these as
-        estimated ranges — final quotes always stay negotiable.
+        Set an exact price for each build scale. Toggle off any sizes you don&apos;t currently offer.
       </p>
 
       {editing ? (
@@ -746,7 +745,7 @@ function RatesSection({ builderProfile, onSaved }) {
         <div className="rounded-2xl border border-dashed border-white/15 p-8 text-center">
           <p className="text-gray-400 text-sm">You haven&apos;t set your rates yet.</p>
           <p className="text-gray-500 text-xs mt-1">
-            Click <strong>Edit</strong> to add a price range for each build scale.
+            Click <strong>Edit</strong> to add an exact price for each build scale.
           </p>
         </div>
       )}

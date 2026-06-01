@@ -11,6 +11,7 @@ import { getBuilderReviews, getBuilderRatingBreakdown } from "../../../data/revi
 import { publicAsset, withBase } from "../../../../home/utils";
 import { useAuthGate } from "../../../../../lib/auth/useAuthGate";
 import { AVAILABILITY_STATES } from "../../../../../lib/onboarding/constants";
+import { formatPrice } from "../../../../../lib/pricing";
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 function IconStar({ className = "w-4 h-4" }) {
@@ -131,12 +132,12 @@ function PortfolioCarousel({ items }) {
   );
 }
 
-// ─── Rate bracket card ───────────────────────────────────────────────────────
+// ─── Rate card (exact price, new shape) ─────────────────────────────────────
 function RateCard({ size, info }) {
   const labelMap = {
-    small: { title: "Small Build", icon: "🏠" },
+    small:  { title: "Small Build",  icon: "🏠" },
     medium: { title: "Medium Build", icon: "🏛️" },
-    large: { title: "Large Build", icon: "🏰" },
+    large:  { title: "Large Build",  icon: "🏰" },
   };
   const meta = labelMap[size];
   return (
@@ -147,9 +148,9 @@ function RateCard({ size, info }) {
       </div>
       <p className="text-xs text-gray-400 leading-relaxed">{info.label}</p>
       <div className="mt-2 pt-3 border-t border-white/[0.06]">
-        <p className="text-[10px] text-gray-500 uppercase tracking-wide">Estimated range</p>
+        <p className="text-[10px] text-gray-500 uppercase tracking-wide">Price</p>
         <p className="text-[#4ade80] font-extrabold text-xl leading-tight">
-          ${info.from.toLocaleString()} – ${info.to.toLocaleString()}
+          {info.price > 0 ? formatPrice(info.price) : "—"}
         </p>
       </div>
     </div>
@@ -199,14 +200,14 @@ function ContactSidebar({ builder, onShowSoon, onContact }) {
         </div>
       </div>
 
-      {/* Rate range summary */}
+      {/* Starting price */}
       <div className="py-4 border-y border-white/[0.08]">
-        <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Rate range</p>
+        <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Rates from</p>
         <p className="text-2xl font-extrabold text-[#4ade80] leading-none">
-          ${builder.starts_from.toLocaleString()} – ${builder.ends_at.toLocaleString()}
+          {builder.starts_from > 0 ? formatPrice(builder.starts_from) : "—"}
         </p>
         <p className="text-[11px] text-gray-500 mt-1.5 leading-relaxed">
-          Final pricing is negotiated per project after discovery.
+          Final pricing is discussed per project.
         </p>
       </div>
 
@@ -658,7 +659,7 @@ export default function BuilderProfilePage({ builder }) {
                   <div>
                     <h2 className="font-bold text-xl">Rates & Project Scale</h2>
                     <p className="text-xs text-gray-500 mt-1">
-                      Estimated pricing ranges — final quote is always discussed per project.
+                      Exact prices per build scale. Final scope is always discussed per project.
                     </p>
                   </div>
                   <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs bg-[#4ade80]/10 border border-[#4ade80]/30 text-[#4ade80] font-medium self-start">
@@ -667,11 +668,20 @@ export default function BuilderProfilePage({ builder }) {
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <RateCard size="small" info={builder.rates.small} />
-                  <RateCard size="medium" info={builder.rates.medium} />
-                  <RateCard size="large" info={builder.rates.large} />
-                </div>
+                {(() => {
+                  const enabledSizes = ["small", "medium", "large"].filter(
+                    (s) => builder.rates?.[s]?.enabled !== false && builder.rates?.[s]
+                  );
+                  return enabledSizes.length === 0 ? (
+                    <p className="text-sm text-gray-500 italic">No rates set yet.</p>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      {enabledSizes.map((s) => (
+                        <RateCard key={s} size={s} info={builder.rates[s]} />
+                      ))}
+                    </div>
+                  );
+                })()}
 
                 <div className="mt-5 p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
                   <div className="flex items-start gap-3">
@@ -703,7 +713,7 @@ export default function BuilderProfilePage({ builder }) {
           <div className="flex-shrink-0">
             <p className="text-[10px] text-gray-500 uppercase tracking-wide">Rates from</p>
             <p className="text-lg font-extrabold text-[#4ade80] leading-none">
-              ${builder.starts_from.toLocaleString()}
+              {builder.starts_from > 0 ? formatPrice(builder.starts_from) : "—"}
             </p>
           </div>
           <button
