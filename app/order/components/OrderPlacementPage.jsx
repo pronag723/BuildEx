@@ -18,6 +18,7 @@ import { SIZE_META, SIZES, formatPrice } from "../../../lib/pricing";
 import { placeOrder, markOrderPaid } from "../../../lib/orders/api";
 import CatalogNavbar from "../../builders/components/CatalogNavbar";
 import CatalogMobileMenu from "../../builders/components/CatalogMobileMenu";
+import { useGradientBackground } from "../../../lib/ui/useGradientBackground";
 
 const STEPS = ["size", "style", "brief", "review"];
 
@@ -61,6 +62,7 @@ export default function OrderPlacementPage() {
   }, [theme, isLight]);
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { gradientRef, edgeGlowRef } = useGradientBackground();
 
   // ── Resolve the target builder from ?to=<handle> ────────────────────────────
   const [username, setUsername] = useState(null);
@@ -195,7 +197,12 @@ export default function OrderPlacementPage() {
   }
 
   return (
-    <>
+    <div
+      className={`builder-profile-root ${isLight ? "light" : ""} catalog-root min-h-screen flex flex-col`}
+    >
+      <div ref={gradientRef} className="gradient-background" aria-hidden="true" />
+      <div ref={edgeGlowRef} className="gradient-edge-glow" aria-hidden="true" />
+
       <CatalogNavbar
         isLight={isLight}
         setTheme={setTheme}
@@ -209,7 +216,7 @@ export default function OrderPlacementPage() {
         setMobileMenuOpen={setMobileMenuOpen}
       />
 
-      <main className="min-h-screen px-4 pt-28 pb-20">
+      <main className="relative z-10 flex-1 px-4 pt-28 pb-20">
         <div className="max-w-2xl mx-auto">
           {loading ? (
             <div className="flex items-center justify-center py-24">
@@ -298,7 +305,7 @@ export default function OrderPlacementPage() {
           )}
         </div>
       </main>
-    </>
+    </div>
   );
 }
 

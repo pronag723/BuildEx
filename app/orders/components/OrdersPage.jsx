@@ -29,6 +29,7 @@ import {
 import { formatPrice, SIZE_META } from "../../../lib/pricing";
 import CatalogNavbar from "../../builders/components/CatalogNavbar";
 import CatalogMobileMenu from "../../builders/components/CatalogMobileMenu";
+import { useGradientBackground } from "../../../lib/ui/useGradientBackground";
 
 // ─── Status display tables ──────────────────────────────────────────────────
 // Re-used by list rows, detail header, and the timeline. Single source of
@@ -101,6 +102,7 @@ export default function OrdersPage() {
   const [theme, setTheme] = useState(null);
   const isLight = theme === "light";
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { gradientRef, edgeGlowRef } = useGradientBackground();
   useEffect(() => {
     const saved = typeof window !== "undefined" && window.localStorage.getItem("theme");
     setTheme(saved === "light" ? "light" : "dark");
@@ -124,7 +126,12 @@ export default function OrdersPage() {
   const ready = status === "authenticated" && theme !== null;
 
   return (
-    <>
+    <div
+      className={`builder-profile-root ${isLight ? "light" : ""} catalog-root min-h-screen flex flex-col`}
+    >
+      <div ref={gradientRef} className="gradient-background" aria-hidden="true" />
+      <div ref={edgeGlowRef} className="gradient-edge-glow" aria-hidden="true" />
+
       <CatalogNavbar
         isLight={isLight}
         setTheme={setTheme}
@@ -138,7 +145,7 @@ export default function OrdersPage() {
         setMobileMenuOpen={setMobileMenuOpen}
       />
 
-      <main className="min-h-screen px-4 pt-28 pb-20">
+      <main className="relative z-10 flex-1 px-4 pt-28 pb-20">
         <div className="max-w-3xl mx-auto">
           {!ready ? (
             <Spinner />
@@ -149,7 +156,7 @@ export default function OrdersPage() {
           )}
         </div>
       </main>
-    </>
+    </div>
   );
 }
 
