@@ -100,7 +100,7 @@ function OrderEventMessage({ message }) {
             // Fixed-size preview: clamp to a few lines with an ellipsis so the
             // card never grows or shows a scroll stripe. The full brief lives on
             // the order page (tap-through).
-            <p className="text-xs text-gray-400 leading-relaxed line-clamp-3">
+            <p className="text-xs text-gray-400 leading-relaxed break-words line-clamp-3">
               {meta.brief}
             </p>
           )}

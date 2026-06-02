@@ -532,7 +532,7 @@ function BriefBlock({ text }) {
     <div>
       <p
         ref={ref}
-        className={`text-sm text-gray-300 whitespace-pre-wrap leading-relaxed p-3 rounded-2xl bg-black/30 border border-white/10 ${
+        className={`text-sm text-gray-300 whitespace-pre-wrap break-words leading-relaxed p-3 rounded-2xl bg-black/30 border border-white/10 ${
           expanded ? "" : "line-clamp-6"
         }`}
       >

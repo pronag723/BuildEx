@@ -124,10 +124,10 @@ function SectionHeader({ title, editing, onEdit, onCancel, onSave, saving, canSa
   );
 }
 
-// ─── Active orders (builders) ────────────────────────────────────────────────
-// Surfaces the builder's open workload on their own profile/account view: a
-// count of commissions currently `paid` or `in_progress`, and a peek at the
-// next few. The full dashboard lives at /orders.
+// ─── Active orders (both roles) ──────────────────────────────────────────────
+// The "Orders" tab on the account page: every commission currently in flight,
+// whether the user is the builder (incoming work) or the buyer (a purchase).
+// A peek at the next few + a link to the full dashboard at /orders.
 const ACTIVE_STATUSES = new Set(["paid", "in_progress", "delivered"]);
 
 function ActiveOrdersSection({ userId }) {
@@ -138,12 +138,10 @@ function ActiveOrdersSection({ userId }) {
     let cancelled = false;
     listMyOrders().then(({ orders: rows }) => {
       if (cancelled) return;
-      // Builder side only — the buyer view of these same rows lives on /orders.
-      setOrders(
-        (rows || []).filter(
-          (o) => o.builder_id === userId && ACTIVE_STATUSES.has(o.status)
-        )
-      );
+      // Both sides: rows where the user is the builder OR the buyer. RLS has
+      // already scoped the result to this user, so the status filter is all
+      // that's left.
+      setOrders((rows || []).filter((o) => ACTIVE_STATUSES.has(o.status)));
     });
     return () => {
       cancelled = true;
@@ -156,7 +154,8 @@ function ActiveOrdersSection({ userId }) {
         <div>
           <h2 className="font-bold text-xl">Active orders</h2>
           <p className="text-xs text-gray-500 mt-0.5">
-            Paid commissions in flight from your clients.
+            Commissions in flight — work you&apos;re building and orders
+            you&apos;ve placed.
           </p>
         </div>
         <Link
@@ -172,12 +171,14 @@ function ActiveOrdersSection({ userId }) {
       ) : orders.length === 0 ? (
         <p className="text-sm text-gray-500">
           No active orders right now. New commissions appear here the moment
-          they're paid.
+          they&apos;re paid.
         </p>
       ) : (
         <ul className="space-y-2">
-          {orders.slice(0, 5).map((o) => {
-            const peer = o.buyer || {};
+          {orders.slice(0, 6).map((o) => {
+            // Show the other party + which side of the deal the user is on.
+            const asBuilder = o.builder_id === userId;
+            const peer = (asBuilder ? o.buyer : o.builder) || {};
             const sizeLabel =
               SIZE_META[o.building_size]?.label || o.building_size;
             return (
@@ -194,9 +195,14 @@ function ActiveOrdersSection({ userId }) {
                     decoding="async"
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-sm truncate">
-                      {peer.display_name || "Unknown buyer"}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-sm truncate">
+                        {peer.display_name || "Unknown user"}
+                      </p>
+                      <span className="px-1.5 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wide border border-white/10 text-gray-400 flex-shrink-0">
+                        {asBuilder ? "Selling" : "Buying"}
+                      </span>
+                    </div>
                     <p className="text-[11px] text-gray-500 truncate capitalize">
                       {sizeLabel} · {o.style} · {o.status.replace("_", " ")}
                     </p>
@@ -208,14 +214,64 @@ function ActiveOrdersSection({ userId }) {
               </li>
             );
           })}
-          {orders.length > 5 && (
+          {orders.length > 6 && (
             <li className="text-xs text-gray-500 text-center pt-1">
-              +{orders.length - 5} more on the dashboard
+              +{orders.length - 6} more on the dashboard
             </li>
           )}
         </ul>
       )}
     </section>
+  );
+}
+
+// ─── Section switcher ────────────────────────────────────────────────────────
+// The three top-level views of the account page. A segmented control sits above
+// the avatar and toggles which group of cards is shown, so the page no longer
+// stacks everything in one long scroll.
+const ACCOUNT_SECTIONS = [
+  { key: "profile", label: "Profile", short: "Profile" },
+  { key: "orders", label: "Active orders", short: "Orders" },
+  { key: "danger", label: "Danger zone", short: "Danger" },
+];
+
+function SectionTabs({ section, setSection }) {
+  const idx = Math.max(0, ACCOUNT_SECTIONS.findIndex((s) => s.key === section));
+  return (
+    <div
+      className="relative grid grid-cols-3 p-1 rounded-full bg-white/[0.04] border border-white/10 mb-8 detail-fade-up"
+      role="tablist"
+      aria-label="Account sections"
+    >
+      {/* Sliding highlight */}
+      <span
+        aria-hidden="true"
+        className="absolute inset-y-1 left-1 rounded-full bg-[#4ade80]/15 transition-transform duration-300 ease-out"
+        style={{
+          width: "calc((100% - 0.5rem) / 3)",
+          transform: `translateX(calc(${idx} * 100%))`,
+          boxShadow: "0 0 0 1px rgba(74,222,128,0.5), 0 0 14px rgba(74,222,128,0.22)",
+        }}
+      />
+      {ACCOUNT_SECTIONS.map((s) => {
+        const isActive = s.key === section;
+        return (
+          <button
+            key={s.key}
+            type="button"
+            role="tab"
+            aria-selected={isActive}
+            onClick={() => setSection(s.key)}
+            className={`relative z-10 py-2.5 px-2 rounded-full text-xs sm:text-sm font-semibold transition-colors ${
+              isActive ? "text-white" : "text-gray-400 hover:text-gray-200"
+            }`}
+          >
+            <span className="sm:hidden">{s.short}</span>
+            <span className="hidden sm:inline">{s.label}</span>
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -1001,13 +1057,7 @@ function AccountActionsSection() {
       <h2 className="font-bold text-xl mb-1">Account</h2>
       <p className="text-xs text-gray-500 mb-5">Quick links and account controls.</p>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <a
-          href={withBase("/orders")}
-          className="py-3 px-4 text-sm font-semibold rounded-2xl border border-[#4ade80]/30 text-[#4ade80] bg-[#4ade80]/10 hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.35)] transition-all text-center"
-        >
-          Active orders
-        </a>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <a
           href={withBase("/builders")}
           className="py-3 px-4 text-sm font-medium rounded-2xl border border-white/15 hover:border-white/40 transition-all ghost-btn text-center"
@@ -1408,6 +1458,9 @@ function AccountPageInner() {
   const [theme, setTheme] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [toast, setToast] = useState(null);
+  // Top-level account view: "profile" (visuals/identity), "orders" (active
+  // orders), or "danger" (account controls + delete). Toggled by SectionTabs.
+  const [section, setSection] = useState("profile");
   // AuthContext owns the profile row (hydrated from localStorage on mount,
   // refreshed from Supabase in the background). The page reads it directly
   // from there instead of re-fetching, which was the source of the duplicate
@@ -1541,7 +1594,7 @@ function AccountPageInner() {
     );
     document.querySelectorAll(".reveal").forEach((el) => obs.observe(el));
     return () => obs.disconnect();
-  }, [profile, builderProfile]);
+  }, [profile, builderProfile, section]);
 
   // Render the spinner only when we have NOTHING to show. As soon as either
   // the cached profile from AuthContext or a fresh fetch lands, paint the
@@ -1630,38 +1683,57 @@ function AccountPageInner() {
             </p>
           </div>
 
-          <AccountHeader profile={profile} builderProfile={builderProfile} onSaved={refresh} />
+          {/* Section switcher — sits above the avatar and picks which group
+              of cards is shown, so the page is no longer one long stack. */}
+          <SectionTabs section={section} setSection={setSection} />
 
-          <div className="space-y-8">
-            {isBuilder && (
-              <AvailabilitySection builderProfile={builderProfile} onSaved={refresh} />
-            )}
+          {section === "profile" && (
+            <>
+              <AccountHeader
+                profile={profile}
+                builderProfile={builderProfile}
+                onSaved={refresh}
+              />
 
-            {isBuilder && <ActiveOrdersSection userId={user?.id} />}
+              <div className="space-y-8">
+                {isBuilder && (
+                  <AvailabilitySection builderProfile={builderProfile} onSaved={refresh} />
+                )}
 
-            <AboutSection
-              profile={profile}
-              builderProfile={builderProfile}
-              isBuilder={isBuilder}
-              onSaved={refresh}
-            />
+                <AboutSection
+                  profile={profile}
+                  builderProfile={builderProfile}
+                  isBuilder={isBuilder}
+                  onSaved={refresh}
+                />
 
-            {isBuilder && (
-              <>
-                <PortfolioSection portfolioCount={portfolioCount} onSaved={refresh} />
-                <RatesSection builderProfile={builderProfile} onSaved={refresh} />
-                <SpecialtiesSection builderProfile={builderProfile} onSaved={refresh} />
-                <ExpertiseSection builderProfile={builderProfile} onSaved={refresh} />
-              </>
-            )}
+                {isBuilder && (
+                  <>
+                    <PortfolioSection portfolioCount={portfolioCount} onSaved={refresh} />
+                    <RatesSection builderProfile={builderProfile} onSaved={refresh} />
+                    <SpecialtiesSection builderProfile={builderProfile} onSaved={refresh} />
+                    <ExpertiseSection builderProfile={builderProfile} onSaved={refresh} />
+                  </>
+                )}
 
-            {isClient && !isBuilder && (
-              <ClientPreferencesSection profile={profile} onSaved={refresh} />
-            )}
+                {isClient && !isBuilder && (
+                  <ClientPreferencesSection profile={profile} onSaved={refresh} />
+                )}
+              </div>
+            </>
+          )}
 
-            {/* Account actions + danger zone */}
-            <AccountActionsSection />
-          </div>
+          {section === "orders" && (
+            <div className="space-y-8">
+              <ActiveOrdersSection userId={user?.id} />
+            </div>
+          )}
+
+          {section === "danger" && (
+            <div className="space-y-8">
+              <AccountActionsSection />
+            </div>
+          )}
         </div>
       </main>
 
