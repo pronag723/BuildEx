@@ -7,6 +7,19 @@ export const metadata = {
     "Hire skilled Minecraft builders or find paid work building spawns, hubs, maps, and decorations."
 };
 
+// Supabase project origin (also the Storage CDN host for avatars/banners/
+// portfolio images). Warming the TLS connection here shaves the handshake off
+// the first image request, which matters a lot on higher-latency links.
+const supabaseOrigin = (() => {
+  try {
+    return process.env.NEXT_PUBLIC_SUPABASE_URL
+      ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).origin
+      : null;
+  } catch {
+    return null;
+  }
+})();
+
 export default function RootLayout({ children }) {
   return (
     <html
@@ -15,6 +28,14 @@ export default function RootLayout({ children }) {
       data-scroll-behavior="smooth"
       suppressHydrationWarning
     >
+      <head>
+        {supabaseOrigin && (
+          <>
+            <link rel="preconnect" href={supabaseOrigin} crossOrigin="anonymous" />
+            <link rel="dns-prefetch" href={supabaseOrigin} />
+          </>
+        )}
+      </head>
       <body className="overflow-x-hidden transition-colors duration-300 relative">
         <Providers>{children}</Providers>
       </body>

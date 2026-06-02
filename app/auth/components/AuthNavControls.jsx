@@ -35,7 +35,7 @@ function Avatar({ user, size = 36 }) {
     >
       {user?.avatarUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
+        <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
       ) : (
         <span>{initial}</span>
       )}

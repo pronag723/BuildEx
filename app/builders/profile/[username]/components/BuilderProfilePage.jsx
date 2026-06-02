@@ -543,6 +543,8 @@ export default function BuilderProfilePage({ builder }) {
                   src={builder.avatar}
                   alt={builder.display_name}
                   className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl object-cover ring-2 ring-[#4ade80]/30 shadow-xl"
+                  loading="lazy"
+                  decoding="async"
                 />
                 {builder.online && (
                   <span className="absolute bottom-1 right-1 w-5 h-5 rounded-full bg-[#4ade80] border-[3px] border-[#1a1a1a] online-dot" />

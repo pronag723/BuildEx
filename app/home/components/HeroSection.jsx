@@ -82,6 +82,8 @@ export default function HeroSection({ heroVisualRef, onAnchorClick, onShowSoon }
                 src="https://picsum.photos/id/1015/64/64"
                 alt="Builder"
                 className="w-12 h-12 rounded-2xl object-cover minecraft-img"
+                loading="lazy"
+                decoding="async"
               />
               <div>
                 <div className="font-semibold">PixelForge</div>

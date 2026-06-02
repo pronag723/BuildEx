@@ -1276,6 +1276,8 @@ function AccountHeader({ profile, builderProfile, onSaved }) {
                   src={profile.avatar_url}
                   alt={profile.display_name || ""}
                   className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl object-cover ring-2 ring-[#4ade80]/30 shadow-xl"
+                  loading="lazy"
+                  decoding="async"
                 />
               ) : (
                 <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-[#4ade80]/15 border border-[#4ade80]/40 ring-2 ring-[#4ade80]/30 flex items-center justify-center text-[#4ade80] font-bold text-4xl">

@@ -11,6 +11,8 @@ function ProjectCard({ project }) {
           src={publicAsset(project.image)}
           alt={project.alt}
           className="w-full h-full object-cover minecraft-img"
+          loading="lazy"
+          decoding="async"
         />
         {project.rank ? (
           <div className="absolute top-4 right-4 glass px-3 py-1 text-xs rounded-full">

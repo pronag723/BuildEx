@@ -27,6 +27,8 @@ export default function WhyBuildExSection() {
                   src={testimonial.image}
                   alt={testimonial.name}
                   className="w-14 h-14 rounded-2xl object-cover"
+                  loading="lazy"
+                  decoding="async"
                 />
                 <div>
                   <div className="font-semibold text-lg">{testimonial.name}</div>

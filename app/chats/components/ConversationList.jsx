@@ -27,7 +27,7 @@ function Avatar({ name, url, size = 48 }) {
     >
       {url ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={publicAsset(url)} alt="" className="w-full h-full object-cover" />
+        <img src={publicAsset(url)} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
       ) : (
         <span>{initial}</span>
       )}
