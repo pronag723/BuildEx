@@ -1001,7 +1001,13 @@ function AccountActionsSection() {
       <h2 className="font-bold text-xl mb-1">Account</h2>
       <p className="text-xs text-gray-500 mb-5">Quick links and account controls.</p>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <a
+          href={withBase("/orders")}
+          className="py-3 px-4 text-sm font-semibold rounded-2xl border border-[#4ade80]/30 text-[#4ade80] bg-[#4ade80]/10 hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.35)] transition-all text-center"
+        >
+          Active orders
+        </a>
         <a
           href={withBase("/builders")}
           className="py-3 px-4 text-sm font-medium rounded-2xl border border-white/15 hover:border-white/40 transition-all ghost-btn text-center"

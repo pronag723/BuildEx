@@ -9,7 +9,7 @@
 // supabase/migrations/0009_orders.sql, so this page is plain auth + UI.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../../lib/auth/AuthContext";
@@ -427,9 +427,7 @@ function OrderDetail({ orderId, meId }) {
           <p className="text-[11px] text-gray-500 uppercase tracking-widest mb-1">
             Brief
           </p>
-          <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed p-3 rounded-2xl bg-black/30 border border-white/10 max-h-72 overflow-y-auto">
-            {order.brief}
-          </p>
+          <BriefBlock text={order.brief} />
         </div>
       </Card>
 
@@ -510,6 +508,45 @@ function Row({ label, capitalize, children }) {
       >
         {children}
       </dd>
+    </div>
+  );
+}
+
+// ─── Brief block ──────────────────────────────────────────────────────────────
+// The full client brief. Clamped to a fixed height by default so a long brief
+// doesn't push the actions off-screen; if it overflows, an "Show full brief"
+// button expands it completely (order page only — the chat card stays clamped).
+function BriefBlock({ text }) {
+  const ref = useRef(null);
+  const [expanded, setExpanded] = useState(false);
+  const [overflowing, setOverflowing] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    // Compare the rendered (clamped) height against the natural content height.
+    setOverflowing(el.scrollHeight > el.clientHeight + 1);
+  }, [text]);
+
+  return (
+    <div>
+      <p
+        ref={ref}
+        className={`text-sm text-gray-300 whitespace-pre-wrap leading-relaxed p-3 rounded-2xl bg-black/30 border border-white/10 ${
+          expanded ? "" : "line-clamp-6"
+        }`}
+      >
+        {text}
+      </p>
+      {(overflowing || expanded) && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="mt-2 text-xs font-semibold text-[#4ade80] hover:underline"
+        >
+          {expanded ? "Show less" : "Show full brief"}
+        </button>
+      )}
     </div>
   );
 }

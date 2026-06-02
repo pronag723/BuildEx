@@ -97,7 +97,10 @@ function OrderEventMessage({ message }) {
           )}
 
           {meta.brief && (
-            <p className="text-xs text-gray-300 whitespace-pre-wrap leading-relaxed max-h-40 overflow-y-auto rounded-xl bg-black/30 border border-white/10 p-2.5">
+            // Fixed-size preview: clamp to a few lines with an ellipsis so the
+            // card never grows or shows a scroll stripe. The full brief lives on
+            // the order page (tap-through).
+            <p className="text-xs text-gray-400 leading-relaxed line-clamp-3">
               {meta.brief}
             </p>
           )}
