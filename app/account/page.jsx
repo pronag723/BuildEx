@@ -232,7 +232,7 @@ function ActiveOrdersSection({ userId }) {
 const ACCOUNT_SECTIONS = [
   { key: "profile", label: "Profile", short: "Profile" },
   { key: "orders", label: "Active orders", short: "Orders" },
-  { key: "danger", label: "Danger zone", short: "Danger" },
+  { key: "danger", label: "Account", short: "Account" },
 ];
 
 function SectionTabs({ section, setSection }) {
@@ -1638,7 +1638,7 @@ function AccountPageInner() {
   const isClient = role === "client" || role === "both";
 
   return (
-    <div className={`builder-profile-root ${isLight ? "light" : ""} catalog-root`}>
+    <div className={`builder-profile-root ${isLight ? "light" : ""} catalog-root min-h-screen flex flex-col`}>
       <div ref={gradientRef} className="gradient-background" aria-hidden="true" />
       <div ref={edgeGlowRef} className="gradient-edge-glow" aria-hidden="true" />
 
@@ -1666,7 +1666,7 @@ function AccountPageInner() {
         </div>
       </div>
 
-      <main className="relative z-10 pt-24 lg:pt-28 pb-20">
+      <main className="relative z-10 pt-24 lg:pt-28 pb-20 flex-1">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Page intro */}
           <div className="mb-6 detail-fade-up">
