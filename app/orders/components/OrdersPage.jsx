@@ -12,6 +12,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { withBase } from "../../home/utils";
 import { useAuth } from "../../../lib/auth/AuthContext";
 import { useRequireAuth } from "../../../lib/auth/useRequireAuth";
 import {
@@ -92,6 +93,22 @@ function counterpart(order, meId) {
   return null;
 }
 
+// Current ?id= straight from the address bar (client-only).
+function readOrderId() {
+  if (typeof window === "undefined") return null;
+  return new URLSearchParams(window.location.search).get("id");
+}
+
+// Let real anchors keep their native behaviour for new-tab / modified clicks,
+// but intercept a plain left-click so we can switch view in place instead of
+// triggering a same-route soft navigation that wouldn't re-run our effects.
+function handleNavClick(e, fn) {
+  if (e.defaultPrevented) return;
+  if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  e.preventDefault();
+  fn();
+}
+
 // ─── Root ───────────────────────────────────────────────────────────────────
 export default function OrdersPage() {
   useRequireAuth();
@@ -116,11 +133,27 @@ export default function OrdersPage() {
   }, [theme, isLight]);
 
   // ── Route mode (?id=...) ──────────────────────────────────────────────────
-  const [orderId, setOrderId] = useState(null);
+  // The list and the detail view share the single /orders route, switched by
+  // the ?id= query param. We drive that switch off local state and keep the URL
+  // in sync via the history API. This mirrors CatalogPage and deliberately
+  // avoids useSearchParams() (it forces a Suspense boundary that hangs the
+  // static export) — and, crucially, a plain <Link> to the same route is a soft
+  // navigation that wouldn't re-run a mount-only effect, so the page would
+  // appear stuck while the address bar changed.
+  const [orderId, setOrderId] = useState(readOrderId);
+
+  const navigate = useCallback((id) => {
+    const url = id ? `/orders/?id=${encodeURIComponent(id)}` : "/orders/";
+    window.history.pushState(window.history.state, "", withBase(url));
+    setOrderId(id || null);
+    window.scrollTo(0, 0);
+  }, []);
+
+  // Keep state in sync with the browser back/forward buttons.
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    setOrderId(params.get("id"));
+    const onPop = () => setOrderId(readOrderId());
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
   }, []);
 
   const ready = status === "authenticated" && theme !== null;
@@ -150,9 +183,13 @@ export default function OrdersPage() {
           {!ready ? (
             <Spinner />
           ) : orderId ? (
-            <OrderDetail orderId={orderId} meId={meId} />
+            <OrderDetail
+              orderId={orderId}
+              meId={meId}
+              onBack={() => navigate(null)}
+            />
           ) : (
-            <OrdersList meId={meId} profile={profile} />
+            <OrdersList meId={meId} profile={profile} onOpen={navigate} />
           )}
         </div>
       </main>
@@ -169,7 +206,7 @@ function Spinner() {
 }
 
 // ─── Dashboard list ─────────────────────────────────────────────────────────
-function OrdersList({ meId, profile }) {
+function OrdersList({ meId, profile, onOpen }) {
   const [orders, setOrders] = useState(null); // null = loading, [] = loaded empty
   const [error, setError] = useState(null);
 
@@ -226,6 +263,7 @@ function OrdersList({ meId, profile }) {
           subtitle="Commissions clients have placed with you."
           rows={incoming}
           meId={meId}
+          onOpen={onOpen}
           emptyText="No incoming orders yet."
         />
       )}
@@ -235,13 +273,14 @@ function OrdersList({ meId, profile }) {
         subtitle="Orders you've placed with builders."
         rows={purchases}
         meId={meId}
+        onOpen={onOpen}
         emptyText="You haven't placed any orders yet."
       />
     </div>
   );
 }
 
-function Section({ title, subtitle, rows, meId, emptyText }) {
+function Section({ title, subtitle, rows, meId, onOpen, emptyText }) {
   return (
     <section>
       <div className="mb-3">
@@ -255,7 +294,7 @@ function Section({ title, subtitle, rows, meId, emptyText }) {
       ) : (
         <div className="space-y-2">
           {rows.map((o) => (
-            <OrderRow key={o.id} order={o} meId={meId} />
+            <OrderRow key={o.id} order={o} meId={meId} onOpen={onOpen} />
           ))}
         </div>
       )}
@@ -263,14 +302,15 @@ function Section({ title, subtitle, rows, meId, emptyText }) {
   );
 }
 
-function OrderRow({ order, meId }) {
+function OrderRow({ order, meId, onOpen }) {
   const peer = counterpart(order, meId);
   const meta = STATUS_META[order.status] || STATUS_META.pending_payment;
   const sizeLabel = SIZE_META[order.building_size]?.label || order.building_size;
 
   return (
-    <Link
-      href={`/orders/?id=${encodeURIComponent(order.id)}`}
+    <a
+      href={withBase(`/orders/?id=${encodeURIComponent(order.id)}`)}
+      onClick={(e) => handleNavClick(e, () => onOpen(order.id))}
       className="glass rounded-2xl p-4 flex items-center gap-3 hover:border-[#4ade80]/40 hover:shadow-[0_0_18px_rgba(74,222,128,0.12)] transition-all"
     >
       <img
@@ -305,12 +345,12 @@ function OrderRow({ order, meId }) {
           {formatPrice(order.price_kopecks)}
         </p>
       </div>
-    </Link>
+    </a>
   );
 }
 
 // ─── Detail ─────────────────────────────────────────────────────────────────
-function OrderDetail({ orderId, meId }) {
+function OrderDetail({ orderId, meId, onBack }) {
   const router = useRouter();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -381,13 +421,13 @@ function OrderDetail({ orderId, meId }) {
         <p className="text-sm text-gray-400">
           {error || "We couldn't load this order. It may belong to another account."}
         </p>
-        <BackLink />
+        <BackLink onBack={onBack} />
       </Card>
     );
 
   return (
     <div className="space-y-6">
-      <BackLink />
+      <BackLink onBack={onBack} />
 
       <Card>
         <div className="flex items-start gap-3 mb-4">
@@ -482,14 +522,15 @@ function OrderDetail({ orderId, meId }) {
   );
 }
 
-function BackLink() {
+function BackLink({ onBack }) {
   return (
-    <Link
-      href="/orders"
+    <a
+      href={withBase("/orders/")}
+      onClick={(e) => handleNavClick(e, onBack)}
       className="inline-flex items-center gap-2 text-xs font-semibold text-[#4ade80] hover:underline"
     >
       ← All orders
-    </Link>
+    </a>
   );
 }
 
