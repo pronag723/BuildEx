@@ -476,10 +476,10 @@ function AboutSection({ profile, builderProfile, isBuilder, onSaved }) {
       ) : (
         <div className="space-y-3">
           {isBuilder && builderProfile?.tagline && (
-            <p className="text-sm text-[#4ade80] font-semibold">{builderProfile.tagline}</p>
+            <p className="text-sm text-[#4ade80] font-semibold break-words">{builderProfile.tagline}</p>
           )}
           {profile?.bio ? (
-            <p className="text-gray-400 leading-relaxed">{profile.bio}</p>
+            <p className="text-gray-400 leading-relaxed break-words whitespace-pre-wrap">{profile.bio}</p>
           ) : (
             <p className="text-gray-500 text-sm italic">
               No bio yet. Click <strong>Edit</strong> to add one.
