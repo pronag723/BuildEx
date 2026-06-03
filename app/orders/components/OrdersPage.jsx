@@ -26,10 +26,14 @@ import {
   attachDelivery,
   fetchDelivery,
   getDeliveryDownloadUrl,
+  uploadPreview,
+  getPreviewUrl,
 } from "../../../lib/orders/api";
+import { generatePreview } from "../../../lib/preview/client";
 import { formatPrice, SIZE_META } from "../../../lib/pricing";
 import CatalogNavbar from "../../builders/components/CatalogNavbar";
 import CatalogMobileMenu from "../../builders/components/CatalogMobileMenu";
+import WorldPreview from "./WorldPreview";
 import { useGradientBackground } from "../../../lib/ui/useGradientBackground";
 
 // ─── Status display tables ──────────────────────────────────────────────────
@@ -766,6 +770,7 @@ function humanFileSize(bytes) {
 function DeliveryCard({ delivery, order, isBuyer, isBuilder }) {
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const onDownload = useCallback(async () => {
     if (downloading) return;
@@ -801,8 +806,10 @@ function DeliveryCard({ delivery, order, isBuyer, isBuilder }) {
 
   const unlocked = !!delivery.unlocked;
   const showLockedHint = isBuyer && !unlocked;
+  const hasPreview = !!delivery.preview_available;
 
   return (
+    <>
     <Card title="Delivery">
       <div className="space-y-3">
         <div className="flex items-start gap-3 p-3 rounded-2xl bg-black/30 border border-white/10">
@@ -829,6 +836,24 @@ function DeliveryCard({ delivery, order, isBuyer, isBuilder }) {
             </span>
             {delivery.note}
           </p>
+        )}
+
+        {hasPreview && (
+          <div className="p-3 rounded-2xl bg-[#4ade80]/[0.06] border border-[#4ade80]/20 flex items-center justify-between gap-3 flex-wrap">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold flex items-center gap-2">
+                <span aria-hidden>🧊</span> 3D preview available
+              </p>
+              <p className="text-[11px] text-gray-400 mt-0.5">
+                {isBuyer && !unlocked
+                  ? "Review the build in 3D, then Confirm & release to unlock the file."
+                  : "Rotate and zoom an automatic render of the delivered world."}
+              </p>
+            </div>
+            <Secondary onClick={() => setPreviewOpen(true)}>
+              View 3D preview
+            </Secondary>
+          </div>
         )}
 
         {showLockedHint && (
@@ -868,6 +893,10 @@ function DeliveryCard({ delivery, order, isBuyer, isBuilder }) {
         </div>
       </div>
     </Card>
+    {previewOpen && (
+      <WorldPreview orderId={order.id} onClose={() => setPreviewOpen(false)} />
+    )}
+    </>
   );
 }
 
@@ -881,6 +910,11 @@ function DeliverModal({ orderId, onClose, onDelivered }) {
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [progress, setProgress] = useState(0);
+  // Stage 7: which step the progress bar reflects ("preview" | "upload"), plus
+  // a soft note when the preview couldn't be generated (delivery still goes
+  // through — the preview is best-effort).
+  const [phase, setPhase] = useState(null);
+  const [previewNote, setPreviewNote] = useState(null);
   const [errMsg, setErrMsg] = useState(null);
 
   const onPick = useCallback((e) => {
@@ -904,8 +938,32 @@ function DeliverModal({ orderId, onClose, onDelivered }) {
     if (submitting || !file) return;
     setSubmitting(true);
     setErrMsg(null);
+    setPreviewNote(null);
     setProgress(0);
 
+    // Step 1 (best-effort): build the 3D preview artifact in a Web Worker. The
+    // builder already holds the file, so the conversion happens here — no
+    // server. On any failure (too large / unsupported / empty) we deliver
+    // WITHOUT a preview rather than blocking the core escrow flow.
+    setPhase("preview");
+    let previewPath = null;
+    let previewMeta = null;
+    try {
+      const { bytes, meta } = await generatePreview(file, setProgress);
+      const { path: pPath, error: pErr } = await uploadPreview(orderId, bytes);
+      if (pErr || !pPath) throw pErr || new Error("preview upload failed");
+      previewPath = pPath;
+      previewMeta = meta;
+    } catch (e) {
+      // Soft-fail: keep going, note it for the builder.
+      setPreviewNote(
+        "Couldn't generate a 3D preview for this world — delivering the file without one."
+      );
+    }
+
+    // Step 2: upload the locked world file (unchanged Stage 6 escrow path).
+    setPhase("upload");
+    setProgress(0);
     const { path, error: upErr } = await uploadDeliverable(
       orderId,
       file,
@@ -913,6 +971,7 @@ function DeliverModal({ orderId, onClose, onDelivered }) {
     );
     if (upErr || !path) {
       setSubmitting(false);
+      setPhase(null);
       setProgress(0);
       setErrMsg(upErr?.message || "Upload failed.");
       return;
@@ -924,8 +983,11 @@ function DeliverModal({ orderId, onClose, onDelivered }) {
       fileName: file.name,
       size: file.size,
       note: note.trim() || null,
+      previewPath,
+      previewMeta,
     });
     setSubmitting(false);
+    setPhase(null);
     if (attachErr) {
       setErrMsg(
         attachErr.message ||
@@ -999,9 +1061,16 @@ function DeliverModal({ orderId, onClose, onDelivered }) {
               />
             </div>
             <p className="text-[11px] text-gray-500 mt-1.5">
-              Uploading… {Math.round(progress * 100)}%
+              {phase === "preview"
+                ? "Generating 3D preview…"
+                : "Uploading world file…"}{" "}
+              {Math.round(progress * 100)}%
             </p>
           </div>
+        )}
+
+        {previewNote && (
+          <p className="mt-4 text-xs text-amber-300/90">{previewNote}</p>
         )}
 
         {errMsg && (
