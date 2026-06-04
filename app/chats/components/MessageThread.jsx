@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { publicAsset } from "../../home/utils";
 import { formatPrice, SIZE_META } from "../../../lib/pricing";
+import WorldPreview from "../../orders/components/WorldPreview";
 
 function IconSend({ className = "w-5 h-5" }) {
   return (
@@ -59,11 +60,54 @@ const ORDER_EVENT_LABELS = {
   cancelled: "Order cancelled",
 };
 
-function OrderEventMessage({ message }) {
+function OrderEventMessage({ message, onPreview }) {
   const meta = message.meta || {};
   const event = meta.event;
   const orderId = meta.order_id;
   const href = orderId ? `/orders/?id=${encodeURIComponent(orderId)}` : "/orders";
+
+  if (event === "delivered") {
+    // Delivery card: shows the file, and — when the builder's browser produced
+    // a voxel artifact (meta.has_preview) — a "View 3D preview" button that
+    // opens the viewer right here in the chat, without leaving the thread.
+    return (
+      <div className="flex justify-center my-4 px-2">
+        <div className="block max-w-[460px] w-full rounded-2xl border border-purple-400/30 bg-purple-400/[0.08] p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <span aria-hidden className="text-base">📦</span>
+            <span className="font-bold text-sm text-purple-200">
+              Builder delivered the world
+            </span>
+          </div>
+          {meta.file_name && (
+            <p className="text-[11px] text-gray-400 truncate mb-3">
+              {meta.file_name}
+            </p>
+          )}
+          <div className="flex flex-wrap items-center gap-2">
+            {meta.has_preview && orderId && (
+              <button
+                type="button"
+                onClick={() => onPreview?.(orderId)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-[#4ade80] text-black hover:bg-[#22c55e] transition-all"
+              >
+                🧊 View 3D preview
+              </button>
+            )}
+            <Link
+              href={href}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold border border-white/15 text-gray-200 hover:bg-white/5 transition-all"
+            >
+              Open order
+            </Link>
+          </div>
+          <p className="text-[10px] text-gray-500 mt-3 text-right">
+            {clockTime(message.created_at)}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (event === "paid") {
     // The card the buyer described: "Order paid" + brief copied into the chat.
@@ -165,6 +209,7 @@ export default function MessageThread({
   onBack,
 }) {
   const [draft, setDraft] = useState("");
+  const [previewOrderId, setPreviewOrderId] = useState(null);
   const scrollRef = useRef(null);
   const taRef = useRef(null);
 
@@ -263,7 +308,7 @@ export default function MessageThread({
                       </span>
                     </div>
                   )}
-                  <OrderEventMessage message={m} />
+                  <OrderEventMessage message={m} onPreview={setPreviewOrderId} />
                 </div>
               );
             }
@@ -329,6 +374,13 @@ export default function MessageThread({
           </button>
         </div>
       </div>
+
+      {previewOrderId && (
+        <WorldPreview
+          orderId={previewOrderId}
+          onClose={() => setPreviewOrderId(null)}
+        />
+      )}
     </div>
   );
 }

@@ -27,7 +27,6 @@ import {
   fetchDelivery,
   getDeliveryDownloadUrl,
   uploadPreview,
-  getPreviewUrl,
 } from "../../../lib/orders/api";
 import { generatePreview } from "../../../lib/preview/client";
 import { formatPrice, SIZE_META } from "../../../lib/pricing";
