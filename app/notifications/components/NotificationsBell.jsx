@@ -55,9 +55,20 @@ export default function NotificationsBell() {
   const reposition = useCallback(() => {
     const rect = buttonRef.current?.getBoundingClientRect();
     if (!rect) return;
+    // Effective menu width: w-80 (320) capped by max-w-[calc(100vw-1rem)].
+    // Below ~336px viewport the cap dominates and the menu fills the viewport
+    // minus an 8px margin on each side; above it the menu stays a fixed 320px.
+    const vw = window.innerWidth;
+    const menuWidth = Math.min(320, vw - 16);
+    // Right-align under the button by default, but clamp so the menu's LEFT
+    // edge can never push past 8px from the viewport edge. Without this, at
+    // ~472px wide the 320px menu would overflow the left side of the screen
+    // because the bell sits a long way in from the right edge.
+    const desiredRight = vw - rect.right;
+    const maxRight = vw - menuWidth - 8;
     setCoords({
       top: rect.bottom + 12,
-      right: Math.max(8, window.innerWidth - rect.right),
+      right: Math.min(maxRight, Math.max(8, desiredRight)),
     });
   }, []);
 
