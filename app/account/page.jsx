@@ -30,6 +30,11 @@ import {
   STYLES,
 } from "../../lib/onboarding/constants";
 import { RANKS } from "../builders/data/builders";
+import {
+  commissionBpsForRank,
+  formatCommissionRate,
+  rankProgress,
+} from "../../lib/ranks";
 import { withBase } from "../home/utils";
 import CatalogNavbar from "../builders/components/CatalogNavbar";
 import CatalogMobileMenu from "../builders/components/CatalogMobileMenu";
@@ -825,6 +830,117 @@ function PortfolioSection({ portfolioCount, onSaved }) {
 }
 
 // ─── Rates (builders) ───────────────────────────────────────────────────────
+// ─── Rank & commission (Stage 9) ────────────────────────────────────────────
+// Read-only: rank is earned from real metrics (completed orders + rating), not
+// edited. Shows the builder their current rank, the commission rate it earns,
+// and progress toward the next rank. Numbers come from lib/ranks.js, the same
+// source the SQL mirrors, so this matches what place_order will charge.
+function RankSection({ builderProfile }) {
+  const rankKey = builderProfile?.rank || "rookie";
+  const rankMeta = RANKS[rankKey] || RANKS.rookie;
+  const commissionBps = commissionBpsForRank(rankKey);
+  const completedOrders = Number(builderProfile?.completed_orders) || 0;
+  const avgRating = Number(builderProfile?.avg_rating) || 0;
+  const reviewsCount = Number(builderProfile?.reviews_count) || 0;
+
+  const progress = rankProgress({ rank: rankKey, completedOrders, avgRating });
+  const nextMeta = progress ? RANKS[progress.next] : null;
+
+  return (
+    <section className="reveal glass rounded-3xl p-6 lg:p-8">
+      <h3 className="text-lg font-bold mb-1">Rank &amp; Commission</h3>
+      <p className="text-xs text-gray-500 mb-5">
+        Your rank is earned from completed orders and your average rating. A
+        higher rank lowers the platform commission on every order.
+      </p>
+
+      <div className="flex flex-wrap items-center gap-3 mb-5">
+        <span
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold border ${rankMeta.bgClass} ${rankMeta.textClass} ${rankMeta.borderClass}`}
+        >
+          <span
+            className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+            style={{ background: rankMeta.dotColor }}
+          />
+          {rankMeta.label}
+        </span>
+        <span className="text-sm text-gray-400">
+          Platform commission{" "}
+          <strong className="text-[#4ade80]">{formatCommissionRate(commissionBps)}</strong>{" "}
+          per order
+        </span>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 mb-5">
+        <div className="rounded-2xl border border-white/10 px-4 py-3">
+          <div className="text-2xl font-extrabold">{completedOrders}</div>
+          <div className="text-xs text-gray-500">Completed orders</div>
+        </div>
+        <div className="rounded-2xl border border-white/10 px-4 py-3">
+          <div className="text-2xl font-extrabold">
+            {reviewsCount > 0 ? avgRating.toFixed(2) : "—"}
+            <span className="text-base text-amber-400"> ★</span>
+          </div>
+          <div className="text-xs text-gray-500">
+            Average rating{reviewsCount > 0 ? ` (${reviewsCount})` : ""}
+          </div>
+        </div>
+      </div>
+
+      {progress ? (
+        <div className="rounded-2xl border border-dashed border-white/15 p-4">
+          <p className="text-sm font-semibold mb-3">
+            Next rank:{" "}
+            <span className={nextMeta?.textClass}>{nextMeta?.label}</span>{" "}
+            <span className="text-gray-500 font-normal">
+              ({formatCommissionRate(commissionBpsForRank(progress.next))} commission)
+            </span>
+          </p>
+
+          {/* Completed-orders progress */}
+          <div className="mb-3">
+            <div className="flex items-center justify-between text-xs mb-1.5">
+              <span className="text-gray-400">
+                Completed orders
+                {progress.ordersMet && <span className="text-[#4ade80]"> ✓</span>}
+              </span>
+              <span className="text-gray-500">
+                {progress.ordersHave} / {progress.ordersNeed}
+              </span>
+            </div>
+            <div className="h-2 rounded-full bg-white/10 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-[#4ade80] transition-all"
+                style={{ width: `${Math.round(progress.ordersPct * 100)}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Rating requirement */}
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-gray-400">
+              Average rating
+              {progress.ratingMet && <span className="text-[#4ade80]"> ✓</span>}
+            </span>
+            <span className="text-gray-500">
+              above {progress.ratingNeed.toFixed(1)}★
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-dashed border-amber-400/30 p-4 text-center">
+          <p className="text-sm text-amber-400 font-semibold">
+            You&apos;ve reached the top rank — Master. 🏆
+          </p>
+          <p className="text-xs text-gray-500 mt-1">
+            You pay the lowest commission on BuildEx.
+          </p>
+        </div>
+      )}
+    </section>
+  );
+}
+
 function RatesSection({ builderProfile, onSaved }) {
   const { user } = useAuth();
   const [editing, setEditing] = useState(false);
@@ -1711,6 +1827,7 @@ function AccountPageInner() {
 
                 {isBuilder && (
                   <>
+                    <RankSection builderProfile={builderProfile} />
                     <PortfolioSection portfolioCount={portfolioCount} onSaved={refresh} />
                     <RatesSection builderProfile={builderProfile} onSaved={refresh} />
                     <SpecialtiesSection builderProfile={builderProfile} onSaved={refresh} />
