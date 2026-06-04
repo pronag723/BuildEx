@@ -7,11 +7,42 @@ import CatalogNavbar from "../../../components/CatalogNavbar";
 import CatalogMobileMenu from "../../../components/CatalogMobileMenu";
 import SiteFooter from "../../../../home/components/SiteFooter";
 import { RANKS } from "../../../data/builders";
-import { getBuilderReviews, getBuilderRatingBreakdown } from "../../../data/reviews";
+import { getBuilderReviews } from "../../../data/reviews";
+import { listBuilderReviews } from "../../../../../lib/reviews/api";
 import { publicAsset, withBase } from "../../../../home/utils";
 import { useAuthGate } from "../../../../../lib/auth/useAuthGate";
 import { AVAILABILITY_STATES } from "../../../../../lib/onboarding/constants";
 import { formatPrice } from "../../../../../lib/pricing";
+
+// Neutral avatar used when a reviewer has no picture (e.g. a Discord account
+// without an avatar). Inline so it never 404s under the GitHub Pages basePath.
+const FALLBACK_AVATAR =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='20' fill='%23334155'/%3E%3Ccircle cx='20' cy='16' r='7' fill='%2364748b'/%3E%3Cpath d='M6 38c0-8 6-12 14-12s14 4 14 12' fill='%2364748b'/%3E%3C/svg%3E";
+
+// Both the live (Supabase) and demo (mock) review sources are normalised to one
+// shape so the Reviews section doesn't care where a review came from.
+function mapDbReviews(rows) {
+  return (rows || []).map((r) => ({
+    id: r.id,
+    rating: r.rating,
+    text: r.body || "",
+    created_at: r.created_at,
+    reviewerName: r.reviewer?.display_name || r.reviewer?.username || "Client",
+    reviewerAvatar: r.reviewer?.avatar_url || null,
+    project: null,
+  }));
+}
+function mapMockReviews(rows) {
+  return (rows || []).map((r) => ({
+    id: r.id,
+    rating: r.rating,
+    text: r.comment || "",
+    created_at: r.created_at,
+    reviewerName: r.reviewer?.display_name || "Client",
+    reviewerAvatar: r.reviewer?.avatar || null,
+    project: r.project || null,
+  }));
+}
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 function IconStar({ className = "w-4 h-4" }) {
@@ -256,8 +287,16 @@ function ContactSidebar({ builder, onShowSoon, onContact, onOrder }) {
 
 // ─── Reviews section ─────────────────────────────────────────────────────────
 function ReviewsSection({ reviews, builder }) {
-  const breakdown = getBuilderRatingBreakdown(builder.username);
   const total = reviews.length;
+  // Star distribution computed from the (already normalised) list, so it works
+  // identically for live and demo data.
+  const breakdown = reviews.reduce(
+    (acc, rev) => {
+      acc[rev.rating] = (acc[rev.rating] || 0) + 1;
+      return acc;
+    },
+    { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
+  );
 
   function RatingBar({ stars }) {
     const count = breakdown[stars] || 0;
@@ -301,15 +340,15 @@ function ReviewsSection({ reviews, builder }) {
             {reviews.map((rev) => (
               <article key={rev.id} className="flex gap-3">
                 <img
-                  src={rev.reviewer.avatar}
-                  alt={rev.reviewer.display_name}
+                  src={rev.reviewerAvatar ? publicAsset(rev.reviewerAvatar) : FALLBACK_AVATAR}
+                  alt={rev.reviewerName}
                   className="w-9 h-9 rounded-full object-cover flex-shrink-0 mt-0.5 ring-1 ring-white/10"
                   loading="lazy"
                   decoding="async"
                 />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <span className="font-semibold text-sm">{rev.reviewer.display_name}</span>
+                    <span className="font-semibold text-sm">{rev.reviewerName}</span>
                     <div className="flex items-center gap-0.5">
                       {[1, 2, 3, 4, 5].map((s) => (
                         <IconStar key={s} className={`w-3 h-3 ${s <= rev.rating ? "text-amber-400" : "text-gray-600"}`} />
@@ -324,7 +363,9 @@ function ReviewsSection({ reviews, builder }) {
                       {new Date(rev.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-400 leading-relaxed">{rev.comment}</p>
+                  {rev.text && (
+                    <p className="text-sm text-gray-400 leading-relaxed">{rev.text}</p>
+                  )}
                 </div>
               </article>
             ))}
@@ -346,7 +387,24 @@ export default function BuilderProfilePage({ builder }) {
 
   const isLight = theme === "light";
   const rank = RANKS[builder.rank];
-  const reviews = getBuilderReviews(builder.username);
+
+  // Real, DB-backed builders carry a profiles.id — fetch their reviews live.
+  // Demo/seeded builders (no id, served from static data) keep the mock set so
+  // the catalog still looks populated offline.
+  const [reviews, setReviews] = useState(() =>
+    builder.id ? [] : mapMockReviews(getBuilderReviews(builder.username))
+  );
+
+  useEffect(() => {
+    if (!builder.id) return;
+    let cancelled = false;
+    listBuilderReviews(builder.id).then(({ reviews: rows }) => {
+      if (!cancelled) setReviews(mapDbReviews(rows));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [builder.id, builder.username]);
 
   const gate = useAuthGate();
   const router = useRouter();

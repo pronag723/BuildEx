@@ -78,10 +78,12 @@ function mapRow(row) {
     member_since: row.created_at || null,
     specialties,
 
-    // Stats — no reviews/orders system live yet, so these start at zero.
-    avg_rating: 0,
-    completed_projects: 0,
-    total_reviews: 0,
+    // Stats — real, cached aggregates from builder_profiles (Stage 8). They
+    // default to 0 in the DB, so a builder with no completed orders still maps
+    // cleanly; coalesce guards a pre-migration row where the columns are absent.
+    avg_rating: Number(bp.avg_rating) || 0,
+    completed_projects: Number(bp.completed_orders) || 0,
+    total_reviews: Number(bp.reviews_count) || 0,
 
     // Portfolio
     portfolio: mapPortfolio(row.portfolio),

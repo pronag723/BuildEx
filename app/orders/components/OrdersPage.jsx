@@ -29,6 +29,7 @@ import {
   uploadPreview,
 } from "../../../lib/orders/api";
 import { generatePreview } from "../../../lib/preview/client";
+import { leaveReview, fetchOrderReview } from "../../../lib/reviews/api";
 import { formatPrice, SIZE_META } from "../../../lib/pricing";
 import CatalogNavbar from "../../builders/components/CatalogNavbar";
 import CatalogMobileMenu from "../../builders/components/CatalogMobileMenu";
@@ -368,6 +369,10 @@ function OrderDetail({ orderId, meId, onBack }) {
   const [delivery, setDelivery] = useState(null);
   const [deliverOpen, setDeliverOpen] = useState(false);
 
+  // Stage 8: the review attached to this order (buyer leaves exactly one once
+  // the order is completed). Null = not reviewed yet.
+  const [review, setReview] = useState(null);
+
   const reload = useCallback(() => {
     setLoading(true);
     fetchOrder(orderId).then(({ order: o, error: e }) => {
@@ -378,6 +383,8 @@ function OrderDetail({ orderId, meId, onBack }) {
     // Delivery is fetched alongside the order. It may legitimately be null
     // (pre-deliver) so we don't surface its errors at the top of the page.
     fetchDelivery(orderId).then(({ delivery: d }) => setDelivery(d));
+    // The review is public; null until the buyer leaves one.
+    fetchOrderReview(orderId).then(({ review: r }) => setReview(r));
   }, [orderId]);
 
   useEffect(() => {
@@ -493,6 +500,21 @@ function OrderDetail({ orderId, meId, onBack }) {
       <Card title="Timeline">
         <Timeline order={order} />
       </Card>
+
+      {order.status === "completed" && isBuyer && (
+        <ReviewSection
+          orderId={order.id}
+          builderName={peer?.display_name || "the builder"}
+          review={review}
+          onSubmitted={reload}
+        />
+      )}
+
+      {order.status === "completed" && isBuilder && review && (
+        <Card title="Buyer's review">
+          <ReviewDisplay review={review} />
+        </Card>
+      )}
 
       <Card title="Actions">
         {actionError && (
@@ -743,6 +765,144 @@ function Secondary({ onClick, disabled, children }) {
     >
       {children}
     </button>
+  );
+}
+
+// ─── Reviews (Stage 8) ──────────────────────────────────────────────────────
+function StarIcon({ filled, className = "w-5 h-5" }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 20 20"
+      fill={filled ? "currentColor" : "none"}
+      stroke="currentColor"
+      strokeWidth="1.5"
+      aria-hidden="true"
+    >
+      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+    </svg>
+  );
+}
+
+// Read-only star row used in the submitted-review display.
+function StarRow({ rating, className = "w-4 h-4" }) {
+  return (
+    <div className="flex items-center gap-0.5 text-amber-400">
+      {[1, 2, 3, 4, 5].map((s) => (
+        <StarIcon
+          key={s}
+          filled={s <= rating}
+          className={`${className} ${s <= rating ? "text-amber-400" : "text-gray-600"}`}
+        />
+      ))}
+    </div>
+  );
+}
+
+// Renders an already-submitted review (shown to both parties once it exists).
+function ReviewDisplay({ review }) {
+  return (
+    <div className="space-y-2">
+      <StarRow rating={review.rating} />
+      {review.body && (
+        <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">
+          {review.body}
+        </p>
+      )}
+      <p className="text-[11px] text-gray-500">
+        Reviewed {formatDate(review.created_at)}
+      </p>
+    </div>
+  );
+}
+
+// Buyer-side card on a completed order: either the submitted review or the
+// rating form. The leave_review RPC enforces buyer-only / completed / once
+// server-side; this is purely the input surface.
+function ReviewSection({ orderId, builderName, review, onSubmitted }) {
+  const [rating, setRating] = useState(0);
+  const [hover, setHover] = useState(0);
+  const [body, setBody] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [errMsg, setErrMsg] = useState(null);
+
+  const onSubmit = useCallback(async () => {
+    if (submitting || rating < 1) return;
+    setSubmitting(true);
+    setErrMsg(null);
+    const { error } = await leaveReview({
+      orderId,
+      rating,
+      body: body.trim() || null,
+    });
+    if (error) {
+      setSubmitting(false);
+      setErrMsg(error.message || "Couldn't submit your review.");
+      return;
+    }
+    // Refetch so the form is replaced by the submitted review + the builder's
+    // freshly recomputed aggregates are reflected elsewhere.
+    onSubmitted?.();
+  }, [submitting, rating, body, orderId, onSubmitted]);
+
+  if (review) {
+    return (
+      <Card title="Your review">
+        <ReviewDisplay review={review} />
+      </Card>
+    );
+  }
+
+  const active = hover || rating;
+
+  return (
+    <Card title="Leave a review">
+      <p className="text-sm text-gray-400 mb-4">
+        How was your experience with{" "}
+        <strong className="text-gray-200">{builderName}</strong>? Your rating is
+        public and helps other clients.
+      </p>
+
+      <div
+        className="flex items-center gap-1 mb-4"
+        onMouseLeave={() => setHover(0)}
+      >
+        {[1, 2, 3, 4, 5].map((s) => (
+          <button
+            key={s}
+            type="button"
+            aria-label={`${s} star${s > 1 ? "s" : ""}`}
+            onMouseEnter={() => setHover(s)}
+            onClick={() => setRating(s)}
+            disabled={submitting}
+            className="p-0.5 transition-transform hover:scale-110 disabled:cursor-wait"
+          >
+            <StarIcon
+              filled={s <= active}
+              className={`w-8 h-8 ${s <= active ? "text-amber-400" : "text-gray-600"}`}
+            />
+          </button>
+        ))}
+      </div>
+
+      <textarea
+        value={body}
+        onChange={(e) => setBody(e.target.value)}
+        disabled={submitting}
+        rows={4}
+        maxLength={4000}
+        placeholder="Share a few words about the build and the process (optional)."
+        className="w-full px-4 py-3 rounded-2xl bg-black/30 border border-white/10 text-sm text-white placeholder:text-gray-500 focus:border-[#4ade80]/60 focus:outline-none focus:ring-2 focus:ring-[#4ade80]/20 resize-y"
+      />
+
+      {errMsg && <p className="mt-3 text-sm text-red-400">{errMsg}</p>}
+
+      <div className="mt-4 flex justify-end">
+        <Primary onClick={onSubmit} disabled={submitting || rating < 1}>
+          {submitting ? "Submitting…" : "Submit review"}
+        </Primary>
+      </div>
+    </Card>
   );
 }
 
