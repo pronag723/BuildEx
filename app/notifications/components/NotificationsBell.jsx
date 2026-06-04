@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useAuth } from "../../../lib/auth/AuthContext";
 import { useNotifications } from "../../../lib/notifications/NotificationsContext";
+import { withBase } from "../../home/utils";
 
 // Compact "now / 2m / 4h / Mon / Apr 3" stamp — same shape as the chat inbox.
 function relativeStamp(iso) {
@@ -45,7 +45,7 @@ function IconBell({ className = "w-5 h-5" }) {
 // behave identically.
 export default function NotificationsBell() {
   const { status } = useAuth();
-  const { notifications, unreadCount, hasUnread, markRead, markAllRead } =
+  const { notifications, unreadCount, hasUnread, markRead, markAllRead, clearAll } =
     useNotifications();
   const [open, setOpen] = useState(false);
   const [coords, setCoords] = useState(null);
@@ -144,19 +144,31 @@ export default function NotificationsBell() {
           >
             <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between gap-3">
               <span className="text-sm font-semibold">Notifications</span>
-              {hasUnread && (
-                <button
-                  type="button"
-                  onClick={() => markAllRead()}
-                  tabIndex={open ? 0 : -1}
-                  className="text-xs text-[#4ade80] hover:underline"
-                >
-                  Mark all read
-                </button>
+              {notifications.length > 0 && (
+                <div className="flex items-center gap-3">
+                  {hasUnread && (
+                    <button
+                      type="button"
+                      onClick={() => markAllRead()}
+                      tabIndex={open ? 0 : -1}
+                      className="text-xs text-[#4ade80] hover:underline"
+                    >
+                      Mark all read
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => clearAll()}
+                    tabIndex={open ? 0 : -1}
+                    className="text-xs text-gray-400 hover:text-red-300 hover:underline"
+                  >
+                    Clear all
+                  </button>
+                </div>
               )}
             </div>
 
-            <div className="max-h-[60vh] overflow-y-auto">
+            <div className="max-h-[60vh] overflow-y-auto hide-scrollbar">
               {notifications.length === 0 ? (
                 <div className="px-4 py-8 text-center text-sm text-gray-400">
                   You're all caught up.
@@ -199,8 +211,12 @@ export default function NotificationsBell() {
                     return (
                       <li key={n.id}>
                         {n.link ? (
-                          <Link
-                            href={n.link}
+                          // A real anchor (not next/link): a full navigation to
+                          // withBase(link) reliably deep-links to the target —
+                          // including when the user is ALREADY on /orders, where a
+                          // soft same-route navigation wouldn't re-open the order.
+                          <a
+                            href={withBase(n.link)}
                             role="menuitem"
                             tabIndex={open ? 0 : -1}
                             onClick={() => {
@@ -210,7 +226,7 @@ export default function NotificationsBell() {
                             className={rowClass}
                           >
                             {body}
-                          </Link>
+                          </a>
                         ) : (
                           <button
                             type="button"

@@ -916,15 +916,23 @@ function RankSection({ builderProfile }) {
             </div>
           </div>
 
-          {/* Rating requirement */}
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-gray-400">
-              Average rating
-              {progress.ratingMet && <span className="text-[#4ade80]"> ✓</span>}
-            </span>
-            <span className="text-gray-500">
-              above {progress.ratingNeed.toFixed(1)}★
-            </span>
+          {/* Average-rating progress */}
+          <div>
+            <div className="flex items-center justify-between text-xs mb-1.5">
+              <span className="text-gray-400">
+                Average rating
+                {progress.ratingMet && <span className="text-[#4ade80]"> ✓</span>}
+              </span>
+              <span className="text-gray-500">
+                {progress.ratingHave.toFixed(1)} / above {progress.ratingNeed.toFixed(1)}★
+              </span>
+            </div>
+            <div className="h-2 rounded-full bg-white/10 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-amber-400 transition-all"
+                style={{ width: `${Math.round(progress.ratingPct * 100)}%` }}
+              />
+            </div>
           </div>
         </div>
       ) : (

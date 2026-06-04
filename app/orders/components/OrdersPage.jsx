@@ -194,7 +194,7 @@ export default function OrdersPage() {
               onBack={() => navigate(null)}
             />
           ) : (
-            <OrdersList meId={meId} profile={profile} onOpen={navigate} />
+            <OrdersList meId={meId} onOpen={navigate} />
           )}
         </div>
       </main>
@@ -211,7 +211,7 @@ function Spinner() {
 }
 
 // ─── Dashboard list ─────────────────────────────────────────────────────────
-function OrdersList({ meId, profile, onOpen }) {
+function OrdersList({ meId, onOpen }) {
   const [orders, setOrders] = useState(null); // null = loading, [] = loaded empty
   const [error, setError] = useState(null);
 
@@ -227,17 +227,25 @@ function OrdersList({ meId, profile, onOpen }) {
     reload();
   }, [reload]);
 
-  // Role split. Anyone can be a buyer; only builder/both sees the incoming
-  // section. RLS already filtered to the caller's rows, so this is a cheap
-  // client-side bucket.
-  const isBuilderRole = profile?.role === "builder" || profile?.role === "both";
-  const { incoming, purchases } = useMemo(() => {
+  // Status buckets across BOTH roles (RLS already scoped these to the caller).
+  //   • Current   — anything still in flight: awaiting payment, paid/escrowed,
+  //                 in progress, or delivered & awaiting the buyer's confirm.
+  //   • Completed — confirmed-and-released or cancelled, i.e. closed orders.
+  //   • Disputed  — open disputes under review.
+  // Each row carries its own status badge + a Buying/Selling tag, so mixing the
+  // two roles inside one section stays unambiguous.
+  const { current, completed, disputed } = useMemo(() => {
     const list = orders || [];
-    return {
-      incoming: list.filter((o) => o.builder_id === meId),
-      purchases: list.filter((o) => o.buyer_id === meId),
-    };
-  }, [orders, meId]);
+    const current = [];
+    const completed = [];
+    const disputed = [];
+    for (const o of list) {
+      if (o.status === "disputed") disputed.push(o);
+      else if (o.status === "completed" || o.status === "cancelled") completed.push(o);
+      else current.push(o);
+    }
+    return { current, completed, disputed };
+  }, [orders]);
 
   if (orders === null) return <Spinner />;
 
@@ -262,25 +270,36 @@ function OrdersList({ meId, profile, onOpen }) {
         <p className="text-sm text-red-400">{error}</p>
       )}
 
-      {isBuilderRole && (
-        <Section
-          title="Incoming orders"
-          subtitle="Commissions clients have placed with you."
-          rows={incoming}
-          meId={meId}
-          onOpen={onOpen}
-          emptyText="No incoming orders yet."
-        />
-      )}
-
       <Section
-        title="My purchases"
-        subtitle="Orders you've placed with builders."
-        rows={purchases}
+        title="Current orders"
+        subtitle="Orders still in flight — awaiting payment, work, delivery, or your confirmation."
+        rows={current}
         meId={meId}
         onOpen={onOpen}
-        emptyText="You haven't placed any orders yet."
+        emptyText="No active orders right now."
       />
+
+      <Section
+        title="Completed orders"
+        subtitle="Confirmed-and-released or cancelled — your closed commissions."
+        rows={completed}
+        meId={meId}
+        onOpen={onOpen}
+        emptyText="No completed orders yet."
+      />
+
+      {/* Disputes are rare; only show the section once one exists so it doesn't
+          clutter the dashboard with a permanent empty card. */}
+      {disputed.length > 0 && (
+        <Section
+          title="Disputed orders"
+          subtitle="Under review by our team — we'll resolve these for both parties."
+          rows={disputed}
+          meId={meId}
+          onOpen={onOpen}
+          emptyText="No disputes."
+        />
+      )}
     </div>
   );
 }
@@ -311,6 +330,7 @@ function OrderRow({ order, meId, onOpen }) {
   const peer = counterpart(order, meId);
   const meta = STATUS_META[order.status] || STATUS_META.pending_payment;
   const sizeLabel = SIZE_META[order.building_size]?.label || order.building_size;
+  const iAmBuyer = order.buyer_id === meId;
 
   return (
     <a
@@ -334,6 +354,15 @@ function OrderRow({ order, meId, onOpen }) {
             className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${meta.badgeClass}`}
           >
             {meta.label}
+          </span>
+          <span
+            className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+              iAmBuyer
+                ? "bg-white/5 text-gray-300 border-white/10"
+                : "bg-[#4ade80]/10 text-[#4ade80] border-[#4ade80]/25"
+            }`}
+          >
+            {iAmBuyer ? "Buying" : "Selling"}
           </span>
         </div>
         <p className="text-[11px] text-gray-500 truncate capitalize">
@@ -378,6 +407,11 @@ function OrderDetail({ orderId, meId, onBack }) {
   // delivered order). Null = no dispute.
   const [dispute, setDispute] = useState(null);
   const [disputeOpen, setDisputeOpen] = useState(false);
+
+  // Confirmation step before the (irreversible) escrow release, and the
+  // post-download "leave a review" prompt.
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
 
   const reload = useCallback(() => {
     setLoading(true);
@@ -502,6 +536,8 @@ function OrderDetail({ orderId, meId, onBack }) {
           order={order}
           isBuyer={isBuyer}
           isBuilder={isBuilder}
+          review={review}
+          onRequestReview={() => setReviewModalOpen(true)}
         />
       )}
 
@@ -540,7 +576,7 @@ function OrderDetail({ orderId, meId, onBack }) {
           busy={busy}
           onStart={() => runAction(() => builderStartWork(order.id))}
           onDeliver={() => setDeliverOpen(true)}
-          onConfirm={() => runAction(() => buyerConfirmComplete(order.id))}
+          onConfirm={() => setConfirmOpen(true)}
           onCancel={() => runAction(() => cancelOrder(order.id))}
           onDispute={() => setDisputeOpen(true)}
           onOpenChat={openChat}
@@ -564,6 +600,31 @@ function OrderDetail({ orderId, meId, onBack }) {
           onClose={() => setDisputeOpen(false)}
           onOpened={() => {
             setDisputeOpen(false);
+            reload();
+          }}
+        />
+      )}
+
+      {confirmOpen && (
+        <ConfirmCompleteModal
+          builderName={peer?.display_name || "the builder"}
+          hasPreview={!!delivery?.preview_available}
+          busy={busy}
+          onClose={() => setConfirmOpen(false)}
+          onConfirm={async () => {
+            await runAction(() => buyerConfirmComplete(order.id));
+            setConfirmOpen(false);
+          }}
+        />
+      )}
+
+      {reviewModalOpen && (
+        <ReviewModal
+          orderId={order.id}
+          builderName={peer?.display_name || "the builder"}
+          onClose={() => setReviewModalOpen(false)}
+          onSubmitted={() => {
+            setReviewModalOpen(false);
             reload();
           }}
         />
@@ -852,10 +913,11 @@ function ReviewDisplay({ review }) {
   );
 }
 
-// Buyer-side card on a completed order: either the submitted review or the
-// rating form. The leave_review RPC enforces buyer-only / completed / once
-// server-side; this is purely the input surface.
-function ReviewSection({ orderId, builderName, review, onSubmitted }) {
+// Shared rating form (stars + optional note + submit). Used both inline on a
+// completed order (ReviewSection) and inside the post-download ReviewModal. The
+// leave_review RPC enforces buyer-only / completed / once server-side; this is
+// purely the input surface.
+function ReviewForm({ orderId, builderName, onSubmitted, autoFocusNote = false }) {
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
   const [body, setBody] = useState("");
@@ -881,18 +943,10 @@ function ReviewSection({ orderId, builderName, review, onSubmitted }) {
     onSubmitted?.();
   }, [submitting, rating, body, orderId, onSubmitted]);
 
-  if (review) {
-    return (
-      <Card title="Your review">
-        <ReviewDisplay review={review} />
-      </Card>
-    );
-  }
-
   const active = hover || rating;
 
   return (
-    <Card title="Leave a review">
+    <>
       <p className="text-sm text-gray-400 mb-4">
         How was your experience with{" "}
         <strong className="text-gray-200">{builderName}</strong>? Your rating is
@@ -925,6 +979,7 @@ function ReviewSection({ orderId, builderName, review, onSubmitted }) {
         value={body}
         onChange={(e) => setBody(e.target.value)}
         disabled={submitting}
+        autoFocus={autoFocusNote}
         rows={4}
         maxLength={4000}
         placeholder="Share a few words about the build and the process (optional)."
@@ -938,7 +993,135 @@ function ReviewSection({ orderId, builderName, review, onSubmitted }) {
           {submitting ? "Submitting…" : "Submit review"}
         </Primary>
       </div>
+    </>
+  );
+}
+
+// Buyer-side card on a completed order: either the submitted review or the
+// rating form.
+function ReviewSection({ orderId, builderName, review, onSubmitted }) {
+  if (review) {
+    return (
+      <Card title="Your review">
+        <ReviewDisplay review={review} />
+      </Card>
+    );
+  }
+  return (
+    <Card title="Leave a review">
+      <ReviewForm
+        orderId={orderId}
+        builderName={builderName}
+        onSubmitted={onSubmitted}
+      />
     </Card>
+  );
+}
+
+// Task 9: shown after the buyer downloads the finished world, inviting a review.
+// Dismissible (reviews stay optional) — closing just leaves the inline
+// ReviewSection card in place for later.
+function ReviewModal({ orderId, builderName, onClose, onSubmitted }) {
+  return (
+    <div
+      className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose?.();
+      }}
+    >
+      <div className="glass rounded-3xl p-6 sm:p-8 max-w-lg w-full">
+        <div className="flex items-start justify-between gap-3 mb-1">
+          <h2 className="font-bold text-lg">Enjoying your world?</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="text-gray-400 hover:text-white text-xl leading-none -mt-1"
+          >
+            ×
+          </button>
+        </div>
+        <p className="text-xs text-gray-500 mb-5">
+          Your download has started. Take a moment to rate the build.
+        </p>
+        <ReviewForm
+          orderId={orderId}
+          builderName={builderName}
+          onSubmitted={onSubmitted}
+        />
+      </div>
+    </div>
+  );
+}
+
+// Task 1: a deliberate confirmation step before the buyer releases escrow. The
+// release is irreversible (it pays the builder and unlocks the file), so we ask
+// the buyer to acknowledge they've reviewed the work — including the 3D preview
+// when one is available — before going through.
+function ConfirmCompleteModal({ builderName, hasPreview, busy, onClose, onConfirm }) {
+  const [ack, setAck] = useState(false);
+
+  return (
+    <div
+      className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !busy) onClose?.();
+      }}
+    >
+      <div className="glass rounded-3xl p-6 sm:p-8 max-w-lg w-full">
+        <h2 className="font-bold text-lg mb-1">Confirm &amp; release payment?</h2>
+        <p className="text-sm text-gray-400 mb-5">
+          This releases the escrowed payment to{" "}
+          <strong className="text-gray-200">{builderName}</strong> and unlocks the
+          world file for download. It can&apos;t be undone — so make sure
+          you&apos;re happy with the build first.
+        </p>
+
+        <label className="flex items-start gap-3 p-3 rounded-2xl bg-black/30 border border-white/10 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={ack}
+            onChange={(e) => setAck(e.target.checked)}
+            disabled={busy}
+            className="mt-0.5 w-4 h-4 accent-[#4ade80] cursor-pointer"
+          />
+          <span className="text-sm text-gray-300">
+            {hasPreview ? (
+              <>
+                I&apos;ve reviewed the delivery, including the{" "}
+                <span className="text-[#4ade80] font-semibold">3D preview</span>,
+                and I&apos;m happy with the work.
+              </>
+            ) : (
+              <>I&apos;ve reviewed the delivery and I&apos;m happy with the work.</>
+            )}
+          </span>
+        </label>
+
+        <div className="mt-6 flex items-center justify-end gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+            className="px-5 py-2.5 rounded-full text-sm font-semibold border border-white/10 text-gray-300 hover:bg-white/5 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Not yet
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={busy || !ack}
+            className="px-5 py-2.5 rounded-full text-sm font-bold bg-[#4ade80] text-black green-glow hover:bg-[#22c55e] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {busy ? "Releasing…" : "Confirm & release"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -1103,7 +1286,7 @@ function humanFileSize(bytes) {
   return `${v.toFixed(v >= 100 || i === 0 ? 0 : 1)} ${units[i]}`;
 }
 
-function DeliveryCard({ delivery, order, isBuyer, isBuilder }) {
+function DeliveryCard({ delivery, order, isBuyer, isBuilder, review, onRequestReview }) {
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState(null);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -1124,7 +1307,10 @@ function DeliveryCard({ delivery, order, isBuyer, isBuilder }) {
     }
     // Open in a new tab so the buyer's chat / order page stay put.
     window.open(url, "_blank", "noopener,noreferrer");
-  }, [order.id, downloading]);
+    // Task 9: once the buyer has actually downloaded the finished world, nudge
+    // them to leave a review (unless they already have). Builders never see this.
+    if (isBuyer && !review) onRequestReview?.();
+  }, [order.id, downloading, isBuyer, review, onRequestReview]);
 
   // Pre-upload state (builder has hit Mark delivered or the order is past
   // in_progress but the row hasn't loaded yet) — show a friendly placeholder.
@@ -1241,6 +1427,12 @@ function DeliveryCard({ delivery, order, isBuyer, isBuilder }) {
 // then calls builder_attach_delivery to record + transition the order.
 const MAX_DELIVERY_BYTES = 200 * 1024 * 1024; // matches the bucket's file_size_limit
 
+// PreviewError codes (from lib/preview/encode.js) that mean the upload isn't a
+// readable Minecraft world — wrong format, wrong folder structure, or empty. We
+// REFUSE to deliver in these cases (task 7). 'too_large' is excluded: that's a
+// valid world that's simply too big to preview, so it still delivers without one.
+const INVALID_WORLD_CODES = new Set(["parse_failed", "no_regions", "empty"]);
+
 function DeliverModal({ orderId, onClose, onDelivered }) {
   const [file, setFile] = useState(null);
   const [note, setNote] = useState("");
@@ -1277,10 +1469,15 @@ function DeliverModal({ orderId, onClose, onDelivered }) {
     setPreviewNote(null);
     setProgress(0);
 
-    // Step 1 (best-effort): build the 3D preview artifact in a Web Worker. The
-    // builder already holds the file, so the conversion happens here — no
-    // server. On any failure (too large / unsupported / empty) we deliver
-    // WITHOUT a preview rather than blocking the core escrow flow.
+    // Step 1: build the 3D preview artifact from the world (the builder already
+    // holds the file, so the conversion runs here — no server).
+    //
+    // Task 7: this doubles as a VALIDATION gate. If the file isn't a readable
+    // Minecraft world (corrupt .zip, no region/*.mca, wrong folder structure, or
+    // empty), we abort the delivery and tell the builder to fix it — we never
+    // deliver a world that can't be opened/previewed. A valid-but-too-large
+    // world (code 'too_large') or a transient preview-upload hiccup still
+    // delivers WITHOUT a preview rather than blocking the escrow flow.
     setPhase("preview");
     let previewPath = null;
     let previewMeta = null;
@@ -1291,7 +1488,20 @@ function DeliverModal({ orderId, onClose, onDelivered }) {
       previewPath = pPath;
       previewMeta = meta;
     } catch (e) {
-      // Soft-fail: keep going, note it for the builder.
+      if (e?.name === "PreviewError" && INVALID_WORLD_CODES.has(e.code)) {
+        // Cancel the delivery and surface a clear, actionable message.
+        setSubmitting(false);
+        setPhase(null);
+        setProgress(0);
+        setErrMsg(
+          (e.message || "We couldn't read this as a Minecraft world.") +
+            " Make sure you're uploading a .zip of the world folder (the one" +
+            " containing level.dat and a region/ folder of .mca files), then" +
+            " try again."
+        );
+        return;
+      }
+      // Benign: deliver without a preview, just note it for the builder.
       setPreviewNote(
         "Couldn't generate a 3D preview for this world — delivering the file without one."
       );

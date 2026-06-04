@@ -9,6 +9,7 @@ import {
 } from "react";
 import { useAuth } from "../auth/AuthContext";
 import {
+  clearNotifications,
   listNotifications,
   markAllNotificationsRead,
   markNotificationRead,
@@ -26,6 +27,7 @@ const NotificationsContext = createContext({
   refresh: async () => {},
   markRead: async () => {},
   markAllRead: async () => {},
+  clearAll: async () => {},
 });
 
 export function NotificationsProvider({ children }) {
@@ -89,6 +91,14 @@ export function NotificationsProvider({ children }) {
     await markAllNotificationsRead();
   }, []);
 
+  // Optimistically empty the list, then delete the rows. On failure we refresh
+  // so the UI re-syncs with whatever actually remains in the DB.
+  const clearAll = useCallback(async () => {
+    setNotifications([]);
+    const { error } = await clearNotifications();
+    if (error) refresh();
+  }, [refresh]);
+
   const unreadCount = notifications.reduce(
     (sum, n) => sum + (n.read_at ? 0 : 1),
     0
@@ -103,6 +113,7 @@ export function NotificationsProvider({ children }) {
         refresh,
         markRead,
         markAllRead,
+        clearAll,
       }}
     >
       {children}

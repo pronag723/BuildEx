@@ -188,13 +188,12 @@ export default function OrderPlacementPage() {
   }, [submitting, selectedSize, style, brief, builder, size, router]);
 
   // ── Render ─────────────────────────────────────────────────────────────────
-  if (status === "loading" || theme === null) {
-    return (
-      <main className="min-h-screen flex items-center justify-center px-4">
-        <div className="w-12 h-12 rounded-full border-2 border-[#4ade80] border-t-transparent animate-spin" />
-      </main>
-    );
-  }
+  // The page shell (and crucially the gradient-background divs) must mount on the
+  // FIRST render so useGradientBackground can attach its refs and start the
+  // animation loop. Returning a bare spinner before this point left the refs
+  // null, the effect bailed, and the gradient rendered static/broken — that was
+  // the "wrong background gradient" on this page. Gate only the inner content.
+  const pageLoading = status === "loading" || theme === null;
 
   return (
     <div
@@ -218,7 +217,7 @@ export default function OrderPlacementPage() {
 
       <main className="relative z-10 flex-1 px-4 pt-28 pb-20">
         <div className="max-w-2xl mx-auto">
-          {loading ? (
+          {pageLoading || loading ? (
             <div className="flex items-center justify-center py-24">
               <div className="w-10 h-10 rounded-full border-2 border-[#4ade80] border-t-transparent animate-spin" />
             </div>

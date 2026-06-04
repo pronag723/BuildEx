@@ -81,7 +81,7 @@ export default function WorldPreview({ orderId, onClose }) {
 
   return (
     <div
-      className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+      className="fixed inset-0 z-[200] bg-[#08080c]/95 backdrop-blur-md flex items-center justify-center p-4"
       role="dialog"
       aria-modal="true"
       onClick={(e) => {
