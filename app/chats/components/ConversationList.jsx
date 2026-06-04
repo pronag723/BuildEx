@@ -83,7 +83,7 @@ export default function ConversationList({
   }
 
   return (
-    <div className="flex-1 overflow-y-auto py-2">
+    <div className="flex-1 overflow-y-auto py-2 hide-scrollbar">
       {conversations.map((c) => {
         const active = c.conversation_id === activeId;
         const name = c.other_display_name || c.other_username || "Builder";

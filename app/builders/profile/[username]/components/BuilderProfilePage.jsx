@@ -190,6 +190,7 @@ function RateCard({ size, info }) {
 
 // ─── Contact sidebar ─────────────────────────────────────────────────────────
 function ContactSidebar({ builder, onShowSoon, onContact, onOrder }) {
+  const isBusy = builder.availability_status === "busy";
   return (
     <div className="glass rounded-3xl p-6 builder-sidebar-sticky space-y-5">
       {/* Avatar + header */}
@@ -255,11 +256,23 @@ function ContactSidebar({ builder, onShowSoon, onContact, onOrder }) {
       <button
         type="button"
         onClick={onOrder}
-        className="w-full py-3.5 rounded-full border border-[#4ade80]/40 text-[#4ade80] font-semibold text-base hover:bg-[#4ade80]/10 hover:border-[#4ade80] hover:shadow-[0_0_20px_rgba(74,222,128,0.2)] transition-all flex items-center justify-center gap-2"
+        disabled={isBusy}
+        title={isBusy ? "This builder is busy and isn't taking new orders" : undefined}
+        className={`w-full py-3.5 rounded-full border font-semibold text-base transition-all flex items-center justify-center gap-2 ${
+          isBusy
+            ? "border-white/10 text-gray-500 cursor-not-allowed"
+            : "border-[#4ade80]/40 text-[#4ade80] hover:bg-[#4ade80]/10 hover:border-[#4ade80] hover:shadow-[0_0_20px_rgba(74,222,128,0.2)]"
+        }`}
       >
         <IconQuote className="w-4 h-4" />
-        Order Now
+        {isBusy ? "Not taking orders" : "Order Now"}
       </button>
+      {isBusy && (
+        <p className="-mt-2 text-center text-[11px] text-gray-500 leading-relaxed">
+          This builder is currently busy. You can still contact them to discuss
+          future work.
+        </p>
+      )}
 
       {/* Response info */}
       <div className="flex items-center justify-center gap-2 text-xs text-gray-400">
@@ -433,6 +446,13 @@ export default function BuilderProfilePage({ builder }) {
   // "Order now" CTA — routes to the buyer placement flow (Stage 3).
   // Auth-gated so logged-out visitors hit /login first and come back here.
   const orderNow = useCallback(() => {
+    // A busy builder isn't accepting commissions — short-circuit with a notice
+    // instead of routing to the (now-blocked) placement page.
+    if (builder.availability_status === "busy") {
+      setToast(`${builder.display_name} is busy and isn't taking new orders right now.`);
+      setTimeout(() => setToast(null), 3500);
+      return;
+    }
     const target = `/order/?to=${encodeURIComponent(builder.username)}`;
     gate(
       () => {
@@ -440,7 +460,7 @@ export default function BuilderProfilePage({ builder }) {
       },
       { redirectTo: target }
     );
-  }, [gate, router, builder.username]);
+  }, [gate, router, builder.username, builder.availability_status, builder.display_name]);
 
   const requireAuthThenSoon = useCallback(
     (msg) => {
@@ -799,8 +819,14 @@ export default function BuilderProfilePage({ builder }) {
           <button
             type="button"
             onClick={orderNow}
-            aria-label="Order now"
-            className="py-3 px-4 rounded-full border border-[#4ade80]/40 text-[#4ade80] font-semibold text-sm hover:bg-[#4ade80]/10 transition-all flex items-center gap-1.5 flex-shrink-0"
+            disabled={builder.availability_status === "busy"}
+            aria-label={builder.availability_status === "busy" ? "Builder is busy" : "Order now"}
+            title={builder.availability_status === "busy" ? "This builder is busy and isn't taking new orders" : undefined}
+            className={`py-3 px-4 rounded-full border font-semibold text-sm transition-all flex items-center gap-1.5 flex-shrink-0 ${
+              builder.availability_status === "busy"
+                ? "border-white/10 text-gray-500 cursor-not-allowed"
+                : "border-[#4ade80]/40 text-[#4ade80] hover:bg-[#4ade80]/10"
+            }`}
           >
             <IconQuote className="w-4 h-4" />
           </button>

@@ -275,7 +275,8 @@ function OrdersList({ meId, onOpen }) {
     },
   ];
 
-  const activeTab = TABS.find((t) => t.key === tab) || TABS[0];
+  const activeIdx = Math.max(0, TABS.findIndex((t) => t.key === tab));
+  const activeTab = TABS[activeIdx] || TABS[0];
 
   if (orders === null) return <Spinner />;
 
@@ -298,8 +299,23 @@ function OrdersList({ meId, onOpen }) {
 
       {error && <p className="text-sm text-red-400">{error}</p>}
 
-      {/* Tab toggle */}
-      <div className="flex items-center gap-1 p-1 glass rounded-full w-fit">
+      {/* Tab toggle — sliding segmented control, mirrors the /profile page. */}
+      <div
+        className="relative grid grid-cols-3 p-1 rounded-full bg-white/[0.04] border border-white/10"
+        role="tablist"
+        aria-label="Order status"
+      >
+        {/* Sliding highlight */}
+        <span
+          aria-hidden="true"
+          className="absolute inset-y-1 left-1 rounded-full bg-[#4ade80]/15 transition-transform duration-300 ease-out"
+          style={{
+            width: "calc((100% - 0.5rem) / 3)",
+            transform: `translateX(calc(${activeIdx} * 100%))`,
+            boxShadow:
+              "0 0 0 1px rgba(74,222,128,0.5), 0 0 14px rgba(74,222,128,0.22)",
+          }}
+        />
         {TABS.map((t) => {
           const active = tab === t.key;
           const count = t.rows.length;
@@ -307,21 +323,21 @@ function OrdersList({ meId, onOpen }) {
             <button
               key={t.key}
               type="button"
+              role="tab"
+              aria-selected={active}
               onClick={() => setTab(t.key)}
-              className={`relative flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-semibold transition-all ${
-                active
-                  ? "bg-[#4ade80] text-black shadow"
-                  : "text-gray-400 hover:text-white hover:bg-white/5"
+              className={`relative z-10 flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-full text-xs sm:text-sm font-semibold transition-colors ${
+                active ? "text-white" : "text-gray-400 hover:text-gray-200"
               }`}
             >
               {t.label}
               {count > 0 && (
                 <span
-                  className={`text-[10px] font-bold min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center ${
-                    active
-                      ? "bg-black/20 text-black"
-                      : t.key === "disputed"
+                  className={`text-[10px] font-bold min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center transition-colors ${
+                    t.key === "disputed"
                       ? "bg-red-500/80 text-white"
+                      : active
+                      ? "bg-[#4ade80]/25 text-[#4ade80]"
                       : "bg-white/10 text-gray-300"
                   }`}
                 >

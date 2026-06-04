@@ -28,6 +28,24 @@ function IconOrders({ className = "w-4 h-4" }) {
   );
 }
 
+function IconUser({ className = "w-4 h-4" }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  );
+}
+
 function IconMessage({ className = "w-4 h-4" }) {
   return (
     <svg
@@ -193,10 +211,8 @@ export default function AuthNavControls() {
                 onClick={() => setOpen(false)}
                 className="flex items-center gap-3 px-4 py-2.5 hover:bg-white/5 transition-colors"
               >
-                <span className="w-4 flex justify-center" aria-hidden="true">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80]" />
-                </span>
-                My profile
+                <IconUser className="w-4 h-4 text-[#4ade80]" />
+                <span>My profile</span>
               </Link>
               <Link
                 role="menuitem"
@@ -296,19 +312,21 @@ export function AuthMobileControls({ onAfter }) {
           href="/account"
           onClick={() => onAfter?.()}
           aria-current={onAccount ? "page" : undefined}
-          className={`w-full py-3.5 text-center text-base font-medium rounded-2xl border transition-all ${
+          className={`w-full py-3.5 inline-flex items-center justify-center gap-2 text-base font-medium rounded-2xl border transition-all ${
             onAccount
               ? "border-[#4ade80]/50 text-[#4ade80] bg-[#4ade80]/10"
               : "border-white/20 hover:border-white/40 ghost-btn"
           }`}
         >
+          <IconUser className="w-4 h-4" />
           My profile
         </Link>
         <Link
           href="/orders"
           onClick={() => onAfter?.()}
-          className="w-full py-3.5 text-center text-base font-medium rounded-2xl border border-white/20 hover:border-white/40 ghost-btn transition-all"
+          className="w-full py-3.5 inline-flex items-center justify-center gap-2 text-base font-medium rounded-2xl border border-white/20 hover:border-white/40 ghost-btn transition-all"
         >
+          <IconOrders className="w-4 h-4" />
           My Orders
         </Link>
         <button
