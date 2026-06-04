@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useAuth } from "../../../lib/auth/AuthContext";
 import { useUnread } from "../../../lib/chat/UnreadContext";
+import NotificationsBell from "../../notifications/components/NotificationsBell";
 import { withBase } from "../../home/utils";
 
 function IconMessage({ className = "w-4 h-4" }) {
@@ -99,7 +100,9 @@ export default function AuthNavControls() {
 
   if (status === "authenticated" && displayUser) {
     return (
-      <div className="relative">
+      <div className="flex items-center gap-2 sm:gap-3">
+        <NotificationsBell />
+        <div className="relative">
         <button
           ref={buttonRef}
           type="button"
@@ -210,6 +213,7 @@ export default function AuthNavControls() {
           </div>,
           document.body
         )}
+        </div>
       </div>
     );
   }
