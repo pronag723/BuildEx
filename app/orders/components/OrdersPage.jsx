@@ -30,6 +30,7 @@ import {
 } from "../../../lib/orders/api";
 import { generatePreview } from "../../../lib/preview/client";
 import { leaveReview, fetchOrderReview } from "../../../lib/reviews/api";
+import { openDispute, fetchOrderDispute } from "../../../lib/disputes/api";
 import { formatPrice, SIZE_META } from "../../../lib/pricing";
 import CatalogNavbar from "../../builders/components/CatalogNavbar";
 import CatalogMobileMenu from "../../builders/components/CatalogMobileMenu";
@@ -373,6 +374,11 @@ function OrderDetail({ orderId, meId, onBack }) {
   // the order is completed). Null = not reviewed yet.
   const [review, setReview] = useState(null);
 
+  // Stage 10: the dispute attached to this order (buyer opens at most one on a
+  // delivered order). Null = no dispute.
+  const [dispute, setDispute] = useState(null);
+  const [disputeOpen, setDisputeOpen] = useState(false);
+
   const reload = useCallback(() => {
     setLoading(true);
     fetchOrder(orderId).then(({ order: o, error: e }) => {
@@ -385,6 +391,8 @@ function OrderDetail({ orderId, meId, onBack }) {
     fetchDelivery(orderId).then(({ delivery: d }) => setDelivery(d));
     // The review is public; null until the buyer leaves one.
     fetchOrderReview(orderId).then(({ review: r }) => setReview(r));
+    // The dispute; null until the buyer opens one.
+    fetchOrderDispute(orderId).then(({ dispute: d }) => setDispute(d));
   }, [orderId]);
 
   useEffect(() => {
@@ -497,6 +505,10 @@ function OrderDetail({ orderId, meId, onBack }) {
         />
       )}
 
+      {dispute && (
+        <DisputeCard dispute={dispute} isBuyer={isBuyer} />
+      )}
+
       <Card title="Timeline">
         <Timeline order={order} />
       </Card>
@@ -524,11 +536,13 @@ function OrderDetail({ orderId, meId, onBack }) {
           order={order}
           isBuyer={isBuyer}
           isBuilder={isBuilder}
+          hasDispute={!!dispute}
           busy={busy}
           onStart={() => runAction(() => builderStartWork(order.id))}
           onDeliver={() => setDeliverOpen(true)}
           onConfirm={() => runAction(() => buyerConfirmComplete(order.id))}
           onCancel={() => runAction(() => cancelOrder(order.id))}
+          onDispute={() => setDisputeOpen(true)}
           onOpenChat={openChat}
         />
       </Card>
@@ -539,6 +553,17 @@ function OrderDetail({ orderId, meId, onBack }) {
           onClose={() => setDeliverOpen(false)}
           onDelivered={() => {
             setDeliverOpen(false);
+            reload();
+          }}
+        />
+      )}
+
+      {disputeOpen && (
+        <DisputeModal
+          orderId={order.id}
+          onClose={() => setDisputeOpen(false)}
+          onOpened={() => {
+            setDisputeOpen(false);
             reload();
           }}
         />
@@ -692,11 +717,13 @@ function ActionButtons({
   order,
   isBuyer,
   isBuilder,
+  hasDispute,
   busy,
   onStart,
   onDeliver,
   onConfirm,
   onCancel,
+  onDispute,
   onOpenChat,
 }) {
   const buttons = [];
@@ -722,6 +749,15 @@ function ActionButtons({
         Confirm & release
       </Primary>
     );
+    // Stage 10: the inverse of confirming — reject the delivery and open a
+    // dispute for the team to resolve. Only offered before a dispute exists.
+    if (!hasDispute) {
+      buttons.push(
+        <Secondary key="dispute" onClick={onDispute} disabled={busy}>
+          Open a dispute
+        </Secondary>
+      );
+    }
   }
   if (isBuyer && (order.status === "pending_payment" || order.status === "paid")) {
     buttons.push(
@@ -903,6 +939,147 @@ function ReviewSection({ orderId, builderName, review, onSubmitted }) {
         </Primary>
       </div>
     </Card>
+  );
+}
+
+// ─── Disputes (Stage 10) ────────────────────────────────────────────────────
+// Status → friendly copy. The order is 'disputed' while a dispute is open; once
+// an admin resolves it the order moves to completed (release) or cancelled
+// (refund) and the dispute row carries the outcome.
+const DISPUTE_STATUS_META = {
+  open: {
+    label: "Under review",
+    badgeClass: "bg-red-400/15 text-red-300 border-red-400/30",
+    note: "Our team is reviewing this delivery. We'll update both of you here once it's resolved.",
+  },
+  resolved_release: {
+    label: "Resolved · released to builder",
+    badgeClass: "bg-emerald-400/15 text-emerald-300 border-emerald-400/30",
+    note: "The dispute was resolved in the builder's favour — the order was completed.",
+  },
+  resolved_refund: {
+    label: "Resolved · refunded to buyer",
+    badgeClass: "bg-white/10 text-gray-300 border-white/10",
+    note: "The dispute was resolved in the buyer's favour — the order was cancelled and refunded.",
+  },
+};
+
+function DisputeCard({ dispute, isBuyer }) {
+  const meta = DISPUTE_STATUS_META[dispute.status] || DISPUTE_STATUS_META.open;
+  return (
+    <Card title="Dispute">
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <p className="text-sm text-gray-400">
+          {isBuyer ? "You opened a dispute on this order." : "The buyer opened a dispute on this order."}
+        </p>
+        <span
+          className={`px-3 py-1 rounded-full text-xs font-semibold border whitespace-nowrap ${meta.badgeClass}`}
+        >
+          {meta.label}
+        </span>
+      </div>
+
+      <div className="p-3 rounded-2xl bg-black/30 border border-white/10">
+        <span className="text-[10px] text-gray-500 uppercase tracking-widest block mb-1">
+          Reason
+        </span>
+        <p className="text-sm text-gray-300 whitespace-pre-wrap break-words leading-relaxed">
+          {dispute.reason}
+        </p>
+      </div>
+
+      {dispute.resolution_note && (
+        <p className="mt-3 text-sm text-gray-300 whitespace-pre-wrap leading-relaxed p-3 rounded-2xl bg-black/20 border border-white/10">
+          <span className="text-[10px] text-gray-500 uppercase tracking-widest block mb-1">
+            Resolution note
+          </span>
+          {dispute.resolution_note}
+        </p>
+      )}
+
+      <p className="mt-3 text-xs text-gray-500 flex items-start gap-2 leading-relaxed">
+        <span aria-hidden>⚖️</span>
+        <span>{meta.note}</span>
+      </p>
+    </Card>
+  );
+}
+
+// Buyer-side modal: collect a reason and open the dispute. The open_dispute RPC
+// enforces buyer-only / delivered / once server-side.
+function DisputeModal({ orderId, onClose, onOpened }) {
+  const [reason, setReason] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [errMsg, setErrMsg] = useState(null);
+
+  const onSubmit = useCallback(async () => {
+    const trimmed = reason.trim();
+    if (submitting || !trimmed) return;
+    setSubmitting(true);
+    setErrMsg(null);
+    const { error } = await openDispute({ orderId, reason: trimmed });
+    if (error) {
+      setSubmitting(false);
+      setErrMsg(error.message || "Couldn't open the dispute.");
+      return;
+    }
+    onOpened?.();
+  }, [submitting, reason, orderId, onOpened]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !submitting) onClose?.();
+      }}
+    >
+      <div className="glass rounded-3xl p-6 sm:p-8 max-w-lg w-full">
+        <h2 className="font-bold text-lg mb-1">Open a dispute</h2>
+        <p className="text-xs text-gray-500 mb-5">
+          Only do this if the delivery doesn't match what you agreed. The funds
+          stay in escrow while our team reviews the order — they'll either
+          release the payment to the builder or refund you.
+        </p>
+
+        <label className="block">
+          <span className="text-[11px] text-gray-500 uppercase tracking-widest block mb-1.5">
+            What's wrong?
+          </span>
+          <textarea
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            disabled={submitting}
+            rows={5}
+            maxLength={4000}
+            placeholder="Describe what's missing or doesn't match the brief, with as much detail as you can."
+            className="w-full px-4 py-3 rounded-2xl bg-black/30 border border-white/10 text-sm text-white placeholder:text-gray-500 focus:border-red-400/60 focus:outline-none focus:ring-2 focus:ring-red-400/20 resize-y"
+          />
+        </label>
+
+        {errMsg && <p className="mt-4 text-sm text-red-400">{errMsg}</p>}
+
+        <div className="mt-6 flex items-center justify-end gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={submitting}
+            className="px-5 py-2.5 rounded-full text-sm font-semibold border border-white/10 text-gray-300 hover:bg-white/5 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onSubmit}
+            disabled={submitting || !reason.trim()}
+            className="px-5 py-2.5 rounded-full text-sm font-bold bg-red-500 text-white hover:bg-red-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {submitting ? "Opening…" : "Open dispute"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 

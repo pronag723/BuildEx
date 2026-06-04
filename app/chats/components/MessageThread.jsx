@@ -58,6 +58,9 @@ const ORDER_EVENT_LABELS = {
   delivered: "Marked as delivered",
   completed: "Order completed",
   cancelled: "Order cancelled",
+  disputed: "Dispute opened",
+  dispute_released: "Dispute resolved · released",
+  dispute_refunded: "Dispute resolved · refunded",
 };
 
 function OrderEventMessage({ message, onPreview }) {
