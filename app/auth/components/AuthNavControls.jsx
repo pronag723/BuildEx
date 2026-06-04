@@ -9,6 +9,25 @@ import { useUnread } from "../../../lib/chat/UnreadContext";
 import NotificationsBell from "../../notifications/components/NotificationsBell";
 import { withBase } from "../../home/utils";
 
+function IconOrders({ className = "w-4 h-4" }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+      <rect x="9" y="3" width="6" height="4" rx="1" />
+      <path d="M9 12h6M9 16h4" />
+    </svg>
+  );
+}
+
 function IconMessage({ className = "w-4 h-4" }) {
   return (
     <svg
@@ -194,6 +213,16 @@ export default function AuthNavControls() {
                   </span>
                 )}
               </Link>
+              <Link
+                role="menuitem"
+                href="/orders"
+                tabIndex={open ? 0 : -1}
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-3 px-4 py-2.5 hover:bg-white/5 transition-colors"
+              >
+                <IconOrders className="w-4 h-4 text-[#4ade80]" />
+                <span>My Orders</span>
+              </Link>
               <button
                 type="button"
                 role="menuitem"
@@ -274,6 +303,13 @@ export function AuthMobileControls({ onAfter }) {
           }`}
         >
           My profile
+        </Link>
+        <Link
+          href="/orders"
+          onClick={() => onAfter?.()}
+          className="w-full py-3.5 text-center text-base font-medium rounded-2xl border border-white/20 hover:border-white/40 ghost-btn transition-all"
+        >
+          My Orders
         </Link>
         <button
           type="button"

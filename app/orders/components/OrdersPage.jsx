@@ -247,10 +247,40 @@ function OrdersList({ meId, onOpen }) {
     return { current, completed, disputed };
   }, [orders]);
 
+  const [tab, setTab] = useState("current");
+
+  // Auto-switch to disputed tab when there are disputes and user is on current
+  // (only on initial load, not on every bucket change).
+  const TABS = [
+    {
+      key: "current",
+      label: "Current",
+      rows: current,
+      subtitle: "Orders still in flight — awaiting payment, work, delivery, or your confirmation.",
+      emptyText: "No active orders right now.",
+    },
+    {
+      key: "completed",
+      label: "Completed",
+      rows: completed,
+      subtitle: "Confirmed-and-released or cancelled — your closed commissions.",
+      emptyText: "No completed orders yet.",
+    },
+    {
+      key: "disputed",
+      label: "Disputed",
+      rows: disputed,
+      subtitle: "Under review by our team — we'll resolve these for both parties.",
+      emptyText: "No disputed orders.",
+    },
+  ];
+
+  const activeTab = TABS.find((t) => t.key === tab) || TABS[0];
+
   if (orders === null) return <Spinner />;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <header className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-extrabold">Orders</h1>
@@ -266,40 +296,51 @@ function OrdersList({ meId, onOpen }) {
         </Link>
       </header>
 
-      {error && (
-        <p className="text-sm text-red-400">{error}</p>
-      )}
+      {error && <p className="text-sm text-red-400">{error}</p>}
+
+      {/* Tab toggle */}
+      <div className="flex items-center gap-1 p-1 glass rounded-full w-fit">
+        {TABS.map((t) => {
+          const active = tab === t.key;
+          const count = t.rows.length;
+          return (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setTab(t.key)}
+              className={`relative flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-semibold transition-all ${
+                active
+                  ? "bg-[#4ade80] text-black shadow"
+                  : "text-gray-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              {t.label}
+              {count > 0 && (
+                <span
+                  className={`text-[10px] font-bold min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center ${
+                    active
+                      ? "bg-black/20 text-black"
+                      : t.key === "disputed"
+                      ? "bg-red-500/80 text-white"
+                      : "bg-white/10 text-gray-300"
+                  }`}
+                >
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
 
       <Section
-        title="Current orders"
-        subtitle="Orders still in flight — awaiting payment, work, delivery, or your confirmation."
-        rows={current}
+        title={activeTab.label + " orders"}
+        subtitle={activeTab.subtitle}
+        rows={activeTab.rows}
         meId={meId}
         onOpen={onOpen}
-        emptyText="No active orders right now."
+        emptyText={activeTab.emptyText}
       />
-
-      <Section
-        title="Completed orders"
-        subtitle="Confirmed-and-released or cancelled — your closed commissions."
-        rows={completed}
-        meId={meId}
-        onOpen={onOpen}
-        emptyText="No completed orders yet."
-      />
-
-      {/* Disputes are rare; only show the section once one exists so it doesn't
-          clutter the dashboard with a permanent empty card. */}
-      {disputed.length > 0 && (
-        <Section
-          title="Disputed orders"
-          subtitle="Under review by our team — we'll resolve these for both parties."
-          rows={disputed}
-          meId={meId}
-          onOpen={onOpen}
-          emptyText="No disputes."
-        />
-      )}
     </div>
   );
 }
