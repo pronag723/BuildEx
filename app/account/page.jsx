@@ -404,49 +404,41 @@ function AvailabilitySection({ builderProfile, onSaved }) {
         })}
       </div>
 
-      {/* What each status means — so builders know how their choice affects
-          their visibility in the feed and whether clients can order. */}
-      <ul className="mt-5 space-y-2.5">
-        {AVAILABILITY_STATES.map((opt) => {
-          const help = AVAILABILITY_HELP[opt.key];
-          const isActive = opt.key === value;
-          return (
-            <li
-              key={opt.key}
-              className={`flex items-start gap-3 rounded-2xl border p-3 transition-colors ${
-                isActive
-                  ? "border-white/20 bg-white/[0.05]"
-                  : "border-white/[0.06] bg-white/[0.02]"
-              }`}
-            >
-              <span
-                className="mt-1 w-2 h-2 rounded-full flex-shrink-0"
-                style={{ background: opt.dot, boxShadow: isActive ? `0 0 10px ${opt.dot}` : "none" }}
-              />
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className={`text-sm font-semibold ${isActive ? "text-white" : "text-gray-300"}`}>
-                    {opt.short || opt.label}
-                  </span>
-                  <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-full border border-white/10 text-gray-400">
-                    {help.visible ? "Visible in feed" : "Hidden from feed"}
-                  </span>
-                  <span
-                    className={`text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-full border ${
-                      help.orderable
-                        ? "border-[#4ade80]/30 text-[#4ade80]"
-                        : "border-white/10 text-gray-400"
-                    }`}
-                  >
-                    {help.orderable ? "Orders open" : "Orders paused"}
-                  </span>
-                </div>
-                <p className="text-xs text-gray-500 leading-relaxed mt-1">{help.text}</p>
+      {/* Explanation for the currently selected status only — so builders see
+          how this choice affects their feed visibility and whether clients can
+          order, without the other states cluttering the view. */}
+      {(() => {
+        const help = AVAILABILITY_HELP[active.key];
+        if (!help) return null;
+        return (
+          <div className="mt-5 flex items-start gap-3 rounded-2xl border border-white/20 bg-white/[0.05] p-3">
+            <span
+              className="mt-1 w-2 h-2 rounded-full flex-shrink-0"
+              style={{ background: active.dot, boxShadow: `0 0 10px ${active.dot}` }}
+            />
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm font-semibold text-white">
+                  {active.short || active.label}
+                </span>
+                <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-full border border-white/10 text-gray-400">
+                  {help.visible ? "Visible in feed" : "Hidden from feed"}
+                </span>
+                <span
+                  className={`text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-full border ${
+                    help.orderable
+                      ? "border-[#4ade80]/30 text-[#4ade80]"
+                      : "border-white/10 text-gray-400"
+                  }`}
+                >
+                  {help.orderable ? "Orders open" : "Orders paused"}
+                </span>
               </div>
-            </li>
-          );
-        })}
-      </ul>
+              <p className="text-xs text-gray-500 leading-relaxed mt-1">{help.text}</p>
+            </div>
+          </div>
+        );
+      })()}
     </section>
   );
 }
