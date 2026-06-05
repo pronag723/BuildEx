@@ -14,6 +14,7 @@ import Avatar from "../../../../../lib/ui/Avatar";
 import { useAuthGate } from "../../../../../lib/auth/useAuthGate";
 import { AVAILABILITY_STATES } from "../../../../../lib/onboarding/constants";
 import { formatPrice } from "../../../../../lib/pricing";
+import { useFavorites } from "../../../../../lib/favorites/FavoritesContext";
 
 // Neutral avatar used when a reviewer has no picture (e.g. a Discord account
 // without an avatar). Inline so it never 404s under the GitHub Pages basePath.
@@ -432,6 +433,10 @@ export default function BuilderProfilePage({ builder }) {
   const gate = useAuthGate();
   const router = useRouter();
 
+  // Favorites — signed-in visitors can bookmark this builder from the header.
+  const { canFavorite, isFavorite, toggleFavorite } = useFavorites();
+  const favorited = isFavorite(builder.id);
+
   const showSoon = useCallback((msg) => {
     setToast(msg);
     setTimeout(() => setToast(null), 3500);
@@ -620,13 +625,42 @@ export default function BuilderProfilePage({ builder }) {
               <IconChevron className="w-3 h-3 opacity-50" />
               <span className="truncate max-w-[200px] sm:max-w-xs" aria-current="page">{builder.display_name}</span>
             </nav>
-            <Link
-              href="/builders"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold border border-[#4ade80]/30 text-[#4ade80] bg-[#4ade80]/10 hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.35)] transition-all"
-            >
-              <IconChevron className="w-3 h-3 rotate-180" />
-              Back to Builders
-            </Link>
+            <div className="flex items-center gap-2">
+              {canFavorite && builder.id && (
+                <button
+                  type="button"
+                  onClick={() => toggleFavorite(builder.id)}
+                  aria-pressed={favorited}
+                  aria-label={favorited ? "Remove from favorites" : "Add to favorites"}
+                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold border transition-all ${
+                    favorited
+                      ? "bg-[#4ade80] text-black border-[#4ade80] shadow-[0_0_18px_rgba(74,222,128,0.4)]"
+                      : "border-white/15 text-gray-300 bg-white/5 hover:border-[#4ade80]/50 hover:text-[#4ade80]"
+                  }`}
+                >
+                  <svg
+                    className="w-3.5 h-3.5"
+                    viewBox="0 0 24 24"
+                    fill={favorited ? "currentColor" : "none"}
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                  </svg>
+                  {favorited ? "Saved" : "Save"}
+                </button>
+              )}
+              <Link
+                href="/builders"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold border border-[#4ade80]/30 text-[#4ade80] bg-[#4ade80]/10 hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.35)] transition-all"
+              >
+                <IconChevron className="w-3 h-3 rotate-180" />
+                Back to Builders
+              </Link>
+            </div>
           </div>
 
           {/* ── Hero header ───────────────────────────────────────────────── */}

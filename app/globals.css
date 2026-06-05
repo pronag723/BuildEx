@@ -1274,6 +1274,54 @@ body {
   -moz-appearance: textfield;
 }
 
+/* ── Rating slider (filters) ───────────────────────────────────────────────── */
+/* Track fill is painted inline (green→grey gradient driven by the value); here
+   we just reset the native chrome and draw a consistent brand-green thumb. */
+.rating-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 9999px;
+  outline: none;
+}
+
+.rating-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: #4ade80;
+  border: 2px solid #0a0a0a;
+  box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.4), 0 0 10px rgba(74, 222, 128, 0.45);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.rating-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.12);
+  box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.6), 0 0 14px rgba(74, 222, 128, 0.65);
+}
+
+.rating-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: #4ade80;
+  border: 2px solid #0a0a0a;
+  box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.4), 0 0 10px rgba(74, 222, 128, 0.45);
+  cursor: pointer;
+}
+
+.rating-slider:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.5);
+}
+
+.light .rating-slider::-webkit-slider-thumb,
+.light .rating-slider::-moz-range-thumb {
+  border-color: #ffffff;
+}
+
 /* ── Native select styling ─────────────────────────────────────────────────── */
 .catalog-select option {
   background: #1c1c1c;

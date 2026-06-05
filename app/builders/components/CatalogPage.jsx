@@ -8,6 +8,7 @@ import {
   ITEMS_PER_PAGE,
 } from "../data/builders";
 import { fetchBuilders } from "../data/fetchBuilders";
+import { useFavorites } from "../../../lib/favorites/FavoritesContext";
 
 import CatalogNavbar from "./CatalogNavbar";
 import CatalogMobileMenu from "./CatalogMobileMenu";
@@ -58,7 +59,11 @@ export default function CatalogPage() {
   const maxPrice = Number(params.get("max")) || 0;
   const minRating = Number(params.get("rating")) || 0;
   const selectedRanks = useMemo(() => parseArray(params.get("rank")), [params]);
+  const favoritesOnly = params.get("fav") === "1";
   const sort = params.get("sort") || "newest";
+
+  // ── Favorites (signed-in users can bookmark builders & filter to them) ──────
+  const { favoriteIds, canFavorite } = useFavorites();
 
   // ── Live builder feed (replaces the old static demo array) ──────────────────
   const [builders, setBuilders] = useState([]);
@@ -268,8 +273,13 @@ export default function CatalogPage() {
   );
 
   const handleRatingChange = useCallback(
-    (value) => updateURL({ rating: value === minRating ? null : value }),
-    [minRating, updateURL]
+    (value) => updateURL({ rating: value || null }),
+    [updateURL]
+  );
+
+  const handleFavoritesToggle = useCallback(
+    () => updateURL({ fav: favoritesOnly ? null : "1" }),
+    [favoritesOnly, updateURL]
   );
 
   const handleRankToggle = useCallback(
@@ -292,6 +302,11 @@ export default function CatalogPage() {
     setParams(new URLSearchParams());
   }, []);
 
+  // The favorites filter only does anything for a signed-in user (a logged-out
+  // visitor has no favorites, so honouring a stray ?fav=1 would wrongly empty
+  // the feed). Gate it on canFavorite.
+  const effectiveFavoritesOnly = favoritesOnly && canFavorite;
+
   // ── Computed builders ───────────────────────────────────────────────────────
   const filteredBuilders = useMemo(() => {
     const filtered = filterBuilders(builders, {
@@ -303,8 +318,11 @@ export default function CatalogPage() {
       minRating,
       ranks: selectedRanks,
     });
-    return sortBuilders(filtered, sort);
-  }, [builders, query, selectedStyles, selectedBuildTypes, minPrice, maxPrice, minRating, selectedRanks, sort]);
+    const scoped = effectiveFavoritesOnly
+      ? filtered.filter((b) => favoriteIds.has(b.id))
+      : filtered;
+    return sortBuilders(scoped, sort);
+  }, [builders, query, selectedStyles, selectedBuildTypes, minPrice, maxPrice, minRating, selectedRanks, sort, effectiveFavoritesOnly, favoriteIds]);
 
   const visibleBuilders = useMemo(
     () => filteredBuilders.slice(0, pageCount * ITEMS_PER_PAGE),
@@ -313,8 +331,8 @@ export default function CatalogPage() {
 
   // Key for triggering card re-animation when filters change
   const animKey = useMemo(
-    () => `${query}|${selectedStyles}|${selectedBuildTypes}|${minPrice}|${maxPrice}|${minRating}|${selectedRanks}|${sort}`,
-    [query, selectedStyles, selectedBuildTypes, minPrice, maxPrice, minRating, selectedRanks, sort]
+    () => `${query}|${selectedStyles}|${selectedBuildTypes}|${minPrice}|${maxPrice}|${minRating}|${selectedRanks}|${effectiveFavoritesOnly}|${sort}`,
+    [query, selectedStyles, selectedBuildTypes, minPrice, maxPrice, minRating, selectedRanks, effectiveFavoritesOnly, sort]
   );
 
   // Active filter count (for mobile button badge)
@@ -325,8 +343,9 @@ export default function CatalogPage() {
     if (minPrice || maxPrice) n++;
     if (minRating) n++;
     if (selectedRanks.length) n++;
+    if (effectiveFavoritesOnly) n++;
     return n;
-  }, [selectedStyles, selectedBuildTypes, minPrice, maxPrice, minRating, selectedRanks]);
+  }, [selectedStyles, selectedBuildTypes, minPrice, maxPrice, minRating, selectedRanks, effectiveFavoritesOnly]);
 
   const isLight = theme === "light";
 
@@ -343,6 +362,10 @@ export default function CatalogPage() {
     onRatingChange: handleRatingChange,
     selectedRanks,
     onRankToggle: handleRankToggle,
+    favoritesOnly,
+    onFavoritesToggle: handleFavoritesToggle,
+    canFavorite,
+    favoriteCount: favoriteIds.size,
     onClearAll: handleClearAll,
     activeFilterCount,
   };

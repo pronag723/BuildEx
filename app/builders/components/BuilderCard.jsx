@@ -5,6 +5,7 @@ import Link from "next/link";
 import { RANKS } from "../data/builders";
 import { publicAsset, withBase } from "../../home/utils";
 import { formatPrice } from "../../../lib/pricing";
+import { useFavorites } from "../../../lib/favorites/FavoritesContext";
 
 function StarIcon({ className = "w-3.5 h-3.5" }) {
   return (
@@ -30,6 +31,23 @@ function ChevronIcon({ className = "w-5 h-5" }) {
   );
 }
 
+function HeartIcon({ className = "w-4 h-4", filled = false }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill={filled ? "currentColor" : "none"}
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+    </svg>
+  );
+}
+
 export default function BuilderCard({ builder, animationDelay = 0 }) {
   const rank = RANKS[builder.rank];
   const previews = builder.portfolio.slice(0, 6);
@@ -38,11 +56,21 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
   const [index, setIndex] = useState(0);
   const [infoHover, setInfoHover] = useState(false);
 
+  const { canFavorite, isFavorite, toggleFavorite } = useFavorites();
+  const favorited = isFavorite(builder.id);
+
   const go = (e, dir) => {
     // Keep arrow clicks inside the carousel — never follow the card's link.
     e.preventDefault();
     e.stopPropagation();
     setIndex((i) => (i + dir + count) % count);
+  };
+
+  const onToggleFavorite = (e) => {
+    // The card is a <Link>; keep the heart click from navigating.
+    e.preventDefault();
+    e.stopPropagation();
+    toggleFavorite(builder.id);
   };
 
   return (
@@ -146,9 +174,27 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
           </div>
         )}
 
-        {/* Portfolio count — top right (moved to free the bottom for dots) */}
-        <div className="absolute top-3 right-3 z-10 px-2.5 py-1 rounded-full text-xs bg-black/60 text-white/70 backdrop-blur-sm border border-white/10">
-          {builder.portfolio.length} {builder.portfolio.length === 1 ? "build" : "builds"} in portfolio
+        {/* Top-right cluster — favorite toggle + portfolio count */}
+        <div className="absolute top-3 right-3 z-20 flex items-center gap-2">
+          {canFavorite && (
+            <button
+              type="button"
+              onClick={onToggleFavorite}
+              aria-pressed={favorited}
+              aria-label={favorited ? "Remove from favorites" : "Add to favorites"}
+              title={favorited ? "Remove from favorites" : "Add to favorites"}
+              className={`w-9 h-9 flex items-center justify-center rounded-full backdrop-blur-md border transition-all duration-200 ${
+                favorited
+                  ? "bg-[#4ade80] text-black border-[#4ade80] shadow-[0_0_16px_rgba(74,222,128,0.5)]"
+                  : "bg-black/60 text-white border-white/15 hover:border-[#4ade80]/60 hover:text-[#4ade80]"
+              }`}
+            >
+              <HeartIcon className="w-4 h-4" filled={favorited} />
+            </button>
+          )}
+          <div className="px-2.5 py-1 rounded-full text-xs bg-black/60 text-white/70 backdrop-blur-sm border border-white/10">
+            {builder.portfolio.length} {builder.portfolio.length === 1 ? "build" : "builds"} in portfolio
+          </div>
         </div>
       </div>
 

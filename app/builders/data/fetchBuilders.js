@@ -65,6 +65,10 @@ function mapRow(row) {
 
   return {
     // Identity
+    // profiles.id (uuid) — needed to key favorites against this builder. profiles
+    // is publicly readable under RLS, so surfacing the uuid on a feed card is no
+    // different from selecting it directly (same rationale as mapProfileRow).
+    id: row.id,
     username: row.username,
     display_name: row.display_name || row.username || "Builder",
     avatar: row.avatar_url || null,

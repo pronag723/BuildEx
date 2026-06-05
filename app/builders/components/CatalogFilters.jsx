@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { STYLES, BUILD_TYPES, RATING_OPTIONS, RANKS } from "../data/builders";
+import { STYLES, BUILD_TYPES, RANKS } from "../data/builders";
 
 // ─── Custom checkbox row (button-based for guaranteed click handling) ────────
 function FilterCheckbox({ label, emoji, checked, onChange }) {
@@ -95,31 +95,102 @@ function RankCheckbox({ rankKey, checked, onChange }) {
   );
 }
 
-// ─── Rating radio row (also button-based) ────────────────────────────────────
-function RatingOption({ label, active, onClick }) {
+// ─── Rating slider ────────────────────────────────────────────────────────────
+// Replaces the old fixed radio list (4.5+, 4.0+, …) with a continuous 0–5 slider
+// in half-star steps. 0 means "any rating".
+const RATING_MIN = 0;
+const RATING_MAX = 5;
+const RATING_STEP = 0.5;
+
+function RatingSlider({ value, onChange }) {
+  const pct = ((value - RATING_MIN) / (RATING_MAX - RATING_MIN)) * 100;
+
+  return (
+    <div className="pt-2 pb-1">
+      {/* Current value */}
+      <div className="flex items-center justify-between mb-3">
+        {value > 0 ? (
+          <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-white">
+            <svg className="w-3.5 h-3.5 text-amber-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            </svg>
+            {value.toFixed(1)} &amp; up
+          </span>
+        ) : (
+          <span className="text-sm text-gray-400">Any rating</span>
+        )}
+        {value > 0 && (
+          <button
+            type="button"
+            onClick={() => onChange(0)}
+            className="text-xs text-[#4ade80] hover:text-green-300 transition-colors"
+          >
+            Reset
+          </button>
+        )}
+      </div>
+
+      {/* Slider (native range, brand-tinted fill via gradient) */}
+      <input
+        type="range"
+        min={RATING_MIN}
+        max={RATING_MAX}
+        step={RATING_STEP}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        aria-label="Minimum rating"
+        aria-valuetext={value > 0 ? `${value.toFixed(1)} stars and up` : "Any rating"}
+        className="rating-slider w-full cursor-pointer"
+        style={{
+          background: `linear-gradient(to right, #4ade80 0%, #4ade80 ${pct}%, rgba(255,255,255,0.12) ${pct}%, rgba(255,255,255,0.12) 100%)`,
+        }}
+      />
+
+      {/* Scale labels */}
+      <div className="flex items-center justify-between mt-2 text-[10px] text-gray-500 select-none">
+        <span>Any</span>
+        <span>2.5</span>
+        <span>5.0</span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Favorites toggle (signed-in only) ───────────────────────────────────────
+function FavoritesToggle({ active, count, onToggle }) {
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={onToggle}
       aria-pressed={active}
-      className="w-full flex items-center gap-2.5 cursor-pointer group py-1.5 select-none text-left"
+      className={`w-full flex items-center justify-between gap-2.5 cursor-pointer group py-2.5 px-3 rounded-xl border transition-all duration-200 select-none text-left ${
+        active
+          ? "bg-[#4ade80]/12 border-[#4ade80]/40"
+          : "glass border-white/10 hover:border-white/30"
+      }`}
     >
-      <span
-        className={`w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
-          active
-            ? "border-[#4ade80] bg-[#4ade80]"
-            : "border-white/20 group-hover:border-[#4ade80]/40"
-        }`}
-      >
-        {active && <span className="w-1.5 h-1.5 rounded-full bg-black" />}
+      <span className="flex items-center gap-2.5">
+        <svg
+          className={`w-4 h-4 flex-shrink-0 transition-colors ${active ? "text-[#4ade80]" : "text-gray-400 group-hover:text-gray-200"}`}
+          viewBox="0 0 24 24"
+          fill={active ? "currentColor" : "none"}
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+        </svg>
+        <span className={`text-sm transition-colors leading-none ${active ? "text-white font-medium" : "text-gray-300 group-hover:text-white"}`}>
+          Favorites only
+        </span>
       </span>
-      <span
-        className={`text-sm transition-colors leading-none ${
-          active ? "text-white" : "text-gray-400 group-hover:text-gray-200"
-        }`}
-      >
-        {label}
-      </span>
+      {count > 0 && (
+        <span className={`text-[11px] font-semibold rounded-full px-2 py-0.5 flex-shrink-0 ${active ? "bg-[#4ade80] text-black" : "bg-white/10 text-gray-400"}`}>
+          {count}
+        </span>
+      )}
     </button>
   );
 }
@@ -173,6 +244,10 @@ export default function CatalogFilters({
   onRatingChange,
   selectedRanks,
   onRankToggle,
+  favoritesOnly,
+  onFavoritesToggle,
+  canFavorite,
+  favoriteCount,
   onClearAll,
   activeFilterCount,
 }) {
@@ -194,6 +269,17 @@ export default function CatalogFilters({
           </button>
         )}
       </div>
+
+      {/* Favorites — signed-in users only */}
+      {canFavorite && (
+        <div className="py-3 border-b border-white/[0.07]">
+          <FavoritesToggle
+            active={favoritesOnly}
+            count={favoriteCount}
+            onToggle={onFavoritesToggle}
+          />
+        </div>
+      )}
 
       {/* Style */}
       <FilterGroup label="Style">
@@ -259,14 +345,7 @@ export default function CatalogFilters({
 
       {/* Rating */}
       <FilterGroup label="Rating" defaultOpen={false}>
-        {RATING_OPTIONS.map((opt) => (
-          <RatingOption
-            key={opt.value}
-            label={opt.label}
-            active={minRating === opt.value}
-            onClick={() => onRatingChange(opt.value)}
-          />
-        ))}
+        <RatingSlider value={minRating} onChange={onRatingChange} />
       </FilterGroup>
 
       {/* Builder rank */}
