@@ -99,10 +99,14 @@ export default function OrderPlacementPage() {
   // detect the self-order case and surface it as a friendly notice.
   const isSelf =
     !!user && !!builder?.id && user.id === builder.id;
-  // A builder whose availability slider is on red ("busy") isn't taking new
-  // commissions. They're hidden from the feed, but a direct /order?to= link
-  // could still land here — so we block placement and explain why.
-  const isBusy = builder?.availability_status === "busy";
+  // Orders are only accepted when the builder is "available". A "busy" builder
+  // is hidden from the feed and not taking work; a "limited" builder is still
+  // visible but has paused new orders. Either way a direct /order?to= link could
+  // land here, so we block placement and explain why.
+  const availabilityStatus = builder?.availability_status || "available";
+  const isBusy = availabilityStatus === "busy";
+  const isLimited = availabilityStatus === "limited";
+  const ordersBlocked = isBusy || isLimited;
   // builder.id isn't in the public mapping; resolve via builder_profiles ownership
   // by comparing username against the authenticated profile (cheap path: navbar
   // already has it; fallback to a Supabase lookup avoided to keep this page lean).
@@ -241,10 +245,14 @@ export default function OrderPlacementPage() {
               title="That's you"
               body="You can't place an order on your own profile."
             />
-          ) : isBusy ? (
+          ) : ordersBlocked ? (
             <EmptyNotice
               title={`${builder.display_name} isn't taking orders`}
-              body="This builder has set their status to busy and isn't accepting new commissions right now. You can still message them — try again once they're available."
+              body={
+                isBusy
+                  ? "This builder has set their status to busy and isn't accepting new commissions right now. You can still message them — try again once they're available."
+                  : "This builder has limited availability right now and isn't accepting new orders. You can still message them to line up future work."
+              }
             />
           ) : (
             <div className="glass rounded-3xl p-6 sm:p-8">

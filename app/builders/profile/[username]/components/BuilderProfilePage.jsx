@@ -191,7 +191,13 @@ function RateCard({ size, info }) {
 
 // ─── Contact sidebar ─────────────────────────────────────────────────────────
 function ContactSidebar({ builder, onShowSoon, onContact, onOrder }) {
-  const isBusy = builder.availability_status === "busy";
+  // Orders are only open when the builder is "available". "busy" hides them from
+  // the feed and pauses work; "limited" keeps them visible but also pauses new
+  // orders — both disable the Order CTA, with a status-specific note.
+  const status = builder.availability_status || "available";
+  const isBusy = status === "busy";
+  const isLimited = status === "limited";
+  const ordersBlocked = isBusy || isLimited;
   return (
     <div className="glass rounded-3xl p-6 builder-sidebar-sticky space-y-5">
       {/* Avatar + header */}
@@ -246,16 +252,16 @@ function ContactSidebar({ builder, onShowSoon, onContact, onOrder }) {
       <button
         type="button"
         onClick={onOrder}
-        disabled={isBusy}
-        title={isBusy ? "This builder is busy and isn't taking new orders" : undefined}
+        disabled={ordersBlocked}
+        title={ordersBlocked ? "This builder isn't taking new orders right now" : undefined}
         className={`w-full py-4 rounded-full font-bold text-base transition-all flex items-center justify-center gap-2 ${
-          isBusy
+          ordersBlocked
             ? "bg-white/5 border border-white/10 text-gray-500 cursor-not-allowed"
             : "bg-[#4ade80] text-black green-glow hover:bg-[#22c55e]"
         }`}
       >
         <IconQuote className="w-4 h-4" />
-        {isBusy ? "Not taking orders" : "Order Now"}
+        {ordersBlocked ? "Not taking orders" : "Order Now"}
       </button>
 
       <button
@@ -266,10 +272,11 @@ function ContactSidebar({ builder, onShowSoon, onContact, onOrder }) {
         <IconChat className="w-4 h-4" />
         Contact Builder
       </button>
-      {isBusy && (
+      {ordersBlocked && (
         <p className="-mt-2 text-center text-[11px] text-gray-500 leading-relaxed">
-          This builder is currently busy. You can still contact them to discuss
-          future work.
+          {isBusy
+            ? "This builder is currently busy and isn't taking new orders. You can still contact them to discuss future work."
+            : "This builder has limited availability and isn't taking new orders right now. You can still contact them to discuss future work."}
         </p>
       )}
 
@@ -399,6 +406,10 @@ export default function BuilderProfilePage({ builder }) {
 
   const isLight = theme === "light";
   const rank = RANKS[builder.rank];
+  // Orders are only open when "available"; both "busy" and "limited" pause them.
+  const ordersBlocked =
+    builder.availability_status === "busy" ||
+    builder.availability_status === "limited";
 
   // Real, DB-backed builders carry a profiles.id — fetch their reviews live.
   // Demo/seeded builders (no id, served from static data) keep the mock set so
@@ -445,10 +456,17 @@ export default function BuilderProfilePage({ builder }) {
   // "Order now" CTA — routes to the buyer placement flow (Stage 3).
   // Auth-gated so logged-out visitors hit /login first and come back here.
   const orderNow = useCallback(() => {
-    // A busy builder isn't accepting commissions — short-circuit with a notice
-    // instead of routing to the (now-blocked) placement page.
-    if (builder.availability_status === "busy") {
-      setToast(`${builder.display_name} is busy and isn't taking new orders right now.`);
+    // Orders are only open when the builder is "available". A "busy" builder is
+    // hidden from the feed; a "limited" one stays visible but has paused new
+    // orders — both short-circuit with a notice instead of routing to the
+    // (now-blocked) placement page.
+    const status = builder.availability_status || "available";
+    if (status === "busy" || status === "limited") {
+      setToast(
+        status === "busy"
+          ? `${builder.display_name} is busy and isn't taking new orders right now.`
+          : `${builder.display_name} has limited availability and isn't taking new orders right now.`
+      );
       setTimeout(() => setToast(null), 3500);
       return;
     }
@@ -808,16 +826,16 @@ export default function BuilderProfilePage({ builder }) {
           <button
             type="button"
             onClick={orderNow}
-            disabled={builder.availability_status === "busy"}
-            title={builder.availability_status === "busy" ? "This builder is busy and isn't taking new orders" : undefined}
+            disabled={ordersBlocked}
+            title={ordersBlocked ? "This builder isn't taking new orders right now" : undefined}
             className={`flex-1 py-3 rounded-full font-bold text-sm transition-all flex items-center justify-center gap-1.5 ${
-              builder.availability_status === "busy"
+              ordersBlocked
                 ? "bg-white/5 border border-white/10 text-gray-500 cursor-not-allowed"
                 : "bg-[#4ade80] text-black green-glow"
             }`}
           >
             <IconQuote className="w-4 h-4" />
-            {builder.availability_status === "busy" ? "Not taking orders" : "Order Now"}
+            {ordersBlocked ? "Not taking orders" : "Order Now"}
           </button>
           <button
             type="button"

@@ -282,6 +282,27 @@ function SectionTabs({ section, setSection }) {
 // ─── Availability (builders) ─────────────────────────────────────────────────
 // A 3-state segmented slider that saves the moment a state is picked — no
 // separate edit/confirm step.
+// What each availability state means for the builder, in plain terms: whether
+// the profile shows up in the /builders feed and whether clients can place an
+// order. Keyed to AVAILABILITY_STATES so the copy stays in sync with the slider.
+const AVAILABILITY_HELP = {
+  available: {
+    visible: true,
+    orderable: true,
+    text: "Your profile is shown in the builders feed and clients can place orders.",
+  },
+  limited: {
+    visible: true,
+    orderable: false,
+    text: "Your profile stays visible in the builders feed, but clients can't place new orders — they can still message you.",
+  },
+  busy: {
+    visible: false,
+    orderable: false,
+    text: "Your profile is hidden from the builders feed and clients can't place orders — they can still message you.",
+  },
+};
+
 function AvailabilitySection({ builderProfile, onSaved }) {
   const { user } = useAuth();
   const saved = builderProfile?.availability_status || "available";
@@ -382,6 +403,50 @@ function AvailabilitySection({ builderProfile, onSaved }) {
           );
         })}
       </div>
+
+      {/* What each status means — so builders know how their choice affects
+          their visibility in the feed and whether clients can order. */}
+      <ul className="mt-5 space-y-2.5">
+        {AVAILABILITY_STATES.map((opt) => {
+          const help = AVAILABILITY_HELP[opt.key];
+          const isActive = opt.key === value;
+          return (
+            <li
+              key={opt.key}
+              className={`flex items-start gap-3 rounded-2xl border p-3 transition-colors ${
+                isActive
+                  ? "border-white/20 bg-white/[0.05]"
+                  : "border-white/[0.06] bg-white/[0.02]"
+              }`}
+            >
+              <span
+                className="mt-1 w-2 h-2 rounded-full flex-shrink-0"
+                style={{ background: opt.dot, boxShadow: isActive ? `0 0 10px ${opt.dot}` : "none" }}
+              />
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className={`text-sm font-semibold ${isActive ? "text-white" : "text-gray-300"}`}>
+                    {opt.short || opt.label}
+                  </span>
+                  <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-full border border-white/10 text-gray-400">
+                    {help.visible ? "Visible in feed" : "Hidden from feed"}
+                  </span>
+                  <span
+                    className={`text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-full border ${
+                      help.orderable
+                        ? "border-[#4ade80]/30 text-[#4ade80]"
+                        : "border-white/10 text-gray-400"
+                    }`}
+                  >
+                    {help.orderable ? "Orders open" : "Orders paused"}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 leading-relaxed mt-1">{help.text}</p>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
     </section>
   );
 }
@@ -928,7 +993,7 @@ function RankSection({ builderProfile }) {
             </div>
             <div className="h-2 rounded-full bg-white/10 overflow-hidden">
               <div
-                className="h-full rounded-full bg-amber-400 transition-all"
+                className="h-full rounded-full bg-[#4ade80] transition-all"
                 style={{ width: `${Math.round(progress.ratingPct * 100)}%` }}
               />
             </div>
