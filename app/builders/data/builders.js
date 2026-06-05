@@ -15,18 +15,25 @@ import {
   ITEMS_PER_PAGE,
 } from "./offers";
 import { startsFromPrice } from "../../../lib/pricing";
+import { seededShuffle } from "./feedOrder";
 
 // Re-export shared constants so consumers only need one import.
 export { RANKS, STYLES, BUILD_TYPES, RATING_OPTIONS, ITEMS_PER_PAGE };
 
 // ─── Sort options (builder-centric) ─────────────────────────────────────────
+// "featured" is the default: a randomised order (seeded per visit) so every
+// builder gets equal exposure instead of being ranked by join date.
 export const SORT_OPTIONS = [
+  { key: "featured",   label: "Recommended" },
   { key: "newest",     label: "Recently Joined" },
   { key: "rating",     label: "Highest Rated" },
   { key: "price_asc",  label: "Rate: Low → High" },
   { key: "price_desc", label: "Rate: High → Low" },
   { key: "orders",     label: "Most Projects" },
 ];
+
+// The default ordering when no explicit sort is chosen.
+export const DEFAULT_SORT = "featured";
 
 // ─── Rate brackets per rank (exact price, kopecks) ──────────────────────────
 // price is stored in kopecks (100 kopecks = 1 ₽).
@@ -197,7 +204,9 @@ export function filterBuilders(builders, filters) {
   });
 }
 
-export function sortBuilders(builders, sort) {
+// `seed` only matters for the "featured" (randomised) ordering; it's ignored by
+// every deterministic sort. Passing it always keeps the call site simple.
+export function sortBuilders(builders, sort, seed = 0) {
   const result = [...builders];
   switch (sort) {
     case "rating":
@@ -209,9 +218,17 @@ export function sortBuilders(builders, sort) {
     case "orders":
       return result.sort((a, b) => (b.completed_projects || 0) - (a.completed_projects || 0));
     case "newest":
-    default:
       return result.sort(
         (a, b) => new Date(b.member_since || 0) - new Date(a.member_since || 0)
+      );
+    case "featured":
+    default:
+      // Randomised, but stable for a given seed (held constant across the
+      // profile round-trip). Re-anchor on username so the order is fully
+      // determined by the seed rather than the feed's arrival order.
+      return seededShuffle(
+        result.sort((a, b) => (a.username || "").localeCompare(b.username || "")),
+        seed
       );
   }
 }

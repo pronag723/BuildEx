@@ -40,10 +40,23 @@ const Icon = {
       <path d="m6 8 4 4 4-4" />
     </svg>
   ),
+  shuffle: (props) => (
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M3 5h3.2c.9 0 1.7.4 2.2 1.1l3.2 4.3c.5.7 1.3 1.1 2.2 1.1H17M3 15h3.2c.9 0 1.7-.4 2.2-1.1l.9-1.2M12.7 6.3l.9-1.2c.5-.7 1.3-1.1 2.2-1.1H17M15 2l2 3-2 3M15 12l2 3-2 3" />
+    </svg>
+  ),
 };
 
 // ─── Per-option metadata (icon, accent colour, description) ──────────────────
 const SORT_META = {
+  featured: {
+    Icon: Icon.shuffle,
+    text: "text-[#4ade80]",
+    bg: "bg-emerald-500/10",
+    ring: "ring-emerald-500/25",
+    desc: "A fresh mix every visit",
+    badge: "Default",
+  },
   newest: {
     Icon: Icon.sparkle,
     text: "text-sky-400",

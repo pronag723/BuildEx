@@ -6,8 +6,10 @@ import {
   filterBuilders,
   sortBuilders,
   ITEMS_PER_PAGE,
+  DEFAULT_SORT,
 } from "../data/builders";
 import { fetchBuilders } from "../data/fetchBuilders";
+import { resolveFeedSeed } from "../data/feedOrder";
 import { useFavorites } from "../../../lib/favorites/FavoritesContext";
 
 import CatalogNavbar from "./CatalogNavbar";
@@ -60,7 +62,16 @@ export default function CatalogPage() {
   const minRating = Number(params.get("rating")) || 0;
   const selectedRanks = useMemo(() => parseArray(params.get("rank")), [params]);
   const favoritesOnly = params.get("fav") === "1";
-  const sort = params.get("sort") || "newest";
+  const sort = params.get("sort") || DEFAULT_SORT;
+
+  // Seed for the default "Recommended" (randomised) order. A fresh visit rolls
+  // a new seed; returning from a builder profile reuses it so the order doesn't
+  // reshuffle. See data/feedOrder.js. Resolved in an effect (not a useState
+  // initializer) so it stays pure under React StrictMode's dev double-mount.
+  const [feedSeed, setFeedSeed] = useState(0);
+  useEffect(() => {
+    setFeedSeed(resolveFeedSeed());
+  }, []);
 
   // ── Favorites (signed-in users can bookmark builders & filter to them) ──────
   const { favoriteIds, canFavorite } = useFavorites();
@@ -293,7 +304,7 @@ export default function CatalogPage() {
   );
 
   const handleSortChange = useCallback(
-    (value) => updateURL({ sort: value === "newest" ? null : value }),
+    (value) => updateURL({ sort: value === DEFAULT_SORT ? null : value }),
     [updateURL]
   );
 
@@ -321,8 +332,8 @@ export default function CatalogPage() {
     const scoped = effectiveFavoritesOnly
       ? filtered.filter((b) => favoriteIds.has(b.id))
       : filtered;
-    return sortBuilders(scoped, sort);
-  }, [builders, query, selectedStyles, selectedBuildTypes, minPrice, maxPrice, minRating, selectedRanks, sort, effectiveFavoritesOnly, favoriteIds]);
+    return sortBuilders(scoped, sort, feedSeed);
+  }, [builders, query, selectedStyles, selectedBuildTypes, minPrice, maxPrice, minRating, selectedRanks, sort, feedSeed, effectiveFavoritesOnly, favoriteIds]);
 
   const visibleBuilders = useMemo(
     () => filteredBuilders.slice(0, pageCount * ITEMS_PER_PAGE),
@@ -331,8 +342,8 @@ export default function CatalogPage() {
 
   // Key for triggering card re-animation when filters change
   const animKey = useMemo(
-    () => `${query}|${selectedStyles}|${selectedBuildTypes}|${minPrice}|${maxPrice}|${minRating}|${selectedRanks}|${effectiveFavoritesOnly}|${sort}`,
-    [query, selectedStyles, selectedBuildTypes, minPrice, maxPrice, minRating, selectedRanks, effectiveFavoritesOnly, sort]
+    () => `${query}|${selectedStyles}|${selectedBuildTypes}|${minPrice}|${maxPrice}|${minRating}|${selectedRanks}|${effectiveFavoritesOnly}|${sort}|${feedSeed}`,
+    [query, selectedStyles, selectedBuildTypes, minPrice, maxPrice, minRating, selectedRanks, effectiveFavoritesOnly, sort, feedSeed]
   );
 
   // Active filter count (for mobile button badge)
