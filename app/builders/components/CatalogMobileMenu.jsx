@@ -38,7 +38,7 @@ export default function CatalogMobileMenu({
         ))}
 
         <div className="border-t border-white/10 mt-4 pt-6 flex flex-col gap-3">
-          <AuthMobileControls onAfter={() => setMobileMenuOpen(false)} />
+          <AuthMobileControls onAfter={() => setMobileMenuOpen(false)} showOrders={false} />
         </div>
       </div>
     </div>
