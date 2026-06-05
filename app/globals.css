@@ -1580,6 +1580,11 @@ body {
   width: clamp(280px, 32vw, 380px);
 }
 .portfolio-card .aspect-\[16\/10\] {
+  /* Fill the card. Without an explicit width the box would derive its width
+     from aspect-ratio × height, which is narrower than the card and leaves a
+     blank strip of card background beside the image. object-cover on the <img>
+     then handles any crop. */
+  width: 100%;
   height: clamp(180px, 22vw, 240px);
 }
 @media (max-width: 640px) {
