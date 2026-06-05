@@ -869,7 +869,12 @@ function PortfolioSection({ portfolioCount, onSaved }) {
         </div>
       ) : (
         <div className="portfolio-scroll-wrapper fade-edges -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
-          <div className="portfolio-scroll flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory">
+          {/* pt-3/pb-3: a horizontal scroller forces its vertical axis to `auto`
+              overflow, which would otherwise clip a card's hover lift
+              (related-card translateY) and crowd the image against the
+              scrollbar. The vertical padding gives the lift, glow and scrollbar
+              room so nothing is cut off — on mobile especially. */}
+          <div className="portfolio-scroll flex gap-4 overflow-x-auto pt-3 pb-3 snap-x snap-mandatory">
             {images.map((img) => (
               <div key={img.id} className="snap-start portfolio-card related-card glass rounded-2xl overflow-hidden flex-shrink-0">
                 <div className="relative aspect-[16/10] overflow-hidden">

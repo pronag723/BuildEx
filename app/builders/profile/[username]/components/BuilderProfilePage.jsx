@@ -221,7 +221,7 @@ function ContactSidebar({ builder, onShowSoon, onContact, onOrder }) {
               Online now
             </p>
           ) : (
-            <p className="text-xs text-gray-500">Offline · replies within {builder.response_time}</p>
+            <p className="text-xs text-gray-500">Offline · replies {builder.response_time}</p>
           )}
         </div>
       </div>

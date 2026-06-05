@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { getSupabaseClient, isSupabaseConfigured } from "../supabase/client";
 import { displayInfoFromUser, ensureProfile } from "./profile";
+import { touchPresence } from "../presence/api";
 import { withBase } from "../../app/home/utils";
 
 const AuthContext = createContext({
@@ -265,6 +266,41 @@ export function AuthProvider({ children }) {
       window.removeEventListener("pageshow", onPageShow);
     };
   }, [supabase, loadProfile]);
+
+  // ─── Presence heartbeat ────────────────────────────────────────────────────
+  // While the user is signed in and the tab is visible, stamp their
+  // profiles.last_seen_at so other people's feed/profile views can show a *real*
+  // online indicator (lib/presence) rather than the old "available === online"
+  // fake. Pings immediately, then every 60s, and again whenever the tab regains
+  // focus. Skips the ping while the tab is hidden so a backgrounded tab doesn't
+  // keep the user looking online; the 5-minute online window then lapses
+  // naturally. Requires migration 0019 — a missing column just makes the write
+  // a harmless no-op error that touchPresence swallows.
+  useEffect(() => {
+    if (!supabase || status !== "authenticated" || !user?.id) return undefined;
+    const uid = user.id;
+    let cancelled = false;
+
+    function ping() {
+      if (cancelled) return;
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+      touchPresence(uid);
+    }
+
+    ping();
+    const interval = setInterval(ping, 60000);
+
+    function onVisibility() {
+      if (document.visibilityState === "visible") ping();
+    }
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [supabase, status, user?.id]);
 
   const signInWithProvider = useCallback(
     async (provider, opts = {}) => {

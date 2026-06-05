@@ -18,11 +18,15 @@ import {
   BUILDER_TOOLS,
   RESPONSE_TIMES,
 } from "../../../lib/onboarding/constants";
+import { isOnline } from "../../../lib/presence/api";
 import { startsFromPrice } from "../../../lib/pricing";
 
 // Columns shared by the feed query and the single-profile query.
+// last_seen_at drives the real online/offline indicator (presence, migration
+// 0019). It's selected with the rest of profiles; a pre-0019 database simply
+// returns it absent, in which case mapRow reads the builder as offline.
 const PROFILE_SELECT =
-  "id, username, display_name, avatar_url, bio, role, created_at, onboarding_completed_at, " +
+  "id, username, display_name, avatar_url, bio, role, created_at, last_seen_at, onboarding_completed_at, " +
   "builder:builder_profiles!inner(*), " +
   "portfolio:portfolio_images(id, url, position, alt)";
 
@@ -77,8 +81,11 @@ function mapRow(row) {
     // Profile
     bio: row.bio || "",
     availability_status: availability,
-    // Green slider state surfaces as the card's live indicator.
-    online: availability === "available",
+    // Real presence — true only when the builder's last heartbeat (last_seen_at,
+    // migration 0019) is within the online window. This is independent of the
+    // availability slider: an "Available" builder who isn't at their keyboard
+    // now correctly reads as offline.
+    online: isOnline(row.last_seen_at),
     member_since: row.created_at || null,
     specialties,
 
