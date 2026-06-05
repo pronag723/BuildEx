@@ -5,6 +5,7 @@ import CatalogNavbar from "../../components/CatalogNavbar";
 import CatalogMobileMenu from "../../components/CatalogMobileMenu";
 import SiteFooter from "../../../home/components/SiteFooter";
 import { withBase } from "../../../home/utils";
+import Avatar from "../../../../lib/ui/Avatar";
 import { useRouter } from "next/navigation";
 import { useAuthGate } from "../../../../lib/auth/useAuthGate";
 import {
@@ -219,12 +220,10 @@ function BuilderCard({ builder, profile, rank }) {
       {/* Header */}
       <div className="flex items-start gap-4 mb-5">
         <div className="relative flex-shrink-0">
-          <img
+          <Avatar
             src={builder.avatar}
-            alt={builder.display_name}
-            className="w-16 h-16 rounded-full object-cover ring-2 ring-[#4ade80]/30"
-            loading="lazy"
-            decoding="async"
+            name={builder.display_name}
+            className="w-16 h-16 rounded-full ring-2 ring-[#4ade80]/30 text-2xl"
           />
           {profile.online && (
             <span className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-[#4ade80] border-2 border-[#1a1a1a] online-dot" aria-label="Online" />
@@ -336,12 +335,10 @@ function ReviewsSection({ reviews, offer }) {
           <div className="space-y-5">
             {reviews.map((rev) => (
               <article key={rev.id} className="flex gap-3 group">
-                <img
+                <Avatar
                   src={rev.reviewer.avatar}
-                  alt={rev.reviewer.display_name}
-                  className="w-9 h-9 rounded-full object-cover flex-shrink-0 mt-0.5 ring-1 ring-white/10"
-                  loading="lazy"
-                  decoding="async"
+                  name={rev.reviewer.display_name}
+                  className="w-9 h-9 rounded-full flex-shrink-0 mt-0.5 ring-1 ring-white/10 text-sm"
                 />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -425,7 +422,7 @@ function OrderSidebar({ offer, rank, profile, onShowSoon, onOrder }) {
       <button
         type="button"
         onClick={() => onShowSoon("Messaging system coming soon — real-time chat powered by Supabase Realtime.")}
-        className="w-full py-3.5 rounded-full border border-[#4ade80]/40 text-[#4ade80] font-semibold text-base hover:bg-[#4ade80]/10 hover:border-[#4ade80] hover:shadow-[0_0_20px_rgba(74,222,128,0.2)] transition-all flex items-center justify-center gap-2"
+        className="w-full py-3.5 rounded-full border border-white/15 bg-white/5 text-gray-200 font-semibold text-base hover:bg-white/10 hover:border-white/30 transition-all flex items-center justify-center gap-2"
       >
         <IconChat className="w-4 h-4" />
         Chat with Builder
@@ -610,7 +607,7 @@ export default function OfferDetailPage({ offer }) {
               </span>
               <span className="flex items-center gap-1.5">
                 by
-                <img src={offer.builder.avatar} alt="" className="w-5 h-5 rounded-full object-cover" loading="lazy" />
+                <Avatar src={offer.builder.avatar} name={offer.builder.display_name} className="w-5 h-5 rounded-full text-[10px]" />
                 <strong>{offer.builder.display_name}</strong>
               </span>
             </div>
@@ -656,7 +653,8 @@ export default function OfferDetailPage({ offer }) {
           <button
             type="button"
             onClick={() => requireAuthThenSoon("Messaging system coming soon!")}
-            className="py-3 px-4 rounded-full border border-[#4ade80]/40 text-[#4ade80] font-semibold text-sm hover:bg-[#4ade80]/10 hover:border-[#4ade80] transition-all flex items-center gap-1.5 flex-shrink-0"
+            aria-label="Chat with builder"
+            className="py-3 px-4 rounded-full border border-white/15 bg-white/5 text-gray-200 font-semibold text-sm hover:bg-white/10 hover:border-white/30 transition-all flex items-center gap-1.5 flex-shrink-0"
           >
             <IconChat className="w-4 h-4" />
           </button>

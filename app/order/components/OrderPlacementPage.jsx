@@ -19,6 +19,7 @@ import { placeOrder, markOrderPaid } from "../../../lib/orders/api";
 import CatalogNavbar from "../../builders/components/CatalogNavbar";
 import CatalogMobileMenu from "../../builders/components/CatalogMobileMenu";
 import { useGradientBackground } from "../../../lib/ui/useGradientBackground";
+import Avatar from "../../../lib/ui/Avatar";
 
 const STEPS = ["size", "style", "brief", "review"];
 
@@ -321,12 +322,10 @@ export default function OrderPlacementPage() {
 function Header({ builder }) {
   return (
     <div className="flex items-center gap-3 mb-5">
-      <img
-        src={builder.avatar || "/avatar-placeholder.png"}
-        alt={builder.display_name}
-        className="w-12 h-12 rounded-full object-cover ring-2 ring-[#4ade80]/40"
-        loading="lazy"
-        decoding="async"
+      <Avatar
+        src={builder.avatar}
+        name={builder.display_name}
+        className="w-12 h-12 rounded-full ring-2 ring-[#4ade80]/40 flex-shrink-0 text-lg"
       />
       <div className="min-w-0">
         <p className="text-[11px] text-gray-500 uppercase tracking-widest">

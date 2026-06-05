@@ -282,7 +282,7 @@ export default function AuthNavControls() {
   );
 }
 
-export function AuthMobileControls({ onAfter }) {
+export function AuthMobileControls({ onAfter, showOrders = true }) {
   const { status, displayUser, signOut } = useAuth();
   const pathname = usePathname();
   const onAccount = pathname === "/account";
@@ -321,14 +321,16 @@ export function AuthMobileControls({ onAfter }) {
           <IconUser className="w-4 h-4" />
           My profile
         </Link>
-        <Link
-          href="/orders"
-          onClick={() => onAfter?.()}
-          className="w-full py-3.5 inline-flex items-center justify-center gap-2 text-base font-medium rounded-2xl border border-white/20 hover:border-white/40 ghost-btn transition-all"
-        >
-          <IconOrders className="w-4 h-4" />
-          My Orders
-        </Link>
+        {showOrders && (
+          <Link
+            href="/orders"
+            onClick={() => onAfter?.()}
+            className="w-full py-3.5 inline-flex items-center justify-center gap-2 text-base font-medium rounded-2xl border border-white/20 hover:border-white/40 ghost-btn transition-all"
+          >
+            <IconOrders className="w-4 h-4" />
+            My Orders
+          </Link>
+        )}
         <button
           type="button"
           onClick={() => {

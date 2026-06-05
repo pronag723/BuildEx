@@ -13,6 +13,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { withBase } from "../../home/utils";
+import Avatar from "../../../lib/ui/Avatar";
 import { useAuth } from "../../../lib/auth/AuthContext";
 import { useRequireAuth } from "../../../lib/auth/useRequireAuth";
 import {
@@ -395,12 +396,10 @@ function OrderRow({ order, meId, onOpen }) {
       onClick={(e) => handleNavClick(e, () => onOpen(order.id))}
       className="glass rounded-2xl p-4 flex items-center gap-3 hover:border-[#4ade80]/40 hover:shadow-[0_0_18px_rgba(74,222,128,0.12)] transition-all"
     >
-      <img
-        src={peer?.avatar_url || "/avatar-placeholder.png"}
-        alt={peer?.display_name || "?"}
-        className="w-11 h-11 rounded-full object-cover ring-1 ring-white/10 flex-shrink-0"
-        loading="lazy"
-        decoding="async"
+      <Avatar
+        src={peer?.avatar_url}
+        name={peer?.display_name}
+        className="w-11 h-11 rounded-full ring-1 ring-white/10 flex-shrink-0 text-base"
       />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 flex-wrap">
@@ -540,12 +539,10 @@ function OrderDetail({ orderId, meId, onBack }) {
 
       <Card>
         <div className="flex items-start gap-3 mb-4">
-          <img
-            src={peer?.avatar_url || "/avatar-placeholder.png"}
-            alt={peer?.display_name || "?"}
-            className="w-12 h-12 rounded-full object-cover ring-2 ring-[#4ade80]/30 flex-shrink-0"
-            loading="lazy"
-            decoding="async"
+          <Avatar
+            src={peer?.avatar_url}
+            name={peer?.display_name}
+            className="w-12 h-12 rounded-full ring-2 ring-[#4ade80]/30 flex-shrink-0 text-lg"
           />
           <div className="min-w-0 flex-1">
             <p className="text-[11px] text-gray-500 uppercase tracking-widest">

@@ -10,6 +10,7 @@ import { RANKS } from "../../../data/builders";
 import { getBuilderReviews } from "../../../data/reviews";
 import { listBuilderReviews } from "../../../../../lib/reviews/api";
 import { publicAsset, withBase } from "../../../../home/utils";
+import Avatar from "../../../../../lib/ui/Avatar";
 import { useAuthGate } from "../../../../../lib/auth/useAuthGate";
 import { AVAILABILITY_STATES } from "../../../../../lib/onboarding/constants";
 import { formatPrice } from "../../../../../lib/pricing";
@@ -196,12 +197,10 @@ function ContactSidebar({ builder, onShowSoon, onContact, onOrder }) {
       {/* Avatar + header */}
       <div className="flex items-center gap-3">
         <div className="relative flex-shrink-0">
-          <img
+          <Avatar
             src={builder.avatar}
-            alt={builder.display_name}
-            className="w-14 h-14 rounded-full object-cover ring-2 ring-[#4ade80]/30"
-            loading="lazy"
-            decoding="async"
+            name={builder.display_name}
+            className="w-14 h-14 rounded-full ring-2 ring-[#4ade80]/30 text-xl"
           />
           {builder.online && (
             <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-[#4ade80] border-2 border-[#1a1a1a] online-dot" />
@@ -243,29 +242,29 @@ function ContactSidebar({ builder, onShowSoon, onContact, onOrder }) {
         </p>
       </div>
 
-      {/* CTAs */}
-      <button
-        type="button"
-        onClick={onContact}
-        className="w-full py-4 rounded-full bg-[#4ade80] text-black font-bold text-base green-glow hover:bg-[#22c55e] transition-all flex items-center justify-center gap-2"
-      >
-        <IconChat className="w-4 h-4" />
-        Contact Builder
-      </button>
-
+      {/* CTAs — Order is the primary (green) action, Contact is secondary (dark) */}
       <button
         type="button"
         onClick={onOrder}
         disabled={isBusy}
         title={isBusy ? "This builder is busy and isn't taking new orders" : undefined}
-        className={`w-full py-3.5 rounded-full border font-semibold text-base transition-all flex items-center justify-center gap-2 ${
+        className={`w-full py-4 rounded-full font-bold text-base transition-all flex items-center justify-center gap-2 ${
           isBusy
-            ? "border-white/10 text-gray-500 cursor-not-allowed"
-            : "border-[#4ade80]/40 text-[#4ade80] hover:bg-[#4ade80]/10 hover:border-[#4ade80] hover:shadow-[0_0_20px_rgba(74,222,128,0.2)]"
+            ? "bg-white/5 border border-white/10 text-gray-500 cursor-not-allowed"
+            : "bg-[#4ade80] text-black green-glow hover:bg-[#22c55e]"
         }`}
       >
         <IconQuote className="w-4 h-4" />
         {isBusy ? "Not taking orders" : "Order Now"}
+      </button>
+
+      <button
+        type="button"
+        onClick={onContact}
+        className="w-full py-3.5 rounded-full border border-white/15 bg-white/5 text-gray-200 font-semibold text-base hover:bg-white/10 hover:border-white/30 transition-all flex items-center justify-center gap-2"
+      >
+        <IconChat className="w-4 h-4" />
+        Contact Builder
       </button>
       {isBusy && (
         <p className="-mt-2 text-center text-[11px] text-gray-500 leading-relaxed">
@@ -617,12 +616,10 @@ export default function BuilderProfilePage({ builder }) {
             <div className="flex flex-col sm:flex-row gap-6 items-start">
               {/* Avatar */}
               <div className="relative flex-shrink-0 mx-auto sm:mx-0">
-                <img
+                <Avatar
                   src={builder.avatar}
-                  alt={builder.display_name}
-                  className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl object-cover ring-2 ring-[#4ade80]/30 shadow-xl"
-                  loading="lazy"
-                  decoding="async"
+                  name={builder.display_name}
+                  className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl ring-2 ring-[#4ade80]/30 shadow-xl text-4xl"
                 />
                 {builder.online && (
                   <span className="absolute bottom-1 right-1 w-5 h-5 rounded-full bg-[#4ade80] border-[3px] border-[#1a1a1a] online-dot" />
@@ -810,25 +807,25 @@ export default function BuilderProfilePage({ builder }) {
           </div>
           <button
             type="button"
-            onClick={contactBuilder}
-            className="flex-1 py-3 rounded-full bg-[#4ade80] text-black font-bold text-sm green-glow flex items-center justify-center gap-1.5"
-          >
-            <IconChat className="w-4 h-4" />
-            Contact
-          </button>
-          <button
-            type="button"
             onClick={orderNow}
             disabled={builder.availability_status === "busy"}
-            aria-label={builder.availability_status === "busy" ? "Builder is busy" : "Order now"}
             title={builder.availability_status === "busy" ? "This builder is busy and isn't taking new orders" : undefined}
-            className={`py-3 px-4 rounded-full border font-semibold text-sm transition-all flex items-center gap-1.5 flex-shrink-0 ${
+            className={`flex-1 py-3 rounded-full font-bold text-sm transition-all flex items-center justify-center gap-1.5 ${
               builder.availability_status === "busy"
-                ? "border-white/10 text-gray-500 cursor-not-allowed"
-                : "border-[#4ade80]/40 text-[#4ade80] hover:bg-[#4ade80]/10"
+                ? "bg-white/5 border border-white/10 text-gray-500 cursor-not-allowed"
+                : "bg-[#4ade80] text-black green-glow"
             }`}
           >
             <IconQuote className="w-4 h-4" />
+            {builder.availability_status === "busy" ? "Not taking orders" : "Order Now"}
+          </button>
+          <button
+            type="button"
+            onClick={contactBuilder}
+            aria-label="Contact builder"
+            className="py-3 px-4 rounded-full border border-white/15 bg-white/5 text-gray-200 font-semibold text-sm hover:bg-white/10 hover:border-white/30 transition-all flex items-center gap-1.5 flex-shrink-0"
+          >
+            <IconChat className="w-4 h-4" />
           </button>
         </div>
       </div>

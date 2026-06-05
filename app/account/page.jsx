@@ -36,6 +36,7 @@ import {
   rankProgress,
 } from "../../lib/ranks";
 import { withBase } from "../home/utils";
+import Avatar from "../../lib/ui/Avatar";
 import CatalogNavbar from "../builders/components/CatalogNavbar";
 import CatalogMobileMenu from "../builders/components/CatalogMobileMenu";
 import SiteFooter from "../home/components/SiteFooter";
@@ -192,12 +193,10 @@ function ActiveOrdersSection({ userId }) {
                   href={`/orders/?id=${encodeURIComponent(o.id)}`}
                   className="flex items-center gap-3 p-3 rounded-2xl border border-white/10 hover:border-[#4ade80]/40 hover:bg-white/5 transition-all"
                 >
-                  <img
-                    src={peer.avatar_url || "/avatar-placeholder.png"}
-                    alt={peer.display_name || "?"}
-                    className="w-9 h-9 rounded-full object-cover ring-1 ring-white/10 flex-shrink-0"
-                    loading="lazy"
-                    decoding="async"
+                  <Avatar
+                    src={peer.avatar_url}
+                    name={peer.display_name}
+                    className="w-9 h-9 rounded-full ring-1 ring-white/10 flex-shrink-0 text-sm"
                   />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
