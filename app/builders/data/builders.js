@@ -27,8 +27,8 @@ export const SORT_OPTIONS = [
   { key: "featured",   label: "Recommended" },
   { key: "newest",     label: "Recently Joined" },
   { key: "rating",     label: "Highest Rated" },
-  { key: "price_asc",  label: "Rate: Low → High" },
-  { key: "price_desc", label: "Rate: High → Low" },
+  { key: "price_asc",  label: "Price: Low → High" },
+  { key: "price_desc", label: "Price: High → Low" },
   { key: "orders",     label: "Most Projects" },
 ];
 
