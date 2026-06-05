@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { navItems } from "./home/data";
-import { smoothScrollTo, showSoon } from "./home/utils";
+import { smoothScrollTo } from "./home/utils";
 import Navbar from "./home/components/Navbar";
 import MobileMenu from "./home/components/MobileMenu";
 import HeroSection from "./home/components/HeroSection";
@@ -346,7 +346,6 @@ export default function BuildExPage() {
         <HeroSection
           heroVisualRef={heroVisualRef}
           onAnchorClick={handleAnchorClick}
-          onShowSoon={showSoon}
         />
         <ProjectsSection onAnchorClick={handleAnchorClick} />
         <HowItWorksSection />

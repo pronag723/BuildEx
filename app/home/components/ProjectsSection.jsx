@@ -1,7 +1,7 @@
 "use client";
 
 import { projects } from "../data";
-import { publicAsset } from "../utils";
+import { publicAsset, withBase } from "../utils";
 
 function ProjectCard({ project }) {
   return (
@@ -14,21 +14,9 @@ function ProjectCard({ project }) {
           loading="lazy"
           decoding="async"
         />
-        {project.rank ? (
-          <div className="absolute top-4 right-4 glass px-3 py-1 text-xs rounded-full">
-            {project.rank}
-          </div>
-        ) : null}
       </div>
       <div className="p-6">
         <div className="font-medium">{project.title}</div>
-        <div className="text-sm text-gray-400">
-          by {project.builder} • {project.rating} ★
-        </div>
-        <div className="mt-4 flex justify-between items-center">
-          <div className="text-[#4ade80] font-semibold">{project.price}</div>
-          <div className="text-xs bg-white/10 px-4 py-1 rounded-full">Completed</div>
-        </div>
       </div>
     </div>
   );
@@ -53,21 +41,21 @@ export default function ProjectsSection({ onAnchorClick }) {
             Top <span className="text-[#4ade80]">Builder&apos;s</span> Projects
           </h2>
           <a
-            href="#projects"
+            href={withBase("/builders")}
             className="text-[#4ade80] hover:underline text-sm flex items-center gap-2"
-            onClick={(event) => onAnchorClick(event, "#projects")}
+            onClick={(event) => onAnchorClick(event, "/builders")}
           >
-            View all projects →
+            View all builders →
           </a>
         </div>
 
         <div className="mobile-view-all-wrapper text-center mb-6 lg:hidden">
           <a
-            href="#projects"
+            href={withBase("/builders")}
             className="inline-flex text-[#4ade80] hover:underline text-sm items-center gap-2"
-            onClick={(event) => onAnchorClick(event, "#projects")}
+            onClick={(event) => onAnchorClick(event, "/builders")}
           >
-            View all projects →
+            View all builders →
           </a>
         </div>
 

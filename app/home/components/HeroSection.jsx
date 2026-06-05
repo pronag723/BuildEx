@@ -1,10 +1,8 @@
 "use client";
 
 import { withBase } from "../utils";
-import { useAuthGate } from "../../../lib/auth/useAuthGate";
 
-export default function HeroSection({ heroVisualRef, onAnchorClick, onShowSoon }) {
-  const gate = useAuthGate();
+export default function HeroSection({ heroVisualRef, onAnchorClick }) {
   return (
     <section
       id="hero"
@@ -31,15 +29,8 @@ export default function HeroSection({ heroVisualRef, onAnchorClick, onShowSoon }
               onClick={(event) => onAnchorClick(event, "/builders")}
               className="hero-btn-primary px-8 py-4 bg-[#4ade80] text-black font-semibold rounded-full hover:scale-105 transition-all green-glow inline-block text-center"
             >
-              Browse Builders
+              Find Builders
             </a>
-            <button
-              type="button"
-              onClick={() => gate(() => onShowSoon("Project posting coming soon"))}
-              className="hero-btn-secondary px-8 py-4 border border-white/30 hover:border-white/60 font-medium rounded-full transition-all post-project-btn"
-            >
-              Post a Project
-            </button>
           </div>
           <div className="flex items-center gap-8 text-sm pt-2 stat-counter justify-center lg:justify-start">
             <div>

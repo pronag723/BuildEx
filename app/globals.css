@@ -423,8 +423,10 @@ body {
   animation: scrollProjects 40s linear infinite;
 }
 
-.project-scroll:hover {
-  animation-play-state: paused;
+@media (hover: hover) and (pointer: fine) {
+  .project-scroll:hover {
+    animation-play-state: paused;
+  }
 }
 
 /* ==================== UTILITIES ==================== */

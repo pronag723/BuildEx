@@ -265,20 +265,12 @@ export default function AuthNavControls() {
 
   // unauthenticated / unconfigured
   return (
-    <>
-      <Link
-        href="/login"
-        className="nav-btn-ghost nav-btn-text font-medium rounded-full border border-white/20 hover:border-white/40 transition-all ghost-btn whitespace-nowrap hidden sm:inline-block"
-      >
-        Log in
-      </Link>
-      <Link
-        href="/signup"
-        className="nav-btn-primary nav-btn-text font-semibold rounded-full bg-[#4ade80] text-black transition-all green-glow whitespace-nowrap hidden sm:inline-block"
-      >
-        Join as Builder
-      </Link>
-    </>
+    <Link
+      href="/login"
+      className="nav-btn-primary nav-btn-text font-semibold rounded-full bg-[#4ade80] text-black transition-all green-glow whitespace-nowrap hidden sm:inline-block"
+    >
+      Log in
+    </Link>
   );
 }
 
@@ -346,21 +338,12 @@ export function AuthMobileControls({ onAfter, showOrders = true }) {
   }
 
   return (
-    <>
-      <Link
-        href="/login"
-        onClick={() => onAfter?.()}
-        className="w-full py-3.5 text-center text-base font-medium rounded-2xl border border-white/20 hover:border-white/40 transition-all ghost-btn"
-      >
-        Log in
-      </Link>
-      <Link
-        href="/signup"
-        onClick={() => onAfter?.()}
-        className="w-full py-3.5 text-center text-base font-semibold rounded-2xl bg-[#4ade80] text-black transition-all green-glow"
-      >
-        Join as Builder
-      </Link>
-    </>
+    <Link
+      href="/login"
+      onClick={() => onAfter?.()}
+      className="w-full py-3.5 text-center text-base font-semibold rounded-2xl bg-[#4ade80] text-black transition-all green-glow"
+    >
+      Log in
+    </Link>
   );
 }
