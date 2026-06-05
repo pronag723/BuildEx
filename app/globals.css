@@ -959,14 +959,14 @@ body {
 
 /* Адаптивные карточки проектов */
 .project-card {
-  width: clamp(240px, 25vw, 320px);
+  width: clamp(280px, 29vw, 380px);
   transition:
     transform 0.3s ease,
     box-shadow 0.3s ease;
 }
 
 .project-card .h-52 {
-  height: clamp(160px, 15vw, 208px);
+  height: clamp(190px, 18vw, 248px);
 }
 
 .project-card img {
