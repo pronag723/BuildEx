@@ -20,7 +20,7 @@ import {
   RESPONSE_TIMES,
 } from "../../../lib/onboarding/constants";
 import { isOnline } from "../../../lib/presence/api";
-import { startsFromPrice } from "../../../lib/pricing";
+import { startsFromPrice, ratesToTiers } from "../../../lib/pricing";
 
 // Columns shared by the feed query and the single-profile query.
 // last_seen_at drives the real online/offline indicator (presence, migration
@@ -155,40 +155,28 @@ function toolLabels(tools) {
   );
 }
 
-// Normalize per-size rates for the public profile page.
-// Returns { small|medium|large: { enabled, price, label } } where price is kopecks.
-const BASE_LABELS = {
-  small: "Small spawn or arena",
-  medium: "Medium hub or lobby",
-  large: "Large kingdom or network",
-};
+// Normalize rates for the public profile + order pages into an ordered array of
+// display tiers (built-ins first, then any builder-added custom sizes). Disabled
+// tiers are kept so the order page can show the full menu greyed out.
+// Returns: [{ id, label, icon, blocks, price (kopecks), enabled, areaText }]
+function areaTextFor(tier) {
+  const blocks = Number(tier.blocks) || 0;
+  if (blocks <= 0) return "Custom scope — quote on request";
+  if (tier.id === "large") return `${blocks}×${blocks} blocks and beyond`;
+  return `Up to ${blocks}×${blocks} blocks`;
+}
 
 function normalizeProfileRates(rates) {
-  const out = {};
-  for (const key of ["small", "medium", "large"]) {
-    const tier = (rates && typeof rates === "object" && rates[key]) || {};
-    const blocks = Number(tier.blocks);
-    const baseLabel = BASE_LABELS[key];
-    const blocksSuffix = Number.isFinite(blocks) && blocks > 0 ? ` (~${blocks}×${blocks})` : "";
-
-    // Support both old shape (from/to) and new shape (enabled/price)
-    if ("from" in tier && !("price" in tier)) {
-      out[key] = {
-        enabled: true,
-        price: Number(tier.from) || 0,
-        blocks: Number.isFinite(blocks) ? blocks : 0,
-        label: `${baseLabel}${blocksSuffix}`,
-      };
-    } else {
-      out[key] = {
-        enabled: tier.enabled !== false,
-        price: Number(tier.price) || 0,
-        blocks: Number.isFinite(blocks) ? blocks : 0,
-        label: `${baseLabel}${blocksSuffix}`,
-      };
-    }
-  }
-  return out;
+  return ratesToTiers(rates).map((tier) => ({
+    id: tier.id,
+    label: tier.label,
+    icon: tier.icon,
+    hint: tier.hint,
+    blocks: tier.blocks,
+    price: tier.price,
+    enabled: tier.enabled,
+    areaText: areaTextFor(tier),
+  }));
 }
 
 function mapProfileRow(row) {

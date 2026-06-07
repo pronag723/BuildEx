@@ -11,8 +11,7 @@ import OnboardingShell from "../../components/OnboardingShell";
 import OnboardingGate from "../../components/OnboardingGate";
 import OnboardingFooter from "../../components/OnboardingFooter";
 import {
-  RATE_TIERS,
-  RateEditor,
+  RatesEditor,
   mergeRates,
   normalizeRates,
   validateRates,
@@ -70,16 +69,7 @@ function BuilderRatesStep({ state }) {
       </div>
 
       <div className="glass onb-card onb-fade-in onb-fade-in-2 space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {RATE_TIERS.map((tier) => (
-            <RateEditor
-              key={tier.key}
-              tier={tier}
-              value={rates[tier.key]}
-              onChange={(v) => setRates((prev) => ({ ...prev, [tier.key]: v }))}
-            />
-          ))}
-        </div>
+        <RatesEditor rates={rates} onChange={setRates} />
 
         {error && (
           <div role="alert" className="auth-banner auth-banner-error">

@@ -387,7 +387,8 @@ function Section({ title, subtitle, rows, meId, onOpen, emptyText }) {
 function OrderRow({ order, meId, onOpen }) {
   const peer = counterpart(order, meId);
   const meta = STATUS_META[order.status] || STATUS_META.pending_payment;
-  const sizeLabel = SIZE_META[order.building_size]?.label || order.building_size;
+  const sizeLabel =
+    order.size_label || SIZE_META[order.building_size]?.label || order.building_size;
   const iAmBuyer = order.buyer_id === meId;
 
   return (
@@ -493,7 +494,7 @@ function OrderDetail({ orderId, meId, onBack }) {
   const isBuyer = !!order && order.buyer_id === meId;
   const isBuilder = !!order && order.builder_id === meId;
   const sizeLabel = order
-    ? SIZE_META[order.building_size]?.label || order.building_size
+    ? order.size_label || SIZE_META[order.building_size]?.label || order.building_size
     : "";
   const meta = order ? STATUS_META[order.status] || STATUS_META.pending_payment : null;
 

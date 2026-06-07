@@ -45,9 +45,8 @@ import ChipGrid from "../onboarding/components/ChipGrid";
 import HandleInput from "../onboarding/components/HandleInput";
 import PortfolioUploader from "../onboarding/components/PortfolioUploader";
 import {
-  RATE_TIERS,
-  RateCardPreview,
-  RateEditor,
+  RatesEditor,
+  RatesPreview,
   mergeRates,
   normalizeRates,
   validateRates,
@@ -1062,24 +1061,11 @@ function RatesSection({ builderProfile, onSaved }) {
 
       {editing ? (
         <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {RATE_TIERS.map((tier) => (
-              <RateEditor
-                key={tier.key}
-                tier={tier}
-                value={rates[tier.key]}
-                onChange={(v) => setRates((prev) => ({ ...prev, [tier.key]: v }))}
-              />
-            ))}
-          </div>
+          <RatesEditor rates={rates} onChange={setRates} />
           {error && <div role="alert" className="auth-banner auth-banner-error">{error}</div>}
         </div>
       ) : hasRates ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {RATE_TIERS.map((tier) => (
-            <RateCardPreview key={tier.key} tier={tier} value={savedRates[tier.key]} />
-          ))}
-        </div>
+        <RatesPreview rates={savedRates} />
       ) : (
         <div className="rounded-2xl border border-dashed border-white/15 p-8 text-center">
           <p className="text-gray-400 text-sm">You haven&apos;t set your rates yet.</p>

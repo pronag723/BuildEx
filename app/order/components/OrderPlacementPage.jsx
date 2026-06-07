@@ -14,7 +14,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "../../../lib/auth/AuthContext";
 import { useRequireAuth } from "../../../lib/auth/useRequireAuth";
 import { fetchBuilderByUsername } from "../../builders/data/fetchBuilders";
-import { SIZE_META, SIZES, formatPrice } from "../../../lib/pricing";
+import { formatPrice } from "../../../lib/pricing";
 import { placeOrder, markOrderPaid } from "../../../lib/orders/api";
 import CatalogNavbar from "../../builders/components/CatalogNavbar";
 import CatalogMobileMenu from "../../builders/components/CatalogMobileMenu";
@@ -119,20 +119,21 @@ export default function OrderPlacementPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
 
-  // Enabled sizes the builder offers, with their kopeck price. Disabled sizes
-  // are still shown but greyed and unselectable so buyers see the full menu.
+  // Sizes the builder offers (built-ins + any custom tiers), with their kopeck
+  // price. Disabled tiers are still shown but greyed and unselectable so buyers
+  // see the full menu. `builder.rates` is an ordered array (see fetchBuilders).
   const sizeOptions = useMemo(() => {
-    const rates = builder?.rates || {};
-    return SIZES.map((key) => {
-      const tier = rates[key] || {};
-      return {
-        key,
-        meta: SIZE_META[key],
-        enabled: tier.enabled !== false && Number(tier.price) > 0,
-        price: Number(tier.price) || 0,
-        blocks: Number(tier.blocks) || SIZE_META[key].defaultBlocks,
-      };
-    });
+    const tiers = Array.isArray(builder?.rates) ? builder.rates : [];
+    return tiers.map((tier) => ({
+      key: tier.id,
+      label: tier.label,
+      icon: tier.icon,
+      hint: tier.hint || "",
+      areaText: tier.areaText || "",
+      enabled: tier.enabled && Number(tier.price) > 0,
+      price: Number(tier.price) || 0,
+      blocks: Number(tier.blocks) || 0,
+    }));
   }, [builder]);
 
   const styles = useMemo(
@@ -275,7 +276,7 @@ export default function OrderPlacementPage() {
               {step === "review" && (
                 <ReviewStep
                   builder={builder}
-                  size={size}
+                  sizeLabel={selectedSize?.label || size}
                   style={style}
                   brief={brief}
                   priceKopecks={priceKopecks}
@@ -372,16 +373,16 @@ function SizeStep({ options, value, onChange }) {
                 : "border-white/10 hover:border-[#4ade80]/40 hover:bg-white/5"
             }`}
           >
-            <div className="text-2xl">{o.meta.icon}</div>
+            <div className="text-2xl">{o.icon}</div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2">
-                <p className="font-semibold text-sm">{o.meta.label}</p>
-                <p className="font-bold text-[#4ade80] text-sm">
+                <p className="font-semibold text-sm truncate">{o.label}</p>
+                <p className="font-bold text-[#4ade80] text-sm flex-shrink-0">
                   {o.enabled ? formatPrice(o.price) : "not offered"}
                 </p>
               </div>
-              <p className="text-[11px] text-gray-500 mt-0.5">
-                {o.meta.areaLabel(o.blocks)} · {o.meta.hint}
+              <p className="text-[11px] text-gray-500 mt-0.5 truncate">
+                {[o.areaText, o.hint].filter(Boolean).join(" · ")}
               </p>
             </div>
           </button>
@@ -455,8 +456,7 @@ function BriefStep({ value, onChange }) {
 }
 
 // ─── Step 4: review ─────────────────────────────────────────────────────────
-function ReviewStep({ builder, size, style, brief, priceKopecks }) {
-  const sizeLabel = SIZE_META[size]?.label || size;
+function ReviewStep({ builder, sizeLabel, style, brief, priceKopecks }) {
   return (
     <div className="space-y-4">
       <h2 className="font-bold text-base">Review your order</h2>

@@ -13,7 +13,7 @@ import { publicAsset, withBase } from "../../../../home/utils";
 import Avatar from "../../../../../lib/ui/Avatar";
 import { useAuthGate } from "../../../../../lib/auth/useAuthGate";
 import { AVAILABILITY_STATES } from "../../../../../lib/onboarding/constants";
-import { formatPrice } from "../../../../../lib/pricing";
+import { formatPrice, ratesToTiers, SIZE_META } from "../../../../../lib/pricing";
 import { useFavorites } from "../../../../../lib/favorites/FavoritesContext";
 
 // Neutral avatar used when a reviewer has no picture (e.g. a Discord account
@@ -165,21 +165,30 @@ function PortfolioCarousel({ items }) {
   );
 }
 
-// ─── Rate card (exact price, new shape) ─────────────────────────────────────
-function RateCard({ size, info }) {
-  const labelMap = {
-    small:  { title: "Small Build",  icon: "🏠" },
-    medium: { title: "Medium Build", icon: "🏛️" },
-    large:  { title: "Large Build",  icon: "🏰" },
-  };
-  const meta = labelMap[size];
+// Normalize a builder's rates into display tiers. Live profiles already arrive
+// as an array (see fetchBuilders.normalizeProfileRates); demo/seeded builders
+// carry the legacy keyed-object shape where `label` is the descriptive line, so
+// we map that to { title, areaText } here.
+function toRateCards(rates) {
+  if (Array.isArray(rates)) return rates;
+  return ratesToTiers(rates).map((t) => ({
+    ...t,
+    label: SIZE_META[t.id]?.label || t.label,
+    areaText:
+      (rates?.[t.id]?.label) ||
+      (t.blocks > 0 ? `Up to ${t.blocks}×${t.blocks} blocks` : "Quote on request"),
+  }));
+}
+
+// ─── Rate card (exact price, N-tier shape) ──────────────────────────────────
+function RateCard({ info }) {
   return (
     <div className="glass rounded-2xl p-5 flex flex-col gap-2 transition-all duration-300 hover:border-[#4ade80]/40 hover:shadow-[0_0_24px_rgba(74,222,128,0.12)]">
       <div className="flex items-center gap-2 mb-1">
-        <span className="text-2xl">{meta.icon}</span>
-        <h3 className="font-bold text-base">{meta.title}</h3>
+        <span className="text-2xl">{info.icon}</span>
+        <h3 className="font-bold text-base truncate">{info.label}</h3>
       </div>
-      <p className="text-xs text-gray-400 leading-relaxed">{info.label}</p>
+      <p className="text-xs text-gray-400 leading-relaxed">{info.areaText}</p>
       <div className="mt-2 pt-3 border-t border-white/[0.06]">
         <p className="text-[10px] text-gray-500 uppercase tracking-wide">Price</p>
         <p className="text-[#4ade80] font-extrabold text-xl leading-tight">
@@ -810,15 +819,15 @@ export default function BuilderProfilePage({ builder }) {
                 </div>
 
                 {(() => {
-                  const enabledSizes = ["small", "medium", "large"].filter(
-                    (s) => builder.rates?.[s]?.enabled !== false && builder.rates?.[s]
+                  const enabledTiers = toRateCards(builder.rates).filter(
+                    (t) => t.enabled && t.price > 0
                   );
-                  return enabledSizes.length === 0 ? (
+                  return enabledTiers.length === 0 ? (
                     <p className="text-sm text-gray-500 italic">No rates set yet.</p>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      {enabledSizes.map((s) => (
-                        <RateCard key={s} size={s} info={builder.rates[s]} />
+                      {enabledTiers.map((t) => (
+                        <RateCard key={t.id} info={t} />
                       ))}
                     </div>
                   );

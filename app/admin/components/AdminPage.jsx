@@ -164,7 +164,8 @@ function DisputeRow({ dispute, onResolved }) {
   const [errMsg, setErrMsg] = useState(null);
   const [note, setNote] = useState("");
 
-  const sizeLabel = SIZE_META[dispute.building_size]?.label || dispute.building_size;
+  const sizeLabel =
+    dispute.size_label || SIZE_META[dispute.building_size]?.label || dispute.building_size;
 
   const resolve = useCallback(
     async (outcome) => {

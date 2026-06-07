@@ -114,7 +114,8 @@ function OrderEventMessage({ message, onPreview }) {
 
   if (event === "paid") {
     // The card the buyer described: "Order paid" + brief copied into the chat.
-    const sizeLabel = meta.size ? SIZE_META[meta.size]?.label || meta.size : null;
+    const sizeLabel =
+      meta.size_label || (meta.size ? SIZE_META[meta.size]?.label || meta.size : null);
     return (
       <div className="flex justify-center my-4 px-2">
         <Link
