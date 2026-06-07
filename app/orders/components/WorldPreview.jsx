@@ -176,7 +176,13 @@ function renderModel(THREE, OrbitControls, mount, model) {
   const count = model.voxelCount;
   const mesh = new THREE.InstancedMesh(geo, mat, count);
 
-  const colors = palette.map((c) => new THREE.Color(c[0] / 255, c[1] / 255, c[2] / 255));
+  // Palette is authored in sRGB (blockColors.js). three.js (r152+) renders in a
+  // linear working space and converts linear→sRGB on output, so raw sRGB values
+  // passed to THREE.Color get treated as linear and come out washed-out/wrong.
+  // setRGB with SRGBColorSpace converts each colour into the working space first.
+  const colors = palette.map((c) =>
+    new THREE.Color().setRGB(c[0] / 255, c[1] / 255, c[2] / 255, THREE.SRGBColorSpace)
+  );
   const dummy = new THREE.Object3D();
   const cx = sx / 2;
   const cy = sy / 2;
