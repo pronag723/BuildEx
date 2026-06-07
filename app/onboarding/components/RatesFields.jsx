@@ -152,7 +152,6 @@ export function RatesEditor({ rates, onChange }) {
           <RateEditor
             key={tier.id}
             tier={tier}
-            stacked={stacked}
             onChange={(v) => update(tier.id, v)}
             onRemove={tier.builtin ? null : () => remove(tier.id)}
           />
@@ -174,7 +173,7 @@ export function RatesEditor({ rates, onChange }) {
 }
 
 // ─── Single editable tier card ────────────────────────────────────────────────
-export function RateEditor({ tier, stacked, onChange, onRemove }) {
+export function RateEditor({ tier, onChange, onRemove }) {
   function setField(field, raw) {
     if (field === "enabled" || field === "label") {
       onChange({ ...tier, [field]: raw });
@@ -186,32 +185,26 @@ export function RateEditor({ tier, stacked, onChange, onRemove }) {
 
   return (
     <div
-      className={`relative rounded-2xl border p-4 space-y-3 transition-all duration-200 ${
+      className={`relative rounded-2xl border p-3 space-y-2.5 transition-all duration-200 ${
         tier.enabled
           ? "border-white/10 bg-white/[0.03]"
           : "border-white/5 bg-white/[0.01] opacity-50"
       }`}
     >
-      {/* Header: icon + name + toggle */}
+      {/* Header: icon + editable name + toggle */}
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2.5 min-w-0 flex-1">
-          <span className="text-xl flex-shrink-0">{tier.icon}</span>
-          {tier.builtin ? (
-            <div className="min-w-0">
-              <h3 className="font-bold text-sm leading-tight truncate">{tier.label}</h3>
-              <p className="text-[11px] text-gray-500 truncate">{SIZE_META[tier.id]?.hint}</p>
-            </div>
-          ) : (
-            <input
-              type="text"
-              value={tier.label}
-              maxLength={40}
-              onChange={(e) => setField("label", e.target.value)}
-              placeholder="Size name"
-              aria-label="Size name"
-              className="onb-input !py-1.5 !text-sm font-semibold min-w-0 flex-1"
-            />
-          )}
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <span className="text-lg flex-shrink-0">{tier.icon}</span>
+          <input
+            type="text"
+            value={tier.label}
+            maxLength={40}
+            onChange={(e) => setField("label", e.target.value)}
+            placeholder="Size name"
+            aria-label="Size name"
+            title={SIZE_META[tier.id]?.hint || "Size name"}
+            className="onb-input !py-1.5 !text-sm font-semibold min-w-0 flex-1"
+          />
         </div>
 
         <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -248,25 +241,25 @@ export function RateEditor({ tier, stacked, onChange, onRemove }) {
       </div>
 
       {tier.enabled && (
-        <div className={stacked ? "grid grid-cols-1 sm:grid-cols-2 gap-3" : "space-y-3"}>
+        <div className="grid grid-cols-2 gap-2.5">
           <div>
-            <label className="onb-label block mb-1.5">Block area (blocks per side)</label>
+            <label className="onb-label block mb-1">Block area</label>
             <input
               type="number"
               min="0"
               inputMode="numeric"
-              className="onb-input"
+              className="onb-input !py-2 !text-sm"
               value={tier.blocks}
               onChange={(e) => setField("blocks", e.target.value)}
             />
           </div>
           <div>
-            <label className="onb-label block mb-1.5">Price (₽)</label>
+            <label className="onb-label block mb-1">Price (₽)</label>
             <input
               type="number"
               min="0"
               inputMode="numeric"
-              className="onb-input"
+              className="onb-input !py-2 !text-sm"
               value={tier.price}
               onChange={(e) => setField("price", e.target.value)}
               placeholder="e.g. 5000"
@@ -296,16 +289,16 @@ export function RatesPreview({ rates }) {
       {visible.map((tier) => (
         <div
           key={tier.id}
-          className="glass rounded-2xl p-5 flex flex-col gap-2 transition-all duration-300 hover:border-[#4ade80]/40 hover:shadow-[0_0_24px_rgba(74,222,128,0.12)]"
+          className="glass rounded-2xl p-3.5 flex flex-col gap-1.5 transition-all duration-300 hover:border-[#4ade80]/40 hover:shadow-[0_0_24px_rgba(74,222,128,0.12)]"
         >
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-2xl">{tier.icon}</span>
-            <h3 className="font-bold text-base truncate">{tier.label}</h3>
+          <div className="flex items-center gap-2">
+            <span className="text-xl">{tier.icon}</span>
+            <h3 className="font-bold text-sm truncate">{tier.label}</h3>
           </div>
           <p className="text-xs text-gray-400 leading-relaxed">{areaText(tier)}</p>
-          <div className="mt-2 pt-3 border-t border-white/[0.06]">
+          <div className="mt-1.5 pt-2.5 border-t border-white/[0.06]">
             <p className="text-[10px] text-gray-500 uppercase tracking-wide">Exact price</p>
-            <p className="text-[#4ade80] font-extrabold text-xl leading-tight">
+            <p className="text-[#4ade80] font-extrabold text-lg leading-tight">
               ₽{Number(tier.price).toLocaleString("ru-RU")}
             </p>
           </div>
