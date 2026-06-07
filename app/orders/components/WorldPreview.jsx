@@ -161,11 +161,17 @@ function renderModel(THREE, OrbitControls, mount, model) {
   renderer.setSize(width, height);
   mount.appendChild(renderer.domElement);
 
-  scene.add(new THREE.AmbientLight(0xffffff, 0.65));
-  const dir = new THREE.DirectionalLight(0xffffff, 0.85);
+  // Lighting balance: heavy ambient + light directional. Voxel renders don't
+  // need dramatic shading — they need the palette colour to come through
+  // recognisably. The previous balance (0.65 / 0.85 / 0.3) crushed light stone
+  // and quartz builds into a uniform grey because the lit-face contribution was
+  // ~1.5× the ambient, so colours far from white got desaturated by shadows on
+  // every face that wasn't facing the key light.
+  scene.add(new THREE.AmbientLight(0xffffff, 1.1));
+  const dir = new THREE.DirectionalLight(0xffffff, 0.45);
   dir.position.set(1, 1.4, 0.8);
   scene.add(dir);
-  const dir2 = new THREE.DirectionalLight(0xffffff, 0.3);
+  const dir2 = new THREE.DirectionalLight(0xffffff, 0.25);
   dir2.position.set(-0.6, 0.4, -1);
   scene.add(dir2);
 
