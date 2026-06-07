@@ -14,7 +14,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { getSupabaseClient } from "../../../lib/supabase/client";
-import { rewriteStorageUrl } from "../../../lib/supabase/storageUrl";
 import {
   BUILDER_TOOLS,
   RESPONSE_TIMES,
@@ -36,15 +35,12 @@ function mapPortfolio(rows) {
   return (rows || [])
     .slice()
     .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
-    .map((p) => {
-      const url = rewriteStorageUrl(p.url);
-      return {
-        id: p.id,
-        title: p.alt || "Build",
-        thumbnail: url,
-        images: [url],
-      };
-    });
+    .map((p) => ({
+      id: p.id,
+      title: p.alt || "Build",
+      thumbnail: p.url,
+      images: [p.url],
+    }));
 }
 
 // Builder rates are { small|medium|large: { enabled, blocks, price_kopecks } }.
@@ -79,7 +75,7 @@ function mapRow(row) {
     id: row.id,
     username: row.username,
     display_name: row.display_name || row.username || "Builder",
-    avatar: rewriteStorageUrl(row.avatar_url) || null,
+    avatar: row.avatar_url || null,
     rank: bp.rank || "rookie",
 
     // Profile
