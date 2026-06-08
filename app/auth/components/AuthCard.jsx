@@ -8,7 +8,7 @@ import { friendlyAuthError } from "../../../lib/auth/errors";
 import { withBase } from "../../home/utils";
 import OAuthButton from "./OAuthButton";
 
-export default function AuthCard({ mode = "login" }) {
+export default function AuthCard() {
   const router = useRouter();
   const { status, configured, profile, profileLoaded, signInWithDiscord, signInWithGoogle } = useAuth();
 
@@ -28,7 +28,7 @@ export default function AuthCard({ mode = "login" }) {
     }
   }, []);
 
-  // If a signed-in user lands on /login or /signup, route them onward
+  // If a signed-in user lands on /login, route them onward
   // IMMEDIATELY without waiting on the auth provider's profile fetch — that
   // round-trip can take seconds and used to make "login" feel frozen.
   //
@@ -66,14 +66,8 @@ export default function AuthCard({ mode = "login" }) {
     }
   }
 
-  const isJoin = mode === "signup";
-  const title = isJoin ? "Join BuildEx" : "Welcome back";
-  const subtitle = isJoin
-    ? "Create your account in seconds. Pick your role after — buyer, builder, or both."
-    : "Sign in to manage your offers, orders, and messages.";
-  const altCtaText = isJoin ? "Already have an account?" : "New to BuildEx?";
-  const altCtaLink = isJoin ? "/login" : "/signup";
-  const altCtaLabel = isJoin ? "Log in" : "Create an account";
+  const title = "Welcome to BuildEx";
+  const subtitle = "Sign in or create your account with one click. New here? Just pick a provider — we'll set you up automatically.";
 
   return (
     <div className="reveal active">
@@ -132,16 +126,6 @@ export default function AuthCard({ mode = "login" }) {
         <div className="mt-4 text-center text-xs text-gray-500">
           Email login, account linking, and 2FA are on the roadmap.
         </div>
-
-        <p className="mt-8 text-center text-sm text-gray-400">
-          {altCtaText}{" "}
-          <a
-            href={withBase(altCtaLink)}
-            className="text-[#4ade80] font-medium hover:underline"
-          >
-            {altCtaLabel}
-          </a>
-        </p>
       </div>
 
       <p className="mt-6 text-center text-xs text-gray-500 px-4">
