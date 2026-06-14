@@ -7,7 +7,7 @@
 // Editor state is an ORDERED ARRAY of tiers (so builders can add custom sizes,
 // not just small/medium/large). Each editor tier:
 //   { id, label, icon, blocks, price, enabled, builtin }
-//   • price is in whole rubles for display; normalizeRates() converts to kopecks.
+//   • price is in whole dollars for display; normalizeRates() converts to cents.
 //   • builtin tiers (small/medium/large) can be toggled but not removed.
 //   • custom tiers carry a generated id, an editable name, and can be removed.
 //
@@ -18,18 +18,18 @@ import {
   SIZE_META,
   SIZES,
   CUSTOM_TIER_ICON,
-  kopecksToRubles,
-  rublesToKopecks,
+  centsToDollars,
+  dollarsToCents,
   ratesToTiers,
 } from "../../../lib/pricing";
 
 export const RATE_TIERS = SIZES.map((key) => ({ key, ...SIZE_META[key] }));
 
-// Editor-state defaults for the three built-ins (price in rubles).
+// Editor-state defaults for the three built-ins (price in dollars).
 const DEFAULT_EDITOR = {
-  small:  { blocks: 100, price: 500  },
-  medium: { blocks: 200, price: 1000 },
-  large:  { blocks: 350, price: 2000 },
+  small:  { blocks: 100, price: 25  },
+  medium: { blocks: 200, price: 50  },
+  large:  { blocks: 350, price: 100 },
 };
 
 function isBuiltin(id) {
@@ -42,7 +42,7 @@ function makeCustomId() {
 }
 
 /**
- * DB rates (kopecks) → editor state (array of tiers, price in rubles).
+ * DB rates (cents) → editor state (array of tiers, price in dollars).
  * When nothing is saved yet, seeds the three built-in tiers enabled.
  */
 export function mergeRates(saved) {
@@ -66,20 +66,20 @@ export function mergeRates(saved) {
     label: t.label,
     icon: t.icon,
     blocks: t.blocks,
-    price: Math.max(0, kopecksToRubles(t.price)),
+    price: Math.max(0, centsToDollars(t.price)),
     enabled: t.enabled,
     builtin: isBuiltin(t.id),
   }));
 }
 
-/** Editor state (array, rubles) → DB format (keyed object, kopecks). */
+/** Editor state (array, dollars) → DB format (keyed object, cents). */
 export function normalizeRates(tiers) {
   const out = {};
   tiers.forEach((t, index) => {
     out[t.id] = {
       enabled: Boolean(t.enabled),
       blocks: Math.max(0, Math.round(Number(t.blocks) || 0)),
-      price: rublesToKopecks(t.price),
+      price: dollarsToCents(t.price),
       label: String(t.label || "").trim() || (SIZE_META[t.id]?.label ?? "Custom size"),
       icon: t.icon || SIZE_META[t.id]?.icon || CUSTOM_TIER_ICON,
       pos: index,
@@ -254,7 +254,7 @@ export function RateEditor({ tier, onChange, onRemove }) {
             />
           </div>
           <div>
-            <label className="onb-label block mb-1">Price (₽)</label>
+            <label className="onb-label block mb-1">Price ($)</label>
             <input
               type="number"
               min="0"
@@ -262,7 +262,7 @@ export function RateEditor({ tier, onChange, onRemove }) {
               className="onb-input !py-2 !text-sm"
               value={tier.price}
               onChange={(e) => setField("price", e.target.value)}
-              placeholder="e.g. 5000"
+              placeholder="e.g. 50"
             />
           </div>
         </div>
@@ -299,7 +299,7 @@ export function RatesPreview({ rates }) {
           <div className="mt-1.5 pt-2.5 border-t border-white/[0.06]">
             <p className="text-[10px] text-gray-500 uppercase tracking-wide">Exact price</p>
             <p className="text-[#4ade80] font-extrabold text-lg leading-tight">
-              ₽{Number(tier.price).toLocaleString("ru-RU")}
+              ${Number(tier.price).toLocaleString("en-US")}
             </p>
           </div>
         </div>

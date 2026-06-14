@@ -326,6 +326,15 @@ export function AuthProvider({ children }) {
   const signOut = useCallback(
     async (redirectTo) => {
       if (!supabase) return;
+      // Bailing out mid-onboarding? Discard the half-created account so it can't
+      // collide with the user's next sign-in (e.g. a half-claimed username).
+      // Best-effort, and gated server-side on onboarding_completed_at, so a
+      // finished account is never touched.
+      if (profile && !profile.onboarding_completed_at) {
+        try {
+          await supabase.rpc("delete_incomplete_registration");
+        } catch {}
+      }
       await supabase.auth.signOut();
       setUser(null);
       setProfile(null);
@@ -339,7 +348,7 @@ export function AuthProvider({ children }) {
         window.location.href = withBase(redirectTo || "/");
       }
     },
-    [supabase]
+    [supabase, profile]
   );
 
   const refresh = useCallback(async () => {

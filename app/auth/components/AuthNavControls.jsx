@@ -63,6 +63,24 @@ function IconMessage({ className = "w-4 h-4" }) {
   );
 }
 
+function IconShield({ className = "w-4 h-4" }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+      <path d="M9 12l2 2 4-4" />
+    </svg>
+  );
+}
+
 function Avatar({ user, size = 36 }) {
   const initial = (user?.displayName || user?.username || "?").trim().charAt(0).toUpperCase();
   return (
@@ -82,7 +100,8 @@ function Avatar({ user, size = 36 }) {
 }
 
 export default function AuthNavControls() {
-  const { status, displayUser, signOut } = useAuth();
+  const { status, displayUser, profile, signOut } = useAuth();
+  const isAdmin = profile?.is_admin === true;
   const { hasUnread, unreadTotal } = useUnread();
   const [open, setOpen] = useState(false);
   const [coords, setCoords] = useState(null);
@@ -239,6 +258,18 @@ export default function AuthNavControls() {
                 <IconOrders className="w-4 h-4 text-[#4ade80]" />
                 <span>My Orders</span>
               </Link>
+              {isAdmin && (
+                <Link
+                  role="menuitem"
+                  href="/admin"
+                  tabIndex={open ? 0 : -1}
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-3 px-4 py-2.5 hover:bg-white/5 transition-colors"
+                >
+                  <IconShield className="w-4 h-4 text-[#4ade80]" />
+                  <span>Moderator console</span>
+                </Link>
+              )}
               <button
                 type="button"
                 role="menuitem"
@@ -275,7 +306,8 @@ export default function AuthNavControls() {
 }
 
 export function AuthMobileControls({ onAfter, showOrders = true }) {
-  const { status, displayUser, signOut } = useAuth();
+  const { status, displayUser, profile, signOut } = useAuth();
+  const isAdmin = profile?.is_admin === true;
   const pathname = usePathname();
   const onAccount = pathname === "/account";
 
@@ -321,6 +353,16 @@ export function AuthMobileControls({ onAfter, showOrders = true }) {
           >
             <IconOrders className="w-4 h-4" />
             My Orders
+          </Link>
+        )}
+        {isAdmin && (
+          <Link
+            href="/admin"
+            onClick={() => onAfter?.()}
+            className="w-full py-3.5 inline-flex items-center justify-center gap-2 text-base font-medium rounded-2xl border border-white/20 hover:border-white/40 ghost-btn transition-all"
+          >
+            <IconShield className="w-4 h-4" />
+            Moderator console
           </Link>
         )}
         <button

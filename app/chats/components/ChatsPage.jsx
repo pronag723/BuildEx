@@ -14,6 +14,7 @@ import {
   markConversationRead,
   resolveProfileByUsername,
   sendMessage,
+  sendImageMessage,
   subscribeToConversation,
   subscribeToInbox,
 } from "../../../lib/chat/api";
@@ -51,7 +52,7 @@ const LIST_WIDTH_KEY = "buildex-chats-list-width";
 
 export default function ChatsPage() {
   const { status, user, displayUser } = useAuth();
-  const { refresh: refreshUnread } = useUnread();
+  const { refresh: refreshUnread, setActiveConversation } = useUnread();
   useRequireAuth(); // bounces to /login (preserving ?to/?c) when unauthenticated
 
   const meId = user?.id || null;
@@ -216,6 +217,13 @@ export default function ChatsPage() {
   useEffect(() => {
     activeConvIdRef.current = activeConvId;
   }, [activeConvId]);
+
+  // Tell the global unread badge which thread is open so messages landing in it
+  // (read live) don't light or stick the avatar dot. Clear it on unmount.
+  useEffect(() => {
+    setActiveConversation(activeConvId);
+    return () => setActiveConversation(null);
+  }, [activeConvId, setActiveConversation]);
 
   const [messages, setMessages] = useState([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
@@ -391,6 +399,44 @@ export default function ChatsPage() {
     [activePeer, meId, sending, activeConvId, replaceUrl, showNotice]
   );
 
+  // Send a photo. Mirrors handleSend (lazy thread creation + optimistic append +
+  // inbox refresh) but routes through sendImageMessage.
+  const handleSendImage = useCallback(
+    async (file) => {
+      if (!activePeer || !meId || sending || !file) return;
+      setSending(true);
+      try {
+        let convId = activeConvId;
+        if (!convId) {
+          const { conversationId, error } = await getOrCreateConversation(activePeer.id);
+          if (error || !conversationId) {
+            showNotice("Couldn't start this conversation. Please try again.");
+            return;
+          }
+          convId = conversationId;
+          setActiveConvId(convId);
+          setIsDraft(false);
+          replaceUrl(convId);
+        }
+
+        const { message, error } = await sendImageMessage(convId, meId, file);
+        if (error || !message) {
+          showNotice("Your photo didn't send. Please try again.");
+          return;
+        }
+        setMessages((prev) =>
+          prev.some((m) => m.id === message.id) ? prev : [...prev, message]
+        );
+
+        const { conversations: rows } = await listConversations();
+        setConversations(rows);
+      } finally {
+        setSending(false);
+      }
+    },
+    [activePeer, meId, sending, activeConvId, replaceUrl, showNotice]
+  );
+
   const handleSelect = useCallback(
     (conv) => openConversation(conv.conversation_id, peerFromConversation(conv)),
     [openConversation]
@@ -503,6 +549,7 @@ export default function ChatsPage() {
                       sending={sending}
                       isDraft={isDraft}
                       onSend={handleSend}
+                      onSendImage={handleSendImage}
                       onBack={() => {
                         setMobileView("list");
                       }}

@@ -48,7 +48,8 @@ function mapPortfolio(rows) {
 }
 
 // Builder rates are { small|medium|large: { enabled, blocks, price_kopecks } }.
-// starts_from = cheapest enabled tier's price in kopecks (0 if none set).
+// (price_kopecks now holds USD cents — legacy column name.)
+// starts_from = cheapest enabled tier's price in cents (0 if none set).
 function deriveStartsFrom(rates) {
   return startsFromPrice(rates);
 }
@@ -105,7 +106,7 @@ function mapRow(row) {
     styles: specialties,
     build_types: buildTypes,
 
-    // Rates — exact price per enabled size (kopecks)
+    // Rates — exact price per enabled size (cents)
     rates,
     starts_from: startsFrom,
   };
@@ -158,7 +159,7 @@ function toolLabels(tools) {
 // Normalize rates for the public profile + order pages into an ordered array of
 // display tiers (built-ins first, then any builder-added custom sizes). Disabled
 // tiers are kept so the order page can show the full menu greyed out.
-// Returns: [{ id, label, icon, blocks, price (kopecks), enabled, areaText }]
+// Returns: [{ id, label, icon, blocks, price (cents), enabled, areaText }]
 function areaTextFor(tier) {
   const blocks = Number(tier.blocks) || 0;
   if (blocks <= 0) return "Custom scope — quote on request";

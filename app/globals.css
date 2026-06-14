@@ -16,8 +16,35 @@ textarea::-webkit-scrollbar-button {
   display: none;
 }
 
-textarea {
+/* Dark, slim scrollbars for textareas + any element opting in with .bx-scroll.
+   Without explicit webkit thumb/track colours, Chrome/Edge fall back to the
+   bright default scrollbar (the "white sliders" in the brief + chat input). */
+textarea,
+.bx-scroll {
   scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+}
+
+textarea::-webkit-scrollbar,
+.bx-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+textarea::-webkit-scrollbar-track,
+.bx-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+textarea::-webkit-scrollbar-thumb,
+.bx-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+}
+
+textarea::-webkit-scrollbar-thumb:hover,
+.bx-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.22);
 }
 
 .hide-scrollbar {

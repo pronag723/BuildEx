@@ -27,8 +27,24 @@ export default function OnboardingShell({
   maxWidth = "max-w-3xl",
 }) {
   const { gradientRef, edgeGlowRef, isLight, setTheme } = useThemedBackground();
-  const { user, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const [cancelling, setCancelling] = useState(false);
+
+  // Leaving onboarding for the homepage (the logo) counts as abandoning the
+  // registration. signOut discards the half-created account (gated server-side
+  // on onboarding_completed_at) and lands the user on home. A completed user who
+  // somehow reaches the shell just navigates home normally.
+  async function handleLeaveToHome(e) {
+    if (profile && profile.onboarding_completed_at) return; // let the link proceed
+    e.preventDefault();
+    if (cancelling) return;
+    setCancelling(true);
+    if (signOut) {
+      await signOut("/");
+    } else if (typeof window !== "undefined") {
+      window.location.href = withBase("/");
+    }
+  }
 
   async function handleCancel() {
     if (cancelling) return;
@@ -58,7 +74,7 @@ export default function OnboardingShell({
 
       <header className="fixed top-3.5 left-1/2 -translate-x-1/2 z-50 w-full nav-wrapper px-6">
         <div className="glass nav-pill flex items-center justify-between shadow-2xl">
-          <a href={withBase("/")} className="flex items-center gap-3 no-underline">
+          <a href={withBase("/")} onClick={handleLeaveToHome} className="flex items-center gap-3 no-underline">
             <div className="w-9 h-9 bg-[#4ade80] rounded-2xl flex items-center justify-center text-black font-bold text-2xl logo-font flex-shrink-0">
               B
             </div>

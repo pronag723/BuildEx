@@ -16,6 +16,7 @@ import { withBase } from "../../home/utils";
 import Avatar from "../../../lib/ui/Avatar";
 import { useAuth } from "../../../lib/auth/AuthContext";
 import { useRequireAuth } from "../../../lib/auth/useRequireAuth";
+import { useNotifications } from "../../../lib/notifications/NotificationsContext";
 import {
   fetchOrder,
   listMyOrders,
@@ -443,6 +444,7 @@ function OrderRow({ order, meId, onOpen }) {
 // ─── Detail ─────────────────────────────────────────────────────────────────
 function OrderDetail({ orderId, meId, onBack }) {
   const router = useRouter();
+  const { markReadByLink } = useNotifications();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -489,6 +491,13 @@ function OrderDetail({ orderId, meId, onBack }) {
   useEffect(() => {
     reload();
   }, [reload]);
+
+  // Viewing an order clears any unread notifications that link to it — even when
+  // the user arrived here while already signed in / on the page (bug: the bell
+  // dot stuck because reading the order never marked its notification read).
+  useEffect(() => {
+    if (orderId) markReadByLink(`/orders/?id=${orderId}`);
+  }, [orderId, markReadByLink]);
 
   const peer = order ? counterpart(order, meId) : null;
   const isBuyer = !!order && order.buyer_id === meId;
@@ -568,13 +577,22 @@ function OrderDetail({ orderId, meId, onBack }) {
           <Row label="Style" capitalize>
             {order.style}
           </Row>
-          <Row label="Buyer pays">{formatPrice(order.price_kopecks)}</Row>
-          <Row label="Platform fee">
-            {formatPrice(order.commission_kopecks)}
-          </Row>
-          <Row label="Builder earns">
-            {formatPrice(order.builder_earnings_kopecks)}
-          </Row>
+          {/* The buyer only ever sees what they paid. The platform fee /
+              builder-earnings split is the builder's business, so it's shown
+              to the builder only. */}
+          {isBuyer ? (
+            <Row label="Total paid">{formatPrice(order.price_kopecks)}</Row>
+          ) : (
+            <>
+              <Row label="Buyer pays">{formatPrice(order.price_kopecks)}</Row>
+              <Row label="Platform fee">
+                {formatPrice(order.commission_kopecks)}
+              </Row>
+              <Row label="Builder earns">
+                {formatPrice(order.builder_earnings_kopecks)}
+              </Row>
+            </>
+          )}
         </dl>
 
         <div className="mt-5">
@@ -669,6 +687,11 @@ function OrderDetail({ orderId, meId, onBack }) {
           onConfirm={async () => {
             await runAction(() => buyerConfirmComplete(order.id));
             setConfirmOpen(false);
+            // runAction only refetches the order; the delivery row (and its
+            // `unlocked` flag the download button keys on) won't refresh
+            // otherwise, so the file stayed "locked" until a manual reload.
+            // Pull the full set so the download unlocks immediately.
+            reload();
           }}
         />
       )}
@@ -1477,103 +1500,139 @@ function DeliveryCard({ delivery, order, isBuyer, isBuilder, review, onRequestRe
   );
 }
 
-// ─── Deliver modal (Stage 6) ────────────────────────────────────────────────
-// Builder side. Takes a .zip + optional note, uploads to the private bucket,
-// then calls builder_attach_delivery to record + transition the order.
+// ─── Deliver modal (Stage 6 + 7) ────────────────────────────────────────────
+// Builder side. Takes a .zip, generates a REQUIRED 3D preview (task 7 — no
+// delivery without one), uploads both to the private buckets, then calls
+// builder_attach_delivery to record + transition the order.
 const MAX_DELIVERY_BYTES = 200 * 1024 * 1024; // matches the bucket's file_size_limit
 
-// PreviewError codes (from lib/preview/encode.js) that mean the upload isn't a
-// readable Minecraft world — wrong format, wrong folder structure, or empty. We
-// REFUSE to deliver in these cases (task 7). 'too_large' is excluded: that's a
-// valid world that's simply too big to preview, so it still delivers without one.
-const INVALID_WORLD_CODES = new Set(["parse_failed", "no_regions", "empty"]);
+// PreviewError codes that mean the upload simply isn't a readable Minecraft
+// world (wrong format/folder, or truly empty). These are fatal — re-pick a file.
+const FATAL_WORLD_CODES = new Set(["parse_failed", "no_regions", "empty"]);
+// Codes that mean "we couldn't auto-locate the build" — recoverable by entering
+// the build coordinates and regenerating.
+const COORD_PROMPT_CODES = new Set(["needs_coords", "too_large"]);
 
 function DeliverModal({ orderId, onClose, onDelivered }) {
   const [file, setFile] = useState(null);
   const [note, setNote] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+
+  // Preview lifecycle: idle → generating → ready | needs_coords | error.
+  const [previewState, setPreviewState] = useState("idle");
+  const [previewBytes, setPreviewBytes] = useState(null);
+  const [previewMeta, setPreviewMeta] = useState(null);
+  const [coords, setCoords] = useState({ x: "", y: "", z: "" });
+
+  const [delivering, setDelivering] = useState(false);
   const [progress, setProgress] = useState(0);
-  // Stage 7: which step the progress bar reflects ("preview" | "upload"), plus
-  // a soft note when the preview couldn't be generated (delivery still goes
-  // through — the preview is best-effort).
-  const [phase, setPhase] = useState(null);
-  const [previewNote, setPreviewNote] = useState(null);
+  const [phase, setPhase] = useState(null); // "preview" | "upload"
   const [errMsg, setErrMsg] = useState(null);
 
-  const onPick = useCallback((e) => {
-    const f = e.target.files?.[0] || null;
-    setErrMsg(null);
-    if (!f) {
-      setFile(null);
-      return;
-    }
-    if (f.size > MAX_DELIVERY_BYTES) {
-      setFile(null);
-      setErrMsg(
-        `File is too large (${humanFileSize(f.size)}). Max ${humanFileSize(MAX_DELIVERY_BYTES)}.`
-      );
-      return;
-    }
-    setFile(f);
-  }, []);
+  const busy = previewState === "generating" || delivering;
 
-  const onSubmit = useCallback(async () => {
-    if (submitting || !file) return;
-    setSubmitting(true);
-    setErrMsg(null);
-    setPreviewNote(null);
-    setProgress(0);
+  // Run the (required) preview generation. `center` scopes an infinite/terrain
+  // world to the build's coordinates; null lets the encoder auto-detect first.
+  const runPreview = useCallback(
+    async (theFile, center) => {
+      if (!theFile) return;
+      setPreviewState("generating");
+      setErrMsg(null);
+      setProgress(0);
+      setPreviewBytes(null);
+      setPreviewMeta(null);
+      try {
+        const opts = center ? { center } : {};
+        const { bytes, meta } = await generatePreview(theFile, setProgress, opts);
+        setPreviewBytes(bytes);
+        setPreviewMeta(meta);
+        setPreviewState("ready");
+      } catch (e) {
+        if (e?.name === "PreviewError" && COORD_PROMPT_CODES.has(e.code)) {
+          setPreviewState("needs_coords");
+          setErrMsg(e.message || "Enter the approximate build coordinates to continue.");
+          return;
+        }
+        if (e?.name === "PreviewError" && FATAL_WORLD_CODES.has(e.code)) {
+          setPreviewState("error");
+          setErrMsg(
+            (e.message || "We couldn't read this as a Minecraft world.") +
+              " Make sure you're uploading a .zip of the world folder (the one" +
+              " containing level.dat and a region/ folder of .mca files), then" +
+              " pick the file again."
+          );
+          return;
+        }
+        setPreviewState("error");
+        setErrMsg("Couldn't generate the 3D preview. Please try again.");
+      }
+    },
+    []
+  );
 
-    // Step 1: build the 3D preview artifact from the world (the builder already
-    // holds the file, so the conversion runs here — no server).
-    //
-    // Task 7: this doubles as a VALIDATION gate. If the file isn't a readable
-    // Minecraft world (corrupt .zip, no region/*.mca, wrong folder structure, or
-    // empty), we abort the delivery and tell the builder to fix it — we never
-    // deliver a world that can't be opened/previewed. A valid-but-too-large
-    // world (code 'too_large') or a transient preview-upload hiccup still
-    // delivers WITHOUT a preview rather than blocking the escrow flow.
-    setPhase("preview");
-    let previewPath = null;
-    let previewMeta = null;
-    try {
-      const { bytes, meta } = await generatePreview(file, setProgress);
-      const { path: pPath, error: pErr } = await uploadPreview(orderId, bytes);
-      if (pErr || !pPath) throw pErr || new Error("preview upload failed");
-      previewPath = pPath;
-      previewMeta = meta;
-    } catch (e) {
-      if (e?.name === "PreviewError" && INVALID_WORLD_CODES.has(e.code)) {
-        // Cancel the delivery and surface a clear, actionable message.
-        setSubmitting(false);
-        setPhase(null);
-        setProgress(0);
+  const onPick = useCallback(
+    (e) => {
+      const f = e.target.files?.[0] || null;
+      setErrMsg(null);
+      setPreviewState("idle");
+      setPreviewBytes(null);
+      setPreviewMeta(null);
+      setCoords({ x: "", y: "", z: "" });
+      if (!f) {
+        setFile(null);
+        return;
+      }
+      if (f.size > MAX_DELIVERY_BYTES) {
+        setFile(null);
         setErrMsg(
-          (e.message || "We couldn't read this as a Minecraft world.") +
-            " Make sure you're uploading a .zip of the world folder (the one" +
-            " containing level.dat and a region/ folder of .mca files), then" +
-            " try again."
+          `File is too large (${humanFileSize(f.size)}). Max ${humanFileSize(MAX_DELIVERY_BYTES)}.`
         );
         return;
       }
-      // Benign: deliver without a preview, just note it for the builder.
-      setPreviewNote(
-        "Couldn't generate a 3D preview for this world — delivering the file without one."
-      );
+      setFile(f);
+      // Kick off auto-detect immediately.
+      runPreview(f, null);
+    },
+    [runPreview]
+  );
+
+  const onGenerateWithCoords = useCallback(() => {
+    const x = Number(coords.x);
+    const z = Number(coords.z);
+    const yRaw = coords.y === "" ? null : Number(coords.y);
+    if (!Number.isFinite(x) || !Number.isFinite(z)) {
+      setErrMsg("Enter at least the X and Z coordinates (whole numbers from F3).");
+      return;
+    }
+    if (yRaw !== null && !Number.isFinite(yRaw)) {
+      setErrMsg("Y must be a number, or leave it blank.");
+      return;
+    }
+    runPreview(file, { x, z, ...(yRaw === null ? {} : { y: yRaw }) });
+  }, [coords, file, runPreview]);
+
+  // Final step: upload the (already generated) preview + the locked world file,
+  // then record the delivery. Gated on previewState === "ready".
+  const onDeliver = useCallback(async () => {
+    if (delivering || previewState !== "ready" || !file || !previewBytes) return;
+    setDelivering(true);
+    setErrMsg(null);
+
+    setPhase("preview");
+    setProgress(0);
+    const { path: previewPath, error: pErr } = await uploadPreview(orderId, previewBytes);
+    if (pErr || !previewPath) {
+      setDelivering(false);
+      setPhase(null);
+      setErrMsg(pErr?.message || "Couldn't upload the 3D preview. Please try again.");
+      return;
     }
 
-    // Step 2: upload the locked world file (unchanged Stage 6 escrow path).
     setPhase("upload");
     setProgress(0);
-    const { path, error: upErr } = await uploadDeliverable(
-      orderId,
-      file,
-      setProgress
-    );
+    const { path, error: upErr } = await uploadDeliverable(orderId, file, setProgress);
     if (upErr || !path) {
-      setSubmitting(false);
+      setDelivering(false);
       setPhase(null);
-      setProgress(0);
       setErrMsg(upErr?.message || "Upload failed.");
       return;
     }
@@ -1587,7 +1646,7 @@ function DeliverModal({ orderId, onClose, onDelivered }) {
       previewPath,
       previewMeta,
     });
-    setSubmitting(false);
+    setDelivering(false);
     setPhase(null);
     if (attachErr) {
       setErrMsg(
@@ -1597,7 +1656,9 @@ function DeliverModal({ orderId, onClose, onDelivered }) {
       return;
     }
     onDelivered?.();
-  }, [submitting, file, orderId, note, onDelivered]);
+  }, [delivering, previewState, file, previewBytes, orderId, note, previewMeta, onDelivered]);
+
+  const showCoords = previewState === "needs_coords";
 
   return (
     <div
@@ -1605,15 +1666,15 @@ function DeliverModal({ orderId, onClose, onDelivered }) {
       role="dialog"
       aria-modal="true"
       onClick={(e) => {
-        if (e.target === e.currentTarget && !submitting) onClose?.();
+        if (e.target === e.currentTarget && !busy) onClose?.();
       }}
     >
       <div className="glass rounded-3xl p-6 sm:p-8 max-w-lg w-full">
         <h2 className="font-bold text-lg mb-1">Deliver the world</h2>
         <p className="text-xs text-gray-500 mb-5">
-          Upload the finished build as a <code>.zip</code>. The buyer can
-          preview the order but won't be able to download the file until they
-          confirm completion — that's the escrow lock.
+          Upload the finished build as a <code>.zip</code>. We generate a 3D
+          preview for the buyer before you can deliver — the buyer reviews that,
+          then confirms to unlock the file (the escrow lock).
         </p>
 
         <label className="block">
@@ -1624,7 +1685,7 @@ function DeliverModal({ orderId, onClose, onDelivered }) {
             type="file"
             accept=".zip,application/zip,application/x-zip-compressed"
             onChange={onPick}
-            disabled={submitting}
+            disabled={busy}
             className="block w-full text-xs text-gray-300 file:mr-3 file:px-4 file:py-2 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-[#4ade80]/15 file:text-[#4ade80] hover:file:bg-[#4ade80]/25 file:cursor-pointer cursor-pointer"
           />
           <p className="text-[11px] text-gray-500 mt-1.5">
@@ -1645,7 +1706,7 @@ function DeliverModal({ orderId, onClose, onDelivered }) {
           <textarea
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            disabled={submitting}
+            disabled={busy}
             rows={4}
             maxLength={1000}
             placeholder="Anything the buyer should know before they open the world."
@@ -1653,7 +1714,47 @@ function DeliverModal({ orderId, onClose, onDelivered }) {
           />
         </label>
 
-        {submitting && (
+        {/* Coordinate prompt — shown when auto-detect couldn't isolate the build
+            (infinite / terrain worlds). The builder reads X/Y/Z off F3. */}
+        {showCoords && (
+          <div className="mt-4 p-3 rounded-2xl bg-amber-400/[0.06] border border-amber-400/20">
+            <p className="text-[11px] text-amber-200/90 mb-2 leading-relaxed">
+              We couldn't find the build automatically. Enter its approximate
+              coordinates (press <kbd className="px-1 rounded bg-black/40">F3</kbd>{" "}
+              in-game and read the XYZ at the build) and we'll preview just that area.
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              {["x", "y", "z"].map((axis) => (
+                <label key={axis} className="block">
+                  <span className="text-[10px] text-gray-400 uppercase tracking-widest block mb-1">
+                    {axis.toUpperCase()}
+                    {axis === "y" && " (opt.)"}
+                  </span>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    value={coords[axis]}
+                    onChange={(e) => setCoords((c) => ({ ...c, [axis]: e.target.value }))}
+                    disabled={busy}
+                    placeholder={axis === "y" ? "—" : "0"}
+                    className="w-full px-3 py-2 rounded-xl bg-black/30 border border-white/10 text-sm text-white placeholder:text-gray-600 focus:border-[#4ade80]/60 focus:outline-none"
+                  />
+                </label>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={onGenerateWithCoords}
+              disabled={busy}
+              className="mt-3 w-full px-4 py-2.5 rounded-full text-sm font-bold bg-[#4ade80] text-black green-glow hover:bg-[#22c55e] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {previewState === "generating" ? "Generating…" : "Generate preview"}
+            </button>
+          </div>
+        )}
+
+        {/* Progress bar (generating or uploading). */}
+        {busy && (
           <div className="mt-4">
             <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
               <div
@@ -1662,38 +1763,45 @@ function DeliverModal({ orderId, onClose, onDelivered }) {
               />
             </div>
             <p className="text-[11px] text-gray-500 mt-1.5">
-              {phase === "preview"
-                ? "Generating 3D preview…"
-                : "Uploading world file…"}{" "}
+              {delivering
+                ? phase === "preview"
+                  ? "Uploading 3D preview…"
+                  : "Uploading world file…"
+                : "Generating 3D preview…"}{" "}
               {Math.round(progress * 100)}%
             </p>
           </div>
         )}
 
-        {previewNote && (
-          <p className="mt-4 text-xs text-amber-300/90">{previewNote}</p>
+        {previewState === "ready" && !delivering && (
+          <p className="mt-4 text-xs text-[#4ade80] flex items-center gap-1.5">
+            <span aria-hidden>✓</span> 3D preview ready
+            {previewMeta?.voxelCount
+              ? ` — ${previewMeta.voxelCount.toLocaleString()} surface blocks`
+              : ""}
+            .
+          </p>
         )}
 
-        {errMsg && (
-          <p className="mt-4 text-sm text-red-400">{errMsg}</p>
-        )}
+        {errMsg && <p className="mt-4 text-sm text-red-400">{errMsg}</p>}
 
         <div className="mt-6 flex items-center justify-end gap-3">
           <button
             type="button"
             onClick={onClose}
-            disabled={submitting}
+            disabled={busy}
             className="px-5 py-2.5 rounded-full text-sm font-semibold border border-white/10 text-gray-300 hover:bg-white/5 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Cancel
           </button>
           <button
             type="button"
-            onClick={onSubmit}
-            disabled={submitting || !file}
+            onClick={onDeliver}
+            disabled={busy || previewState !== "ready"}
             className="px-5 py-2.5 rounded-full text-sm font-bold bg-[#4ade80] text-black green-glow hover:bg-[#22c55e] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            title={previewState !== "ready" ? "A 3D preview is required before delivery" : undefined}
           >
-            {submitting ? "Delivering…" : "Upload & deliver"}
+            {delivering ? "Delivering…" : "Upload & deliver"}
           </button>
         </div>
       </div>

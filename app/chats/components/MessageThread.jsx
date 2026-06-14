@@ -15,6 +15,16 @@ function IconSend({ className = "w-5 h-5" }) {
   );
 }
 
+function IconPhoto({ className = "w-5 h-5" }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+      <circle cx="8.5" cy="8.5" r="1.5" />
+      <path d="m21 15-5-5L5 21" />
+    </svg>
+  );
+}
+
 function IconBack({ className = "w-5 h-5" }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -210,12 +220,15 @@ export default function MessageThread({
   sending,
   isDraft,
   onSend,
+  onSendImage,
   onBack,
 }) {
   const [draft, setDraft] = useState("");
   const [previewOrderId, setPreviewOrderId] = useState(null);
+  const [lightboxUrl, setLightboxUrl] = useState(null);
   const scrollRef = useRef(null);
   const taRef = useRef(null);
+  const fileRef = useRef(null);
 
   // Stick to the bottom as messages arrive / the thread switches.
   useEffect(() => {
@@ -248,6 +261,13 @@ export default function MessageThread({
     const ta = e.target;
     ta.style.height = "auto";
     ta.style.height = `${Math.min(ta.scrollHeight, 140)}px`;
+  }
+
+  function onPickImage(e) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-picking the same file
+    if (!file || sending) return;
+    onSendImage?.(file);
   }
 
   const peerName = peer?.display_name || peer?.username || "Builder";
@@ -318,6 +338,7 @@ export default function MessageThread({
             }
 
             const mine = m.sender_id === meId;
+            const isImage = m.msg_type === "image" && m.meta?.url;
             return (
               <div key={m.id}>
                 {showDay && (
@@ -328,22 +349,62 @@ export default function MessageThread({
                   </div>
                 )}
                 <div className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-                  <div
-                    className={`max-w-[78%] sm:max-w-[70%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap break-words ${
-                      mine
-                        ? "bg-[#4ade80] text-black rounded-br-md"
-                        : "glass rounded-bl-md"
-                    }`}
-                  >
-                    {m.body}
-                    <span
-                      className={`block text-[10px] mt-1 text-right ${
-                        mine ? "text-black/50" : "text-gray-500"
+                  {isImage ? (
+                    <div
+                      className={`max-w-[78%] sm:max-w-[60%] p-1 rounded-2xl overflow-hidden ${
+                        mine ? "bg-[#4ade80] rounded-br-md" : "glass rounded-bl-md"
                       }`}
                     >
-                      {clockTime(m.created_at)}
-                    </span>
-                  </div>
+                      <button
+                        type="button"
+                        onClick={() => setLightboxUrl(publicAsset(m.meta.url))}
+                        className="block w-full"
+                        aria-label="Open photo"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={publicAsset(m.meta.url)}
+                          alt={m.body || "Photo"}
+                          className="rounded-xl max-h-72 w-auto object-cover"
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      </button>
+                      {m.body && (
+                        <p
+                          className={`px-2 pt-1.5 text-sm whitespace-pre-wrap break-words ${
+                            mine ? "text-black" : "text-gray-200"
+                          }`}
+                        >
+                          {m.body}
+                        </p>
+                      )}
+                      <span
+                        className={`block px-2 pb-1 text-[10px] mt-0.5 text-right ${
+                          mine ? "text-black/50" : "text-gray-500"
+                        }`}
+                      >
+                        {clockTime(m.created_at)}
+                      </span>
+                    </div>
+                  ) : (
+                    <div
+                      className={`max-w-[78%] sm:max-w-[70%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap break-words ${
+                        mine
+                          ? "bg-[#4ade80] text-black rounded-br-md"
+                          : "glass rounded-bl-md"
+                      }`}
+                    >
+                      {m.body}
+                      <span
+                        className={`block text-[10px] mt-1 text-right ${
+                          mine ? "text-black/50" : "text-gray-500"
+                        }`}
+                      >
+                        {clockTime(m.created_at)}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -354,6 +415,23 @@ export default function MessageThread({
       {/* Composer */}
       <div className="border-t border-white/10 p-3 flex-shrink-0">
         <div className="flex items-end gap-2">
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            onChange={onPickImage}
+            className="hidden"
+          />
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={sending}
+            className="w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-2xl border border-white/10 text-gray-300 hover:bg-white/10 hover:text-[#4ade80] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            aria-label="Send a photo"
+            title="Send a photo"
+          >
+            <IconPhoto className="w-5 h-5" />
+          </button>
           <textarea
             ref={taRef}
             value={draft}
@@ -384,6 +462,22 @@ export default function MessageThread({
           orderId={previewOrderId}
           onClose={() => setPreviewOrderId(null)}
         />
+      )}
+
+      {lightboxUrl && (
+        <div
+          className="fixed inset-0 z-[200] bg-black/85 backdrop-blur-sm flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setLightboxUrl(null)}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={lightboxUrl}
+            alt="Photo"
+            className="max-w-full max-h-full rounded-2xl object-contain"
+          />
+        </div>
       )}
     </div>
   );

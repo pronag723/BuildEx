@@ -1,3 +1,13 @@
+> ⚠️ **DEPRECATED — not part of the current architecture.**
+> BuildEx has pivoted to a **global, English-speaking market** (see
+> `C:\Users\K\.claude\plans\hi-claude-this-is-ticklish-kurzweil.md`). The app now
+> talks to managed Supabase directly (`NEXT_PUBLIC_SUPABASE_URL` points straight at
+> `*.supabase.co`), so this Russia-only Caddy/Oracle proxy is **no longer needed and
+> should not be deployed.** Kept for reference only, in case a Russia-targeted mode is
+> ever revisited.
+
+---
+
 # Setup: Russia-reachable Supabase proxy (free, WebSocket-capable)
 
 This is the click-by-click setup for the workaround that makes BuildEx work from Russia

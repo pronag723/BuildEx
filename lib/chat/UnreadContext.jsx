@@ -5,6 +5,8 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
+  useRef,
   useState,
 } from "react";
 import { useAuth } from "../auth/AuthContext";
@@ -17,25 +19,44 @@ const UnreadContext = createContext({
   unreadTotal: 0,
   hasUnread: false,
   refresh: async () => {},
+  setActiveConversation: () => {},
 });
 
 export function UnreadProvider({ children }) {
   const { status, user } = useAuth();
   const meId = user?.id || null;
-  const [unreadTotal, setUnreadTotal] = useState(0);
+  const [conversations, setConversations] = useState([]);
+  // The thread the user currently has OPEN (set by ChatsPage). Messages landing
+  // in this thread are being read live, so they must NOT count toward the badge
+  // — otherwise a message arriving while you're already viewing it lights the
+  // avatar dot, and the inbox/mark-read race can leave it stuck on.
+  const [activeConvId, setActiveConvId] = useState(null);
 
   const refresh = useCallback(async () => {
     if (status !== "authenticated" || !meId) {
-      setUnreadTotal(0);
+      setConversations([]);
       return;
     }
-    const { conversations } = await listConversations();
-    const total = (conversations || []).reduce(
-      (sum, c) => sum + (Number(c.unread_count) || 0),
-      0
-    );
-    setUnreadTotal(total);
+    const { conversations: rows } = await listConversations();
+    setConversations(rows || []);
   }, [status, meId]);
+
+  const setActiveConversation = useCallback((convId) => {
+    setActiveConvId(convId || null);
+  }, []);
+
+  // Total unread, excluding the open thread (read live, never badged).
+  const unreadTotal = useMemo(
+    () =>
+      (conversations || []).reduce(
+        (sum, c) =>
+          c.conversation_id === activeConvId
+            ? sum
+            : sum + (Number(c.unread_count) || 0),
+        0
+      ),
+    [conversations, activeConvId]
+  );
 
   // Initial load + whenever auth state flips.
   useEffect(() => {
@@ -59,12 +80,18 @@ export function UnreadProvider({ children }) {
     return () => window.removeEventListener("focus", onFocus);
   }, [refresh]);
 
+  const value = useMemo(
+    () => ({
+      unreadTotal,
+      hasUnread: unreadTotal > 0,
+      refresh,
+      setActiveConversation,
+    }),
+    [unreadTotal, refresh, setActiveConversation]
+  );
+
   return (
-    <UnreadContext.Provider
-      value={{ unreadTotal, hasUnread: unreadTotal > 0, refresh }}
-    >
-      {children}
-    </UnreadContext.Provider>
+    <UnreadContext.Provider value={value}>{children}</UnreadContext.Provider>
   );
 }
 

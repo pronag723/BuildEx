@@ -18,7 +18,7 @@
 import { useEffect, useRef, useState } from "react";
 import { getPreviewUrl } from "../../../lib/orders/api";
 
-export default function WorldPreview({ orderId, onClose }) {
+export default function WorldPreview({ orderId, loadPreview, onClose }) {
   const mountRef = useRef(null);
   const [status, setStatus] = useState("loading"); // loading | ready | error | empty
   const [message, setMessage] = useState(null);
@@ -30,8 +30,11 @@ export default function WorldPreview({ orderId, onClose }) {
 
     (async () => {
       try {
-        // 1. Resolve + fetch the artifact.
-        const { url, meta: m, error } = await getPreviewUrl(orderId);
+        // 1. Resolve + fetch the artifact. The default loader uses the
+        // participant-only getPreviewUrl; the admin console passes its own
+        // loader that mints a signed URL via the admin storage policy.
+        const loader = loadPreview || (() => getPreviewUrl(orderId));
+        const { url, meta: m, error } = await loader();
         if (disposed) return;
         if (error) throw error;
         if (!url) {
@@ -77,7 +80,7 @@ export default function WorldPreview({ orderId, onClose }) {
       disposed = true;
       cleanup();
     };
-  }, [orderId]);
+  }, [orderId, loadPreview]);
 
   return (
     <div

@@ -119,7 +119,7 @@ export default function OrderPlacementPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
 
-  // Sizes the builder offers (built-ins + any custom tiers), with their kopeck
+  // Sizes the builder offers (built-ins + any custom tiers), with their cent
   // price. Disabled tiers are still shown but greyed and unselectable so buyers
   // see the full menu. `builder.rates` is an ordered array (see fetchBuilders).
   const sizeOptions = useMemo(() => {
@@ -473,7 +473,7 @@ function ReviewStep({ builder, sizeLabel, style, brief, priceKopecks }) {
         <p className="text-[11px] text-gray-500 uppercase tracking-widest mb-1">
           Brief
         </p>
-        <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed p-3 rounded-2xl bg-black/30 border border-white/10 max-h-48 overflow-y-auto">
+        <p className="bx-scroll text-sm text-gray-300 whitespace-pre-wrap leading-relaxed p-3 rounded-2xl bg-black/30 border border-white/10 max-h-48 overflow-y-auto">
           {brief.trim()}
         </p>
       </div>
