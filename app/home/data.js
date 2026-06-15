@@ -118,28 +118,28 @@ export const steps = [
 
 export const testimonials = [
   {
-    image: "/avatars/reviewer-1.jpg",
+    image: "/avatars/reviewer-1.svg",
     name: "EmberCraft",
     role: "Server Owner, AetherMC",
     body:
       '"I found a builder in the feed and hired them the same day. Our new spawn is stunning and players keep asking who made it. No bidding, no hassle."'
   },
   {
-    image: "/avatars/reviewer-2.jpg",
+    image: "/avatars/reviewer-2.svg",
     name: "VoxelVera",
     role: "Master Builder",
     body:
       "\"BuildEx is my main source of income. Clients reach out to me directly, the commission comes out of my side, and climbing rank keeps lowering my fee.\""
   },
   {
-    image: "/avatars/reviewer-3.jpg",
+    image: "/avatars/reviewer-3.svg",
     name: "NovaForge",
     role: "Network Admin, SkyRealms",
     body:
       '"Being able to see full portfolios before messaging anyone made hiring effortless. We picked a builder, tracked the order, and approved the delivery."'
   },
   {
-    image: "/avatars/reviewer-4.jpg",
+    image: "/avatars/reviewer-4.svg",
     name: "QuartzKing",
     role: "Game Studio Lead",
     body:
