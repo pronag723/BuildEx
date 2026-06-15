@@ -406,8 +406,8 @@ export default function CatalogPage() {
 
       <main>
         {/* ── Page header ─────────────────────────────────────────────────── */}
-        <section className="catalog-page-header pt-32 pb-10 px-6">
-          <div className="max-w-7xl mx-auto">
+        <section className="catalog-page-header pt-32 pb-10">
+          <div className="max-w-7xl mx-auto px-6">
             <div className="reveal">
               {/* Live badge */}
               <div className="inline-flex items-center gap-2 glass px-4 py-1.5 rounded-full text-xs mb-5">
@@ -453,8 +453,8 @@ export default function CatalogPage() {
         </section>
 
         {/* ── Catalog body ─────────────────────────────────────────────────── */}
-        <section className="pb-24 px-6">
-          <div className="max-w-7xl mx-auto">
+        <section className="pb-24">
+          <div className="max-w-7xl mx-auto px-6">
             <div className="flex gap-7 items-start">
 
               {/* ── Desktop sidebar ─────────────────────────────────────── */}
