@@ -91,7 +91,7 @@ export default function OnboardingShell({
               aria-label="Toggle color theme"
               onClick={() => setTheme((t) => (t === "light" ? "dark" : "light"))}
             >
-              <span className="theme-switch-thumb absolute left-1 w-5 h-5 rounded-full bg-[#0f172a] shadow-lg transition-all duration-300 flex items-center justify-center text-white">
+              <span className="theme-switch-thumb absolute left-1 w-5 h-5 rounded-full bg-[#0f172a] shadow-lg transition-all duration-300 flex items-center justify-center">
                 <Icon name={isLight ? "sun" : "moon"} size={12} strokeWidth={2} />
               </span>
             </button>

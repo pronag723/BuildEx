@@ -179,6 +179,27 @@ body {
   color: #0f172a;
 }
 
+/* ==================== LIGHT THEME — GLOBAL MUTED TEXT ====================
+   Tailwind's gray text utilities are tuned for the dark UI; on the light
+   background they wash out or vanish (the homepage, auth and onboarding all
+   render outside the catalog overrides). Darken the muted greys globally so
+   every page stays readable in light mode.
+
+   Plain `text-white` is deliberately NOT flipped here: it sits on dark or
+   coloured surfaces that persist in light mode — the navy theme-switch thumb,
+   red badges, `bg-black/30` textareas, image overlays — so flipping it would
+   create dark-on-dark. Those few spots own their colour where they live. */
+.light .text-gray-100 { color: #0f172a; }
+.light .text-gray-200 { color: #1e293b; } /* slate-800 */
+.light .text-gray-300 { color: #334155; } /* slate-700 */
+.light .text-gray-400 { color: #475569; } /* slate-600 */
+.light .text-gray-500 { color: #64748b; } /* slate-500 */
+.light .text-gray-600 { color: #475569; } /* slate-600 */
+
+/* Exception: the homepage footer keeps its dark bg (bg-black/70) in light
+   mode, so its muted text must stay light rather than darken. */
+.light .site-footer .text-gray-400 { color: rgba(255, 255, 255, 0.6); }
+
 /* ==================== GLASS EFFECT ==================== */
 .glass {
   background: rgba(39, 39, 39, 0.65);
@@ -322,6 +343,10 @@ body {
 
 .theme-switch-thumb {
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  /* The thumb is navy in both themes, so its sun/moon icon stays white.
+     Set here (not via a `text-white` utility) so the light-theme text
+     overrides on wrapper roots can't flip the icon to dark-on-dark. */
+  color: #fff;
 }
 
 .light .theme-switch {

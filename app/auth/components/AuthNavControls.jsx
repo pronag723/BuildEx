@@ -8,6 +8,7 @@ import { useAuth } from "../../../lib/auth/AuthContext";
 import { useUnread } from "../../../lib/chat/UnreadContext";
 import NotificationsBell from "../../notifications/components/NotificationsBell";
 import { withBase } from "../../home/utils";
+import { Icon } from "../../../lib/icons";
 
 function IconOrders({ className = "w-4 h-4" }) {
   return (
@@ -280,9 +281,7 @@ export default function AuthNavControls() {
                 }}
                 className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-500/10 text-red-300 transition-colors"
               >
-                <span className="w-4 flex justify-center" aria-hidden="true">
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
-                </span>
+                <Icon name="logout" size={16} className="text-red-300" />
                 Log out
               </button>
             </nav>
@@ -371,8 +370,9 @@ export function AuthMobileControls({ onAfter, showOrders = true }) {
             onAfter?.();
             signOut();
           }}
-          className="w-full py-3.5 text-base font-semibold rounded-2xl bg-red-500/15 text-red-200 border border-red-400/30 hover:bg-red-500/25 transition-all"
+          className="w-full py-3.5 inline-flex items-center justify-center gap-2 text-base font-semibold rounded-2xl bg-red-500/15 text-red-200 border border-red-400/30 hover:bg-red-500/25 transition-all"
         >
+          <Icon name="logout" size={18} />
           Log out
         </button>
       </>

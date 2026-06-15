@@ -1255,8 +1255,9 @@ function AccountActionsSection() {
         <button
           type="button"
           onClick={() => signOut()}
-          className="py-3 px-4 text-sm font-semibold rounded-2xl border border-white/15 text-gray-200 hover:border-white/40 hover:bg-white/5 transition-all"
+          className="py-3 px-4 inline-flex items-center justify-center gap-2 text-sm font-semibold rounded-2xl border border-white/15 text-gray-200 hover:border-white/40 hover:bg-white/5 transition-all"
         >
+          <Icon name="logout" size={16} />
           Log out
         </button>
       </div>
