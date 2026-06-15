@@ -1558,10 +1558,20 @@ function CoordForm({
               {axis === "y" && " (opt.)"}
             </span>
             <input
-              type="number"
-              inputMode="numeric"
+              // type="text" (not "number") + a non-digit-only keyboard: the
+              // iOS/Android numeric keypads hide the minus key, so a digit-only
+              // input makes negative Minecraft coordinates impossible to enter.
+              // We sanitise to an optional leading "-" plus digits instead.
+              type="text"
+              inputMode="text"
+              pattern="-?[0-9]*"
               value={coords[axis]}
-              onChange={(e) => setCoords((c) => ({ ...c, [axis]: e.target.value }))}
+              onChange={(e) =>
+                setCoords((c) => ({
+                  ...c,
+                  [axis]: e.target.value.replace(/[^0-9-]/g, "").replace(/(?!^)-/g, ""),
+                }))
+              }
               disabled={busy}
               placeholder={axis === "y" ? "—" : "0"}
               className="w-full px-3 py-2 rounded-xl bg-black/30 border border-white/10 text-sm text-white placeholder:text-gray-600 focus:border-[#4ade80]/60 focus:outline-none"
