@@ -1,6 +1,7 @@
 "use client";
 
 import { steps } from "../data";
+import { Icon } from "../../../lib/icons";
 
 export default function HowItWorksSection() {
   return (
@@ -24,8 +25,8 @@ export default function HowItWorksSection() {
                 step.className || ""
               }`}
             >
-              <div className="w-20 h-20 mx-auto mb-6 bg-[#4ade80]/10 rounded-2xl flex items-center justify-center text-5xl text-[#4ade80] group-hover:rotate-12 transition-transform">
-                {step.icon}
+              <div className="icon-tile icon-tile-lg mx-auto mb-6 text-[#4ade80] group-hover:scale-105 transition-transform">
+                <Icon name={step.icon} size={32} strokeWidth={1.5} />
               </div>
               <div className="text-2xl font-semibold mb-3">{step.title}</div>
               <p className="text-gray-400 leading-relaxed">{step.body}</p>

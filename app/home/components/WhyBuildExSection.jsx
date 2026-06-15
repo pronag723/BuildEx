@@ -2,6 +2,7 @@
 
 import { testimonials } from "../data";
 import { withBase } from "../utils";
+import { Stars } from "../../../lib/icons";
 
 export default function WhyBuildExSection() {
   return (
@@ -37,7 +38,7 @@ export default function WhyBuildExSection() {
                 </div>
               </div>
               <p className="text-gray-300 leading-relaxed">{testimonial.body}</p>
-              <div className="mt-6 flex items-center gap-1 text-[#4ade80]">★★★★★</div>
+              <Stars count={5} size={16} className="mt-6 text-amber-400" />
             </div>
           ))}
         </div>

@@ -23,6 +23,7 @@ import {
 } from "../../../lib/admin/api";
 import { resolveDispute } from "../../../lib/disputes/api";
 import { formatPrice, SIZE_META } from "../../../lib/pricing";
+import { Icon } from "../../../lib/icons";
 import { publicAsset } from "../../home/utils";
 import CatalogNavbar from "../../builders/components/CatalogNavbar";
 import CatalogMobileMenu from "../../builders/components/CatalogMobileMenu";
@@ -185,7 +186,7 @@ function ModeratorConsole() {
       <header className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-[#4ade80]/15 border border-[#4ade80]/30 text-[#4ade80] text-[11px] font-bold uppercase tracking-widest mb-2">
-            <span aria-hidden>🛡️</span> Moderator console
+            <Icon name="shield" size={13} /> Moderator console
           </div>
           <h1 className="text-2xl font-extrabold">Order moderation</h1>
           <p className="text-sm text-gray-500 mt-1">
@@ -218,9 +219,13 @@ function ModeratorConsole() {
         <Spinner />
       ) : orders.length === 0 ? (
         <div className="glass rounded-2xl p-8 text-center text-sm text-gray-500">
-          {tab === "open_disputes"
-            ? "No open disputes. 🎉"
-            : "No orders to show here."}
+          {tab === "open_disputes" ? (
+            <span className="inline-flex items-center gap-2">
+              <Icon name="party" size={16} className="text-[#4ade80]" /> No open disputes.
+            </span>
+          ) : (
+            "No orders to show here."
+          )}
         </div>
       ) : (
         <div className="space-y-4">
@@ -362,7 +367,9 @@ function DeliveryBlock({ order }) {
   return (
     <>
       <div className="p-3 rounded-2xl bg-black/30 border border-white/10 flex items-center gap-3 flex-wrap">
-        <span aria-hidden className="text-2xl">📦</span>
+        <span className="icon-tile icon-tile-sm text-[#4ade80] flex-shrink-0">
+          <Icon name="package" size={18} />
+        </span>
         <div className="min-w-0 flex-1">
           <p className="font-semibold text-sm truncate">{order.delivery_file_name}</p>
           <p className="text-[11px] text-gray-500">{humanFileSize(order.delivery_size)}</p>
@@ -372,9 +379,9 @@ function DeliveryBlock({ order }) {
             <button
               type="button"
               onClick={() => setPreviewOpen(true)}
-              className="px-4 py-2 rounded-full text-xs font-semibold border border-white/15 text-gray-200 hover:bg-white/5 transition-all"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold border border-white/15 text-gray-200 hover:bg-white/5 transition-all"
             >
-              🧊 3D preview
+              <Icon name="box" size={14} /> 3D preview
             </button>
           )}
           <button
@@ -422,7 +429,7 @@ function ChatBlock({ orderId }) {
         onClick={toggle}
         className="w-full flex items-center justify-between gap-3 px-3 py-2.5 text-sm font-semibold text-gray-200"
       >
-        <span>💬 Conversation</span>
+        <span className="inline-flex items-center gap-1.5"><Icon name="chat" size={15} /> Conversation</span>
         <span className="text-gray-500 text-xs">{open ? "Hide" : "Show"}</span>
       </button>
       {open && (

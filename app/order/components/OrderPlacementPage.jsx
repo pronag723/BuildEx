@@ -15,6 +15,7 @@ import { useAuth } from "../../../lib/auth/AuthContext";
 import { useRequireAuth } from "../../../lib/auth/useRequireAuth";
 import { fetchBuilderByUsername } from "../../builders/data/fetchBuilders";
 import { formatPrice } from "../../../lib/pricing";
+import { Icon } from "../../../lib/icons";
 import { placeOrder, markOrderPaid } from "../../../lib/orders/api";
 import CatalogNavbar from "../../builders/components/CatalogNavbar";
 import CatalogMobileMenu from "../../builders/components/CatalogMobileMenu";
@@ -373,7 +374,9 @@ function SizeStep({ options, value, onChange }) {
                 : "border-white/10 hover:border-[#4ade80]/40 hover:bg-white/5"
             }`}
           >
-            <div className="text-2xl">{o.icon}</div>
+            <span className="icon-tile icon-tile-sm text-[#4ade80] flex-shrink-0">
+              <Icon name={o.icon} size={18} />
+            </span>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2">
                 <p className="font-semibold text-sm truncate">{o.label}</p>
@@ -486,7 +489,7 @@ function ReviewStep({ builder, sizeLabel, style, brief, priceKopecks }) {
       </div>
 
       <p className="text-xs text-gray-500 leading-relaxed flex gap-2">
-        <span aria-hidden>🔒</span>
+        <Icon name="lock" size={14} className="mt-0.5 flex-shrink-0" />
         <span>
           The platform holds your payment in escrow. Funds are only released to
           the builder once you confirm the delivered work.

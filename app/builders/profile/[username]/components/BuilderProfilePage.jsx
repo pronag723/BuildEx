@@ -14,6 +14,7 @@ import Avatar from "../../../../../lib/ui/Avatar";
 import { useAuthGate } from "../../../../../lib/auth/useAuthGate";
 import { AVAILABILITY_STATES } from "../../../../../lib/onboarding/constants";
 import { formatPrice, ratesToTiers, SIZE_META } from "../../../../../lib/pricing";
+import { Icon } from "../../../../../lib/icons";
 import { useFavorites } from "../../../../../lib/favorites/FavoritesContext";
 
 // Neutral avatar used when a reviewer has no picture (e.g. a Discord account
@@ -184,8 +185,10 @@ function toRateCards(rates) {
 function RateCard({ info }) {
   return (
     <div className="glass rounded-2xl p-5 flex flex-col gap-2 transition-all duration-300 hover:border-[#4ade80]/40 hover:shadow-[0_0_24px_rgba(74,222,128,0.12)]">
-      <div className="flex items-center gap-2 mb-1">
-        <span className="text-2xl">{info.icon}</span>
+      <div className="flex items-center gap-2.5 mb-1">
+        <span className="icon-tile icon-tile-sm text-[#4ade80] flex-shrink-0">
+          <Icon name={info.icon} size={18} />
+        </span>
         <h3 className="font-bold text-base truncate">{info.label}</h3>
       </div>
       <p className="text-xs text-gray-400 leading-relaxed">{info.areaText}</p>
@@ -299,13 +302,13 @@ function ContactSidebar({ builder, onShowSoon, onContact, onOrder }) {
       {/* Trust badges */}
       <div className="pt-3 border-t border-white/[0.06] grid grid-cols-2 gap-2">
         {[
-          { icon: "🔒", label: "Escrow Protected" },
-          { icon: "💬", label: "Discuss Anytime" },
-          { icon: "📁", label: "Source Files" },
-          { icon: "✦", label: "Custom Quotes" },
+          { icon: "lock", label: "Escrow Protected" },
+          { icon: "chat", label: "Discuss Anytime" },
+          { icon: "files", label: "Source Files" },
+          { icon: "sparkles", label: "Custom Quotes" },
         ].map(({ icon, label }) => (
           <div key={label} className="flex items-center gap-1.5 text-[11px] text-gray-500">
-            <span>{icon}</span>
+            <Icon name={icon} size={13} className="text-[#4ade80]/80" />
             <span>{label}</span>
           </div>
         ))}
@@ -707,7 +710,8 @@ export default function BuilderProfilePage({ builder }) {
                     <span>({reviews.length} reviews)</span>
                   </span>
                   <span className="flex items-center gap-1.5">
-                    📦 {builder.completed_projects} completed
+                    <Icon name="package" size={14} />
+                    {builder.completed_projects} completed
                   </span>
                   <span className="flex items-center gap-1.5">
                     <IconClock className="w-3.5 h-3.5" />
@@ -835,7 +839,9 @@ export default function BuilderProfilePage({ builder }) {
 
                 <div className="mt-5 p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
                   <div className="flex items-start gap-3">
-                    <span className="text-2xl flex-shrink-0">💡</span>
+                    <span className="icon-tile icon-tile-sm flex-shrink-0 text-[#4ade80]">
+                      <Icon name="lightbulb" size={18} />
+                    </span>
                     <div className="text-sm text-gray-400 leading-relaxed">
                       <strong className="text-white">How pricing works:</strong> Every BuildEx commission is unique.
                       Rates depend on build scale, complexity, custom particles, terrain work, and revision rounds.

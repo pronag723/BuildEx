@@ -37,6 +37,7 @@ import {
 } from "../../lib/ranks";
 import { withBase } from "../home/utils";
 import Avatar from "../../lib/ui/Avatar";
+import { Icon } from "../../lib/icons";
 import CatalogNavbar from "../builders/components/CatalogNavbar";
 import CatalogMobileMenu from "../builders/components/CatalogMobileMenu";
 import SiteFooter from "../home/components/SiteFooter";
@@ -356,7 +357,11 @@ function AvailabilitySection({ builderProfile, onSaved }) {
             <span className="w-3 h-3 rounded-full border-2 border-[#4ade80]/40 border-t-[#4ade80] animate-spin" />
           )}
           {status === "saving" && "Saving…"}
-          {status === "saved" && "✓ Saved"}
+          {status === "saved" && (
+            <span className="inline-flex items-center gap-1">
+              <Icon name="check" size={13} strokeWidth={2.5} /> Saved
+            </span>
+          )}
           {status === "error" && "Couldn't save — try again"}
         </span>
       </div>
@@ -770,8 +775,9 @@ function ExpertiseSection({ builderProfile, onSaved }) {
                 {savedTools.map((k) => {
                   const meta = BUILDER_TOOLS.find((t) => t.key === k);
                   return (
-                    <span key={k} className="px-2.5 py-1 rounded-full text-xs bg-white/5 border border-white/10 text-gray-300">
-                      {meta?.emoji} {meta?.label || k}
+                    <span key={k} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-white/5 border border-white/10 text-gray-300">
+                      {meta?.icon && <Icon name={meta.icon} size={13} className="text-gray-400" />}
+                      {meta?.label || k}
                     </span>
                   );
                 })}
@@ -791,8 +797,9 @@ function ExpertiseSection({ builderProfile, onSaved }) {
                 {(builderProfile?.project_types || []).map((k) => {
                   const meta = PROJECT_TYPES.find((p) => p.key === k);
                   return (
-                    <span key={k} className="px-2.5 py-1 rounded-full text-xs bg-white/5 border border-white/10 text-gray-300">
-                      {meta?.emoji} {meta?.label || k}
+                    <span key={k} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-white/5 border border-white/10 text-gray-300">
+                      {meta?.icon && <Icon name={meta.icon} size={13} className="text-gray-400" />}
+                      {meta?.label || k}
                     </span>
                   );
                 })}
@@ -962,7 +969,7 @@ function RankSection({ builderProfile }) {
             <div className="flex items-center justify-between text-xs mb-1.5">
               <span className="text-gray-400">
                 Completed orders
-                {progress.ordersMet && <span className="text-[#4ade80]"> ✓</span>}
+                {progress.ordersMet && <Icon name="check" size={13} strokeWidth={2.5} className="inline-block ml-1 text-[#4ade80] align-text-bottom" />}
               </span>
               <span className="text-gray-500">
                 {progress.ordersHave} / {progress.ordersNeed}
@@ -981,7 +988,7 @@ function RankSection({ builderProfile }) {
             <div className="flex items-center justify-between text-xs mb-1.5">
               <span className="text-gray-400">
                 Average rating
-                {progress.ratingMet && <span className="text-[#4ade80]"> ✓</span>}
+                {progress.ratingMet && <Icon name="check" size={13} strokeWidth={2.5} className="inline-block ml-1 text-[#4ade80] align-text-bottom" />}
               </span>
               <span className="text-gray-500">
                 {progress.ratingHave.toFixed(1)} / above {progress.ratingNeed.toFixed(1)}★
@@ -997,8 +1004,9 @@ function RankSection({ builderProfile }) {
         </div>
       ) : (
         <div className="rounded-2xl border border-dashed border-amber-400/30 p-4 text-center">
-          <p className="text-sm text-amber-400 font-semibold">
-            You&apos;ve reached the top rank — Master. 🏆
+          <p className="text-sm text-amber-400 font-semibold inline-flex items-center gap-1.5">
+            You&apos;ve reached the top rank — Master.
+            <Icon name="trophy" size={15} />
           </p>
           <p className="text-xs text-gray-500 mt-1">
             You pay the lowest commission on BuildEx.
@@ -1158,7 +1166,10 @@ function ClientPreferencesSection({ profile, onSaved }) {
           <div>
             <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2">Server type</p>
             {savedServer ? (
-              <p className="text-sm text-gray-200">{savedServer.emoji} {savedServer.label}</p>
+              <p className="inline-flex items-center gap-1.5 text-sm text-gray-200">
+                {savedServer.icon && <Icon name={savedServer.icon} size={14} className="text-gray-400" />}
+                {savedServer.label}
+              </p>
             ) : (
               <p className="text-gray-500 text-sm italic">Not set.</p>
             )}

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { publicAsset } from "../../home/utils";
 import { formatPrice, SIZE_META } from "../../../lib/pricing";
+import { Icon } from "../../../lib/icons";
 import WorldPreview from "../../orders/components/WorldPreview";
 
 function IconSend({ className = "w-5 h-5" }) {
@@ -87,7 +88,7 @@ function OrderEventMessage({ message, onPreview }) {
       <div className="flex justify-center my-4 px-2">
         <div className="block max-w-[460px] w-full rounded-2xl border border-purple-400/30 bg-purple-400/[0.08] p-4">
           <div className="flex items-center gap-2 mb-2">
-            <span aria-hidden className="text-base">📦</span>
+            <Icon name="package" size={16} className="text-purple-200" />
             <span className="font-bold text-sm text-purple-200">
               Builder delivered the world
             </span>
@@ -104,7 +105,7 @@ function OrderEventMessage({ message, onPreview }) {
                 onClick={() => onPreview?.(orderId)}
                 className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-[#4ade80] text-black hover:bg-[#22c55e] transition-all"
               >
-                🧊 View 3D preview
+                <Icon name="box" size={14} strokeWidth={2} /> View 3D preview
               </button>
             )}
             <Link
@@ -134,7 +135,7 @@ function OrderEventMessage({ message, onPreview }) {
         >
           <div className="flex items-center justify-between gap-3 mb-3">
             <div className="flex items-center gap-2 min-w-0">
-              <span aria-hidden className="text-base">🔒</span>
+              <Icon name="lock" size={16} className="text-[#4ade80]" />
               <span className="font-bold text-sm text-[#4ade80]">
                 Order paid · in escrow
               </span>

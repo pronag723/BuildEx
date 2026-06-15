@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRequireAuth } from "../../../lib/auth/useRequireAuth";
 import { useAuth } from "../../../lib/auth/AuthContext";
 import { useUnread } from "../../../lib/chat/UnreadContext";
+import { Icon } from "../../../lib/icons";
 import { withBase } from "../../home/utils";
 import CatalogNavbar from "../../builders/components/CatalogNavbar";
 import CatalogMobileMenu from "../../builders/components/CatalogMobileMenu";
@@ -556,8 +557,8 @@ export default function ChatsPage() {
                     />
                   ) : (
                     <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
-                      <div className="w-16 h-16 rounded-2xl bg-[#4ade80]/10 border border-[#4ade80]/30 flex items-center justify-center text-3xl mb-5">
-                        💬
+                      <div className="w-16 h-16 rounded-2xl bg-[#4ade80]/10 border border-[#4ade80]/30 flex items-center justify-center text-[#4ade80] mb-5">
+                        <Icon name="chat" size={28} />
                       </div>
                       <h2 className="font-bold text-lg mb-2">Select a conversation</h2>
                       <p className="text-sm text-gray-500 max-w-xs leading-relaxed">

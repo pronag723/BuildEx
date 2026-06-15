@@ -11,7 +11,7 @@ export default function RoleCard({
   role,            // "builder" | "client"
   title,
   description,
-  icon,            // emoji string or JSX
+  icon,            // JSX icon element
   bullets = [],
   selected,
   onSelect,

@@ -13,6 +13,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { withBase } from "../../home/utils";
+import { Icon } from "../../../lib/icons";
 import Avatar from "../../../lib/ui/Avatar";
 import { useAuth } from "../../../lib/auth/AuthContext";
 import { useRequireAuth } from "../../../lib/auth/useRequireAuth";
@@ -1266,7 +1267,7 @@ function DisputeCard({ dispute, isBuyer }) {
       )}
 
       <p className="mt-3 text-xs text-gray-500 flex items-start gap-2 leading-relaxed">
-        <span aria-hidden>⚖️</span>
+        <Icon name="scale" size={14} className="mt-0.5 flex-shrink-0" />
         <span>{meta.note}</span>
       </p>
     </Card>
@@ -1420,7 +1421,9 @@ function DeliveryCard({ delivery, order, isBuyer, isBuilder, review, onRequestRe
     <Card title="Delivery">
       <div className="space-y-3">
         <div className="flex items-start gap-3 p-3 rounded-2xl bg-black/30 border border-white/10">
-          <span aria-hidden className="text-2xl mt-0.5">📦</span>
+          <span className="icon-tile icon-tile-sm text-[#4ade80] flex-shrink-0 mt-0.5">
+            <Icon name="package" size={18} />
+          </span>
           <div className="min-w-0 flex-1">
             <p className="font-semibold text-sm truncate">
               {delivery.file_name}
@@ -1449,7 +1452,7 @@ function DeliveryCard({ delivery, order, isBuyer, isBuilder, review, onRequestRe
           <div className="p-3 rounded-2xl bg-[#4ade80]/[0.06] border border-[#4ade80]/20 flex items-center justify-between gap-3 flex-wrap">
             <div className="min-w-0">
               <p className="text-sm font-semibold flex items-center gap-2">
-                <span aria-hidden>🧊</span> 3D preview available
+                <Icon name="box" size={16} className="text-[#4ade80]" /> 3D preview available
               </p>
               <p className="text-[11px] text-gray-400 mt-0.5">
                 {isBuyer && !unlocked
@@ -1465,7 +1468,7 @@ function DeliveryCard({ delivery, order, isBuyer, isBuilder, review, onRequestRe
 
         {showLockedHint && (
           <p className="text-xs text-gray-400 flex items-start gap-2 leading-relaxed">
-            <span aria-hidden>🔒</span>
+            <Icon name="lock" size={14} className="mt-0.5 flex-shrink-0" />
             <span>
               The download is locked while the file is in escrow. Tap{" "}
               <strong className="text-[#4ade80]">Confirm &amp; release</strong>{" "}
@@ -1494,7 +1497,7 @@ function DeliveryCard({ delivery, order, isBuyer, isBuilder, review, onRequestRe
               disabled
               className="px-5 py-2.5 rounded-full text-sm font-semibold border border-white/10 text-gray-500 cursor-not-allowed inline-flex items-center gap-2"
             >
-              <span aria-hidden>🔒</span> Download locked
+              <Icon name="lock" size={14} /> Download locked
             </button>
           )}
         </div>
@@ -1896,7 +1899,7 @@ function DeliverModal({ orderId, buildingSize, onClose, onDelivered }) {
           <div className="mt-4">
             <div className="flex items-center justify-between gap-2 mb-2">
               <p className="text-xs text-[#4ade80] flex items-center gap-1.5">
-                <span aria-hidden>✓</span> 3D preview ready
+                <Icon name="check" size={14} strokeWidth={2.5} /> 3D preview ready
                 {previewMeta?.voxelCount
                   ? ` — ${previewMeta.voxelCount.toLocaleString()} surface blocks`
                   : ""}

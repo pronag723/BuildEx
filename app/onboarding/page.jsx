@@ -11,9 +11,10 @@ import OnboardingShell from "./components/OnboardingShell";
 import OnboardingGate from "./components/OnboardingGate";
 import OnboardingFooter from "./components/OnboardingFooter";
 import RoleCard from "./components/RoleCard";
+import { Icon } from "../../lib/icons";
 
-const BUILDER_ICON = "🧱";
-const CLIENT_ICON = "🎯";
+const BUILDER_ICON = <Icon name="hammer" size={30} strokeWidth={1.5} />;
+const CLIENT_ICON = <Icon name="target" size={30} strokeWidth={1.5} />;
 
 export default function OnboardingRolePage() {
   return (

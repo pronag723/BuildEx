@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { withBase } from "../utils";
 import { fetchBuilders } from "../../builders/data/fetchBuilders";
+import { Stars } from "../../../lib/icons";
 
 export default function HeroSection({ heroVisualRef, onAnchorClick }) {
   // Real builder-presence figure for the floating badge. We reuse fetchBuilders
@@ -78,7 +79,7 @@ export default function HeroSection({ heroVisualRef, onAnchorClick }) {
               <div>
                 <div className="font-semibold">PixelForge</div>
                 <div className="text-xs text-[#4ade80] flex items-center gap-1">
-                  <span>★</span> Master Builder
+                  <Stars count={1} size={11} /> Master Builder
                 </div>
               </div>
             </div>

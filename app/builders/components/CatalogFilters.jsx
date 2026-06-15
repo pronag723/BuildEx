@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { STYLES, BUILD_TYPES, RANKS } from "../data/builders";
+import { Icon } from "../../../lib/icons";
 
 // ─── Custom checkbox row (button-based for guaranteed click handling) ────────
-function FilterCheckbox({ label, emoji, checked, onChange }) {
+function FilterCheckbox({ label, icon, checked, onChange }) {
   return (
     <button
       type="button"
@@ -35,11 +36,17 @@ function FilterCheckbox({ label, emoji, checked, onChange }) {
         )}
       </span>
       <span
-        className={`text-sm transition-colors leading-none ${
+        className={`text-sm transition-colors leading-none flex items-center gap-1.5 ${
           checked ? "text-white" : "text-gray-400 group-hover:text-gray-200"
         }`}
       >
-        {emoji && <span className="mr-1.5">{emoji}</span>}
+        {icon && (
+          <Icon
+            name={icon}
+            size={15}
+            className={`flex-shrink-0 transition-colors ${checked ? "text-[#4ade80]" : "text-gray-500 group-hover:text-gray-300"}`}
+          />
+        )}
         {label}
       </span>
     </button>
@@ -287,7 +294,7 @@ export default function CatalogFilters({
           <FilterCheckbox
             key={s.key}
             label={s.label}
-            emoji={s.emoji}
+            icon={s.icon}
             checked={selectedStyles.includes(s.key)}
             onChange={() => onStyleToggle(s.key)}
           />

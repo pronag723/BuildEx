@@ -40,16 +40,16 @@ export const RANKS = {
 };
 
 export const STYLES = [
-  { key: "medieval", label: "Medieval", emoji: "🏰" },
-  { key: "fantasy", label: "Fantasy", emoji: "✨" },
-  { key: "sci-fi", label: "Sci-Fi", emoji: "🚀" },
-  { key: "cyberpunk", label: "Cyberpunk", emoji: "🌃" },
-  { key: "modern", label: "Modern", emoji: "🏙️" },
-  { key: "realistic", label: "Realistic", emoji: "📷" },
-  { key: "organic", label: "Organic", emoji: "🌿" },
-  { key: "terrain", label: "Terrain", emoji: "⛰️" },
-  { key: "pvp", label: "PvP", emoji: "⚔️" },
-  { key: "other", label: "Other", emoji: "🎨" },
+  { key: "medieval", label: "Medieval", icon: "castle" },
+  { key: "fantasy", label: "Fantasy", icon: "sparkles" },
+  { key: "sci-fi", label: "Sci-Fi", icon: "rocket" },
+  { key: "cyberpunk", label: "Cyberpunk", icon: "cyberpunk" },
+  { key: "modern", label: "Modern", icon: "modern" },
+  { key: "realistic", label: "Realistic", icon: "camera" },
+  { key: "organic", label: "Organic", icon: "leaf" },
+  { key: "terrain", label: "Terrain", icon: "mountain" },
+  { key: "pvp", label: "PvP", icon: "swords" },
+  { key: "other", label: "Other", icon: "palette" },
 ];
 
 export const BUILD_TYPES = [

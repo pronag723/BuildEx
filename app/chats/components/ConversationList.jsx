@@ -1,6 +1,7 @@
 "use client";
 
 import { publicAsset } from "../../home/utils";
+import { Icon } from "../../../lib/icons";
 
 // Compact "2m / 4h / Mon / Apr 3" stamp for the inbox rows.
 function relativeStamp(iso) {
@@ -62,16 +63,16 @@ export default function ConversationList({
     if (compact) {
       return (
         <div className="flex-1 flex flex-col items-center justify-center px-2 py-8">
-          <div className="w-10 h-10 rounded-2xl bg-[#4ade80]/10 border border-[#4ade80]/30 flex items-center justify-center text-xl">
-            💬
+          <div className="w-10 h-10 rounded-2xl bg-[#4ade80]/10 border border-[#4ade80]/30 flex items-center justify-center text-[#4ade80]">
+            <Icon name="chat" size={18} />
           </div>
         </div>
       );
     }
     return (
       <div className="flex-1 flex flex-col items-center justify-center text-center px-6 py-12">
-        <div className="w-14 h-14 rounded-2xl bg-[#4ade80]/10 border border-[#4ade80]/30 flex items-center justify-center text-2xl mb-4">
-          💬
+        <div className="w-14 h-14 rounded-2xl bg-[#4ade80]/10 border border-[#4ade80]/30 flex items-center justify-center text-[#4ade80] mb-4">
+          <Icon name="chat" size={24} />
         </div>
         <p className="font-semibold text-sm mb-1">No conversations yet</p>
         <p className="text-xs text-gray-500 leading-relaxed max-w-[220px]">

@@ -1,13 +1,14 @@
 "use client";
 
 import BuilderCard from "./BuilderCard";
+import { Icon } from "../../../lib/icons";
 
 export default function BuilderGrid({ builders, animKey }) {
   if (builders.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center reveal active">
-        <div className="w-20 h-20 glass rounded-3xl flex items-center justify-center text-4xl mb-6">
-          🔍
+        <div className="w-20 h-20 glass rounded-3xl flex items-center justify-center text-gray-400 mb-6">
+          <Icon name="search" size={32} strokeWidth={1.5} />
         </div>
         <h3 className="text-xl font-semibold mb-2">No builders found</h3>
         <p className="text-gray-400 text-sm max-w-xs">

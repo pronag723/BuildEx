@@ -1,6 +1,7 @@
 "use client";
 
 import { withBase } from "../../../home/utils";
+import { Icon } from "../../../../lib/icons";
 
 export default function OfferNotFound() {
   return (
@@ -9,8 +10,8 @@ export default function OfferNotFound() {
       <div className="gradient-edge-glow" />
 
       <div className="relative z-10 glass rounded-3xl p-12 max-w-md w-full">
-        <div className="w-16 h-16 bg-[#4ade80]/10 border border-[#4ade80]/30 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-6">
-          🔍
+        <div className="w-16 h-16 bg-[#4ade80]/10 border border-[#4ade80]/30 rounded-2xl flex items-center justify-center text-[#4ade80] mx-auto mb-6">
+          <Icon name="search" size={28} strokeWidth={1.5} />
         </div>
         <h1 className="text-2xl font-bold mb-3">Offer not found</h1>
         <p className="text-gray-400 text-sm mb-8 leading-relaxed">

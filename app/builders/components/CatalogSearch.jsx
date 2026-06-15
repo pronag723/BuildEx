@@ -1,5 +1,7 @@
 "use client";
 
+import { Icon } from "../../../lib/icons";
+
 export default function CatalogSearch({ query, onQueryChange }) {
   return (
     <div className="relative flex-1 min-w-0">
@@ -32,10 +34,10 @@ export default function CatalogSearch({ query, onQueryChange }) {
         <button
           type="button"
           onClick={() => onQueryChange("")}
-          className="absolute right-3.5 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-gray-400 hover:text-white transition-colors text-xs"
+          className="absolute right-3.5 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-gray-400 hover:text-white transition-colors"
           aria-label="Clear search"
         >
-          ✕
+          <Icon name="close" size={12} strokeWidth={2.5} />
         </button>
       )}
     </div>

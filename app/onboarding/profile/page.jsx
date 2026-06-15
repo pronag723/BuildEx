@@ -9,6 +9,7 @@ import {
   saveClientProfile,
 } from "../../../lib/onboarding/api";
 import { STEPS } from "../../../lib/onboarding/state";
+import { Icon } from "../../../lib/icons";
 import {
   BIO_MAX,
   CLIENT_INTEREST_STYLES,
@@ -130,7 +131,7 @@ function ClientProfileStep({ state }) {
 
       <div className="onb-fade-in onb-fade-in-1 mb-6">
         <div className="glass rounded-2xl border border-[#4ade80]/20 bg-[#4ade80]/[0.06] px-4 py-3 flex items-start gap-3">
-          <span className="text-[#4ade80] text-lg leading-none mt-0.5" aria-hidden="true">ℹ️</span>
+          <Icon name="info" size={18} className="text-[#4ade80] flex-shrink-0 mt-0.5" />
           <p className="text-sm text-gray-300 leading-relaxed">
             Nothing here is permanent — you can change everything on this page anytime from your account settings.
           </p>

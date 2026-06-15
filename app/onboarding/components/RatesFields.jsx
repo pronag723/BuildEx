@@ -22,6 +22,7 @@ import {
   dollarsToCents,
   ratesToTiers,
 } from "../../../lib/pricing";
+import { Icon } from "../../../lib/icons";
 
 export const RATE_TIERS = SIZES.map((key) => ({ key, ...SIZE_META[key] }));
 
@@ -194,7 +195,9 @@ export function RateEditor({ tier, onChange, onRemove }) {
       {/* Header: icon + editable name + toggle */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0 flex-1">
-          <span className="text-lg flex-shrink-0">{tier.icon}</span>
+          <span className="icon-tile icon-tile-sm text-[#4ade80] flex-shrink-0">
+            <Icon name={tier.icon} size={16} />
+          </span>
           <input
             type="text"
             value={tier.label}
@@ -291,8 +294,10 @@ export function RatesPreview({ rates }) {
           key={tier.id}
           className="glass rounded-2xl p-3.5 flex flex-col gap-1.5 transition-all duration-300 hover:border-[#4ade80]/40 hover:shadow-[0_0_24px_rgba(74,222,128,0.12)]"
         >
-          <div className="flex items-center gap-2">
-            <span className="text-xl">{tier.icon}</span>
+          <div className="flex items-center gap-2.5">
+            <span className="icon-tile icon-tile-sm text-[#4ade80] flex-shrink-0">
+              <Icon name={tier.icon} size={16} />
+            </span>
             <h3 className="font-bold text-sm truncate">{tier.label}</h3>
           </div>
           <p className="text-xs text-gray-400 leading-relaxed">{areaText(tier)}</p>

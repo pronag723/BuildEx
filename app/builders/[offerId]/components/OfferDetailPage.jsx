@@ -6,6 +6,7 @@ import CatalogMobileMenu from "../../components/CatalogMobileMenu";
 import SiteFooter from "../../../home/components/SiteFooter";
 import { withBase } from "../../../home/utils";
 import Avatar from "../../../../lib/ui/Avatar";
+import { Icon } from "../../../../lib/icons";
 import { useRouter } from "next/navigation";
 import { useAuthGate } from "../../../../lib/auth/useAuthGate";
 import {
@@ -256,13 +257,15 @@ function BuilderCard({ builder, profile, rank }) {
       {/* Stats grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         {[
-          { icon: "⭐", value: builder.avg_rating.toFixed(2), label: "Avg. Rating" },
-          { icon: "📦", value: profile.completed_projects ?? (builder.avg_rating > 4.9 ? "99+" : "50+"), label: "Orders Done" },
-          { icon: "⏱️", value: profile.response_time ?? "~3 hrs", label: "Response" },
-          { icon: "📅", value: profile.member_since ? new Date(profile.member_since).getFullYear() : "2022", label: "Member Since" },
+          { icon: "star", value: builder.avg_rating.toFixed(2), label: "Avg. Rating" },
+          { icon: "package", value: profile.completed_projects ?? (builder.avg_rating > 4.9 ? "99+" : "50+"), label: "Orders Done" },
+          { icon: "clock", value: profile.response_time ?? "~3 hrs", label: "Response" },
+          { icon: "calendar", value: profile.member_since ? new Date(profile.member_since).getFullYear() : "2022", label: "Member Since" },
         ].map(({ icon, value, label }) => (
           <div key={label} className="glass rounded-2xl p-3.5 text-center">
-            <p className="text-xl mb-0.5">{icon}</p>
+            <span className="icon-tile icon-tile-sm mx-auto mb-1.5 text-[#4ade80]">
+              <Icon name={icon} size={16} />
+            </span>
             <p className="font-bold text-sm">{value}</p>
             <p className="text-[10px] text-gray-500 uppercase tracking-wide mt-0.5">{label}</p>
           </div>
@@ -439,13 +442,13 @@ function OrderSidebar({ offer, rank, profile, onShowSoon, onOrder }) {
       {/* Trust badges */}
       <div className="pt-3 border-t border-white/[0.06] grid grid-cols-2 gap-2">
         {[
-          { icon: "🔒", label: "Escrow Protected" },
-          { icon: "↩️", label: "Revision Guarantee" },
-          { icon: "📁", label: "Files Included" },
-          { icon: "⚡", label: "Fast Delivery" },
+          { icon: "lock", label: "Escrow Protected" },
+          { icon: "revision", label: "Revision Guarantee" },
+          { icon: "files", label: "Files Included" },
+          { icon: "zap", label: "Fast Delivery" },
         ].map(({ icon, label }) => (
           <div key={label} className="flex items-center gap-1.5 text-[11px] text-gray-500">
-            <span>{icon}</span>
+            <Icon name={icon} size={13} className="text-[#4ade80]/80" />
             <span>{label}</span>
           </div>
         ))}

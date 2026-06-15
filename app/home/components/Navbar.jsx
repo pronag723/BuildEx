@@ -2,6 +2,7 @@
 
 import { withBase } from "../utils";
 import AuthNavControls from "../../auth/components/AuthNavControls";
+import { Icon } from "../../../lib/icons";
 
 export default function Navbar({
   navItems,
@@ -58,8 +59,8 @@ export default function Navbar({
               )
             }
           >
-            <span className="theme-switch-thumb absolute left-1 w-5 h-5 rounded-full bg-[#0f172a] shadow-lg transition-all duration-300 flex items-center justify-center text-xs">
-              {isLight ? "☀️" : "🌙"}
+            <span className="theme-switch-thumb absolute left-1 w-5 h-5 rounded-full bg-[#0f172a] shadow-lg transition-all duration-300 flex items-center justify-center text-white">
+              <Icon name={isLight ? "sun" : "moon"} size={12} strokeWidth={2} />
             </span>
           </button>
 

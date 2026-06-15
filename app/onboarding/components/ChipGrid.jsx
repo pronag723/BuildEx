@@ -1,11 +1,13 @@
 "use client";
 
+import { Icon } from "../../../lib/icons";
+
 /**
  * Animated selectable chips for multi/single-select inputs (styles, build
  * types, project types, interests).
  *
  * Props:
- *   - options:  [{ key, label, emoji? }]
+ *   - options:  [{ key, label, icon? }]
  *   - value:    array of selected keys (multi) OR single string (single)
  *   - onChange: (newValue) => void
  *   - multi:    bool (default true)
@@ -48,7 +50,7 @@ export default function ChipGrid({
             aria-pressed={isActive}
             className={`chip ${isActive ? "is-active" : ""}`}
           >
-            {opt.emoji && <span aria-hidden="true">{opt.emoji}</span>}
+            {opt.icon && <Icon name={opt.icon} size={16} className="chip-icon" />}
             <span>{opt.label}</span>
             <span className="chip-check" aria-hidden="true">
               <svg viewBox="0 0 12 10" className="w-2 h-2" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

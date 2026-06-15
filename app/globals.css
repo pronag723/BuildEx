@@ -193,6 +193,38 @@ body {
   box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.08);
 }
 
+/* ==================== ICON TILES ==================== */
+/* Rounded, glass-tinted container for category / feature / step / tier icons.
+   Unifies icon presentation after the emoji removal — gives every icon a
+   consistent premium "chip" instead of a bare glyph. */
+.icon-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  background: rgba(74, 222, 128, 0.1);
+  border: 1px solid rgba(74, 222, 128, 0.22);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.3s ease, background 0.3s ease;
+}
+.icon-tile-sm {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+}
+.icon-tile-lg {
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
+}
+.light .icon-tile {
+  background: rgba(74, 222, 128, 0.12);
+  border-color: rgba(34, 197, 94, 0.28);
+}
+
 /* ==================== CARDS & HOVER EFFECTS ==================== */
 .project-card,
 .how-step,
@@ -218,9 +250,9 @@ body {
 #why-buildex .card-hover:hover {
   transform: translateY(-6px) !important;
   box-shadow:
-    0 0 25px rgba(74, 222, 128, 0.3),
-    0 0 10px rgba(74, 222, 128, 0.1);
-  border-color: rgba(74, 222, 128, 0.5);
+    0 22px 45px -20px rgba(0, 0, 0, 0.65),
+    0 0 22px -4px rgba(74, 222, 128, 0.28);
+  border-color: rgba(74, 222, 128, 0.45);
 }
 
 /* Light theme card hover */
@@ -238,9 +270,9 @@ body {
 #hero .card-hover:hover,
 #hero .floating-card:hover {
   box-shadow:
-    0 0 25px rgba(74, 222, 128, 0.3),
-    0 0 10px rgba(74, 222, 128, 0.1);
-  border-color: rgba(74, 222, 128, 0.5);
+    0 22px 45px -20px rgba(0, 0, 0, 0.65),
+    0 0 22px -4px rgba(74, 222, 128, 0.28);
+  border-color: rgba(74, 222, 128, 0.45);
 }
 
 .light #hero .card-hover:hover,
@@ -1851,6 +1883,15 @@ body {
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   user-select: none;
   white-space: nowrap;
+}
+.chip-icon {
+  flex-shrink: 0;
+  opacity: 0.7;
+  transition: opacity 0.25s ease;
+}
+.chip:hover .chip-icon,
+.chip.is-active .chip-icon {
+  opacity: 1;
 }
 .chip:hover {
   border-color: rgba(74, 222, 128, 0.45);

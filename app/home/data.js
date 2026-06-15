@@ -96,20 +96,20 @@ export const projects = [
 
 export const steps = [
   {
-    icon: "🔎",
+    icon: "search",
     title: "1. Browse the Feed",
     body:
       "Explore a live feed of verified Minecraft builders. Filter by style, rank, and price, and view real portfolios before you reach out."
   },
   {
-    icon: "🤝",
+    icon: "handshake",
     title: "2. Hire Directly",
     body:
       "Found the right builder? Message and hire them directly, then track your order from start to delivery - world files or schematics, reviewed before release.",
     className: "relative md:-mt-4"
   },
   {
-    icon: "⭐",
+    icon: "wallet",
     title: "3. Pay Nothing Extra",
     body:
       "Clients pay only the build price. Builders cover the platform commission, and a higher rank means a lower fee for the builder."
