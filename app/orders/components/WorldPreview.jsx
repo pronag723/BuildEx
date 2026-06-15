@@ -18,11 +18,24 @@
 import { useEffect, useRef, useState } from "react";
 import { getPreviewUrl } from "../../../lib/orders/api";
 
-export default function WorldPreview({ orderId, loadPreview, onClose }) {
+// ─── Reusable viewer ─────────────────────────────────────────────────────────
+// Owns the fetch/decode → three.js render pipeline and renders into its own
+// mount. Used both by the full-screen WorldPreview modal (buyer/admin, URL
+// source) and inline in the builder's DeliverModal (in-memory bytes source).
+//
+// `source` is one of:
+//   { bytes }              — decode an in-memory artifact directly (no network).
+//   { orderId }            — fetch via the participant-only getPreviewUrl.
+//   { loadPreview }        — custom loader returning { url, meta, error }
+//                            (e.g. the admin console's signed-URL minter).
+// `className` styles the canvas mount (height/rounding). `onMeta` reports the
+// decoded artifact meta to the parent once known.
+export function PreviewViewer({ source, className, onMeta }) {
   const mountRef = useRef(null);
   const [status, setStatus] = useState("loading"); // loading | ready | error | empty
   const [message, setMessage] = useState(null);
-  const [meta, setMeta] = useState(null);
+
+  const { bytes, orderId, loadPreview } = source || {};
 
   useEffect(() => {
     let disposed = false;
@@ -30,23 +43,26 @@ export default function WorldPreview({ orderId, loadPreview, onClose }) {
 
     (async () => {
       try {
-        // 1. Resolve + fetch the artifact. The default loader uses the
-        // participant-only getPreviewUrl; the admin console passes its own
-        // loader that mints a signed URL via the admin storage policy.
-        const loader = loadPreview || (() => getPreviewUrl(orderId));
-        const { url, meta: m, error } = await loader();
-        if (disposed) return;
-        if (error) throw error;
-        if (!url) {
-          setStatus("empty");
-          return;
+        // 1. Resolve the gzipped artifact bytes. In-memory bytes skip the
+        //    network entirely; otherwise resolve a signed URL and fetch it.
+        let gz;
+        if (bytes) {
+          gz = bytes;
+        } else {
+          const loader = loadPreview || (() => getPreviewUrl(orderId));
+          const { url, meta: m, error } = await loader();
+          if (disposed) return;
+          if (error) throw error;
+          if (!url) {
+            setStatus("empty");
+            return;
+          }
+          if (m) onMeta?.(m);
+          const res = await fetch(url);
+          if (!res.ok) throw new Error(`Failed to fetch preview (${res.status})`);
+          gz = new Uint8Array(await res.arrayBuffer());
+          if (disposed) return;
         }
-        setMeta(m);
-
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`Failed to fetch preview (${res.status})`);
-        const gz = new Uint8Array(await res.arrayBuffer());
-        if (disposed) return;
 
         // 2. Decode (lazy — pulls fflate + the artifact codec only when viewed).
         const [{ gunzipSync }, { decodePreview }] = await Promise.all([
@@ -59,6 +75,7 @@ export default function WorldPreview({ orderId, loadPreview, onClose }) {
           setStatus("empty");
           return;
         }
+        onMeta?.({ voxelCount: model.voxelCount, bounds: model.bounds });
 
         // 3. Lazy-load three.js + OrbitControls and build the scene.
         const THREE = await import("three");
@@ -80,7 +97,35 @@ export default function WorldPreview({ orderId, loadPreview, onClose }) {
       disposed = true;
       cleanup();
     };
-  }, [orderId, loadPreview]);
+    // Re-mount the scene whenever the source artifact changes (e.g. the builder
+    // regenerates with new coordinates/radius).
+  }, [bytes, orderId, loadPreview, onMeta]);
+
+  return (
+    <div className="relative rounded-2xl overflow-hidden border border-white/10 bg-black/40">
+      <div ref={mountRef} className={className || "w-full h-[60vh] min-h-[320px]"} />
+      {status !== "ready" && (
+        <div className="absolute inset-0 flex items-center justify-center text-center px-6">
+          {status === "loading" && (
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-8 h-8 rounded-full border-2 border-[#4ade80] border-t-transparent animate-spin" />
+              <p className="text-xs text-gray-400">Building the 3D scene…</p>
+            </div>
+          )}
+          {status === "empty" && (
+            <p className="text-sm text-gray-400">
+              No 3D preview is available for this delivery.
+            </p>
+          )}
+          {status === "error" && <p className="text-sm text-red-400">{message}</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function WorldPreview({ orderId, loadPreview, onClose }) {
+  const [meta, setMeta] = useState(null);
 
   return (
     <div
@@ -109,29 +154,13 @@ export default function WorldPreview({ orderId, loadPreview, onClose }) {
           </button>
         </div>
 
-        <div className="relative rounded-2xl overflow-hidden border border-white/10 bg-black/40">
-          <div ref={mountRef} className="w-full h-[60vh] min-h-[320px]" />
-          {status !== "ready" && (
-            <div className="absolute inset-0 flex items-center justify-center text-center px-6">
-              {status === "loading" && (
-                <div className="flex flex-col items-center gap-3">
-                  <div className="w-8 h-8 rounded-full border-2 border-[#4ade80] border-t-transparent animate-spin" />
-                  <p className="text-xs text-gray-400">Building the 3D scene…</p>
-                </div>
-              )}
-              {status === "empty" && (
-                <p className="text-sm text-gray-400">
-                  No 3D preview is available for this delivery.
-                </p>
-              )}
-              {status === "error" && (
-                <p className="text-sm text-red-400">{message}</p>
-              )}
-            </div>
-          )}
-        </div>
+        <PreviewViewer
+          source={{ orderId, loadPreview }}
+          onMeta={setMeta}
+          className="w-full h-[60vh] min-h-[320px]"
+        />
 
-        {status === "ready" && meta?.voxelCount && (
+        {meta?.voxelCount && (
           <p className="text-[11px] text-gray-500 mt-2">
             {meta.voxelCount.toLocaleString()} surface blocks ·{" "}
             {meta.bounds?.size?.join(" × ")} region

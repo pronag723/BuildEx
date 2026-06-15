@@ -33,10 +33,16 @@ import {
 import { generatePreview } from "../../../lib/preview/client";
 import { leaveReview, fetchOrderReview } from "../../../lib/reviews/api";
 import { openDispute, fetchOrderDispute } from "../../../lib/disputes/api";
-import { formatPrice, SIZE_META } from "../../../lib/pricing";
+import {
+  formatPrice,
+  SIZE_META,
+  suggestedPreviewRadius,
+  PREVIEW_RADIUS_MIN,
+  PREVIEW_RADIUS_MAX,
+} from "../../../lib/pricing";
 import CatalogNavbar from "../../builders/components/CatalogNavbar";
 import CatalogMobileMenu from "../../builders/components/CatalogMobileMenu";
-import WorldPreview from "./WorldPreview";
+import WorldPreview, { PreviewViewer } from "./WorldPreview";
 import { useGradientBackground } from "../../../lib/ui/useGradientBackground";
 
 // ─── Status display tables ──────────────────────────────────────────────────
@@ -659,6 +665,7 @@ function OrderDetail({ orderId, meId, onBack }) {
       {deliverOpen && (
         <DeliverModal
           orderId={order.id}
+          buildingSize={order.building_size}
           onClose={() => setDeliverOpen(false)}
           onDelivered={() => {
             setDeliverOpen(false);
@@ -1513,7 +1520,106 @@ const FATAL_WORLD_CODES = new Set(["parse_failed", "no_regions", "empty"]);
 // the build coordinates and regenerating.
 const COORD_PROMPT_CODES = new Set(["needs_coords", "too_large"]);
 
-function DeliverModal({ orderId, onClose, onDelivered }) {
+// Coordinate + capture-area form, shared by the auto-detect-failed prompt and
+// the post-success "Adjust area" panel. The radius is pre-filled from the
+// order size and shown read-only; the builder can opt in to a slider to widen
+// or narrow the captured cube before (re)generating.
+function CoordForm({
+  coords,
+  setCoords,
+  radius,
+  setRadius,
+  baseRadius,
+  buildingSize,
+  editRadius,
+  setEditRadius,
+  busy,
+  generating,
+  onGenerate,
+  tone, // "warn" | "neutral"
+  intro,
+  submitLabel,
+}) {
+  const sizeLabel = SIZE_META[buildingSize]?.label || buildingSize || "this";
+  const span = radius * 2;
+  const box =
+    tone === "warn"
+      ? "bg-amber-400/[0.06] border-amber-400/20"
+      : "bg-white/[0.03] border-white/10";
+
+  return (
+    <div className={`mt-4 p-3 rounded-2xl border ${box}`}>
+      {intro}
+      <div className="grid grid-cols-3 gap-2">
+        {["x", "y", "z"].map((axis) => (
+          <label key={axis} className="block">
+            <span className="text-[10px] text-gray-400 uppercase tracking-widest block mb-1">
+              {axis.toUpperCase()}
+              {axis === "y" && " (opt.)"}
+            </span>
+            <input
+              type="number"
+              inputMode="numeric"
+              value={coords[axis]}
+              onChange={(e) => setCoords((c) => ({ ...c, [axis]: e.target.value }))}
+              disabled={busy}
+              placeholder={axis === "y" ? "—" : "0"}
+              className="w-full px-3 py-2 rounded-xl bg-black/30 border border-white/10 text-sm text-white placeholder:text-gray-600 focus:border-[#4ade80]/60 focus:outline-none"
+            />
+          </label>
+        ))}
+      </div>
+
+      {/* Capture area — auto-derived from the order size, with an opt-in slider. */}
+      <div className="mt-3 flex items-center justify-between gap-2">
+        <p className="text-[11px] text-gray-400">
+          Capture area: <strong className="text-gray-200">~{span}×{span} blocks</strong>
+          {!editRadius && <> · from {sizeLabel} order</>}
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            if (editRadius) setRadius(baseRadius); // reset to suggested on collapse
+            setEditRadius((v) => !v);
+          }}
+          disabled={busy}
+          className="text-[11px] font-semibold text-[#4ade80] hover:underline disabled:opacity-50"
+        >
+          {editRadius ? "Use suggested" : "Edit area size"}
+        </button>
+      </div>
+      {editRadius && (
+        <div className="mt-2">
+          <input
+            type="range"
+            min={PREVIEW_RADIUS_MIN}
+            max={PREVIEW_RADIUS_MAX}
+            step={8}
+            value={radius}
+            onChange={(e) => setRadius(Number(e.target.value))}
+            disabled={busy}
+            className="w-full accent-[#4ade80]"
+          />
+          <div className="flex justify-between text-[10px] text-gray-500 mt-0.5">
+            <span>{PREVIEW_RADIUS_MIN * 2}×{PREVIEW_RADIUS_MIN * 2}</span>
+            <span>{PREVIEW_RADIUS_MAX * 2}×{PREVIEW_RADIUS_MAX * 2} blocks</span>
+          </div>
+        </div>
+      )}
+
+      <button
+        type="button"
+        onClick={onGenerate}
+        disabled={busy}
+        className="mt-3 w-full px-4 py-2.5 rounded-full text-sm font-bold bg-[#4ade80] text-black green-glow hover:bg-[#22c55e] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {generating ? "Generating…" : submitLabel}
+      </button>
+    </div>
+  );
+}
+
+function DeliverModal({ orderId, buildingSize, onClose, onDelivered }) {
   const [file, setFile] = useState(null);
   const [note, setNote] = useState("");
 
@@ -1521,7 +1627,15 @@ function DeliverModal({ orderId, onClose, onDelivered }) {
   const [previewState, setPreviewState] = useState("idle");
   const [previewBytes, setPreviewBytes] = useState(null);
   const [previewMeta, setPreviewMeta] = useState(null);
+  const [genId, setGenId] = useState(0); // bumps per successful render → remounts viewer
   const [coords, setCoords] = useState({ x: "", y: "", z: "" });
+
+  // Capture radius (clip half-width). Pre-filled from the order's size; the
+  // builder can reveal a slider to adjust it.
+  const baseRadius = useMemo(() => suggestedPreviewRadius(buildingSize), [buildingSize]);
+  const [radius, setRadius] = useState(baseRadius);
+  const [editRadius, setEditRadius] = useState(false);
+  const [adjustOpen, setAdjustOpen] = useState(false); // "Adjust area" panel on a ready preview
 
   const [delivering, setDelivering] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -1532,19 +1646,20 @@ function DeliverModal({ orderId, onClose, onDelivered }) {
 
   // Run the (required) preview generation. `center` scopes an infinite/terrain
   // world to the build's coordinates; null lets the encoder auto-detect first.
+  // `r` is the clip half-width used when scoped.
   const runPreview = useCallback(
-    async (theFile, center) => {
+    async (theFile, center, r) => {
       if (!theFile) return;
       setPreviewState("generating");
       setErrMsg(null);
       setProgress(0);
-      setPreviewBytes(null);
-      setPreviewMeta(null);
       try {
-        const opts = center ? { center } : {};
+        const opts = center ? { center, radius: r } : {};
         const { bytes, meta } = await generatePreview(theFile, setProgress, opts);
         setPreviewBytes(bytes);
         setPreviewMeta(meta);
+        setGenId((n) => n + 1);
+        setAdjustOpen(false);
         setPreviewState("ready");
       } catch (e) {
         if (e?.name === "PreviewError" && COORD_PROMPT_CODES.has(e.code)) {
@@ -1577,6 +1692,9 @@ function DeliverModal({ orderId, onClose, onDelivered }) {
       setPreviewBytes(null);
       setPreviewMeta(null);
       setCoords({ x: "", y: "", z: "" });
+      setRadius(baseRadius);
+      setEditRadius(false);
+      setAdjustOpen(false);
       if (!f) {
         setFile(null);
         return;
@@ -1592,7 +1710,7 @@ function DeliverModal({ orderId, onClose, onDelivered }) {
       // Kick off auto-detect immediately.
       runPreview(f, null);
     },
-    [runPreview]
+    [runPreview, baseRadius]
   );
 
   const onGenerateWithCoords = useCallback(() => {
@@ -1607,8 +1725,8 @@ function DeliverModal({ orderId, onClose, onDelivered }) {
       setErrMsg("Y must be a number, or leave it blank.");
       return;
     }
-    runPreview(file, { x, z, ...(yRaw === null ? {} : { y: yRaw }) });
-  }, [coords, file, runPreview]);
+    runPreview(file, { x, z, ...(yRaw === null ? {} : { y: yRaw }) }, radius || baseRadius);
+  }, [coords, file, radius, baseRadius, runPreview]);
 
   // Final step: upload the (already generated) preview + the locked world file,
   // then record the delivery. Gated on previewState === "ready".
@@ -1669,7 +1787,7 @@ function DeliverModal({ orderId, onClose, onDelivered }) {
         if (e.target === e.currentTarget && !busy) onClose?.();
       }}
     >
-      <div className="glass rounded-3xl p-6 sm:p-8 max-w-lg w-full">
+      <div className="glass rounded-3xl p-6 sm:p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto">
         <h2 className="font-bold text-lg mb-1">Deliver the world</h2>
         <p className="text-xs text-gray-500 mb-5">
           Upload the finished build as a <code>.zip</code>. We generate a 3D
@@ -1715,42 +1833,31 @@ function DeliverModal({ orderId, onClose, onDelivered }) {
         </label>
 
         {/* Coordinate prompt — shown when auto-detect couldn't isolate the build
-            (infinite / terrain worlds). The builder reads X/Y/Z off F3. */}
+            (infinite / terrain worlds). The builder reads X/Y/Z off F3, and the
+            capture radius is pre-filled from the order size. */}
         {showCoords && (
-          <div className="mt-4 p-3 rounded-2xl bg-amber-400/[0.06] border border-amber-400/20">
-            <p className="text-[11px] text-amber-200/90 mb-2 leading-relaxed">
-              We couldn't find the build automatically. Enter its approximate
-              coordinates (press <kbd className="px-1 rounded bg-black/40">F3</kbd>{" "}
-              in-game and read the XYZ at the build) and we'll preview just that area.
-            </p>
-            <div className="grid grid-cols-3 gap-2">
-              {["x", "y", "z"].map((axis) => (
-                <label key={axis} className="block">
-                  <span className="text-[10px] text-gray-400 uppercase tracking-widest block mb-1">
-                    {axis.toUpperCase()}
-                    {axis === "y" && " (opt.)"}
-                  </span>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    value={coords[axis]}
-                    onChange={(e) => setCoords((c) => ({ ...c, [axis]: e.target.value }))}
-                    disabled={busy}
-                    placeholder={axis === "y" ? "—" : "0"}
-                    className="w-full px-3 py-2 rounded-xl bg-black/30 border border-white/10 text-sm text-white placeholder:text-gray-600 focus:border-[#4ade80]/60 focus:outline-none"
-                  />
-                </label>
-              ))}
-            </div>
-            <button
-              type="button"
-              onClick={onGenerateWithCoords}
-              disabled={busy}
-              className="mt-3 w-full px-4 py-2.5 rounded-full text-sm font-bold bg-[#4ade80] text-black green-glow hover:bg-[#22c55e] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {previewState === "generating" ? "Generating…" : "Generate preview"}
-            </button>
-          </div>
+          <CoordForm
+            coords={coords}
+            setCoords={setCoords}
+            radius={radius}
+            setRadius={setRadius}
+            baseRadius={baseRadius}
+            buildingSize={buildingSize}
+            editRadius={editRadius}
+            setEditRadius={setEditRadius}
+            busy={busy}
+            generating={previewState === "generating"}
+            onGenerate={onGenerateWithCoords}
+            tone="warn"
+            submitLabel="Generate preview"
+            intro={
+              <p className="text-[11px] text-amber-200/90 mb-2 leading-relaxed">
+                We couldn't find the build automatically. Enter its approximate
+                coordinates (press <kbd className="px-1 rounded bg-black/40">F3</kbd>{" "}
+                in-game and read the XYZ at the build) and we'll preview just that area.
+              </p>
+            }
+          />
         )}
 
         {/* Progress bar (generating or uploading). */}
@@ -1773,14 +1880,59 @@ function DeliverModal({ orderId, onClose, onDelivered }) {
           </div>
         )}
 
+        {/* Inline review — the builder sees exactly what the buyer will, and can
+            re-center / resize the capture before delivering. */}
         {previewState === "ready" && !delivering && (
-          <p className="mt-4 text-xs text-[#4ade80] flex items-center gap-1.5">
-            <span aria-hidden>✓</span> 3D preview ready
-            {previewMeta?.voxelCount
-              ? ` — ${previewMeta.voxelCount.toLocaleString()} surface blocks`
-              : ""}
-            .
-          </p>
+          <div className="mt-4">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <p className="text-xs text-[#4ade80] flex items-center gap-1.5">
+                <span aria-hidden>✓</span> 3D preview ready
+                {previewMeta?.voxelCount
+                  ? ` — ${previewMeta.voxelCount.toLocaleString()} surface blocks`
+                  : ""}
+                .
+              </p>
+              <button
+                type="button"
+                onClick={() => setAdjustOpen((v) => !v)}
+                className="text-[11px] font-semibold text-gray-300 hover:text-white hover:underline"
+              >
+                {adjustOpen ? "Hide adjust" : "Adjust area"}
+              </button>
+            </div>
+            <PreviewViewer
+              key={genId}
+              source={{ bytes: previewBytes }}
+              className="w-full h-[320px]"
+            />
+            <p className="text-[10px] text-gray-500 mt-1.5">
+              Drag to rotate, scroll to zoom. This is the render the buyer reviews.
+            </p>
+            {adjustOpen && (
+              <CoordForm
+                coords={coords}
+                setCoords={setCoords}
+                radius={radius}
+                setRadius={setRadius}
+                baseRadius={baseRadius}
+                buildingSize={buildingSize}
+                editRadius={editRadius}
+                setEditRadius={setEditRadius}
+                busy={busy}
+                generating={previewState === "generating"}
+                onGenerate={onGenerateWithCoords}
+                tone="neutral"
+                submitLabel="Regenerate preview"
+                intro={
+                  <p className="text-[11px] text-gray-400 mb-2 leading-relaxed">
+                    Re-center the capture on the build (read X/Y/Z off{" "}
+                    <kbd className="px-1 rounded bg-black/40">F3</kbd> in-game) and
+                    regenerate. Adjust the area size if the build is cut off.
+                  </p>
+                }
+              />
+            )}
+          </div>
         )}
 
         {errMsg && <p className="mt-4 text-sm text-red-400">{errMsg}</p>}
