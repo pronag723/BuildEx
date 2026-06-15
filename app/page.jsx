@@ -68,55 +68,6 @@ export default function BuildExPage() {
   }, []);
 
   useEffect(() => {
-    function animateValue(el, start, end, duration) {
-      let startTimestamp = null;
-
-      const step = (timestamp) => {
-        if (!startTimestamp) startTimestamp = timestamp;
-        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-        const val = Math.floor(progress * (end - start) + start);
-        const suffix = el.dataset.suffix || "";
-
-        if (end >= 1000 && suffix === "+") {
-          el.textContent =
-            (val / 1000).toFixed(1).replace(/\.0$/, "") + "k";
-        } else {
-          el.textContent = val + suffix;
-        }
-
-        if (progress < 1) {
-          window.requestAnimationFrame(step);
-        } else if (end >= 1000 && suffix === "+") {
-          el.textContent =
-            (end / 1000).toFixed(1).replace(/\.0$/, "") + "k+";
-        } else {
-          el.textContent = end + suffix;
-        }
-      };
-
-      window.requestAnimationFrame(step);
-    }
-
-    const counters = document.querySelectorAll(".stat-counter");
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (!entry.isIntersecting) return;
-
-          entry.target.querySelectorAll(".count-up").forEach((counter) => {
-            animateValue(counter, 0, parseFloat(counter.dataset.count), 2000);
-          });
-          observer.unobserve(entry.target);
-        });
-      },
-      { threshold: 0.5 }
-    );
-
-    counters.forEach((counter) => observer.observe(counter));
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
     const gradientBg = gradientRef.current;
     const edgeGlow = edgeGlowRef.current;
     if (!gradientBg || !edgeGlow) return undefined;

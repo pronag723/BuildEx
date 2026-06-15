@@ -1,8 +1,39 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { withBase } from "../utils";
+import { fetchBuilders } from "../../builders/data/fetchBuilders";
 
 export default function HeroSection({ heroVisualRef, onAnchorClick }) {
+  // Real builder-presence figure for the floating badge. We reuse fetchBuilders
+  // (which already applies the busy/onboarding visibility rules and sets
+  // `online` from last_seen_at) instead of writing a bespoke count query.
+  // `label` stays null until the fetch resolves so we never flash a fake number.
+  const [badgeLabel, setBadgeLabel] = useState(null);
+
+  useEffect(() => {
+    let alive = true;
+    fetchBuilders().then(({ builders }) => {
+      if (!alive) return;
+      const list = builders || [];
+      const onlineCount = list.filter((b) => b.online).length;
+      if (onlineCount > 0) {
+        setBadgeLabel(
+          `${onlineCount} builder${onlineCount === 1 ? "" : "s"} online now`
+        );
+      } else if (list.length > 0) {
+        setBadgeLabel(
+          `${list.length} builder${list.length === 1 ? "" : "s"} available`
+        );
+      } else {
+        setBadgeLabel(null);
+      }
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   return (
     <section
       id="hero"
@@ -31,38 +62,6 @@ export default function HeroSection({ heroVisualRef, onAnchorClick }) {
             >
               Find Builders
             </a>
-          </div>
-          <div className="flex items-center gap-8 text-sm pt-2 stat-counter justify-center lg:justify-start">
-            <div>
-              <div
-                className="text-[#4ade80] font-semibold text-2xl count-up"
-                data-count="200"
-                data-suffix="+"
-              >
-                200+
-              </div>
-              <div className="text-gray-400">Active Builders</div>
-            </div>
-            <div>
-              <div
-                className="text-[#4ade80] font-semibold text-2xl count-up"
-                data-count="1200"
-                data-suffix="+"
-              >
-                1.2k+
-              </div>
-              <div className="text-gray-400">Projects Completed</div>
-            </div>
-            <div>
-              <div
-                className="text-[#4ade80] font-semibold text-2xl count-up"
-                data-count="4.9"
-                data-suffix=""
-              >
-                4.9
-              </div>
-              <div className="text-gray-400">Average Rating</div>
-            </div>
           </div>
         </div>
 
@@ -116,13 +115,15 @@ export default function HeroSection({ heroVisualRef, onAnchorClick }) {
             </div>
           </div>
 
-          <div className="absolute -right-16 bottom-48 glass rounded-2xl px-6 py-3 text-[#4ade80] text-sm flex items-center gap-3 border border-[#4ade80]/30 floating-card card-hover">
-            <span className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#4ade80] opacity-75" />
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-[#4ade80]" />
-            </span>
-            <span>17 builders online now</span>
-          </div>
+          {badgeLabel && (
+            <div className="absolute -right-16 bottom-48 glass rounded-2xl px-6 py-3 text-[#4ade80] text-sm flex items-center gap-3 border border-[#4ade80]/30 floating-card card-hover">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#4ade80] opacity-75" />
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-[#4ade80]" />
+              </span>
+              <span>{badgeLabel}</span>
+            </div>
+          )}
         </div>
       </div>
 

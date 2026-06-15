@@ -1,6 +1,7 @@
 "use client";
 
 import { testimonials } from "../data";
+import { withBase } from "../utils";
 
 export default function WhyBuildExSection() {
   return (
@@ -24,7 +25,7 @@ export default function WhyBuildExSection() {
             >
               <div className="flex items-center gap-4 mb-6">
                 <img
-                  src={testimonial.image}
+                  src={withBase(testimonial.image)}
                   alt={testimonial.name}
                   className="w-14 h-14 rounded-2xl object-cover"
                   loading="lazy"

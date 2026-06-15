@@ -80,7 +80,7 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
       style={{ animationDelay: `${animationDelay}ms` }}
     >
       {/* ── Portfolio carousel (full-bleed, swipeable thumbnails) ──────── */}
-      <div className="group/media relative h-52 flex-shrink-0 overflow-hidden bg-black/40">
+      <div className="group/media relative h-64 sm:h-72 flex-shrink-0 overflow-hidden bg-black/40">
         {count === 0 ? (
           <div className="w-full h-full bg-white/[0.03] flex items-center justify-center text-gray-600 text-sm">
             Portfolio coming soon

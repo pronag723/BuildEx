@@ -270,6 +270,25 @@ export default function MessageThread({
     onSendImage?.(file);
   }
 
+  // Paste an image straight from the clipboard (screenshot, copied file) — same
+  // upload path as the photo button, just sourced from the paste event instead
+  // of the file picker. Non-image pastes fall through to normal text behavior.
+  function onPaste(e) {
+    if (sending) return;
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    const files = [];
+    for (const item of items) {
+      if (item.kind === "file" && item.type.startsWith("image/")) {
+        const file = item.getAsFile();
+        if (file) files.push(file);
+      }
+    }
+    if (files.length === 0) return;
+    e.preventDefault();
+    files.forEach((file) => onSendImage?.(file));
+  }
+
   const peerName = peer?.display_name || peer?.username || "Builder";
 
   return (
@@ -437,6 +456,7 @@ export default function MessageThread({
             value={draft}
             onChange={autoGrow}
             onKeyDown={onKeyDown}
+            onPaste={onPaste}
             rows={1}
             placeholder={`Message ${peerName}…`}
             className="flex-1 resize-none bg-white/5 border border-white/10 focus:border-[#4ade80]/50 rounded-2xl px-4 py-2.5 text-sm outline-none transition-colors placeholder:text-gray-500 max-h-[140px]"

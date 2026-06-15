@@ -96,53 +96,53 @@ export const projects = [
 
 export const steps = [
   {
-    icon: "📝",
-    title: "1. Post or Browse",
+    icon: "🔎",
+    title: "1. Browse the Feed",
     body:
-      "Server owners post detailed projects. Builders browse open jobs and submit bids with their portfolio and timeline."
+      "Explore a live feed of verified Minecraft builders. Filter by style, rank, and price, and view real portfolios before you reach out."
   },
   {
-    icon: "🔒",
-    title: "2. Secure Escrow",
+    icon: "🤝",
+    title: "2. Hire Directly",
     body:
-      "Payment is safely held in escrow. Builders deliver world files or schematics. You review before anything is released.",
+      "Found the right builder? Message and hire them directly, then track your order from start to delivery - world files or schematics, reviewed before release.",
     className: "relative md:-mt-4"
   },
   {
-    icon: "💰",
-    title: "3. Get Paid",
+    icon: "⭐",
+    title: "3. Pay Nothing Extra",
     body:
-      "Once you approve the build, funds are instantly released to the builder. Higher rank = lower platform fee for you."
+      "Clients pay only the build price. Builders cover the platform commission, and a higher rank means a lower fee for the builder."
   }
 ];
 
 export const testimonials = [
   {
-    image: "https://picsum.photos/id/64/64/64",
-    name: "Alex",
-    role: "Server Owner, MysticMC",
+    image: "/avatars/reviewer-1.svg",
+    name: "EmberCraft",
+    role: "Server Owner, AetherMC",
     body:
-      '"BuildEx connected us with an incredible builder who created a spawn that our players absolutely love. The escrow system gave us peace of mind."'
+      '"I found a builder in the feed and hired them the same day. Our new spawn is stunning and players keep asking who made it. No bidding, no hassle."'
   },
   {
-    image: "https://picsum.photos/id/65/64/64",
-    name: "BlockVortex",
-    role: "Architect Builder",
+    image: "/avatars/reviewer-2.svg",
+    name: "VoxelVera",
+    role: "Master Builder",
     body:
-      "\"As a full-time builder, BuildEx is my main source of income. It's easy to find quality projects and the ranking system motivates me to keep improving.\""
+      "\"BuildEx is my main source of income. Clients reach out to me directly, the commission comes out of my side, and climbing rank keeps lowering my fee.\""
   },
   {
-    image: "https://picsum.photos/id/66/64/64",
-    name: "Sarah",
-    role: "Game Developer",
+    image: "/avatars/reviewer-3.svg",
+    name: "NovaForge",
+    role: "Network Admin, SkyRealms",
     body:
-      '"I needed a custom hub map for my minigame network. Within a week I had multiple bids from talented builders. The process was smooth and professional."'
+      '"Being able to see full portfolios before messaging anyone made hiring effortless. We picked a builder, tracked the order, and approved the delivery."'
   },
   {
-    image: "https://picsum.photos/id/67/64/64",
-    name: "Mike",
-    role: "Admin, SkyRealms",
+    image: "/avatars/reviewer-4.svg",
+    name: "QuartzKing",
+    role: "Game Studio Lead",
     body:
-      "\"The speed and quality of the builds we've received through BuildEx is unmatched. Definitely the best platform for Minecraft freelancers.\""
+      "\"I needed a custom hub map and had the right builder hired within minutes of browsing the feed. The whole process felt smooth and professional.\""
   }
 ];
