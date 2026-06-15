@@ -524,8 +524,11 @@ body {
    ============================================= */
 
 /* NAV WRAPPER */
+/* Match the content container (max-w-7xl = 80rem) so the floating pill's
+   edges line up with every section's blocks at all viewport widths. The
+   wrapper is w-full with px-6, so below 1280px it tracks the content gutter. */
 .nav-wrapper {
-  max-width: 70%;
+  max-width: 80rem;
 }
 
 .nav-links-gap {
@@ -723,18 +726,8 @@ body {
   transform: translateY(-8px) rotate(-45deg);
 }
 
-/* MEDIUM SCREENS (tablets / small laptops) */
-@media (max-width: 1550px) {
-  .nav-wrapper {
-    max-width: 88%;
-  }
-}
-
-@media (max-width: 1280px) {
-  .nav-wrapper {
-    max-width: 94%;
-  }
-}
+/* Below the 1280px cap the wrapper is naturally full-width; px-6 supplies the
+   same gutter as the content container, so no percentage overrides are needed. */
 
 /* Show mobile menu only on < lg */
 @media (min-width: 1024px) {
@@ -745,10 +738,6 @@ body {
 
 /* TABLET */
 @media (max-width: 1023px) {
-  .nav-wrapper {
-    max-width: 96%;
-  }
-
   #hero .hero-height {
     min-height: auto;
     padding-top: 60px;
@@ -910,10 +899,6 @@ body {
 
 /* LARGE / WIDE SCREENS (>1800px) */
 @media (min-width: 1800px) {
-  .nav-wrapper {
-    max-width: 60%;
-  }
-
   .hero-h1 {
     font-size: 5rem;
   }
