@@ -12,6 +12,18 @@
   box-sizing: border-box;
 }
 
+/* Prevent iOS Safari from auto-zooming when a form control is focused. The
+   browser only zooms when the field's font-size is below 16px, so we floor every
+   control at 16px on small screens. Pinch-zoom stays enabled (no maximum-scale),
+   keeping accessibility intact. */
+@media (max-width: 640px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
 textarea::-webkit-scrollbar-button {
   display: none;
 }
@@ -1535,6 +1547,438 @@ body {
 }
 .light .catalog-root .group:hover .text-gray-400 {
   color: #16a34a;
+}
+
+/* "Favorites only" toggle + any filter label that goes white on hover: in light
+   theme white is invisible on the light sidebar, so resolve hover to dark text. */
+.light .catalog-root .group:hover .group-hover\:text-white {
+  color: #0f172a;
+}
+
+/* Builder-card favorite heart: it sits on a dark bg-black/60 chip over the
+   thumbnail, so it must stay light in BOTH themes. The global
+   `.light .catalog-root .text-white` rule would otherwise darken the heart into
+   the dark chip and hide it. (The favorited state — green bg, dark heart — has no
+   .card-fav-btn class and is left untouched.) */
+.light .catalog-root .card-fav-btn {
+  color: #fff;
+}
+.light .catalog-root .card-fav-btn:hover {
+  color: #4ade80;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════ */
+/* BUILDEX — Homepage Features deck (swipeable cards)                          */
+/* ═══════════════════════════════════════════════════════════════════════════ */
+
+.features-deck-wrap {
+  max-width: 680px;
+  margin: 0 auto;
+  perspective: 1400px;
+}
+
+.features-deck {
+  position: relative;
+  min-height: 460px;
+}
+
+@media (min-width: 768px) {
+  .features-deck {
+    min-height: 380px;
+  }
+}
+
+.features-card {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform-origin: center bottom;
+  will-change: transform, opacity;
+}
+
+@media (min-width: 768px) {
+  .features-card {
+    flex-direction: row;
+    align-items: stretch;
+  }
+}
+
+.features-card.is-front {
+  cursor: grab;
+}
+.features-card.is-front:active {
+  cursor: grabbing;
+}
+
+.features-card-mock {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.75rem;
+  background:
+    radial-gradient(120% 120% at 50% 0%, rgba(74, 222, 128, 0.12), transparent 70%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+@media (min-width: 768px) {
+  .features-card-mock {
+    flex: 0 0 44%;
+    border-bottom: 0;
+    border-right: 1px solid rgba(255, 255, 255, 0.07);
+  }
+}
+
+.features-card-body {
+  flex: 1 1 auto;
+  padding: 1.75rem 1.75rem 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.features-bullets {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-top: auto;
+}
+.features-bullets li {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.85rem;
+  color: #cbd5e1;
+}
+.light .features-bullets li {
+  color: #475569;
+}
+
+/* Controls */
+.features-arrow {
+  width: 2.75rem;
+  height: 2.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.1);
+  border: 1px solid rgba(74, 222, 128, 0.3);
+  transition: all 0.2s ease;
+}
+.features-arrow:hover {
+  background: #4ade80;
+  color: #052e16;
+  box-shadow: 0 0 18px rgba(74, 222, 128, 0.45);
+}
+
+.features-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.25);
+  transition: all 0.25s ease;
+}
+.light .features-dot {
+  background: rgba(15, 23, 42, 0.2);
+}
+.features-dot.is-active {
+  width: 26px;
+  background: #4ade80;
+}
+
+/* ── In-card mockups ───────────────────────────────────────────────────────── */
+.fd-mock {
+  width: 100%;
+  max-width: 260px;
+}
+
+/* 3D preview */
+.fd-mock-preview {
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+.fd-viewer-bar {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.fd-viewer-bar .fd-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.25);
+}
+.fd-viewer-label {
+  margin-left: auto;
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  color: #94a3b8;
+  text-transform: uppercase;
+}
+.fd-stage {
+  height: 132px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  perspective: 600px;
+}
+.fd-voxel {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  transform-style: preserve-3d;
+  transform: rotateX(-26deg) rotateY(-36deg);
+  animation: fdSpin 9s linear infinite;
+}
+@keyframes fdSpin {
+  to {
+    transform: rotateX(-26deg) rotateY(324deg);
+  }
+}
+.fd-face {
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  border: 1px solid rgba(74, 222, 128, 0.5);
+}
+.fd-face.fd-top {
+  background: rgba(74, 222, 128, 0.55);
+  transform: rotateX(90deg) translateZ(32px);
+}
+.fd-face.fd-left {
+  background: rgba(74, 222, 128, 0.28);
+  transform: rotateY(-90deg) translateZ(32px);
+}
+.fd-face.fd-right {
+  background: rgba(74, 222, 128, 0.4);
+  transform: translateZ(32px);
+}
+.fd-hint {
+  padding: 6px 10px 9px;
+  font-size: 0.6rem;
+  color: #64748b;
+  text-align: center;
+}
+
+/* Escrow */
+.fd-mock-escrow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+.fd-lock {
+  width: 56px;
+  height: 56px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.12);
+  border: 1px solid rgba(74, 222, 128, 0.35);
+}
+.fd-flow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.fd-node {
+  font-size: 0.66rem;
+  padding: 4px 8px;
+  border-radius: 9999px;
+  color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  white-space: nowrap;
+}
+.fd-node-active {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.12);
+  border-color: rgba(74, 222, 128, 0.4);
+}
+.fd-line {
+  width: 14px;
+  height: 1px;
+  background: rgba(74, 222, 128, 0.4);
+}
+.fd-escrow-note {
+  font-size: 0.62rem;
+  color: #64748b;
+  text-align: center;
+}
+
+/* Rank ladder */
+.fd-mock-rank {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.fd-rank-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fd-rank-name {
+  width: 58px;
+  font-size: 0.66rem;
+  color: #cbd5e1;
+}
+.light .fd-rank-name {
+  color: #475569;
+}
+.fd-rank-bar {
+  flex: 1;
+  height: 7px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.fd-rank-fill {
+  display: block;
+  height: 100%;
+  border-radius: 9999px;
+  background: rgba(74, 222, 128, 0.5);
+}
+.fd-rank-fill.fd-rank-top {
+  background: #4ade80;
+  box-shadow: 0 0 10px rgba(74, 222, 128, 0.6);
+}
+.fd-rank-pct {
+  width: 30px;
+  text-align: right;
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: #4ade80;
+}
+
+/* Reviews */
+.fd-mock-review {
+  width: 100%;
+  max-width: 260px;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 14px;
+}
+.fd-review-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.fd-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.15);
+  border: 1px solid rgba(74, 222, 128, 0.35);
+}
+.fd-review-name {
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.fd-stars {
+  display: flex;
+  gap: 1px;
+  margin-top: 2px;
+}
+.fd-star {
+  color: #fbbf24;
+  fill: #fbbf24;
+}
+.fd-verified {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.56rem;
+  color: #4ade80;
+}
+.fd-review-body {
+  margin-top: 10px;
+  font-size: 0.74rem;
+  line-height: 1.5;
+  color: #94a3b8;
+}
+
+/* Chat + tracking */
+.fd-mock-chat {
+  width: 100%;
+  max-width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.fd-bubble {
+  max-width: 82%;
+  font-size: 0.72rem;
+  padding: 7px 11px;
+  border-radius: 14px;
+}
+.fd-bubble-in {
+  align-self: flex-start;
+  color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.07);
+  border-bottom-left-radius: 4px;
+}
+.light .fd-bubble-in {
+  color: #334155;
+  background: rgba(15, 23, 42, 0.06);
+}
+.fd-bubble-out {
+  align-self: flex-end;
+  color: #052e16;
+  background: #4ade80;
+  border-bottom-right-radius: 4px;
+}
+.fd-track {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.fd-track-step {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.58rem;
+  color: #64748b;
+}
+.fd-track-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.2);
+}
+.fd-track-dot.fd-track-done {
+  background: #4ade80;
+  box-shadow: 0 0 8px rgba(74, 222, 128, 0.5);
+}
+
+/* Respect reduced-motion: stop the voxel spin. */
+@media (prefers-reduced-motion: reduce) {
+  .fd-voxel {
+    animation: none;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════ */

@@ -17,6 +17,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { getPreviewUrl } from "../../../lib/orders/api";
+import { useScrollLock } from "../../../lib/useScrollLock";
 
 // ─── Reusable viewer ─────────────────────────────────────────────────────────
 // Owns the fetch/decode → three.js render pipeline and renders into its own
@@ -126,6 +127,9 @@ export function PreviewViewer({ source, className, onMeta }) {
 
 export default function WorldPreview({ orderId, loadPreview, onClose }) {
   const [meta, setMeta] = useState(null);
+
+  // Lock the page behind the dimmed overlay so it can't scroll underneath.
+  useScrollLock(true);
 
   return (
     <div

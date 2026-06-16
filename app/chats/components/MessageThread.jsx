@@ -6,6 +6,7 @@ import { publicAsset } from "../../home/utils";
 import { formatPrice, SIZE_META } from "../../../lib/pricing";
 import { Icon } from "../../../lib/icons";
 import WorldPreview from "../../orders/components/WorldPreview";
+import { useScrollLock } from "../../../lib/useScrollLock";
 
 function IconSend({ className = "w-5 h-5" }) {
   return (
@@ -230,6 +231,10 @@ export default function MessageThread({
   const scrollRef = useRef(null);
   const taRef = useRef(null);
   const fileRef = useRef(null);
+
+  // Lock page scroll while the image lightbox is open so the thread behind the
+  // dimmed overlay can't scroll. (The 3D WorldPreview locks itself.)
+  useScrollLock(!!lightboxUrl);
 
   // Stick to the bottom as messages arrive / the thread switches.
   useEffect(() => {

@@ -2,6 +2,7 @@ export const navItems = [
   { href: "/builders", label: "Browse Builders" },
   { href: "#projects", label: "Top Projects" },
   { href: "#how-it-works", label: "How It Works" },
+  { href: "#features", label: "Features" },
   { href: "#why-buildex", label: "Why Buildex" }
 ];
 

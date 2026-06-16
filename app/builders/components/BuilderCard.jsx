@@ -186,7 +186,7 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
               className={`w-9 h-9 flex items-center justify-center rounded-full backdrop-blur-md border transition-all duration-200 ${
                 favorited
                   ? "bg-[#4ade80] text-black border-[#4ade80] shadow-[0_0_16px_rgba(74,222,128,0.5)]"
-                  : "bg-black/60 text-white border-white/15 hover:border-[#4ade80]/60 hover:text-[#4ade80]"
+                  : "bg-black/60 text-white border-white/15 hover:border-[#4ade80]/60 hover:text-[#4ade80] card-fav-btn"
               }`}
             >
               <HeartIcon className="w-4 h-4" filled={favorited} />

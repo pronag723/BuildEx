@@ -8,6 +8,14 @@ export const metadata = {
     "Hire skilled Minecraft builders or find paid work building spawns, hubs, maps, and decorations."
 };
 
+// App Router viewport. width=device-width + initialScale 1 gives correct mobile
+// scaling; we deliberately leave pinch-zoom enabled (no maximumScale) — the
+// zoom-on-focus issue is solved by the 16px input floor in globals.css instead.
+export const viewport = {
+  width: "device-width",
+  initialScale: 1
+};
+
 // Supabase project origin (also the Storage CDN host for avatars/banners/
 // portfolio images). Warming the TLS connection here shaves the handshake off
 // the first image request, which matters a lot on higher-latency links.

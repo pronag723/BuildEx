@@ -14,7 +14,6 @@ import { useEffect, useState } from "react";
 
 import BuilderProfilePage from "./[username]/components/BuilderProfilePage";
 import BuilderNotFound from "./[username]/components/BuilderNotFound";
-import { getBuilder } from "../data/builders";
 import { fetchBuilderByUsername } from "../data/fetchBuilders";
 
 export default function ProfileByQueryPage() {
@@ -29,11 +28,9 @@ export default function ProfileByQueryPage() {
     }
 
     let cancelled = false;
-    // Demo data acts as an offline/no-Supabase fallback for the seeded usernames.
-    const demo = getBuilder(handle);
     fetchBuilderByUsername(handle).then(({ builder: row }) => {
       if (cancelled) return;
-      setBuilder(row || demo || null);
+      setBuilder(row || null);
       setLoading(false);
     });
 

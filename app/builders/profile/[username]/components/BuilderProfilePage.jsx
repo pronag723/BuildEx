@@ -836,19 +836,6 @@ export default function BuilderProfilePage({ builder }) {
                     </div>
                   );
                 })()}
-
-                <div className="mt-5 p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
-                  <div className="flex items-start gap-3">
-                    <span className="icon-tile icon-tile-sm flex-shrink-0 text-[#4ade80]">
-                      <Icon name="lightbulb" size={18} />
-                    </span>
-                    <div className="text-sm text-gray-400 leading-relaxed">
-                      <strong className="text-white">How pricing works:</strong> Every BuildEx commission is unique.
-                      Rates depend on build scale, complexity, custom particles, terrain work, and revision rounds.
-                      Send {builder.display_name} a message to receive a tailored quote for your project.
-                    </div>
-                  </div>
-                </div>
               </section>
 
               {/* Reviews */}

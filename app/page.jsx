@@ -9,6 +9,7 @@ import MobileMenu from "./home/components/MobileMenu";
 import HeroSection from "./home/components/HeroSection";
 import ProjectsSection from "./home/components/ProjectsSection";
 import HowItWorksSection from "./home/components/HowItWorksSection";
+import FeaturesDeckSection from "./home/components/FeaturesDeckSection";
 import WhyBuildExSection from "./home/components/WhyBuildExSection";
 import SiteFooter from "./home/components/SiteFooter";
 
@@ -300,6 +301,7 @@ export default function BuildExPage() {
         />
         <ProjectsSection onAnchorClick={handleAnchorClick} />
         <HowItWorksSection />
+        <FeaturesDeckSection />
         <WhyBuildExSection />
       </main>
       <SiteFooter />
