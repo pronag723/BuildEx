@@ -23,7 +23,7 @@ export default function Navbar({
             className="flex items-center gap-3 no-underline"
             onClick={(event) => onAnchorClick(event, "#hero")}
           >
-            <BxLogo className="w-9 h-9 flex-shrink-0" />
+            <BxLogo className="w-11 h-11 flex-shrink-0" />
             <span className="text-2xl font-bold tracking-tight logo-font nav-logo-text">
               Build
               <span className="text-[#4ade80] font-extrabold">Ex</span>
