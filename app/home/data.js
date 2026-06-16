@@ -8,90 +8,65 @@ export const navItems = [
 
 export const projects = [
   {
-    image: "/projects/elysium-cathedral.png",
-    alt: "Grand white cathedral with green dome at golden hour",
+    image: "/projects/dark-fantasy-castle.jpg",
+    alt: "Dark fantasy Minecraft castle build",
     rank: "Master",
-    title: "Elysium Fantasy Hub",
+    title: "Dark Fantasy Castle",
     builder: "PixelForge",
     rating: "4.98",
     price: "$1,250"
   },
   {
-    image: "/projects/teal-fantasy-palace.png",
-    alt: "Ornate fantasy palace with teal roofs and arched walkways",
+    image: "/projects/spawn-anarchy-1.jpg",
+    alt: "Minecraft anarchy spawn build",
     rank: "Architect",
-    title: "Neon District Spawn",
+    title: "Spawn Anarchy",
     builder: "BlockVortex",
     rating: "4.95",
     price: "$890"
   },
   {
-    image: "/projects/gothic-castle-night.png",
-    alt: "Gothic castle on a cliff at night with glowing windows",
+    image: "/projects/spawn-anarchy-2.jpg",
+    alt: "Minecraft anarchy spawn build design",
     rank: "Craftsman",
-    title: "Medieval Kingdom Castle",
+    title: "Spawn Anarchy",
     builder: "CraftEmpire",
     rating: "4.87",
     price: "$670"
   },
   {
-    image: "/projects/ocean-cathedral.png",
-    alt: "White cathedral with green roofs overlooking the ocean",
-    title: "Atlantis Underwater Base",
-    builder: "AquaBuilds",
-    rating: "4.9",
-    price: "$1,100"
-  },
-  {
-    image: "/projects/floating-island-palace.png",
-    alt: "Palace on a floating island above the clouds",
-    rank: "Master",
-    title: "Futuristic City Hub",
-    builder: "PixelForge",
-    rating: "4.97",
-    price: "$950"
-  },
-  {
-    image: "/projects/cherry-palace.png",
-    alt: "East Asian palace on a mountaintop at sunset with cherry blossoms",
-    title: "Mountain Fortress Spawn",
-    builder: "SummitBuilds",
-    rating: "4.82",
-    price: "$780"
-  },
-  {
-    image: "/projects/sky-temple-complex.png",
-    alt: "Temple complex on a floating island with pine trees",
-    title: "Jungle Temple Ruins",
-    builder: "NatureCraft",
-    rating: "4.91",
-    price: "$920"
-  },
-  {
-    image: "/projects/cloud-citadel.png",
-    alt: "Gothic citadel rising above the clouds at sunset",
-    title: "Epic Dragon Citadel",
-    builder: "DragonBuilds",
-    rating: "4.88",
-    price: "$1,450"
-  },
-  {
-    image: "/projects/throne-hall.png",
-    alt: "Medieval throne hall with red carpet and armor stands",
-    rank: "Master",
-    title: "Royal Great Hall",
+    image: "/projects/throne-hall-1.jpg",
+    alt: "Medieval throne hall interior Minecraft build",
+    title: "Throne Hall",
     builder: "CrownCraft",
     rating: "4.96",
     price: "$1,320"
   },
   {
-    image: "/projects/japanese-hall.png",
-    alt: "Japanese-style hall with cherry blossom tree and warm light",
-    rank: "Architect",
-    title: "Sakura Shrine Interior",
+    image: "/projects/japan-house.jpg",
+    alt: "Traditional Japanese house Minecraft build",
+    rank: "Master",
+    title: "Japan House",
     builder: "ZenBlocks",
     rating: "4.94",
     price: "$840"
+  },
+  {
+    image: "/projects/gray-citadel.jpg",
+    alt: "Gray stone citadel Minecraft build",
+    title: "Gray Citadel",
+    builder: "SummitBuilds",
+    rating: "4.82",
+    price: "$780"
+  },
+  {
+    image: "/projects/throne-hall-2.jpg",
+    alt: "Royal throne hall Minecraft interior",
+    rank: "Master",
+    title: "Throne Hall",
+    builder: "NatureCraft",
+    rating: "4.91",
+    price: "$920"
   }
 ];
 

@@ -26,7 +26,7 @@ function ProjectSet({ setIndex }) {
   return (
     <div className="inline-flex gap-6">
       {projects.map((project) => (
-        <ProjectCard key={`${setIndex}-${project.title}`} project={project} />
+        <ProjectCard key={`${setIndex}-${project.image}`} project={project} />
       ))}
     </div>
   );
@@ -36,13 +36,13 @@ export default function ProjectsSection({ onAnchorClick }) {
   return (
     <section id="projects" className="py-32 reveal">
       <div className="w-full px-6">
-        <div className="flex items-end justify-between mb-10 max-w-7xl mx-auto">
+        <div className="flex items-center justify-between mb-10 max-w-7xl mx-auto">
           <h2 className="text-4xl font-semibold">
             Top <span className="text-[#4ade80]">Builder&apos;s</span> Projects
           </h2>
           <a
             href={withBase("/builders")}
-            className="text-[#4ade80] hover:underline text-sm flex items-center gap-2"
+            className="hidden lg:flex text-[#4ade80] hover:underline text-sm items-center gap-2"
             onClick={(event) => onAnchorClick(event, "/builders")}
           >
             View all builders →
