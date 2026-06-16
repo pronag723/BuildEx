@@ -287,7 +287,7 @@ export default function FeaturesDeckSection() {
         </div>
 
         {/* Controls */}
-        <div className="flex items-center justify-center gap-5 mt-8">
+        <div className="flex items-center justify-center gap-5 mt-16">
           <button
             type="button"
             onClick={() => go(-1)}

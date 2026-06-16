@@ -9,6 +9,7 @@ export const catalogNavItems = [
   { path: "/", label: "Home" },
   { path: "/builders", label: "Browse Builders" },
   { path: "/#how-it-works", label: "How It Works" },
+  { path: "/#features", label: "Features" },
   { path: "/#why-buildex", label: "Why BuildEx" },
 ];
 
