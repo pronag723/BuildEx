@@ -20,7 +20,7 @@ export default function Navbar({
         <div className="flex items-center gap-3 flex-shrink-0">
           <a
             href="#hero"
-            className="flex items-center gap-3 no-underline"
+            className="flex items-center gap-1.5 no-underline"
             onClick={(event) => onAnchorClick(event, "#hero")}
           >
             <BxLogo className="w-11 h-11 flex-shrink-0" />
