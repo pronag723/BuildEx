@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Quicksand:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700;800&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -81,7 +81,7 @@ button {
 }
 
 .logo-font {
-  font-family: "Space Grotesk", "Inter", system-ui, sans-serif;
+  font-family: "Quicksand", "Space Grotesk", "Inter", system-ui, sans-serif;
 }
 
 /* ==================== ЯРКИЙ ГРАДИЕНТ, БЕГАЮЩИЙ ПО КРАЯМ ==================== */
