@@ -3,6 +3,7 @@
 import { withBase } from "../../home/utils";
 import { useThemedBackground } from "./useThemedBackground";
 import { Icon } from "../../../lib/icons";
+import BxLogo from "../../home/components/BxLogo";
 
 export default function AuthShell({ children }) {
   const { gradientRef, edgeGlowRef, isLight, setTheme } = useThemedBackground();
@@ -14,10 +15,8 @@ export default function AuthShell({ children }) {
 
       <header className="fixed top-3.5 left-1/2 -translate-x-1/2 z-50 w-full nav-wrapper px-6">
         <div className="glass nav-pill flex items-center justify-between shadow-2xl">
-          <a href={withBase("/")} className="flex items-center gap-3 no-underline">
-            <div className="w-9 h-9 bg-[#4ade80] rounded-2xl flex items-center justify-center text-black font-bold text-2xl logo-font flex-shrink-0">
-              B
-            </div>
+          <a href={withBase("/")} className="flex items-center gap-1.5 no-underline">
+            <BxLogo className="w-11 h-11 flex-shrink-0" />
             <span className="text-2xl font-bold tracking-tight logo-font nav-logo-text">
               Build<span className="text-[#4ade80] font-extrabold">Ex</span>
             </span>
