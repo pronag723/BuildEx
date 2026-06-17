@@ -20,7 +20,10 @@
   input,
   textarea,
   select {
-    font-size: 16px;
+    /* !important so this beats Tailwind size utilities (text-sm/text-xs) on the
+       fields — element selectors otherwise lose to those classes and iOS keeps
+       zooming. */
+    font-size: 16px !important;
   }
 }
 

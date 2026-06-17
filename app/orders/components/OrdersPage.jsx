@@ -1635,6 +1635,7 @@ function CoordForm({
 function DeliverModal({ orderId, buildingSize, onClose, onDelivered }) {
   const [file, setFile] = useState(null);
   const [note, setNote] = useState("");
+  const fileInputRef = useRef(null);
 
   // Preview lifecycle: idle → generating → ready | needs_coords | error.
   const [previewState, setPreviewState] = useState("idle");
@@ -1808,17 +1809,32 @@ function DeliverModal({ orderId, buildingSize, onClose, onDelivered }) {
           then confirms to unlock the file (the escrow lock).
         </p>
 
-        <label className="block">
+        {/* Not a <label>: a label would forward clicks to the hidden input,
+            double-firing the file dialog alongside the button's own onClick. */}
+        <div className="block">
           <span className="text-[11px] text-gray-500 uppercase tracking-widest block mb-1.5">
             World file
           </span>
+          {/* Hidden native input + custom trigger: a bare <input type=file>
+              renders its button label in the browser's OS locale (not English),
+              so we hide it and drive it from our own button. Mirrors the chat
+              photo / avatar uploaders. */}
           <input
+            ref={fileInputRef}
             type="file"
             accept=".zip,application/zip,application/x-zip-compressed"
             onChange={onPick}
             disabled={busy}
-            className="block w-full text-xs text-gray-300 file:mr-3 file:px-4 file:py-2 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-[#4ade80]/15 file:text-[#4ade80] hover:file:bg-[#4ade80]/25 file:cursor-pointer cursor-pointer"
+            className="hidden"
           />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={busy}
+            className="px-4 py-2 rounded-full text-xs font-bold bg-[#4ade80]/15 text-[#4ade80] hover:bg-[#4ade80]/25 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+          >
+            {file ? "Change file" : "Choose file"}
+          </button>
           <p className="text-[11px] text-gray-500 mt-1.5">
             Up to {humanFileSize(MAX_DELIVERY_BYTES)}.
             {file && (
@@ -1828,7 +1844,7 @@ function DeliverModal({ orderId, buildingSize, onClose, onDelivered }) {
               </>
             )}
           </p>
-        </label>
+        </div>
 
         <label className="block mt-4">
           <span className="text-[11px] text-gray-500 uppercase tracking-widest block mb-1.5">

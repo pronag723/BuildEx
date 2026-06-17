@@ -45,8 +45,12 @@ function IconBell({ className = "w-5 h-5" }) {
 // behave identically.
 export default function NotificationsBell() {
   const { status } = useAuth();
-  const { notifications, unreadCount, hasUnread, markRead, markAllRead, clearAll } =
+  const { notifications, unreadCount, hasUnread, markRead, clearAll } =
     useNotifications();
+  // The dropdown only lists unread notifications: once a notification is read
+  // (via a click here, or by navigating to its linked page) it drops out of the
+  // list. The badge/aria still use the context's full counts.
+  const visible = notifications.filter((n) => !n.read_at);
   const [open, setOpen] = useState(false);
   const [coords, setCoords] = useState(null);
   const buttonRef = useRef(null);
@@ -144,38 +148,26 @@ export default function NotificationsBell() {
           >
             <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between gap-3">
               <span className="text-sm font-semibold">Notifications</span>
-              {notifications.length > 0 && (
-                <div className="flex items-center gap-3">
-                  {hasUnread && (
-                    <button
-                      type="button"
-                      onClick={() => markAllRead()}
-                      tabIndex={open ? 0 : -1}
-                      className="text-xs text-[#4ade80] hover:underline"
-                    >
-                      Mark all read
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => clearAll()}
-                    tabIndex={open ? 0 : -1}
-                    className="text-xs text-gray-400 hover:text-red-300 hover:underline"
-                  >
-                    Clear all
-                  </button>
-                </div>
+              {visible.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => clearAll()}
+                  tabIndex={open ? 0 : -1}
+                  className="text-xs text-[#4ade80] hover:underline"
+                >
+                  Mark all as read
+                </button>
               )}
             </div>
 
             <div className="max-h-[60vh] overflow-y-auto hide-scrollbar">
-              {notifications.length === 0 ? (
+              {visible.length === 0 ? (
                 <div className="px-4 py-8 text-center text-sm text-gray-400">
                   You're all caught up.
                 </div>
               ) : (
                 <ul className="py-1 text-sm">
-                  {notifications.map((n) => {
+                  {visible.map((n) => {
                     const unread = !n.read_at;
                     const body = (
                       <>

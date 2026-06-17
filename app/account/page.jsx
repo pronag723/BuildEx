@@ -189,8 +189,12 @@ function ActiveOrdersSection({ userId }) {
               SIZE_META[o.building_size]?.label || o.building_size;
             return (
               <li key={o.id}>
-                <Link
-                  href={`/orders/?id=${encodeURIComponent(o.id)}`}
+                {/* A real anchor (not next/link): a full navigation reliably
+                    deep-links to the order. A next/link soft navigation doesn't
+                    surface ?id= to the orders page's mount-time readOrderId(),
+                    so it would land on the list instead. Mirrors NotificationsBell. */}
+                <a
+                  href={withBase(`/orders/?id=${encodeURIComponent(o.id)}`)}
                   className="flex items-center gap-3 p-3 rounded-2xl border border-white/10 hover:border-[#4ade80]/40 hover:bg-white/5 transition-all"
                 >
                   <Avatar
@@ -214,7 +218,7 @@ function ActiveOrdersSection({ userId }) {
                   <span className="font-bold text-[#4ade80] text-sm flex-shrink-0">
                     {formatPrice(o.price_kopecks)}
                   </span>
-                </Link>
+                </a>
               </li>
             );
           })}
