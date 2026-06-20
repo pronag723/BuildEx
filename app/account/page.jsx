@@ -562,65 +562,134 @@ function AboutSection({ profile, builderProfile, isBuilder, onSaved }) {
 }
 
 // ─── Payout (builders) ───────────────────────────────────────────────────────
-// Where the builder gets paid once an order completes. Captured now so the
-// Stage 12 payout system has a destination on file; method is crypto (USDT
-// wallet) or card (off-ramp contact). No money moves from this screen.
-const PAYOUT_METHODS = [
-  { key: "crypto", label: "Crypto (USDT)" },
-  { key: "card", label: "Card" },
+const PAYOUT_NETWORKS = [
+  {
+    key: "usdt_trc20",
+    label: "TRC-20",
+    badge: "USDT · TRC-20",
+    hint: "Tron network · lower fees · address starts with T",
+    placeholder: "T… (34 characters)",
+    regex: /^T[A-HJ-NP-Za-km-z1-9]{33}$/,
+    formatError: "Invalid TRC-20 address — must start with T and be exactly 34 characters.",
+  },
+  {
+    key: "usdt_erc20",
+    label: "ERC-20",
+    badge: "USDT · ERC-20",
+    hint: "Ethereum network · higher fees · address starts with 0x",
+    placeholder: "0x… (42 characters)",
+    regex: /^0x[0-9a-fA-F]{40}$/i,
+    formatError: "Invalid ERC-20 address — must start with 0x and be exactly 42 characters.",
+  },
 ];
 
-const PAYOUT_FIELD = {
-  crypto: {
-    label: "USDT wallet address",
-    placeholder: "e.g. TRC-20 / ERC-20 USDT address",
-    hint: "Paid in USDT to this wallet. Double-check the network and address — crypto transfers can't be reversed.",
-  },
-  card: {
-    label: "Payout contact",
-    placeholder: "Email or handle we can reach you at to arrange card payout",
-    hint: "Card payouts are arranged manually for now. We'll contact you here to settle.",
-  },
-};
+async function verifyWalletOnChain(networkKey, address) {
+  try {
+    if (networkKey === "usdt_trc20") {
+      const r = await fetch(
+        `https://apilist.tronscan.org/api/account?address=${encodeURIComponent(address)}`,
+        { headers: { Accept: "application/json" } },
+      );
+      if (!r.ok) return { state: "error", msg: "Couldn't reach Tron network to verify." };
+      const data = await r.json();
+      if (!data?.address || data.address !== address) {
+        return { state: "warn", msg: "Address not found on-chain yet — confirm it's yours before saving." };
+      }
+      return { state: "ok", msg: null };
+    }
+    if (networkKey === "usdt_erc20") {
+      const r = await fetch("https://cloudflare-eth.com", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", method: "eth_getBalance", params: [address, "latest"], id: 1 }),
+      });
+      if (!r.ok) return { state: "error", msg: "Couldn't reach Ethereum network to verify." };
+      const data = await r.json();
+      if (data?.error || !("result" in data)) return { state: "error", msg: "Couldn't verify this address." };
+      if (parseInt(data.result, 16) === 0) {
+        return { state: "warn", msg: "No on-chain activity detected — confirm it's your address before saving." };
+      }
+      return { state: "ok", msg: null };
+    }
+    return { state: "error", msg: "Unknown network." };
+  } catch {
+    return { state: "error", msg: "Couldn't reach verification service — double-check the address manually." };
+  }
+}
 
 function PayoutSection({ builderProfile, onSaved }) {
   const { user } = useAuth();
   const [editing, setEditing] = useState(false);
-  const [method, setMethod] = useState(builderProfile?.payout_method || null);
-  const [details, setDetails] = useState(builderProfile?.payout_details || "");
+  const [network, setNetwork] = useState(null);
+  const [address, setAddress] = useState("");
+  const [addrError, setAddrError] = useState(null);
+  const [verify, setVerify] = useState({ state: "idle", msg: null });
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
 
+  function resolveNetwork(method) {
+    if (method === "usdt_trc20" || method === "usdt_erc20") return method;
+    if (method === "crypto") return "usdt_trc20"; // legacy
+    return null;
+  }
+
   function startEdit() {
-    setMethod(builderProfile?.payout_method || null);
-    setDetails(builderProfile?.payout_details || "");
+    setNetwork(resolveNetwork(builderProfile?.payout_method));
+    setAddress(builderProfile?.payout_details || "");
+    setAddrError(null);
+    setVerify({ state: "idle", msg: null });
     setError(null);
     setEditing(true);
+  }
+
+  function pickNetwork(key) {
+    setNetwork(key);
+    setAddress("");
+    setAddrError(null);
+    setVerify({ state: "idle", msg: null });
+  }
+
+  function validateFormat(net, addr) {
+    if (!addr) return null;
+    const meta = PAYOUT_NETWORKS.find((n) => n.key === net);
+    return meta && !meta.regex.test(addr) ? meta.formatError : null;
+  }
+
+  function onAddressChange(val) {
+    setAddress(val);
+    setAddrError(validateFormat(network, val.trim()));
+    setVerify({ state: "idle", msg: null });
+  }
+
+  async function onAddressBlur() {
+    const trimmed = address.trim();
+    if (!trimmed || addrError || !network) return;
+    setVerify({ state: "checking", msg: null });
+    const result = await verifyWalletOnChain(network, trimmed);
+    setVerify(result);
   }
 
   async function save() {
     const supabase = getSupabaseClient();
     if (!supabase || !user?.id) return;
+    if (!network) { setError("Select a network first."); return; }
+    const trimmed = address.trim();
+    if (!trimmed) { setError("Enter your USDT wallet address."); return; }
+    const fmtErr = validateFormat(network, trimmed);
+    if (fmtErr) { setAddrError(fmtErr); return; }
     setSaving(true);
     setError(null);
-    const { error: err } = await saveBuilderPayout(supabase, user.id, {
-      method,
-      details,
-    });
+    const { error: err } = await saveBuilderPayout(supabase, user.id, { method: network, details: trimmed });
     setSaving(false);
-    if (err) {
-      setError(err.message || "Couldn't save.");
-      return;
-    }
+    if (err) { setError(err.message || "Couldn't save."); return; }
     setEditing(false);
     await onSaved?.();
   }
 
-  // A method with no details is incomplete; clearing the method entirely is fine.
-  const canSave = !method || details.trim().length > 0;
-  const savedMethod = builderProfile?.payout_method || null;
-  const savedLabel = PAYOUT_METHODS.find((m) => m.key === savedMethod)?.label;
-  const field = method ? PAYOUT_FIELD[method] : null;
+  const activeMeta = PAYOUT_NETWORKS.find((n) => n.key === network);
+  const canSave = !!network && !!address.trim() && !addrError;
+  const savedNetMeta = PAYOUT_NETWORKS.find((n) => n.key === resolveNetwork(builderProfile?.payout_method));
+  const savedWallet = builderProfile?.payout_details || null;
 
   return (
     <section className="reveal glass rounded-3xl p-6 lg:p-8">
@@ -636,76 +705,92 @@ function PayoutSection({ builderProfile, onSaved }) {
 
       {editing ? (
         <div className="space-y-5">
+          {/* Step 1: pick network */}
           <div>
-            <div className="onb-label mb-3">How would you like to be paid?</div>
-            <div
-              className="relative grid grid-cols-2 p-1 rounded-full bg-white/[0.04] border border-white/10"
-              role="radiogroup"
-              aria-label="Payout method"
-            >
-              {PAYOUT_METHODS.map((opt) => {
-                const isActive = opt.key === method;
-                return (
-                  <button
-                    key={opt.key}
-                    type="button"
-                    role="radio"
-                    aria-checked={isActive}
-                    onClick={() => setMethod(isActive ? null : opt.key)}
-                    className={`relative z-10 py-2.5 px-2 rounded-full text-xs sm:text-sm font-semibold transition-colors ${
-                      isActive
-                        ? "text-black bg-[#4ade80]"
-                        : "text-gray-400 hover:text-gray-200"
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                );
-              })}
+            <div className="onb-label mb-3">Network</div>
+            <div className="flex gap-2 flex-wrap">
+              {PAYOUT_NETWORKS.map((n) => (
+                <button
+                  key={n.key}
+                  type="button"
+                  onClick={() => pickNetwork(n.key)}
+                  className={`px-4 py-2 rounded-full text-sm font-semibold border transition-all ${
+                    network === n.key
+                      ? "bg-[#4ade80]/10 border-[#4ade80]/60 text-[#4ade80]"
+                      : "border-white/15 text-gray-400 hover:border-white/30 hover:text-gray-200"
+                  }`}
+                >
+                  USDT · {n.label}
+                </button>
+              ))}
             </div>
-            <p className="mt-2 text-xs text-gray-500">
-              Tap the selected method again to clear it.
-            </p>
+            {activeMeta && (
+              <p className="mt-2 text-xs text-gray-500">{activeMeta.hint}</p>
+            )}
           </div>
 
-          {field && (
+          {/* Step 2: enter address (appears only after network is chosen) */}
+          {network && (
             <div>
-              <label htmlFor="acc-payout-details" className="onb-label block mb-2">
-                {field.label}
+              <label htmlFor="acc-payout-address" className="onb-label block mb-2">
+                Wallet address
               </label>
-              <input
-                id="acc-payout-details"
-                type="text"
-                className="onb-input"
-                placeholder={field.placeholder}
-                value={details}
-                onChange={(e) => setDetails(e.target.value.slice(0, 400))}
-                maxLength={400}
-              />
-              <p className="mt-2 text-xs text-gray-500 leading-relaxed">{field.hint}</p>
+              <div className="relative">
+                <input
+                  id="acc-payout-address"
+                  type="text"
+                  className={`onb-input font-mono text-sm ${addrError ? "is-error" : verify.state === "ok" ? "is-success" : ""}`}
+                  style={{ paddingRight: "2.5rem" }}
+                  placeholder={activeMeta?.placeholder || ""}
+                  value={address}
+                  onChange={(e) => onAddressChange(e.target.value)}
+                  onBlur={onAddressBlur}
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                  {verify.state === "checking" && (
+                    <span className="block w-4 h-4 rounded-full border-2 border-[#4ade80]/40 border-t-[#4ade80] animate-spin" />
+                  )}
+                  {verify.state === "ok" && (
+                    <Icon name="check" size={16} strokeWidth={2.5} className="text-[#4ade80]" />
+                  )}
+                  {(verify.state === "warn" || verify.state === "error") && (
+                    <Icon name="alert-triangle" size={16} className="text-amber-400" />
+                  )}
+                </span>
+              </div>
+              {addrError ? (
+                <p className="mt-1.5 text-xs text-red-400">{addrError}</p>
+              ) : verify.msg ? (
+                <p className={`mt-1.5 text-xs ${verify.state === "ok" ? "text-[#4ade80]" : "text-amber-400"}`}>
+                  {verify.msg}
+                </p>
+              ) : (
+                <p className="mt-2 text-xs text-gray-500 leading-relaxed">
+                  Your earnings are paid in USDT to this wallet once an order completes.
+                  Double-check it — crypto transfers can&apos;t be reversed.
+                </p>
+              )}
             </div>
           )}
+
           {error && <div role="alert" className="auth-banner auth-banner-error">{error}</div>}
         </div>
       ) : (
         <div className="space-y-3">
-          {savedMethod ? (
+          {savedWallet ? (
             <>
               <div className="flex items-center gap-2">
                 <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[#4ade80]/10 border border-[#4ade80]/30 text-[#4ade80]">
-                  {savedLabel}
+                  {savedNetMeta?.badge || "Crypto (USDT)"}
                 </span>
               </div>
-              {builderProfile?.payout_details && (
-                <p className="text-sm text-gray-400 break-all">
-                  {builderProfile.payout_details}
-                </p>
-              )}
+              <p className="text-xs text-gray-400 break-all font-mono">{savedWallet}</p>
             </>
           ) : (
             <p className="text-gray-500 text-sm italic">
-              No payout method set yet. Click <strong>Edit</strong> to choose how
-              you&apos;d like to be paid.
+              No payout wallet set yet. Click <strong>Edit</strong> to add your USDT wallet.
             </p>
           )}
         </div>

@@ -220,3 +220,134 @@ export async function verifyWebhook(
     invoiceId: payload.payment_id != null ? String(payload.payment_id) : null,
   };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Mass Payout (platform → builder)
+//
+// Paying builders is a separate NOWPayments product from accepting invoices and
+// uses a DIFFERENT auth: a short-lived JWT obtained from the account
+// email+password (POST /v1/auth), sent as a Bearer token ALONGSIDE the x-api-key
+// header on the payout call. Each batch must then be confirmed with a 2FA code
+// (POST /v1/payout/{id}/verify) — there is no way around the 2FA, which is why
+// payouts are operator-driven from the admin console rather than automatic.
+//
+// Secrets: NOWPAYMENTS_EMAIL, NOWPAYMENTS_PASSWORD (for /v1/auth) +
+// NOWPAYMENTS_API_KEY (reused). The account must have Mass Payout enabled, 2FA
+// on, and a FUNDED USDT balance to pay out from.
+//
+// Re-confirm the exact request/response shapes against the live NOWPayments
+// payout docs before activating real payouts.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** A single crypto withdrawal in a payout batch. */
+export interface PayoutWithdrawal {
+  address: string; // builder's USDT wallet
+  amount: string; // amount in `currency`, as a string e.g. "18.20"
+  currency?: string; // payout currency; defaults to USDT TRC-20 ("usdttrc20")
+}
+
+export interface CreatePayoutResult {
+  batchId: string | null;
+  status: string | null;
+  raw: unknown;
+}
+
+/** Exchange the account email+password for a short-lived (~5 min) Bearer token. */
+async function nowpaymentsAuth(): Promise<string> {
+  const email = env("NOWPAYMENTS_EMAIL");
+  const password = env("NOWPAYMENTS_PASSWORD");
+
+  const res = await fetch(`${API_BASE}/auth`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  const raw = await res.json().catch(() => null);
+  if (!res.ok) {
+    throw new Error(
+      `NOWPayments auth failed (${res.status}): ${JSON.stringify(raw)}`,
+    );
+  }
+  const token = (raw as { token?: string })?.token;
+  if (!token) throw new Error("NOWPayments auth returned no token");
+  return token;
+}
+
+/**
+ * Create a Mass Payout batch (status WAITING). Returns the batch id, which must
+ * then be confirmed via verifyPayout() with the emailed 2FA code before funds
+ * actually move.
+ */
+export async function createPayout(
+  withdrawals: PayoutWithdrawal[],
+): Promise<CreatePayoutResult> {
+  if (!withdrawals.length) throw new Error("No withdrawals to pay out");
+
+  const apiKey = env("NOWPAYMENTS_API_KEY");
+  const token = await nowpaymentsAuth();
+
+  const body = {
+    ipn_callback_url: Deno.env.get("SUPABASE_URL")
+      ? `${Deno.env.get("SUPABASE_URL")}/functions/v1/payment-webhook`
+      : undefined,
+    withdrawals: withdrawals.map((w) => ({
+      address: w.address,
+      currency: (w.currency ?? "usdttrc20").toLowerCase(),
+      amount: Number(w.amount),
+    })),
+  };
+
+  const res = await fetch(`${API_BASE}/payout`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "Authorization": `Bearer ${token}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  const raw = await res.json().catch(() => null);
+  if (!res.ok) {
+    throw new Error(
+      `NOWPayments create-payout failed (${res.status}): ${JSON.stringify(raw)}`,
+    );
+  }
+
+  const result = raw as { id?: string | number; status?: string };
+  return {
+    batchId: result?.id != null ? String(result.id) : null,
+    status: result?.status != null ? String(result.status) : null,
+    raw,
+  };
+}
+
+/**
+ * Confirm a created payout batch with the 2FA verification code (emailed / from
+ * the authenticator). On success NOWPayments begins sending the withdrawals.
+ */
+export async function verifyPayout(
+  batchId: string,
+  code: string,
+): Promise<{ ok: boolean; raw: unknown }> {
+  const apiKey = env("NOWPAYMENTS_API_KEY");
+  const token = await nowpaymentsAuth();
+
+  const res = await fetch(`${API_BASE}/payout/${batchId}/verify`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "Authorization": `Bearer ${token}`,
+    },
+    body: JSON.stringify({ verification_code: code }),
+  });
+
+  const raw = await res.json().catch(() => null);
+  if (!res.ok) {
+    throw new Error(
+      `NOWPayments verify-payout failed (${res.status}): ${JSON.stringify(raw)}`,
+    );
+  }
+  return { ok: true, raw };
+}

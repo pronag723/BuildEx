@@ -34,6 +34,7 @@ import {
 import { generatePreview } from "../../../lib/preview/client";
 import { leaveReview, fetchOrderReview } from "../../../lib/reviews/api";
 import { openDispute, fetchOrderDispute } from "../../../lib/disputes/api";
+import { listMyPayouts } from "../../../lib/payouts/api";
 import {
   formatPrice,
   SIZE_META,
@@ -598,6 +599,11 @@ function OrderDetail({ orderId, meId, onBack }) {
               <Row label="Builder earns">
                 {formatPrice(order.builder_earnings_kopecks)}
               </Row>
+              {order.status === "completed" && (
+                <Row label="Payout">
+                  <BuilderPayoutChip orderId={order.id} />
+                </Row>
+              )}
             </>
           )}
         </dl>
@@ -754,6 +760,40 @@ function Row({ label, capitalize, children }) {
         {children}
       </dd>
     </div>
+  );
+}
+
+// ─── Builder payout chip ──────────────────────────────────────────────────────
+// Shows the payout status for a completed order (builder's view only). Self-
+// contained: loads the builder's own payouts (RLS-scoped) and looks this order up.
+const PAYOUT_CHIP = {
+  pending: { label: "Queued", cls: "bg-amber-400/10 border-amber-400/30 text-amber-300" },
+  processing: { label: "Sending", cls: "bg-sky-400/10 border-sky-400/30 text-sky-300" },
+  sent: { label: "Paid out", cls: "bg-emerald-400/15 border-emerald-400/30 text-emerald-300" },
+  failed: { label: "Retrying", cls: "bg-red-400/10 border-red-400/30 text-red-300" },
+  blocked: { label: "Add wallet", cls: "bg-gray-400/10 border-gray-400/30 text-gray-300" },
+};
+
+function BuilderPayoutChip({ orderId }) {
+  const [status, setStatus] = useState(undefined); // undefined = loading, null = none
+
+  useEffect(() => {
+    let alive = true;
+    listMyPayouts().then(({ byOrder }) => {
+      if (alive) setStatus(byOrder?.[orderId]?.status || null);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [orderId]);
+
+  if (status === undefined) return <span className="text-gray-500">…</span>;
+  if (status === null) return <span className="text-gray-500">—</span>;
+  const meta = PAYOUT_CHIP[status] || PAYOUT_CHIP.pending;
+  return (
+    <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${meta.cls}`}>
+      {meta.label}
+    </span>
   );
 }
 

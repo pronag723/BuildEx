@@ -14,3 +14,11 @@ verify_jwt = true
 # verification MUST be off or every callback would 401.
 [functions.payment-webhook]
 verify_jwt = false
+
+# create-payout / verify-payout are called by an admin from the Payouts console
+# (browser), so they verify the caller's JWT (and re-check is_admin in code).
+[functions.create-payout]
+verify_jwt = true
+
+[functions.verify-payout]
+verify_jwt = true

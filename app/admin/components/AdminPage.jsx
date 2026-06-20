@@ -30,6 +30,7 @@ import CatalogMobileMenu from "../../builders/components/CatalogMobileMenu";
 import { useGradientBackground } from "../../../lib/ui/useGradientBackground";
 import WorldPreview from "../../orders/components/WorldPreview";
 import StudiosConsole from "./StudiosConsole";
+import PayoutsConsole from "./PayoutsConsole";
 
 const STATUS_LABEL = {
   pending_payment: "Awaiting payment",
@@ -192,8 +193,21 @@ function AdminRoot() {
         >
           Studios
         </button>
+        <button
+          type="button"
+          onClick={() => setSection("payouts")}
+          className={`px-4 py-2 rounded-full text-sm font-bold border transition-all ${
+            section === "payouts"
+              ? "border-emerald-400 bg-emerald-500/15 text-emerald-300"
+              : "border-white/10 text-gray-300 hover:border-emerald-400/40 hover:bg-white/5"
+          }`}
+        >
+          Payouts
+        </button>
       </div>
-      {section === "orders" ? <ModeratorConsole /> : <StudiosConsole />}
+      {section === "orders" && <ModeratorConsole />}
+      {section === "studios" && <StudiosConsole />}
+      {section === "payouts" && <PayoutsConsole />}
     </div>
   );
 }
