@@ -708,8 +708,8 @@ NEXT_PUBLIC_BASE_PATH=
 > webhook secrets. The anon key is safe to expose *because* all access is gated by
 > Postgres RLS + `SECURITY DEFINER` RPCs (see `supabase/migrations/`).
 >
-> Any server-side secret (the service-role key, the Cryptomus payment keys and
-> webhook signing secret for the pending payment stage) belongs only in a Supabase
+> Any server-side secret (the service-role key, the NOWPayments API key and
+> IPN signing secret for the pending payment stage) belongs only in a Supabase
 > Edge Function's environment — never in this repo's build.
 
 ---

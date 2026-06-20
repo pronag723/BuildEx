@@ -6,10 +6,10 @@ Supabase Edge Functions (Deno):
 
 | Function | Auth | Purpose |
 |---|---|---|
-| `create-invoice` | JWT (buyer) | Creates a Cryptomus hosted checkout for a `pending_payment` order and returns the checkout URL. RLS proves the caller owns the order. |
-| `payment-webhook` | **none** (signature) | Cryptomus calls this on payment events. Verifies the request signature, then flips the order to `paid` via the service-role RPC `mark_order_paid_internal`. |
+| `create-invoice` | JWT (buyer) | Creates a NOWPayments hosted checkout for a `pending_payment` order and returns the checkout URL. RLS proves the caller owns the order. |
+| `payment-webhook` | **none** (signature) | NOWPayments calls this (IPN) on payment events. Verifies the HMAC-SHA512 signature, then flips the order to `paid` via the service-role RPC `mark_order_paid_internal`. |
 
-`_shared/cryptomus.ts` is the only Cryptomus-specific code (sign / create / verify);
+`_shared/nowpayments.ts` is the only provider-specific code (create / verify);
 swapping providers later means rewriting that one file.
 
 > **Dormant by default.** The web app only calls `create-invoice` when
@@ -18,26 +18,32 @@ swapping providers later means rewriting that one file.
 
 ---
 
-## 1. Get a Cryptomus account (operator action items)
+## 1. Get a NOWPayments account (operator action items)
 
-You don't have an account yet — here's exactly what to do, then hand the three
-values in step 4 to whoever sets the secrets.
+NOWPayments is globally available (works fine from Russia/CIS), takes individuals
+with light KYC, and settles in **USDT**. Here's exactly what to do, then hand the
+two values in step 4 to whoever sets the secrets.
 
-1. **Register** at <https://cryptomus.com>, verify your email, and complete
-   **identity KYC** (passport-level — this is *identity* verification, **not**
-   company registration, so it's fine that there's no company).
-2. **Create a Merchant** in the dashboard → copy the **Merchant UUID**.
-3. Under API settings, generate a **Payment API key** and a **Payout API key**
-   (payout is for the later automated-payout phase; grab it now).
-4. In the merchant payment settings:
-   - Enable **"client pays the commission"** so the processing fee is added on
-     top of the order for the buyer (this keeps the builder / studio / BuildEx
-     split exact — the app relies on it).
-   - Set the **callback / webhook URL** to your deployed `payment-webhook` URL:
+1. **Register** at <https://nowpayments.io>, verify your email.
+2. **Add a payout wallet** in *Settings → Coins / Payout wallet* — e.g. a USDT
+   (TRC-20) address. NOWPayments auto-converts incoming payments to this coin.
+   (Some withdrawal/payout features ask for light identity verification — provide
+   it if prompted; accepting payments does not require a company.)
+3. **Generate an API key** in *Settings → API keys* → copy the **API key**.
+4. Set up the **IPN (callback) secret** in *Settings → IPN*:
+   - Toggle IPN on and copy the **IPN secret key**.
+   - Set the **IPN callback URL** to your deployed `payment-webhook` URL:
      `https://<project-ref>.supabase.co/functions/v1/payment-webhook`
-5. Add a **USDT wallet** for settlement.
+5. *(Optional, for card payments)* enable the fiat/card on-ramp partners in the
+   dashboard if you want buyers to be able to pay by card as well as crypto.
 
-**Hand over:** `Merchant UUID`, `Payment API key`, `Payout API key`.
+**Hand over:** `API key`, `IPN secret key`.
+
+> NOWPayments charges the **merchant** a small (~0.5%) service fee. We pass it to
+> the buyer where the gateway allows (`is_fee_paid_by_user: true` on the invoice);
+> any residue simply comes out of BuildEx's platform margin. The builder / studio
+> commission split is computed off the order price in `place_order` and is **never**
+> affected.
 
 ---
 
@@ -45,9 +51,8 @@ values in step 4 to whoever sets the secrets.
 
 ```bash
 supabase secrets set \
-  CRYPTOMUS_MERCHANT_ID=<merchant-uuid> \
-  CRYPTOMUS_PAYMENT_KEY=<payment-api-key> \
-  CRYPTOMUS_PAYOUT_KEY=<payout-api-key>
+  NOWPAYMENTS_API_KEY=<api-key> \
+  NOWPAYMENTS_IPN_SECRET=<ipn-secret-key>
 ```
 
 `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` are injected
@@ -64,23 +69,23 @@ supabase functions deploy payment-webhook   # verify_jwt=false comes from config
 
 Set `NEXT_PUBLIC_PAYMENTS_ENABLED=true` in the GitHub Actions deploy env (the
 same place the `NEXT_PUBLIC_SUPABASE_*` build vars live) and redeploy the site.
-The checkout button drops "(mock)" and Pay now routes through Cryptomus.
+The checkout button drops "(mock)" and Pay now routes through NOWPayments.
 
-After a live card + crypto test pass, run a tiny `0032` migration to revoke the
-client mock:
+After a live test pass, run a tiny `0032` migration to revoke the client mock:
 
 ```sql
 revoke execute on function public.mark_order_paid(uuid) from authenticated;
 ```
 
-## 5. Verify (sandbox)
+## 5. Verify (sandbox / small live test)
 
-- Place an order, pay once **by card** and once **in crypto** → each fires the
-  webhook → the order flips to `paid`, and a `payments` row records the invoice.
-- POST a body with a **forged `sign`** to `payment-webhook` → it must return
-  `400 invalid signature` and **not** mark anything paid.
+- Place an order and pay it on the NOWPayments checkout → the IPN fires → the order
+  flips to `paid` only on the **`finished`** status, and a `payments` row records the
+  payment. (`waiting` / `confirming` / `partially_paid` must NOT mark it paid.)
+- POST a body with a **forged `x-nowpayments-sig`** header to `payment-webhook` → it
+  must return `400 invalid signature` and **not** mark anything paid.
 
-> ⚠️ Confirm the exact callback signature algorithm (base64 + slash-escaping
-> quirk) against the current Cryptomus docs when you activate — `verifyWebhook`
-> accepts both the plain and slash-escaped encodings, but the live format is the
-> source of truth.
+> ⚠️ Confirm the exact IPN signing recipe (HMAC-SHA512 over the JSON with keys
+> sorted alphabetically, keyed by the IPN secret) against the current NOWPayments
+> docs when you activate — `verifyWebhook` implements that recipe, but the live
+> format is the source of truth.

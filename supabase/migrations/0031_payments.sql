@@ -1,5 +1,5 @@
 -- =============================================================================
--- BuildEx — Real payments (Cryptomus, crypto + card)   [Stage 12 / Phase 3]
+-- BuildEx — Real payments (NOWPayments, crypto + card)   [Stage 12 / Phase 3]
 --
 -- Replaces the MOCK payment path (mark_order_paid in 0009) with a real,
 -- webhook-driven flow. BuildEx ships as a static export (no server), so the
@@ -20,7 +20,7 @@
 --
 -- DORMANT BY DEFAULT: the client mock (mark_order_paid) is intentionally LEFT IN
 -- PLACE. The app gates the real vs mock path on NEXT_PUBLIC_PAYMENTS_ENABLED, so
--- until Cryptomus keys exist the mock keeps the demo working. When real payments
+-- until NOWPayments keys exist the mock keeps the demo working. When real payments
 -- are switched live, follow this with a tiny 0032 that
 --   revoke execute on function public.mark_order_paid(uuid) from authenticated;
 -- (Do NOT do that here — it would break the working mock path.)
@@ -38,7 +38,7 @@ create extension if not exists "pgcrypto";
 create table if not exists public.payments (
   id uuid primary key default gen_random_uuid(),
   order_id uuid not null unique references public.orders(id) on delete cascade,
-  provider text not null default 'cryptomus',
+  provider text not null default 'nowpayments',
   invoice_id text,
   amount_cents int not null check (amount_cents >= 0),
   currency text not null default 'USD',
@@ -186,7 +186,7 @@ revoke all on function public.record_pending_payment(uuid, text, int) from publi
 grant execute on function public.record_pending_payment(uuid, text, int) to service_role;
 
 -- Refunds (cancel_order / resolve_dispute refund leg) stay MANUAL via the
--- Cryptomus dashboard at this volume; payments.status = 'refunded' is reserved
+-- NOWPayments dashboard at this volume; payments.status = 'refunded' is reserved
 -- for when that's recorded. Studio override clawback on refund already works
 -- (resolve_dispute in 0026). No auto-refund is built here.
 

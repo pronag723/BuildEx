@@ -6,17 +6,16 @@
 //   1. Verify the order belongs to the caller and is still pending_payment.
 //      We use a Supabase client carrying the caller's JWT so ROW-LEVEL SECURITY
 //      does the ownership check for us — the function never trusts a client id.
-//   2. Ask Cryptomus for a hosted checkout for the EXACT order price.
+//   2. Ask NOWPayments for a hosted checkout for the EXACT order price.
 //   3. Record a 'pending' payments row (service role) and return the checkout URL.
 //
-// Secrets (set via `supabase secrets set`): CRYPTOMUS_MERCHANT_ID,
-// CRYPTOMUS_PAYMENT_KEY. SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY
-// are injected automatically.
+// Secrets (set via `supabase secrets set`): NOWPAYMENTS_API_KEY. SUPABASE_URL /
+// SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY are injected automatically.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
-import { createInvoice } from "../_shared/cryptomus.ts";
+import { createInvoice } from "../_shared/nowpayments.ts";
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {

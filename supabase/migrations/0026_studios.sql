@@ -12,7 +12,7 @@
 -- negative (see lib/ranks.js and the plan for the full economics).
 --
 -- This migration also RAISES the standard rank schedule so margin survives the
--- Cryptomus processing cost + the studio cut on every tier:
+-- payment-gateway processing cost + the studio cut on every tier:
 --   rookie 18 % · advanced 15 % · expert 12 % · master 9 %   (was 15/12/8/5)
 -- Mirrored in lib/ranks.js — keep the two in sync.
 --

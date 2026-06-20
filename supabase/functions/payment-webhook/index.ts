@@ -1,21 +1,21 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // BuildEx — payment-webhook Edge Function (signature-verified, no JWT)
 //
-// Cryptomus POSTs here when an invoice changes state. This is the security
-// boundary: we recompute the request signature and reject anything that doesn't
-// match before touching the order. On a verified "paid" callback we call the
-// service-role RPC mark_order_paid_internal(), which flips the order to 'paid'
-// (idempotently — the gateway may retry).
+// NOWPayments POSTs here (IPN) when a payment changes state. This is the security
+// boundary: we recompute the request signature from the body + our IPN secret and
+// reject anything that doesn't match before touching the order. On a verified
+// "finished" callback we call the service-role RPC mark_order_paid_internal(),
+// which flips the order to 'paid' (idempotently — the gateway may retry).
 //
 // verify_jwt is OFF for this function (see supabase/config.toml) because the
 // caller is the gateway, not a logged-in user; the signature IS the auth.
 //
-// Secrets: CRYPTOMUS_PAYMENT_KEY (signature). SUPABASE_URL /
+// Secrets: NOWPAYMENTS_IPN_SECRET (signature). SUPABASE_URL /
 // SUPABASE_SERVICE_ROLE_KEY are injected automatically.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { verifyWebhook } from "../_shared/cryptomus.ts";
+import { verifyWebhook } from "../_shared/nowpayments.ts";
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") {
@@ -23,10 +23,12 @@ Deno.serve(async (req) => {
   }
 
   const rawBody = await req.text();
+  // NOWPayments delivers the HMAC-SHA512 signature in this header.
+  const signature = req.headers.get("x-nowpayments-sig");
 
   let verdict;
   try {
-    verdict = await verifyWebhook(rawBody);
+    verdict = await verifyWebhook(rawBody, signature);
   } catch (e) {
     // A missing secret / config error — fail closed, don't ack.
     console.error("verifyWebhook threw:", e);
@@ -39,8 +41,9 @@ Deno.serve(async (req) => {
     return new Response("invalid signature", { status: 400 });
   }
 
-  // Verified but not a terminal paid state (e.g. 'process', 'check', 'cancel') —
-  // acknowledge so the gateway stops retrying; nothing to do yet.
+  // Verified but not the terminal paid state (e.g. 'waiting', 'confirming',
+  // 'partially_paid', 'expired') — acknowledge so the gateway stops retrying;
+  // nothing to do yet.
   if (!verdict.isPaid || !verdict.orderId) {
     return new Response("ok", { status: 200 });
   }

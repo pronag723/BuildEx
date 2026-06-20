@@ -9,8 +9,8 @@ project_id = "buildex"
 [functions.create-invoice]
 verify_jwt = true
 
-# payment-webhook is called by Cryptomus, which is unauthenticated — it proves
-# itself with a request signature we verify in code instead. JWT verification
-# MUST be off or every callback would 401.
+# payment-webhook is called by NOWPayments (IPN), which is unauthenticated — it
+# proves itself with an HMAC request signature we verify in code instead. JWT
+# verification MUST be off or every callback would 401.
 [functions.payment-webhook]
 verify_jwt = false

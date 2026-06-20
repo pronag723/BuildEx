@@ -186,7 +186,7 @@ export default function OrderPlacementPage() {
       return;
     }
 
-    // REAL PAYMENT (Stage 12): when the Cryptomus gateway is enabled, hand the
+    // REAL PAYMENT (Stage 12): when the NOWPayments gateway is enabled, hand the
     // buyer off to the hosted checkout. The payment-webhook flips the order to
     // 'paid' server-side; the buyer returns to /orders via the gateway's return
     // URL. We deliberately do NOT call markOrderPaid here — only a verified
