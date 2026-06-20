@@ -1,0 +1,16 @@
+# Supabase local/deploy config. Only the function declarations matter for this
+# project (the database itself is managed by pasting supabase/migrations/*.sql
+# into the SQL editor). project_id is just a local label.
+project_id = "buildex"
+
+# ─── Edge Functions (Stage 12 payments) ──────────────────────────────────────
+# create-invoice is called by the signed-in buyer's browser, so it must verify
+# the caller's JWT (the default).
+[functions.create-invoice]
+verify_jwt = true
+
+# payment-webhook is called by Cryptomus, which is unauthenticated — it proves
+# itself with a request signature we verify in code instead. JWT verification
+# MUST be off or every callback would 401.
+[functions.payment-webhook]
+verify_jwt = false

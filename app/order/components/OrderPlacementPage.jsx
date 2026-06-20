@@ -17,6 +17,7 @@ import { fetchBuilderByUsername } from "../../builders/data/fetchBuilders";
 import { formatPrice } from "../../../lib/pricing";
 import { Icon } from "../../../lib/icons";
 import { placeOrder, markOrderPaid } from "../../../lib/orders/api";
+import { paymentsEnabled, createInvoice } from "../../../lib/payments/api";
 import CatalogNavbar from "../../builders/components/CatalogNavbar";
 import CatalogMobileMenu from "../../builders/components/CatalogMobileMenu";
 import { useGradientBackground } from "../../../lib/ui/useGradientBackground";
@@ -184,7 +185,30 @@ export default function OrderPlacementPage() {
       setSubmitError(placeError?.message || "Could not place the order.");
       return;
     }
-    // MOCK PAYMENT — Stage 12 replaces this with a real SBP intent + webhook.
+
+    // REAL PAYMENT (Stage 12): when the Cryptomus gateway is enabled, hand the
+    // buyer off to the hosted checkout. The payment-webhook flips the order to
+    // 'paid' server-side; the buyer returns to /orders via the gateway's return
+    // URL. We deliberately do NOT call markOrderPaid here — only a verified
+    // webhook may mark a real order paid.
+    if (paymentsEnabled()) {
+      const { checkoutUrl, error: invoiceError } = await createInvoice(orderId);
+      if (invoiceError || !checkoutUrl) {
+        setSubmitting(false);
+        setSubmitError(
+          (invoiceError?.message || "Could not start checkout.") +
+            " Your order is saved and awaiting payment."
+        );
+        router.push(`/orders/?id=${encodeURIComponent(orderId)}`);
+        return;
+      }
+      // Full-page redirect to the gateway (leaves the app); keep `submitting`
+      // true so the button stays disabled until navigation happens.
+      window.location.assign(checkoutUrl);
+      return;
+    }
+
+    // MOCK PAYMENT — fallback while the gateway is dormant (no keys yet).
     const { error: payError } = await markOrderPaid(orderId);
     if (payError) {
       setSubmitting(false);
@@ -197,6 +221,10 @@ export default function OrderPlacementPage() {
     }
     router.push(`/orders/?id=${encodeURIComponent(orderId)}`);
   }, [submitting, selectedSize, style, brief, builder, size, router]);
+
+  // The gateway adds its processing fee on top at checkout, so the button shows
+  // the exact order price either way; "(mock)" only appears while dormant.
+  const payEnabled = paymentsEnabled();
 
   // ── Render ─────────────────────────────────────────────────────────────────
   // The page shell (and crucially the gradient-background divs) must mount on the
@@ -316,7 +344,7 @@ export default function OrderPlacementPage() {
                   >
                     {submitting
                       ? "Processing…"
-                      : `Pay ${formatPrice(priceKopecks)} (mock)`}
+                      : `Pay ${formatPrice(priceKopecks)}${payEnabled ? "" : " (mock)"}`}
                   </button>
                 )}
               </div>

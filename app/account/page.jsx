@@ -12,6 +12,7 @@ import {
   saveBuilderAvailability,
   saveBuilderExpertise,
   saveBuilderIdentity,
+  saveBuilderPayout,
   saveBuilderRates,
   saveBuilderStyles,
   saveClientProfile,
@@ -552,6 +553,159 @@ function AboutSection({ profile, builderProfile, isBuilder, onSaved }) {
           ) : (
             <p className="text-gray-500 text-sm italic">
               No bio yet. Click <strong>Edit</strong> to add one.
+            </p>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+// ─── Payout (builders) ───────────────────────────────────────────────────────
+// Where the builder gets paid once an order completes. Captured now so the
+// Stage 12 payout system has a destination on file; method is crypto (USDT
+// wallet) or card (off-ramp contact). No money moves from this screen.
+const PAYOUT_METHODS = [
+  { key: "crypto", label: "Crypto (USDT)" },
+  { key: "card", label: "Card" },
+];
+
+const PAYOUT_FIELD = {
+  crypto: {
+    label: "USDT wallet address",
+    placeholder: "e.g. TRC-20 / ERC-20 USDT address",
+    hint: "Paid in USDT to this wallet. Double-check the network and address — crypto transfers can't be reversed.",
+  },
+  card: {
+    label: "Payout contact",
+    placeholder: "Email or handle we can reach you at to arrange card payout",
+    hint: "Card payouts are arranged manually for now. We'll contact you here to settle.",
+  },
+};
+
+function PayoutSection({ builderProfile, onSaved }) {
+  const { user } = useAuth();
+  const [editing, setEditing] = useState(false);
+  const [method, setMethod] = useState(builderProfile?.payout_method || null);
+  const [details, setDetails] = useState(builderProfile?.payout_details || "");
+  const [error, setError] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  function startEdit() {
+    setMethod(builderProfile?.payout_method || null);
+    setDetails(builderProfile?.payout_details || "");
+    setError(null);
+    setEditing(true);
+  }
+
+  async function save() {
+    const supabase = getSupabaseClient();
+    if (!supabase || !user?.id) return;
+    setSaving(true);
+    setError(null);
+    const { error: err } = await saveBuilderPayout(supabase, user.id, {
+      method,
+      details,
+    });
+    setSaving(false);
+    if (err) {
+      setError(err.message || "Couldn't save.");
+      return;
+    }
+    setEditing(false);
+    await onSaved?.();
+  }
+
+  // A method with no details is incomplete; clearing the method entirely is fine.
+  const canSave = !method || details.trim().length > 0;
+  const savedMethod = builderProfile?.payout_method || null;
+  const savedLabel = PAYOUT_METHODS.find((m) => m.key === savedMethod)?.label;
+  const field = method ? PAYOUT_FIELD[method] : null;
+
+  return (
+    <section className="reveal glass rounded-3xl p-6 lg:p-8">
+      <SectionHeader
+        title="Payout"
+        editing={editing}
+        onEdit={startEdit}
+        onCancel={() => setEditing(false)}
+        onSave={save}
+        saving={saving}
+        canSave={canSave}
+      />
+
+      {editing ? (
+        <div className="space-y-5">
+          <div>
+            <div className="onb-label mb-3">How would you like to be paid?</div>
+            <div
+              className="relative grid grid-cols-2 p-1 rounded-full bg-white/[0.04] border border-white/10"
+              role="radiogroup"
+              aria-label="Payout method"
+            >
+              {PAYOUT_METHODS.map((opt) => {
+                const isActive = opt.key === method;
+                return (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    role="radio"
+                    aria-checked={isActive}
+                    onClick={() => setMethod(isActive ? null : opt.key)}
+                    className={`relative z-10 py-2.5 px-2 rounded-full text-xs sm:text-sm font-semibold transition-colors ${
+                      isActive
+                        ? "text-black bg-[#4ade80]"
+                        : "text-gray-400 hover:text-gray-200"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-xs text-gray-500">
+              Tap the selected method again to clear it.
+            </p>
+          </div>
+
+          {field && (
+            <div>
+              <label htmlFor="acc-payout-details" className="onb-label block mb-2">
+                {field.label}
+              </label>
+              <input
+                id="acc-payout-details"
+                type="text"
+                className="onb-input"
+                placeholder={field.placeholder}
+                value={details}
+                onChange={(e) => setDetails(e.target.value.slice(0, 400))}
+                maxLength={400}
+              />
+              <p className="mt-2 text-xs text-gray-500 leading-relaxed">{field.hint}</p>
+            </div>
+          )}
+          {error && <div role="alert" className="auth-banner auth-banner-error">{error}</div>}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {savedMethod ? (
+            <>
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[#4ade80]/10 border border-[#4ade80]/30 text-[#4ade80]">
+                  {savedLabel}
+                </span>
+              </div>
+              {builderProfile?.payout_details && (
+                <p className="text-sm text-gray-400 break-all">
+                  {builderProfile.payout_details}
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="text-gray-500 text-sm italic">
+              No payout method set yet. Click <strong>Edit</strong> to choose how
+              you&apos;d like to be paid.
             </p>
           )}
         </div>
@@ -1931,6 +2085,7 @@ function AccountPageInner() {
                     <RatesSection builderProfile={builderProfile} onSaved={refresh} />
                     <SpecialtiesSection builderProfile={builderProfile} onSaved={refresh} />
                     <ExpertiseSection builderProfile={builderProfile} onSaved={refresh} />
+                    <PayoutSection builderProfile={builderProfile} onSaved={refresh} />
                   </>
                 )}
 

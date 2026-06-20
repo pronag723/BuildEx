@@ -443,9 +443,19 @@ Verify: trigger an order event as one user and see the notification arrive live 
 
 ---
 
-## Stage 12 — Payment: real escrow via SBP (Russia) — *final*
+## Stage 12 — Payment: real escrow — *final*
 
-**Why:** the placeholder `mark_order_paid` and the escrow release/refund stubs become real. Target
+> **UPDATE (2026-06, global-market pivot): SBP is superseded by Cryptomus.** After the pivot from the
+> Russian market to a global/English buyer market, payments run through **Cryptomus** (crypto gateway
+> that also accepts Visa/Mastercard and settles **USDT** to the operator's wallet — no bank/company).
+> The buyer pays the processing fee on top ("client pays the commission"), so the rank/studio
+> commission math is untouched. **Implemented (dormant until keys):** `supabase/migrations/0031_payments.sql`
+> (payments table, `payout_method`/`payout_details`, `mark_order_paid_internal`), the Edge Functions
+> `create-invoice` + `payment-webhook` under `supabase/functions/`, and the client `lib/payments/api.js`
+> gated on `NEXT_PUBLIC_PAYMENTS_ENABLED`. See `supabase/functions/README.md` for account setup,
+> secrets, deploy, and activation. The SBP research below is retained for historical context only.
+
+**Why (historical / SBP):** the placeholder `mark_order_paid` and the escrow release/refund stubs become real. Target
 market is **Russia**, paying via **SBP (Система быстрых платежей)** through a Russian acquirer
 (YooKassa / ЮKassa, Tinkoff, CloudPayments, or similar). This needs server-side code, which the static
 export can't host — so use **Supabase Edge Functions (Deno)** for intent creation, webhooks, and
