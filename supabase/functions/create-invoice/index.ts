@@ -86,9 +86,10 @@ Deno.serve(async (req) => {
     return json({ error: "Order is not awaiting payment" }, 409);
   }
 
-  // NOWPayments minimum varies by coin; $5 is the enforced floor (mirrors
-  // MIN_ORDER_CENTS in lib/pricing.js — keep the two in sync).
-  const MIN_CENTS = 500;
+  // NOWPayments minimum varies by coin; $20 is a safe conservative floor that
+  // keeps us above every network threshold (mirrors MIN_ORDER_CENTS in
+  // lib/pricing.js — keep the two in sync).
+  const MIN_CENTS = 2000;
   if (Number(order.price_kopecks) < MIN_CENTS) {
     return json(
       { error: `Order total is below the $${MIN_CENTS / 100} minimum required by the payment gateway.` },
