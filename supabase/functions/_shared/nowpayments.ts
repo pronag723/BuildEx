@@ -108,7 +108,11 @@ export async function createInvoice(
     ipn_callback_url: input.callbackUrl,
     success_url: input.returnUrl,
     cancel_url: input.returnUrl,
-    is_fixed_rate: true, // lock the crypto rate for the buyer at checkout
+    // is_fixed_rate intentionally omitted: fixed-rate invoices lock the exchange
+    // rate on the gateway's side and impose a high minimum ($50+). Standard
+    // invoices show the buyer the live crypto equivalent at checkout time — fine
+    // for USDT (already pegged) and normal for all other coins. Our USD price is
+    // recorded in the DB and in the payments row regardless.
     is_fee_paid_by_user: true, // fee on top of the buyer — keeps our split exact
   };
 

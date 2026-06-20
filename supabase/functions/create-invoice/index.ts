@@ -114,8 +114,11 @@ Deno.serve(async (req) => {
       returnUrl: safeReturn,
     });
   } catch (e) {
-    console.error("createInvoice failed:", e);
-    return json({ error: "Payment provider error" }, 502);
+    // Surface the actual gateway message so it appears in function logs and
+    // reaches the client for easier debugging (no secrets in the message).
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("createInvoice failed:", msg);
+    return json({ error: `Payment provider error: ${msg}` }, 502);
   }
 
   if (!invoice.checkoutUrl) {
