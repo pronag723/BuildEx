@@ -86,6 +86,16 @@ Deno.serve(async (req) => {
     return json({ error: "Order is not awaiting payment" }, 409);
   }
 
+  // NOWPayments minimum varies by coin; $5 is the enforced floor (mirrors
+  // MIN_ORDER_CENTS in lib/pricing.js — keep the two in sync).
+  const MIN_CENTS = 500;
+  if (Number(order.price_kopecks) < MIN_CENTS) {
+    return json(
+      { error: `Order total is below the $${MIN_CENTS / 100} minimum required by the payment gateway.` },
+      422,
+    );
+  }
+
   const amount = (Number(order.price_kopecks) / 100).toFixed(2);
   const callbackUrl = `${supabaseUrl}/functions/v1/payment-webhook`;
   // Fall back to the Supabase URL origin only as a last resort; the client

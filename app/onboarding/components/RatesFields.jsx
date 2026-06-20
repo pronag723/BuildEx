@@ -18,6 +18,7 @@ import {
   SIZE_META,
   SIZES,
   CUSTOM_TIER_ICON,
+  MIN_ORDER_CENTS,
   centsToDollars,
   dollarsToCents,
   ratesToTiers,
@@ -89,6 +90,8 @@ export function normalizeRates(tiers) {
   return out;
 }
 
+const MIN_ORDER_DOLLARS = Math.ceil(MIN_ORDER_CENTS / 100);
+
 /** Returns an error string if rates are invalid, otherwise null. */
 export function validateRates(tiers) {
   const enabled = tiers.filter((t) => t.enabled);
@@ -101,6 +104,9 @@ export function validateRates(tiers) {
     }
     if (!t.price || Number(t.price) <= 0) {
       return `${name}: price must be greater than 0.`;
+    }
+    if (dollarsToCents(Number(t.price)) < MIN_ORDER_CENTS) {
+      return `${name}: minimum price is $${MIN_ORDER_DOLLARS} (payment gateway requirement).`;
     }
   }
   return null;
@@ -257,15 +263,18 @@ export function RateEditor({ tier, onChange, onRemove }) {
             />
           </div>
           <div>
-            <label className="onb-label block mb-1">Price ($)</label>
+            <label className="onb-label block mb-1">
+              Price ($)
+              <span className="ml-1 text-gray-500 font-normal">min ${MIN_ORDER_DOLLARS}</span>
+            </label>
             <input
               type="number"
-              min="0"
+              min={MIN_ORDER_DOLLARS}
               inputMode="numeric"
               className="onb-input !py-2 !text-sm"
               value={tier.price}
               onChange={(e) => setField("price", e.target.value)}
-              placeholder="e.g. 50"
+              placeholder={`min $${MIN_ORDER_DOLLARS}`}
             />
           </div>
         </div>
