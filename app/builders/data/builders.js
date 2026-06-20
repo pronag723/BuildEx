@@ -178,6 +178,7 @@ export function filterBuilders(builders, filters) {
     maxPrice = 0,
     minRating = 0,
     ranks = [],
+    studios = [],
   } = filters;
 
   return builders.filter((b) => {
@@ -199,6 +200,8 @@ export function filterBuilders(builders, filters) {
     if (maxPrice > 0 && b.starts_from > maxPrice) return false;
     if (minRating > 0 && b.avg_rating < minRating) return false;
     if (ranks.length > 0 && !ranks.includes(b.rank)) return false;
+    // Studio filter (migration 0026): match the builder's studio slug.
+    if (studios.length > 0 && !(b.studio && studios.includes(b.studio.slug))) return false;
 
     return true;
   });

@@ -251,6 +251,9 @@ export default function CatalogFilters({
   onRatingChange,
   selectedRanks,
   onRankToggle,
+  studioOptions = [],
+  selectedStudios = [],
+  onStudioToggle,
   favoritesOnly,
   onFavoritesToggle,
   canFavorite,
@@ -366,6 +369,22 @@ export default function CatalogFilters({
           />
         ))}
       </FilterGroup>
+
+      {/* Studios (migration 0026) — only shown when partner studios have builders
+          in the feed. */}
+      {studioOptions.length > 0 && (
+        <FilterGroup label="Studios" defaultOpen={false}>
+          {studioOptions.map((s) => (
+            <FilterCheckbox
+              key={s.slug}
+              label={s.name}
+              icon="studio"
+              checked={selectedStudios.includes(s.slug)}
+              onChange={() => onStudioToggle(s.slug)}
+            />
+          ))}
+        </FilterGroup>
+      )}
     </div>
   );
 }

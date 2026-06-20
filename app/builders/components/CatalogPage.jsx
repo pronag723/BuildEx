@@ -61,6 +61,7 @@ export default function CatalogPage() {
   const maxPrice = Number(params.get("max")) || 0;
   const minRating = Number(params.get("rating")) || 0;
   const selectedRanks = useMemo(() => parseArray(params.get("rank")), [params]);
+  const selectedStudios = useMemo(() => parseArray(params.get("studio")), [params]);
   const favoritesOnly = params.get("fav") === "1";
   const sort = params.get("sort") || DEFAULT_SORT;
 
@@ -303,10 +304,33 @@ export default function CatalogPage() {
     [selectedRanks, updateURL]
   );
 
+  const handleStudioToggle = useCallback(
+    (slug) => {
+      const next = selectedStudios.includes(slug)
+        ? selectedStudios.filter((s) => s !== slug)
+        : [...selectedStudios, slug];
+      updateURL({ studio: serializeArray(next) });
+    },
+    [selectedStudios, updateURL]
+  );
+
   const handleSortChange = useCallback(
     (value) => updateURL({ sort: value === DEFAULT_SORT ? null : value }),
     [updateURL]
   );
+
+  // Studio filter options, derived from the loaded feed so only studios that
+  // actually have visible builders appear (and the list stays in sync with the
+  // data without a second query). Unique by slug, alphabetical.
+  const studioOptions = useMemo(() => {
+    const bySlug = new Map();
+    for (const b of builders) {
+      if (b.studio && b.studio.slug && !bySlug.has(b.studio.slug)) {
+        bySlug.set(b.studio.slug, { slug: b.studio.slug, name: b.studio.name });
+      }
+    }
+    return Array.from(bySlug.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [builders]);
 
   const handleClearAll = useCallback(() => {
     window.history.replaceState(window.history.state, "", "/builders");
@@ -328,12 +352,13 @@ export default function CatalogPage() {
       maxPrice,
       minRating,
       ranks: selectedRanks,
+      studios: selectedStudios,
     });
     const scoped = effectiveFavoritesOnly
       ? filtered.filter((b) => favoriteIds.has(b.id))
       : filtered;
     return sortBuilders(scoped, sort, feedSeed);
-  }, [builders, query, selectedStyles, selectedBuildTypes, minPrice, maxPrice, minRating, selectedRanks, sort, feedSeed, effectiveFavoritesOnly, favoriteIds]);
+  }, [builders, query, selectedStyles, selectedBuildTypes, minPrice, maxPrice, minRating, selectedRanks, selectedStudios, sort, feedSeed, effectiveFavoritesOnly, favoriteIds]);
 
   const visibleBuilders = useMemo(
     () => filteredBuilders.slice(0, pageCount * ITEMS_PER_PAGE),
@@ -342,8 +367,8 @@ export default function CatalogPage() {
 
   // Key for triggering card re-animation when filters change
   const animKey = useMemo(
-    () => `${query}|${selectedStyles}|${selectedBuildTypes}|${minPrice}|${maxPrice}|${minRating}|${selectedRanks}|${effectiveFavoritesOnly}|${sort}|${feedSeed}`,
-    [query, selectedStyles, selectedBuildTypes, minPrice, maxPrice, minRating, selectedRanks, effectiveFavoritesOnly, sort, feedSeed]
+    () => `${query}|${selectedStyles}|${selectedBuildTypes}|${minPrice}|${maxPrice}|${minRating}|${selectedRanks}|${selectedStudios}|${effectiveFavoritesOnly}|${sort}|${feedSeed}`,
+    [query, selectedStyles, selectedBuildTypes, minPrice, maxPrice, minRating, selectedRanks, selectedStudios, effectiveFavoritesOnly, sort, feedSeed]
   );
 
   // Active filter count (for mobile button badge)
@@ -354,9 +379,10 @@ export default function CatalogPage() {
     if (minPrice || maxPrice) n++;
     if (minRating) n++;
     if (selectedRanks.length) n++;
+    if (selectedStudios.length) n++;
     if (effectiveFavoritesOnly) n++;
     return n;
-  }, [selectedStyles, selectedBuildTypes, minPrice, maxPrice, minRating, selectedRanks, effectiveFavoritesOnly]);
+  }, [selectedStyles, selectedBuildTypes, minPrice, maxPrice, minRating, selectedRanks, selectedStudios, effectiveFavoritesOnly]);
 
   const isLight = theme === "light";
 
@@ -373,6 +399,9 @@ export default function CatalogPage() {
     onRatingChange: handleRatingChange,
     selectedRanks,
     onRankToggle: handleRankToggle,
+    studioOptions,
+    selectedStudios,
+    onStudioToggle: handleStudioToggle,
     favoritesOnly,
     onFavoritesToggle: handleFavoritesToggle,
     canFavorite,

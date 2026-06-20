@@ -129,7 +129,7 @@ export default function StudioStorefrontPage() {
 
               {/* Studio header */}
               <header className="glass rounded-3xl p-6 sm:p-8 mb-8">
-                <div className="flex flex-col sm:flex-row gap-6 items-start">
+                <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
                   <div className="flex-shrink-0 mx-auto sm:mx-0">
                     {studio.logo_url ? (
                       <img

@@ -40,19 +40,24 @@ export default function ProjectsSection({ onAnchorClick }) {
           <h2 className="text-4xl font-semibold">
             Top <span className="text-[#4ade80]">Builder&apos;s</span> Projects
           </h2>
-          <a
-            href={withBase("/builders")}
-            className="hidden lg:flex text-[#4ade80] hover:underline text-sm items-center gap-2"
-            onClick={(event) => onAnchorClick(event, "/builders")}
-          >
-            View all builders →
-          </a>
+          {/* Desktop link — visibility lives on this DIV, not the <a>. A flex
+              child <a> ignores its own `hidden` utility, which is what caused the
+              link to leak onto mobile and show twice. */}
+          <div className="hidden lg:block">
+            <a
+              href={withBase("/builders")}
+              className="text-[#4ade80] hover:underline text-sm inline-flex items-center gap-2"
+              onClick={(event) => onAnchorClick(event, "/builders")}
+            >
+              View all builders →
+            </a>
+          </div>
         </div>
 
-        <div className="mobile-view-all-wrapper text-center mb-6 lg:hidden">
+        <div className="lg:hidden text-center mb-6">
           <a
             href={withBase("/builders")}
-            className="inline-flex text-[#4ade80] hover:underline text-sm items-center gap-2"
+            className="text-[#4ade80] hover:underline text-sm inline-flex items-center gap-2"
             onClick={(event) => onAnchorClick(event, "/builders")}
           >
             View all builders →
