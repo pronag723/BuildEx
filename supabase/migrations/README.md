@@ -12,6 +12,10 @@ migrations are idempotent (safe to re-run during development).
 | 0005 | `0005_builder_rates.sql` | Adds `builder_profiles.rates` (jsonb) — the builder's self-set pricing tiers (block area → price range per build scale). |
 | 0006 | `0006_delete_account.sql` | Adds the `delete_own_account()` SECURITY DEFINER function so a signed-in user can permanently delete their own account (cascades to profiles + builder data). |
 | 0007 | `0007_chat.sql` | User-to-user chat: `conversations` + `messages` tables with RLS, the `get_or_create_conversation()`, `list_my_conversations()`, and `mark_conversation_read()` RPCs, and adds `messages` to the `supabase_realtime` publication for live delivery. |
+| 0008–0027 | _(various)_ | Orders, deliveries, 3D preview, reviews, ranks, disputes, notifications, favorites, presence, custom rate tiers, admin moderation, and the Studios partner program. See each file's header comment. |
+| 0028 | `0028_column_privilege_lockdown.sql` | **Security fix.** Replaces the column-blind self-update grants on `profiles`/`builder_profiles` with column-level INSERT/UPDATE grants, so `is_admin`, `rank`, the cached review aggregates, and the studio promo fields can no longer be self-set via PostgREST — only the SECURITY DEFINER RPCs may change them. Also hides `profiles.discord_id` from client reads. **Run this on every existing project.** |
+| 0029 | `0029_account_deletion_storage_cleanup.sql` | **Privacy fix.** `delete_own_account()` / `delete_incomplete_registration()` now purge the user's Storage objects (avatars/banners/portfolios + their orders' deliverables/previews) before deleting the auth user, instead of orphaning them in public buckets. |
+| 0030 | `0030_chat_flood_guard.sql` | **Abuse fix.** Adds a per-sender message rate limit (20 / 10s) as a `before insert` trigger on `messages`. Generous enough that normal chat never trips it; stops automated flooding. |
 
 ## Field mapping (matches the app code)
 

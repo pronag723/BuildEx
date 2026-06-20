@@ -20,3 +20,6 @@ dev-server.err.log
 .DS_Store
 *.pem
 .vercel
+
+# scratch / unsorted local assets (not part of the app)
+projects_img/

@@ -693,22 +693,24 @@ Create `.env.local` in the project root:
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
-# Stripe
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
-STRIPE_SECRET_KEY=sk_test_...
-STRIPE_WEBHOOK_SECRET=whsec_...
-
-# App
-NEXT_PUBLIC_APP_URL=http://localhost:3000
+# Base path when deploying under a sub-path (e.g. GitHub Pages /BuildEx).
+# Leave empty for local dev / root deploys.
+NEXT_PUBLIC_BASE_PATH=
 ```
 
 **Supabase keys:** Found in your project's Settings → API.
 
-**Stripe keys:** Found in your Stripe Dashboard → Developers → API keys. Use test keys during development.
-
-**Stripe webhook secret:** Run `stripe listen --forward-to localhost:3000/api/webhooks/stripe` during development and copy the webhook signing secret it outputs.
+> ⚠️ **Static export — public bundle only.** BuildEx builds with `output: "export"`
+> (no server, no API routes). Only `NEXT_PUBLIC_*` variables exist at runtime and
+> they are **baked into the client bundle that ships to every visitor**. Never put
+> a secret here — no `SUPABASE_SERVICE_ROLE_KEY`, no payment secret keys, no
+> webhook secrets. The anon key is safe to expose *because* all access is gated by
+> Postgres RLS + `SECURITY DEFINER` RPCs (see `supabase/migrations/`).
+>
+> Any server-side secret (the service-role key, the Cryptomus payment keys and
+> webhook signing secret for the pending payment stage) belongs only in a Supabase
+> Edge Function's environment — never in this repo's build.
 
 ---
 
