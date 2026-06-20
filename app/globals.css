@@ -265,7 +265,7 @@ body {
 .project-card,
 .how-step,
 .testimonial-card {
-  transition: all 0.4s ease;
+  transition: transform 0.4s ease, box-shadow 0.4s ease, border-color 0.4s ease;
 }
 
 .light .project-card,
@@ -277,7 +277,7 @@ body {
 }
 
 .card-hover {
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Dark theme card hover */
@@ -1146,17 +1146,17 @@ body {
 }
 
 @media (max-width: 1023px) {
-  #projects .flex.items-end.justify-between {
+  #projects .flex.items-center.justify-between {
     justify-content: center !important;
   }
 
-  #projects .flex.items-end.justify-between h2 {
+  #projects .flex.items-center.justify-between h2 {
     text-align: center;
     margin-left: 0;
     margin-right: 0;
   }
 
-  #projects .flex.items-end.justify-between a {
+  #projects .flex.items-center.justify-between a {
     display: none;
   }
 
@@ -1213,6 +1213,11 @@ body {
 
   .light .theme-switch-thumb {
     transform: translateX(18px);
+  }
+
+  /* Active press: keep thumb within the smaller mobile switch */
+  .light .theme-switch:active .theme-switch-thumb {
+    transform: translateX(18px) scale(0.9);
   }
 
   #burger-btn {
