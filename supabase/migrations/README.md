@@ -17,6 +17,7 @@ migrations are idempotent (safe to re-run during development).
 | 0029 | `0029_account_deletion_storage_cleanup.sql` | **Privacy fix.** `delete_own_account()` / `delete_incomplete_registration()` now purge the user's Storage objects (avatars/banners/portfolios + their orders' deliverables/previews) before deleting the auth user, instead of orphaning them in public buckets. |
 | 0030 | `0030_chat_flood_guard.sql` | **Abuse fix.** Adds a per-sender message rate limit (20 / 10s) as a `before insert` trigger on `messages`. Generous enough that normal chat never trips it; stops automated flooding. |
 | 0031 | `0031_payments.sql` | **Real payments (Stage 12).** Adds the `payments` table (one row per order, RLS to the order's parties), builder `payout_method`/`payout_details` columns (granted to `authenticated`), and the service-role RPCs `mark_order_paid_internal` / `record_pending_payment` the NOWPayments Edge Functions call (see `supabase/functions/`). The client mock `mark_order_paid` is left in place — it's gated off by `NEXT_PUBLIC_PAYMENTS_ENABLED` until keys exist. |
+| 0032 | `0032_revoke_mock_payment.sql` | **Post-payments cleanup.** Revokes `execute` on `mark_order_paid(uuid)` from `authenticated` now that real NOWPayments payments are verified working. Prevents a signed-in user from marking an order paid without actually paying. The function itself is kept; only the client grant is removed. |
 
 ## Field mapping (matches the app code)
 
