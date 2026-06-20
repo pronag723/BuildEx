@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { getSupabaseClient } from "../../../../lib/supabase/client";
 import { useAuth } from "../../../../lib/auth/AuthContext";
 import { saveBuilderIdentity } from "../../../../lib/onboarding/api";
+import { redeemStudioCode } from "../../../../lib/studios/api";
 import { STEPS } from "../../../../lib/onboarding/state";
 import { Icon } from "../../../../lib/icons";
 import {
@@ -46,6 +47,11 @@ function BuilderIdentityStep({ state }) {
   const [bannerUrl] = useState(p.banner_url || null);
   const [bio, setBio] = useState(p.bio || "");
   const [tagline, setTagline] = useState(bp.tagline || "");
+  // Studio referral (migration 0026). A builder may belong to at most one studio,
+  // ever — if they already redeemed a code on a previous visit, show a confirmed
+  // state instead of the input so a re-save never re-triggers (and fails) redeem.
+  const alreadyJoined = Boolean(bp.studio_id);
+  const [studioCode, setStudioCode] = useState("");
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
 
@@ -78,8 +84,8 @@ function BuilderIdentityStep({ state }) {
       bio: bio.trim() || null,
       tagline: tagline.trim() || null,
     });
-    setSaving(false);
     if (saveErr) {
+      setSaving(false);
       if (
         saveErr.code === "23505" ||
         /duplicate|unique/i.test(saveErr.message || "")
@@ -91,6 +97,21 @@ function BuilderIdentityStep({ state }) {
       }
       return;
     }
+
+    // Studio code is optional. saveBuilderIdentity has just ensured a
+    // builder_profiles row exists, which redeem_studio_code requires. A bad code
+    // blocks the step so the builder can fix or clear it (rather than silently
+    // losing the reduced-fee perk).
+    if (!alreadyJoined && studioCode.trim()) {
+      const { error: redeemErr } = await redeemStudioCode(studioCode.trim());
+      if (redeemErr) {
+        setSaving(false);
+        setError(redeemErr.message || "That studio code couldn't be redeemed.");
+        return;
+      }
+    }
+    setSaving(false);
+
     // Reflect the chosen identity (incl. avatar) in the navbar immediately,
     // independent of the background re-fetch.
     updateProfile?.({
@@ -203,6 +224,38 @@ function BuilderIdentityStep({ state }) {
               {tagline.length}/{TAGLINE_MAX}
             </span>
           </div>
+        </div>
+
+        {/* Studio code (optional referral — migration 0026) */}
+        <div className="glass onb-card onb-fade-in onb-fade-in-3 border border-emerald-500/20 bg-emerald-500/[0.05]">
+          <label htmlFor="studioCode" className="onb-label block mb-2 flex items-center gap-2">
+            <Icon name="handshake" size={16} className="text-emerald-300" />
+            Studio code
+            <span className="text-xs font-normal text-gray-500">(optional)</span>
+          </label>
+          {alreadyJoined ? (
+            <div className="flex items-center gap-2 text-sm text-emerald-300">
+              <Icon name="check" size={16} />
+              You&apos;re linked to a studio — reduced fees are active for your first 4 months.
+            </div>
+          ) : (
+            <>
+              <input
+                id="studioCode"
+                type="text"
+                className="onb-input"
+                placeholder="e.g. ATLAS"
+                value={studioCode}
+                onChange={(e) => setStudioCode(e.target.value.slice(0, 40))}
+                autoComplete="off"
+                spellCheck={false}
+              />
+              <p className="mt-2 text-xs text-gray-500 leading-snug">
+                From a partner studio? Enter their code to get a reduced commission for
+                your first 4 months and a studio badge on your profile.
+              </p>
+            </>
+          )}
         </div>
 
         {/* Bio */}

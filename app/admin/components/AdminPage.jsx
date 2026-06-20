@@ -29,6 +29,7 @@ import CatalogNavbar from "../../builders/components/CatalogNavbar";
 import CatalogMobileMenu from "../../builders/components/CatalogMobileMenu";
 import { useGradientBackground } from "../../../lib/ui/useGradientBackground";
 import WorldPreview from "../../orders/components/WorldPreview";
+import StudiosConsole from "./StudiosConsole";
 
 const STATUS_LABEL = {
   pending_payment: "Awaiting payment",
@@ -130,7 +131,7 @@ export default function AdminPage() {
           ) : !isAdmin ? (
             <NotAuthorized />
           ) : (
-            <ModeratorConsole />
+            <AdminRoot />
           )}
         </div>
       </main>
@@ -159,6 +160,40 @@ function NotAuthorized() {
       >
         Back to orders
       </Link>
+    </div>
+  );
+}
+
+// Top-level admin surface switch: order moderation vs the studios program.
+function AdminRoot() {
+  const [section, setSection] = useState("orders");
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setSection("orders")}
+          className={`px-4 py-2 rounded-full text-sm font-bold border transition-all ${
+            section === "orders"
+              ? "border-[#4ade80] bg-[#4ade80]/15 text-[#4ade80]"
+              : "border-white/10 text-gray-300 hover:border-[#4ade80]/40 hover:bg-white/5"
+          }`}
+        >
+          Orders
+        </button>
+        <button
+          type="button"
+          onClick={() => setSection("studios")}
+          className={`px-4 py-2 rounded-full text-sm font-bold border transition-all ${
+            section === "studios"
+              ? "border-emerald-400 bg-emerald-500/15 text-emerald-300"
+              : "border-white/10 text-gray-300 hover:border-emerald-400/40 hover:bg-white/5"
+          }`}
+        >
+          Studios
+        </button>
+      </div>
+      {section === "orders" ? <ModeratorConsole /> : <StudiosConsole />}
     </div>
   );
 }

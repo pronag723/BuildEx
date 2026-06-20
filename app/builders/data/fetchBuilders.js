@@ -26,7 +26,15 @@ import { startsFromPrice, ratesToTiers } from "../../../lib/pricing";
 // last_seen_at drives the real online/offline indicator (presence, migration
 // 0019). It's selected with the rest of profiles; a pre-0019 database simply
 // returns it absent, in which case mapRow reads the builder as offline.
-const PROFILE_SELECT =
+export const PROFILE_SELECT =
+  "id, username, display_name, avatar_url, bio, role, created_at, last_seen_at, onboarding_completed_at, " +
+  "builder:builder_profiles!inner(*, studio:studios(id, name, slug, logo_url, status)), " +
+  "portfolio:portfolio_images(id, url, position, alt)";
+
+// Same select WITHOUT the studio embed. Used as a fallback when the studios
+// relationship doesn't exist yet (migration 0026 not applied), so the feed never
+// breaks during the window between a frontend deploy and running the migration.
+const PROFILE_SELECT_NO_STUDIO =
   "id, username, display_name, avatar_url, bio, role, created_at, last_seen_at, onboarding_completed_at, " +
   "builder:builder_profiles!inner(*), " +
   "portfolio:portfolio_images(id, url, position, alt)";
@@ -64,7 +72,22 @@ function isHiddenFromFeed(builderProfile) {
   return false;
 }
 
-function mapRow(row) {
+// The studio a builder was referred by (migration 0026), surfaced for the badge
+// before the nickname + the link to the studio storefront. Suspended studios
+// stop showing the badge, so only an active embed is mapped. A pre-0026 database
+// simply returns no `studio` embed, in which case this reads as null.
+function mapStudio(bp) {
+  const s = bp?.studio || null;
+  if (!s || s.status !== "active") return null;
+  return {
+    id: s.id,
+    name: s.name,
+    slug: s.slug != null ? String(s.slug) : null,
+    logo_url: rewriteStorageUrl(s.logo_url) || null,
+  };
+}
+
+export function mapRow(row) {
   const bp = row.builder || {};
   const specialties = Array.isArray(bp.specialties) ? bp.specialties : [];
   const buildTypes = Array.isArray(bp.build_types) ? bp.build_types : [];
@@ -85,6 +108,9 @@ function mapRow(row) {
 
     // Profile
     bio: row.bio || "",
+    // Studio referral (migration 0026) — null unless the builder joined an active
+    // studio. Drives the studio badge before the nickname + storefront link.
+    studio: mapStudio(bp),
     availability_status: availability,
     // Real presence — true only when the builder's last heartbeat (last_seen_at,
     // migration 0019) is within the online window. This is independent of the
@@ -121,12 +147,19 @@ export async function fetchBuilders() {
   // builder_profiles is embedded with `*` so a not-yet-applied migration column
   // (e.g. rates/tools) never 400s the whole query — same tolerance the
   // onboarding loader relies on. `!inner` drops profiles without a builder row.
-  const { data, error } = await supabase
-    .from("profiles")
-    .select(PROFILE_SELECT)
-    .in("role", ["builder", "both"])
-    .not("onboarding_completed_at", "is", null)
-    .not("username", "is", null);
+  const feedFilters = (q) =>
+    q
+      .in("role", ["builder", "both"])
+      .not("onboarding_completed_at", "is", null)
+      .not("username", "is", null);
+
+  let res = await feedFilters(supabase.from("profiles").select(PROFILE_SELECT));
+  // The studio embed (migration 0026) fails if the studios relationship isn't
+  // there yet — retry without it so the feed degrades gracefully (no badges).
+  if (res.error) {
+    res = await feedFilters(supabase.from("profiles").select(PROFILE_SELECT_NO_STUDIO));
+  }
+  const { data, error } = res;
 
   if (error) return { builders: [], error };
 
@@ -204,11 +237,20 @@ export async function fetchBuilderByUsername(username) {
   const supabase = getSupabaseClient();
   if (!supabase || !username) return { builder: null, error: null };
 
-  const { data, error } = await supabase
+  let res = await supabase
     .from("profiles")
     .select(PROFILE_SELECT)
     .ilike("username", username)
     .maybeSingle();
+  // Fallback without the studio embed if migration 0026 isn't applied yet.
+  if (res.error) {
+    res = await supabase
+      .from("profiles")
+      .select(PROFILE_SELECT_NO_STUDIO)
+      .ilike("username", username)
+      .maybeSingle();
+  }
+  const { data, error } = res;
 
   if (error) return { builder: null, error };
   if (!data || !data.builder) return { builder: null, error: null };

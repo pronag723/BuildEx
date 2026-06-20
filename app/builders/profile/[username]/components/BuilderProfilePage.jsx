@@ -693,6 +693,20 @@ export default function BuilderProfilePage({ builder }) {
               {/* Identity + stats */}
               <div className="flex-1 min-w-0 text-center sm:text-left">
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-2">
+                  {/* Studio affiliation (migration 0026) — a note before the
+                      nickname linking to the studio storefront. */}
+                  {builder.studio && builder.studio.slug && (
+                    <Link
+                      href={`/studios?s=${encodeURIComponent(builder.studio.slug)}`}
+                      className="px-2.5 py-1 rounded-full text-xs font-semibold border bg-emerald-500/15 text-emerald-300 border-emerald-500/30 inline-flex items-center gap-1.5 hover:bg-emerald-500/25 transition-colors"
+                      title={`View ${builder.studio.name}`}
+                    >
+                      {builder.studio.logo_url && (
+                        <img src={builder.studio.logo_url} alt="" className="w-3.5 h-3.5 rounded-sm object-cover" />
+                      )}
+                      {builder.studio.name}
+                    </Link>
+                  )}
                   <h1 className="text-2xl sm:text-3xl font-extrabold leading-tight">
                     {builder.display_name}
                   </h1>

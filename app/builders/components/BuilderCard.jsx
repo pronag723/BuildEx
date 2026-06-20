@@ -220,6 +220,20 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
             </div>
           )}
           <div className="min-w-0 flex-1">
+            {/* Studio affiliation (migration 0026) — a note before the nickname.
+                Non-clickable here because the whole card is already a <Link>;
+                the storefront link lives on the profile page header instead. */}
+            {builder.studio && (
+              <span
+                className="mb-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border bg-emerald-500/15 text-emerald-300 border-emerald-500/30 inline-flex items-center gap-1 max-w-full"
+                title={`Builder from ${builder.studio.name}`}
+              >
+                {builder.studio.logo_url && (
+                  <img src={builder.studio.logo_url} alt="" className="w-3 h-3 rounded-sm object-cover flex-shrink-0" />
+                )}
+                <span className="truncate">{builder.studio.name}</span>
+              </span>
+            )}
             <div className="flex items-center gap-2">
               <p className="text-base font-bold truncate leading-tight">
                 {builder.display_name}

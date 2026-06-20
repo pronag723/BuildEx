@@ -64,6 +64,8 @@ export const ICONS = {
   home: Home,
   landmark: Landmark,
   package: Package,
+  // studios (partner program)
+  studio: Building2,
   // app surfaces
   lock: Lock,
   shield: ShieldCheck,
