@@ -914,6 +914,19 @@ function RankSection({ builderProfile }) {
   const avgRating = Number(builderProfile?.avg_rating) || 0;
   const reviewsCount = Number(builderProfile?.reviews_count) || 0;
 
+  // Studio promo (migration 0026): a referred builder pays a flat reduced
+  // commission for their first 4 months, which overrides the rank rate. Show
+  // that as the effective rate while the window is open.
+  const promoBps = Number(builderProfile?.studio_promo_bps);
+  const promoEnds = builderProfile?.studio_promo_ends_at
+    ? new Date(builderProfile.studio_promo_ends_at)
+    : null;
+  const promoActive =
+    !!promoEnds && promoEnds.getTime() > Date.now() && Number.isFinite(promoBps) && promoBps > 0;
+  const promoEndsLabel = promoEnds
+    ? promoEnds.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    : "";
+
   const progress = rankProgress({ rank: rankKey, completedOrders, avgRating });
   const nextMeta = progress ? RANKS[progress.next] : null;
 
@@ -937,10 +950,25 @@ function RankSection({ builderProfile }) {
         </span>
         <span className="text-sm text-gray-400">
           Platform commission{" "}
-          <strong className="text-[#4ade80]">{formatCommissionRate(commissionBps)}</strong>{" "}
+          <strong className="text-[#4ade80]">
+            {formatCommissionRate(promoActive ? promoBps : commissionBps)}
+          </strong>{" "}
           per order
         </span>
+        {promoActive && (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border bg-emerald-500/15 text-emerald-300 border-emerald-500/30">
+            <Icon name="handshake" size={12} />
+            Studio promo
+          </span>
+        )}
       </div>
+
+      {promoActive && (
+        <p className="-mt-2 mb-5 text-xs text-emerald-300/80 leading-relaxed">
+          Reduced studio rate until {promoEndsLabel} — then{" "}
+          {formatCommissionRate(commissionBps)} ({rankMeta.label} rank rate).
+        </p>
+      )}
 
       <div className="grid grid-cols-2 gap-3 mb-5">
         <div className="rounded-2xl border border-white/10 px-4 py-3">

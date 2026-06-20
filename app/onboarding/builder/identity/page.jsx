@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { getSupabaseClient } from "../../../../lib/supabase/client";
 import { useAuth } from "../../../../lib/auth/AuthContext";
 import { saveBuilderIdentity } from "../../../../lib/onboarding/api";
-import { redeemStudioCode } from "../../../../lib/studios/api";
+import { validateStudioCode } from "../../../../lib/studios/api";
 import { STEPS } from "../../../../lib/onboarding/state";
 import { Icon } from "../../../../lib/icons";
 import {
@@ -47,11 +47,12 @@ function BuilderIdentityStep({ state }) {
   const [bannerUrl] = useState(p.banner_url || null);
   const [bio, setBio] = useState(p.bio || "");
   const [tagline, setTagline] = useState(bp.tagline || "");
-  // Studio referral (migration 0026). A builder may belong to at most one studio,
-  // ever — if they already redeemed a code on a previous visit, show a confirmed
-  // state instead of the input so a re-save never re-triggers (and fails) redeem.
+  // Studio referral (migrations 0026/0027). A builder may belong to at most one
+  // studio, ever. The code is only VALIDATED here and stashed as pending; it's
+  // consumed when onboarding completes, so abandoning setup never burns a slot.
+  // Pre-fill from any previously entered (still pending) code.
   const alreadyJoined = Boolean(bp.studio_id);
-  const [studioCode, setStudioCode] = useState("");
+  const [studioCode, setStudioCode] = useState(bp.pending_studio_code || "");
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
 
@@ -76,6 +77,20 @@ function BuilderIdentityStep({ state }) {
     if (!supabase || !user?.id) return;
     setError(null);
     setSaving(true);
+
+    // Studio code is optional. Validate it first (no slot is consumed yet — it's
+    // only stashed as pending and redeemed when onboarding completes). A bad code
+    // blocks the step so the builder can fix or clear it.
+    const codeTrimmed = studioCode.trim();
+    if (!alreadyJoined && codeTrimmed) {
+      const { error: vErr } = await validateStudioCode(codeTrimmed);
+      if (vErr) {
+        setSaving(false);
+        setError(vErr.message || "That studio code couldn't be applied.");
+        return;
+      }
+    }
+
     const { error: saveErr } = await saveBuilderIdentity(supabase, user.id, {
       displayName: trimmedName,
       handle,
@@ -83,6 +98,9 @@ function BuilderIdentityStep({ state }) {
       bannerUrl,
       bio: bio.trim() || null,
       tagline: tagline.trim() || null,
+      // Stash the validated code as pending (or clear it). Skipped when already
+      // joined so an existing studio link is never disturbed.
+      ...(alreadyJoined ? {} : { pendingStudioCode: codeTrimmed || null }),
     });
     if (saveErr) {
       setSaving(false);
@@ -96,19 +114,6 @@ function BuilderIdentityStep({ state }) {
         setError(saveErr.message || "Couldn't save. Try again.");
       }
       return;
-    }
-
-    // Studio code is optional. saveBuilderIdentity has just ensured a
-    // builder_profiles row exists, which redeem_studio_code requires. A bad code
-    // blocks the step so the builder can fix or clear it (rather than silently
-    // losing the reduced-fee perk).
-    if (!alreadyJoined && studioCode.trim()) {
-      const { error: redeemErr } = await redeemStudioCode(studioCode.trim());
-      if (redeemErr) {
-        setSaving(false);
-        setError(redeemErr.message || "That studio code couldn't be redeemed.");
-        return;
-      }
     }
     setSaving(false);
 

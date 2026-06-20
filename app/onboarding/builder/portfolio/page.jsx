@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { getSupabaseClient } from "../../../../lib/supabase/client";
 import { useAuth } from "../../../../lib/auth/AuthContext";
 import { markOnboardingComplete } from "../../../../lib/onboarding/api";
+import { finalizeStudioCode } from "../../../../lib/studios/api";
 import { STEPS } from "../../../../lib/onboarding/state";
 import { withBase } from "../../../home/utils";
 import OnboardingShell from "../../components/OnboardingShell";
@@ -39,11 +40,15 @@ function BuilderPortfolioStep({ state }) {
     setError(null);
     setSaving(true);
     const { error: doneErr } = await markOnboardingComplete(supabase, user.id);
-    setSaving(false);
     if (doneErr) {
+      setSaving(false);
       setError(doneErr.message || "Couldn't finalize. Try again.");
       return;
     }
+    // Studios (0027): now that onboarding is complete, consume the pending studio
+    // code (if any). Best-effort — a failure here must not block finishing setup.
+    await finalizeStudioCode();
+    setSaving(false);
     await refresh?.();
     router.push(STEPS.complete);
   }
