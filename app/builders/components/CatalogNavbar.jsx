@@ -6,7 +6,6 @@ import { withBase } from "../../home/utils";
 import { isNavActive, catalogNavItems } from "./navItems";
 import AuthNavControls from "../../auth/components/AuthNavControls";
 import { Icon } from "../../../lib/icons";
-import BxLogo from "../../home/components/BxLogo";
 
 export default function CatalogNavbar({
   isLight,
@@ -22,7 +21,6 @@ export default function CatalogNavbar({
       <div className="glass nav-pill flex items-center justify-between shadow-2xl">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-1.5 no-underline flex-shrink-0">
-          <BxLogo className="w-11 h-11 flex-shrink-0" />
           <span className="text-2xl font-bold tracking-tight logo-font nav-logo-text">
             Build<span className="text-[#4ade80] font-extrabold">Ex</span>
           </span>

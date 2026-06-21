@@ -3,7 +3,6 @@
 import { withBase } from "../utils";
 import AuthNavControls from "../../auth/components/AuthNavControls";
 import { Icon } from "../../../lib/icons";
-import BxLogo from "./BxLogo";
 
 export default function Navbar({
   navItems,
@@ -23,7 +22,6 @@ export default function Navbar({
             className="flex items-center gap-1.5 no-underline"
             onClick={(event) => onAnchorClick(event, "#hero")}
           >
-            <BxLogo className="w-11 h-11 flex-shrink-0" />
             <span className="text-2xl font-bold tracking-tight logo-font nav-logo-text">
               Build
               <span className="text-[#4ade80] font-extrabold">Ex</span>

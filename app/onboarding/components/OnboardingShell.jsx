@@ -8,7 +8,6 @@ import { cancelOnboarding } from "../../../lib/onboarding/api";
 import { withBase } from "../../home/utils";
 import StepHeader from "./StepHeader";
 import { Icon } from "../../../lib/icons";
-import BxLogo from "../../home/components/BxLogo";
 
 /**
  * Shared shell for every onboarding step.
@@ -77,7 +76,6 @@ export default function OnboardingShell({
       <header className="fixed top-3.5 left-1/2 -translate-x-1/2 z-50 w-full nav-wrapper px-6">
         <div className="glass nav-pill flex items-center justify-between shadow-2xl">
           <a href={withBase("/")} onClick={handleLeaveToHome} className="flex items-center gap-1.5 no-underline">
-            <BxLogo className="w-11 h-11 flex-shrink-0" />
             <span className="text-2xl font-bold tracking-tight logo-font nav-logo-text">
               Build<span className="text-[#4ade80] font-extrabold">Ex</span>
             </span>
