@@ -3,16 +3,16 @@
 //
 // Second half of the payout flow: after create-payout makes a batch, NOWPayments
 // emails a 2FA code. The admin enters it in the Payouts console and this function
-// confirms the batch — only then do the withdrawals actually send. On success it
-// flips the batch's payout rows to 'sent'.
+// confirms the batch — only then do the withdrawals actually send.
+// reconcile-payout records the eventual terminal provider state.
 //
-// Secrets: NOWPAYMENTS_API_KEY / NOWPAYMENTS_EMAIL / NOWPAYMENTS_PASSWORD.
-// SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY are injected.
+// Provider credentials live on the fixed-IP relay. This function holds only
+// PAYOUT_RELAY_URL / PAYOUT_RELAY_SHARED_SECRET; Supabase keys are injected.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
-import { verifyPayout } from "../_shared/nowpayments.ts";
+import { relayRequest } from "../_shared/payoutRelay.ts";
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -49,7 +49,6 @@ Deno.serve(async (req) => {
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
   // Identify caller + confirm admin.
   const asUser = createClient(supabaseUrl, anonKey, {
@@ -68,11 +67,13 @@ Deno.serve(async (req) => {
     return json({ error: "Admin only" }, 403);
   }
 
-  const asService = createClient(supabaseUrl, serviceKey);
-
   let result;
   try {
-    result = await verifyPayout(batchId, code);
+    result = await relayRequest(
+      "POST",
+      `/payouts/${encodeURIComponent(batchId)}/verify`,
+      { code },
+    );
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error("verifyPayout failed:", msg);
@@ -81,14 +82,7 @@ Deno.serve(async (req) => {
     return json({ error: `Payout verification failed: ${msg}` }, 502);
   }
 
-  const { error: markErr } = await asService.rpc("mark_payouts_sent", {
-    p_batch_id: batchId,
-    p_raw: result.raw ?? null,
-  });
-  if (markErr) {
-    console.error("mark_payouts_sent failed:", markErr);
-    return json({ error: "Verified, but failed to record status" }, 500);
-  }
-
-  return json({ ok: true });
+  // Verification authorizes sending; it is not proof of terminal settlement.
+  // Rows remain processing until reconcile-payout observes a terminal state.
+  return json({ ok: true, status: result.status ?? "processing" });
 });

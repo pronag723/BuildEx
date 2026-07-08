@@ -22,3 +22,6 @@ verify_jwt = true
 
 [functions.verify-payout]
 verify_jwt = true
+
+[functions.reconcile-payout]
+verify_jwt = true

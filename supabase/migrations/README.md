@@ -20,6 +20,7 @@ migrations are idempotent (safe to re-run during development).
 | 0032 | `0032_revoke_mock_payment.sql` | **Post-payments cleanup.** Revokes `execute` on `mark_order_paid(uuid)` from `authenticated` now that real NOWPayments payments are verified working. Prevents a signed-in user from marking an order paid without actually paying. The function itself is kept; only the client grant is removed. |
 | 0033 | `0033_payouts.sql` | **Builder payouts (Stage 12, outgoing).** Adds the `payouts` queue table (one row per completed order, RLS to the builder + admins), `_enqueue_payout()` wired into `buyer_confirm_complete` + the `resolve_dispute` release leg, the service-role `mark_payouts_*` RPCs the payout Edge Functions call, and `admin_requeue_payout()`. Builders are paid in USDT via the NOWPayments Mass Payout Edge Functions (`create-payout` / `verify-payout`, see `supabase/functions/`), driven from the admin Payouts console. |
 | 0034 | `0034_payment_reconciliation_and_fiat_payouts.sql` | **Payment hardening + fiat/card payouts.** Aligns `builder_profiles.payout_method` with the account UI (`usdt_trc20`, `usdt_erc20`, `fiat_card`), blocks raw card-number storage, queues fiat/card withdrawal rows as admin-reviewed off-ramp payouts, and makes `mark_order_paid_internal()` reject webhook amount/currency mismatches before marking an order paid. |
+| 0035 | `0035_builder_withdrawals.sql` | **Builder balances and withdrawals.** Stops automatic per-order payouts, derives available balance from completed earnings, adds atomic partial withdrawal requests, admin approval/rejection, terminal provider reconciliation, and releases legacy blocked/card rows back to builder balances. |
 
 ## Field mapping (matches the app code)
 
@@ -43,7 +44,7 @@ migrations are idempotent (safe to re-run during development).
 | Availability | `builder_profiles.availability_status` / `is_available` | Display + filter flag. |
 | Tools | `builder_profiles.tools` | `text[]` of tool keys (WorldEdit, VoxelSniper, ...). |
 | Rates | `builder_profiles.rates` | `jsonb` — per-scale `{ blocks, from, to }` pricing tiers the builder sets themselves. |
-| Payout method | `builder_profiles.payout_method` | One of `usdt_trc20`, `usdt_erc20`, or `fiat_card`. Legacy `crypto`/`card` values are normalized by migration 0034. |
-| Payout details | `builder_profiles.payout_details` | USDT wallet address or a provider-safe fiat/card payout reference/contact. Full card numbers are not allowed. |
+| Payout method | `builder_profiles.payout_method` | `usdt_trc20`, `usdt_erc20`, or disabled `sepa_eur`. |
+| Payout details | `builder_profiles.payout_details` | USDT wallet address. Bank/card details are not stored. |
 | Portfolio image | `portfolio_images.url` | Public URL in `portfolios` bucket. |
 | Portfolio order | `portfolio_images.position` | Lower position = shown first. |

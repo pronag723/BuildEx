@@ -1,0 +1,22 @@
+[Unit]
+Description=BuildEx NOWPayments payout relay
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=buildex-relay
+Group=buildex-relay
+WorkingDirectory=/opt/buildex-payout-relay
+EnvironmentFile=/etc/buildex-payout-relay.env
+ExecStart=/usr/bin/node /opt/buildex-payout-relay/server.mjs
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/buildex-payout-relay
+
+[Install]
+WantedBy=multi-user.target

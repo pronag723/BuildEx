@@ -6,7 +6,7 @@
 ![React](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind-3-38BDF8?style=flat-square&logo=tailwindcss)
 ![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=flat-square&logo=supabase)
-![Stripe](https://img.shields.io/badge/Stripe-Connect-635BFF?style=flat-square&logo=stripe)
+![NOWPayments](https://img.shields.io/badge/NOWPayments-Crypto_Payments-10B981?style=flat-square)
 
 ---
 
@@ -98,7 +98,7 @@ The platform was designed with a dark glass aesthetic inspired by modern gaming 
 - **Profile settings:**
   - Edit display name, bio, specialties, availability
   - Manage portfolio images
-  - Stripe Connect payout setup and status
+  - Builder balance, USDT withdrawal destination, and withdrawal history
 
 ### Offer Creation (Multi-Step Form)
 - **Step 1 — Basics:** title, style category, build type, tags
@@ -111,11 +111,11 @@ The platform was designed with a dark glass aesthetic inspired by modern gaming 
 
 ### Order System
 - Buyer fills in project requirements and proceeds to checkout
-- Stripe PaymentIntent created with `capture_method: manual` (funds authorized, not captured)
-- Builder receives notification and has 48 hours to accept or decline
-- On acceptance: funds captured, order becomes active with delivery deadline
+- NOWPayments hosted checkout created by a Supabase Edge Function
+- A signature-verified NOWPayments webhook marks the order paid
 - Builder delivers schematic files via order thread
-- Buyer approves: Stripe transfer issued to builder's connected account
+- Buyer approves: earnings become available in the builder balance
+- Builder requests a partial USDT withdrawal; an admin reviews and sends it via Mass Payout
 - If buyer declines delivery: enters revision cycle
 - Dispute flow: funds held while manual review takes place
 - One review per completed order (unlocked only after completion)
@@ -150,7 +150,7 @@ The platform was designed with a dark glass aesthetic inspired by modern gaming 
 | Database | PostgreSQL via Supabase | All persistent data |
 | Auth | Supabase Auth + Discord OAuth | User sessions |
 | File Storage | Supabase Storage | Portfolio images, schematic files |
-| Payments | Stripe Connect | Escrow, buyer charges, builder payouts |
+| Payments | NOWPayments + Supabase Edge Functions | Buyer checkout, custody, and USDT Mass Payouts |
 | Forms | React Hook Form + Zod | Form state and validation |
 | Notifications | react-hot-toast | In-app toast messages |
 | Icons | lucide-react | UI icons |
@@ -191,7 +191,7 @@ buildex/
 │   │   │       └── [username]/page.jsx  # Public builder profile
 │   │   │
 │   │   ├── checkout/
-│   │   │   └── [offerId]/page.jsx       # Checkout with Stripe Elements
+│   │   │   └── [offerId]/page.jsx       # Hosted payment checkout
 │   │   │
 │   │   ├── orders/
 │   │   │   ├── page.jsx                 # All orders (buyer and builder)
@@ -284,7 +284,7 @@ buildex/
 │       │   ├── client.js                # Browser Supabase client
 │       │   ├── server.js                # Server Component client
 │       │   └── middleware.js            # Middleware client
-│       ├── stripe.js                    # Stripe server-side instance
+│       ├── payments/                    # NOWPayments client helpers
 │       ├── auth.js                      # getCurrentUser, requireAuth helpers
 │       └── commission.js                # Fee calculation logic
 │
@@ -393,7 +393,7 @@ One-to-one with `profiles` for builder-specific data.
 | `repeat_client_rate` | int | Percentage |
 | `on_time_rate` | int | Percentage |
 | `is_available` | boolean | Accepting new orders |
-| `stripe_account_id` | text | Stripe Connect account |
+| `payout_method` | text | Builder USDT withdrawal network |
 
 ### `offers`
 A builder's listed service (like a Fiverr gig).
@@ -435,7 +435,7 @@ Portfolio images attached to an offer.
 | `platform_fee` | int | BuildEx cut (cents) |
 | `builder_earnings` | int | What builder receives (cents) |
 | `status` | text | See order statuses below |
-| `stripe_payment_intent_id` | text | For Stripe operations |
+| `invoice_id` | text | NOWPayments invoice identifier |
 | `delivery_deadline` | timestamptz | |
 | `requirements` | text | Buyer's build brief |
 
@@ -477,7 +477,7 @@ Per-order message thread.
 | `/builders` | Server | No | Offer catalog with filters |
 | `/builders/[offerId]` | Server | No | Offer detail + order CTA |
 | `/builders/profile/[username]` | Server | No | Public builder profile |
-| `/checkout/[offerId]` | Client | Yes | Stripe checkout form |
+| `/order` | Client | Yes | Order placement and hosted checkout |
 | `/orders` | Client | Yes | All user's orders |
 | `/orders/[orderId]` | Client | Yes | Order detail + messages |
 | `/dashboard` | Client | Builder | Stats overview |
@@ -492,14 +492,14 @@ Per-order message thread.
 
 | Endpoint | Method | Auth | Description |
 |---|---|---|---|
-| `/api/checkout/create-intent` | POST | Buyer | Create Stripe PaymentIntent |
+| `create-invoice` Edge Function | POST | Buyer | Create NOWPayments invoice |
 | `/api/orders/[id]/accept` | POST | Builder | Accept order, capture funds |
 | `/api/orders/[id]/complete` | POST | Buyer | Approve delivery, trigger payout |
 | `/api/orders/[id]/messages` | GET/POST | Participant | Read/send messages |
 | `/api/offers/[id]` | PATCH/DELETE | Builder | Update or delete own offer |
-| `/api/stripe/connect/onboard` | POST | Builder | Start Stripe Connect onboarding |
+| `create-payout` Edge Function | POST | Admin | Create approved withdrawal batch |
 | `/api/stripe/connect/status` | GET | Builder | Check onboarding status |
-| `/api/webhooks/stripe` | POST | Stripe | Handle payment events |
+| `payment-webhook` Edge Function | POST | NOWPayments | Handle signed payment events |
 
 ---
 
@@ -595,43 +595,36 @@ Discord and Google OAuth are the two supported login providers. Both go through 
 
 ## Payments and Escrow
 
-BuildEx uses **Stripe Connect** with the "separate charges and transfers" model.
+BuildEx uses **NOWPayments hosted invoices, Custody, and Mass Payouts**. Secret
+operations run in Supabase Edge Functions; payout API traffic passes through a
+locked-down fixed-IP relay because NOWPayments requires source-IP allowlisting.
 
 **Full payment lifecycle:**
 
 ```
-1. Buyer confirms order
+1. Buyer places an order and opens a NOWPayments hosted invoice
       ↓
-2. Server creates PaymentIntent (capture_method: manual)
+2. NOWPayments sends a signed IPN after settlement
       ↓
-3. Buyer enters card via Stripe Elements
+3. The webhook verifies amount, currency, terminal status, and signature
       ↓
-4. stripe.confirmCardPayment() → funds AUTHORIZED, not captured
+4. Builder delivers; buyer confirms completion
       ↓
-5. Builder accepts order within 48h
+5. Snapshotted builder earnings become available in Account → Payouts
       ↓
-6. Server calls paymentIntent.capture() → funds CAPTURED
+6. Builder requests a partial USDT withdrawal (minimum $20)
       ↓
-7. Order becomes active, delivery clock starts
+7. Admin reviews and approves the destination
       ↓
-8. Builder delivers schematic files via message thread
+8. Approved requests are sent as a NOWPayments Mass Payout batch
       ↓
-9. Buyer approves delivery
-      ↓
-10. Server calls stripe.transfers.create() to builder's connected account
-    Amount: builder_earnings (builder's original quoted price)
-      ↓
-11. Order marked completed, review prompt shown
+9. Admin confirms 2FA and reconciles terminal provider status
 ```
 
-**If builder declines (step 5):** `paymentIntent.cancel()` called, full refund issued automatically.
-
-**If dispute raised:** funds remain captured but transfer is paused pending manual review.
-
-**Stripe Webhook events handled:**
-- `payment_intent.payment_failed` — notify buyer, mark order failed
-- `payment_intent.canceled` — confirm refund to buyer
-- `transfer.failed` — alert ops team, hold order in limbo
+Disputes resolved in the builder's favor credit earnings; refunds do not. Requested
+funds are reserved immediately and return to available balance on cancellation,
+rejection, or provider failure. See
+[`docs/payments-supabase-setup.md`](docs/payments-supabase-setup.md) for production setup.
 
 ---
 
@@ -657,7 +650,7 @@ Master Builder badge has an additional CSS pulse animation (`badgePulse` keyfram
 
 - Node.js 18+
 - A Supabase project (free tier works)
-- A Stripe account with Connect enabled
+- A NOWPayments account with Custody and Mass Payouts enabled
 - Discord application for OAuth (free)
 
 ### Installation
@@ -754,12 +747,12 @@ NEXT_PUBLIC_BASE_PATH=
 - [ ] Offer editing and status management
 
 ### Phase 6 — Orders and Payments
-- [ ] Stripe Connect onboarding for builders
-- [ ] `/checkout/[offerId]` with Stripe Elements
+- [x] NOWPayments hosted checkout
+- [x] Builder balance and withdrawal requests
 - [ ] Server-side PaymentIntent with manual capture
 - [ ] Order acceptance and fund capture
 - [ ] Delivery and approval flow
-- [ ] Stripe transfer on completion
+- [x] Admin-approved NOWPayments Mass Payouts
 - [ ] Webhook handler for async events
 
 ### Phase 7 — Trust and Retention

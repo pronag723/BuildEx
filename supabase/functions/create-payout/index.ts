@@ -5,19 +5,19 @@
 // payouts. Flow:
 //   1. Verify the caller is a signed-in admin (profiles.is_admin) — RLS on the
 //      caller-scoped client + an explicit is_admin check.
-//   2. Load the selected 'pending' payout rows (service role) and build a
+//   2. Load selected admin-approved payout rows (service role) and build a
 //      NOWPayments Mass Payout batch (USDT to each builder's wallet).
 //   3. Create the batch (status WAITING) and flip the rows to 'processing' with
 //      the batch id. The batch is NOT sent until verify-payout confirms the 2FA
 //      code (NOWPayments emails it after this call).
 //
-// Secrets: NOWPAYMENTS_API_KEY / NOWPAYMENTS_EMAIL / NOWPAYMENTS_PASSWORD.
-// SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY are injected.
+// Provider credentials live on the fixed-IP relay. This function holds only
+// PAYOUT_RELAY_URL / PAYOUT_RELAY_SHARED_SECRET; Supabase keys are injected.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
-import { createPayout, type PayoutWithdrawal } from "../_shared/nowpayments.ts";
+import { payoutIdempotencyKey, relayRequest } from "../_shared/payoutRelay.ts";
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -75,15 +75,15 @@ Deno.serve(async (req) => {
   const asService = createClient(supabaseUrl, serviceKey);
   const { data: rows, error: rowsErr } = await asService
     .from("payouts")
-    .select("id, amount_cents, destination, status, currency")
+    .select("id, amount_cents, net_amount_cents, destination, status, currency")
     .in("id", payoutIds)
-    .eq("status", "pending");
+    .eq("status", "approved");
 
   if (rowsErr) {
     return json({ error: "Could not load payouts" }, 500);
   }
   if (!rows || rows.length === 0) {
-    return json({ error: "No pending payouts to send" }, 409);
+    return json({ error: "No approved withdrawals to send" }, 409);
   }
 
   // Every selected row must have a destination wallet (enqueue parks wallet-less
@@ -96,29 +96,33 @@ Deno.serve(async (req) => {
     );
   }
 
-  const withdrawals: PayoutWithdrawal[] = rows.map((r) => ({
+  const withdrawals = rows.map((r) => ({
     address: String(r.destination),
-    amount: (Number(r.amount_cents) / 100).toFixed(2),
+    amount: Number((Number(r.net_amount_cents ?? r.amount_cents) / 100).toFixed(2)),
     currency: r.currency || "usdttrc20",
   }));
 
   let batch;
   try {
-    batch = await createPayout(withdrawals);
+    batch = await relayRequest("POST", "/payouts", {
+      idempotencyKey: await payoutIdempotencyKey(rows.map((r) => r.id)),
+      withdrawals,
+    });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error("createPayout failed:", msg);
     return json({ error: `Payout provider error: ${msg}` }, 502);
   }
 
-  if (!batch.batchId) {
+  const batchId = batch.id != null ? String(batch.id) : null;
+  if (!batchId) {
     return json({ error: "Provider did not return a batch id" }, 502);
   }
 
   const sentIds = rows.map((r) => r.id);
   const { error: markErr } = await asService.rpc("mark_payouts_processing", {
     p_payouts: sentIds,
-    p_batch_id: batch.batchId,
+    p_batch_id: batchId,
   });
   if (markErr) {
     // The batch exists at the gateway but we couldn't record it — surface loudly
@@ -126,5 +130,5 @@ Deno.serve(async (req) => {
     console.error("mark_payouts_processing failed:", markErr);
   }
 
-  return json({ batchId: batch.batchId, status: batch.status, count: sentIds.length });
+  return json({ batchId, status: batch.status, count: sentIds.length });
 });

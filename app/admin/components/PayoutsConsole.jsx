@@ -1,163 +1,106 @@
 "use client";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// BuildEx — Payouts console (admin)
-// Operator surface for paying builders. Lists the payout queue (migration 0033)
-// and drives NOWPayments Mass Payout via the create-payout / verify-payout Edge
-// Functions (lib/payouts/api.js):
-//   • select pending rows → Send batch → enter the emailed 2FA code → Confirm.
-//   • blocked (no wallet) / failed rows → Re-queue once the builder fixes it.
-// All privileged work re-checks is_admin server-side.
-// ─────────────────────────────────────────────────────────────────────────────
-
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  listPayouts,
-  startPayoutBatch,
+  approveWithdrawal,
   confirmPayoutBatch,
-  requeuePayout,
-  markFiatPayoutSent,
+  listPayouts,
+  reconcilePayoutBatch,
+  rejectWithdrawal,
+  startPayoutBatch,
 } from "../../../lib/payouts/api";
 import { formatPrice } from "../../../lib/pricing";
 import { Icon } from "../../../lib/icons";
 
 const STATUS_META = {
-  pending: { label: "Pending", cls: "bg-amber-400/10 border-amber-400/30 text-amber-300" },
-  processing: { label: "Processing", cls: "bg-sky-400/10 border-sky-400/30 text-sky-300" },
-  sent: { label: "Sent", cls: "bg-[#4ade80]/10 border-[#4ade80]/30 text-[#4ade80]" },
-  failed: { label: "Failed", cls: "bg-red-400/10 border-red-400/30 text-red-300" },
-  blocked: { label: "Blocked", cls: "bg-gray-400/10 border-gray-400/30 text-gray-300" },
-  fiat_card_pending: { label: "Card review", cls: "bg-violet-400/10 border-violet-400/30 text-violet-300" },
+  requested: ["Review", "bg-amber-400/10 border-amber-400/30 text-amber-300"],
+  approved: ["Approved", "bg-sky-400/10 border-sky-400/30 text-sky-300"],
+  processing: ["Processing", "bg-violet-400/10 border-violet-400/30 text-violet-300"],
+  sent: ["Sent", "bg-[#4ade80]/10 border-[#4ade80]/30 text-[#4ade80]"],
+  rejected: ["Rejected", "bg-red-400/10 border-red-400/30 text-red-300"],
+  failed: ["Failed", "bg-red-400/10 border-red-400/30 text-red-300"],
+  cancelled: ["Cancelled", "bg-gray-400/10 border-gray-400/30 text-gray-300"],
 };
 
-function formatDate(iso) {
-  if (!iso) return "";
-  return new Date(iso).toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
-function shorten(s, head = 8, tail = 6) {
-  if (!s) return "";
-  return s.length > head + tail + 1 ? `${s.slice(0, head)}…${s.slice(-tail)}` : s;
+function short(value, head = 8, tail = 6) {
+  const text = String(value || "");
+  return text.length > head + tail + 1
+    ? `${text.slice(0, head)}…${text.slice(-tail)}`
+    : text;
 }
 
 export default function PayoutsConsole() {
-  const [payouts, setPayouts] = useState(null); // null = loading
-  const [error, setError] = useState(null);
+  const [payouts, setPayouts] = useState(null);
   const [selected, setSelected] = useState(() => new Set());
-
-  // Two-step send: after a batch is created we hold its id and ask for the code.
-  const [batchId, setBatchId] = useState(null);
+  const [batchId, setBatchId] = useState("");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
 
-  const reload = useCallback(() => {
-    setPayouts(null);
-    setError(null);
-    listPayouts().then(({ payouts: rows, error: e }) => {
-      if (e) setError(e.message || "Failed to load payouts");
-      setPayouts(rows || []);
-    });
+  const reload = useCallback(async () => {
+    const { payouts: rows, error: loadError } = await listPayouts();
+    setPayouts(rows);
+    setError(loadError?.message || null);
   }, []);
 
   useEffect(() => {
     reload();
   }, [reload]);
 
-  const pending = useMemo(
-    () => (payouts || []).filter((p) => p.status === "pending"),
-    [payouts]
+  const approved = useMemo(
+    () => (payouts || []).filter((p) => p.status === "approved"),
+    [payouts],
+  );
+  const selectedTotal = approved.reduce(
+    (sum, p) => sum + (selected.has(p.id) ? Number(p.amount_cents) || 0 : 0),
+    0,
   );
 
-  const toggle = useCallback((id) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  }, []);
-
-  const selectAllPending = useCallback(() => {
-    setSelected((prev) =>
-      prev.size === pending.length ? new Set() : new Set(pending.map((p) => p.id))
-    );
-  }, [pending]);
-
-  const selectedTotal = useMemo(() => {
-    let cents = 0;
-    for (const p of pending) if (selected.has(p.id)) cents += Number(p.amount_cents) || 0;
-    return cents;
-  }, [pending, selected]);
-
-  const send = useCallback(async () => {
-    if (busy || selected.size === 0) return;
+  async function act(action, success) {
     setBusy(true);
     setError(null);
     setNotice(null);
-    const ids = Array.from(selected);
-    const { batchId: id, count, error: e } = await startPayoutBatch(ids);
+    const { error: actionError } = await action();
     setBusy(false);
-    if (e || !id) {
-      setError(e?.message || "Could not create the payout batch.");
+    if (actionError) {
+      setError(actionError.message || "Action failed.");
+      return;
+    }
+    setNotice(success);
+    await reload();
+  }
+
+  async function sendBatch() {
+    if (!selected.size) return;
+    setBusy(true);
+    setError(null);
+    const { batchId: id, count, error: sendError } =
+      await startPayoutBatch(Array.from(selected));
+    setBusy(false);
+    if (sendError || !id) {
+      setError(sendError?.message || "Could not create payout batch.");
       return;
     }
     setBatchId(id);
     setSelected(new Set());
-    setNotice(
-      `Batch created for ${count} payout${count === 1 ? "" : "s"}. NOWPayments emailed a 2FA code — enter it below to send.`
-    );
-    reload();
-  }, [busy, selected, reload]);
+    setNotice(`Batch created for ${count} withdrawal${count === 1 ? "" : "s"}. Enter the NOWPayments 2FA code.`);
+    await reload();
+  }
 
-  const confirm = useCallback(async () => {
-    if (busy || !batchId || !code.trim()) return;
+  async function verify() {
     setBusy(true);
     setError(null);
-    const { ok, error: e } = await confirmPayoutBatch(batchId, code);
+    const { ok, error: verifyError } = await confirmPayoutBatch(batchId, code);
     setBusy(false);
-    if (e || !ok) {
-      setError(e?.message || "Could not confirm the batch. Check the code and retry.");
+    if (verifyError || !ok) {
+      setError(verifyError?.message || "2FA verification failed.");
       return;
     }
-    setBatchId(null);
     setCode("");
-    setNotice("Payouts sent.");
-    reload();
-  }, [busy, batchId, code, reload]);
-
-  const onRequeue = useCallback(
-    async (id) => {
-      setError(null);
-      const { error: e } = await requeuePayout(id);
-      if (e) {
-        setError(e.message || "Could not re-queue this payout.");
-        return;
-      }
-      reload();
-    },
-    [reload]
-  );
-
-  const onMarkFiatSent = useCallback(
-    async (id) => {
-      setError(null);
-      const { error: e } = await markFiatPayoutSent(
-        id,
-        "Completed through NOWPayments off-ramp dashboard."
-      );
-      if (e) {
-        setError(e.message || "Could not mark this payout as sent.");
-        return;
-      }
-      reload();
-    },
-    [reload]
-  );
+    setNotice("Batch accepted by NOWPayments. Reconcile it after provider processing completes.");
+    await reload();
+  }
 
   return (
     <div className="space-y-6">
@@ -165,163 +108,127 @@ export default function PayoutsConsole() {
         <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-400/30 text-emerald-300 text-[11px] font-bold uppercase tracking-widest mb-2">
           <Icon name="wallet" size={13} /> Payouts console
         </div>
-        <h1 className="text-2xl font-extrabold">Builder payouts</h1>
+        <h1 className="text-2xl font-extrabold">Builder withdrawals</h1>
         <p className="text-sm text-gray-500 mt-1">
-          Pay builders their earnings in USDT. Select pending payouts, send them as
-          one NOWPayments batch, then confirm with the 2FA code.
+          Review requests, approve valid wallets, then send approved withdrawals through NOWPayments.
         </p>
       </header>
 
       {error && <p className="text-sm text-red-400">{error}</p>}
       {notice && <p className="text-sm text-emerald-300">{notice}</p>}
 
-      {/* 2FA confirm bar — shown after a batch is created. */}
       {batchId && (
         <div className="glass rounded-2xl p-4 flex items-center gap-3 flex-wrap border border-sky-400/30">
-          <span className="text-sm text-gray-300 flex-1 min-w-[200px]">
-            Batch <code className="text-sky-300">{shorten(batchId, 6, 4)}</code> awaiting 2FA confirmation.
+          <span className="text-sm text-gray-300 flex-1">
+            Batch <code className="text-sky-300">{short(batchId, 6, 4)}</code>
           </span>
-          <input
-            type="text"
-            inputMode="numeric"
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            placeholder="2FA code"
-            className="px-4 py-2 rounded-full bg-black/30 border border-white/10 text-sm text-white placeholder:text-gray-500 focus:border-sky-400/60 focus:outline-none w-32"
-          />
-          <button
-            type="button"
-            onClick={confirm}
-            disabled={busy || !code.trim()}
-            className="px-5 py-2 rounded-full text-sm font-bold bg-sky-400 text-black hover:bg-sky-300 transition-all disabled:opacity-50 disabled:cursor-wait"
-          >
-            {busy ? "Confirming…" : "Confirm & send"}
+          <input value={code} onChange={(e) => setCode(e.target.value)}
+            inputMode="numeric" placeholder="2FA code"
+            className="px-4 py-2 rounded-full bg-black/30 border border-white/10 text-sm w-32" />
+          <button type="button" onClick={verify} disabled={busy || !code.trim()}
+            className="px-5 py-2 rounded-full text-sm font-bold bg-sky-400 text-black disabled:opacity-40">
+            Confirm 2FA
           </button>
-          <button
-            type="button"
-            onClick={() => {
-              setBatchId(null);
-              setCode("");
-            }}
+          <button type="button"
+            onClick={() => act(() => reconcilePayoutBatch(batchId), "Provider status reconciled.")}
             disabled={busy}
-            className="px-4 py-2 rounded-full text-xs font-semibold border border-white/15 text-gray-300 hover:bg-white/5 transition-all disabled:opacity-50"
-          >
-            Cancel
+            className="px-4 py-2 rounded-full text-xs font-semibold border border-white/15">
+            Reconcile
           </button>
         </div>
       )}
 
-      {/* Send bar — selection summary + action. */}
-      {!batchId && pending.length > 0 && (
+      {approved.length > 0 && (
         <div className="glass rounded-2xl p-4 flex items-center gap-3 flex-wrap">
-          <button
-            type="button"
-            onClick={selectAllPending}
-            className="text-xs font-semibold text-[#4ade80] hover:underline"
-          >
-            {selected.size === pending.length ? "Clear selection" : "Select all pending"}
+          <button type="button" onClick={() => setSelected(
+            selected.size === approved.length ? new Set() : new Set(approved.map((p) => p.id))
+          )} className="text-xs font-semibold text-[#4ade80]">
+            {selected.size === approved.length ? "Clear" : "Select all approved"}
           </button>
           <span className="text-sm text-gray-400 flex-1">
             {selected.size} selected · {formatPrice(selectedTotal)}
           </span>
-          <button
-            type="button"
-            onClick={send}
-            disabled={busy || selected.size === 0}
-            className="px-5 py-2 rounded-full text-sm font-bold bg-[#4ade80] text-black green-glow hover:bg-[#22c55e] transition-all disabled:opacity-50 disabled:cursor-wait"
-          >
-            {busy ? "Creating batch…" : `Send batch (${selected.size})`}
+          <button type="button" onClick={sendBatch} disabled={busy || !selected.size}
+            className="px-5 py-2 rounded-full text-sm font-bold bg-[#4ade80] text-black disabled:opacity-40">
+            Create payout batch
           </button>
         </div>
       )}
 
       {payouts === null ? (
-        <div className="flex items-center justify-center py-16">
-          <div className="w-8 h-8 rounded-full border-2 border-[#4ade80] border-t-transparent animate-spin" />
-        </div>
+        <p className="text-sm text-gray-500 py-12 text-center">Loading…</p>
       ) : payouts.length === 0 ? (
         <div className="glass rounded-2xl p-8 text-center text-sm text-gray-500">
-          No payouts yet. They appear here when an order completes.
+          No withdrawal requests yet.
         </div>
       ) : (
         <div className="space-y-3">
-          {payouts.map((p) => (
-            <PayoutRow
-              key={p.id}
-              payout={p}
-              selectable={!batchId && p.status === "pending"}
-              checked={selected.has(p.id)}
-              onToggle={() => toggle(p.id)}
-              onRequeue={() => onRequeue(p.id)}
-              onMarkFiatSent={() => onMarkFiatSent(p.id)}
-            />
-          ))}
+          {payouts.map((p) => {
+            const meta = STATUS_META[p.status] || [p.status, "border-white/10 text-gray-300"];
+            const name = p.builder?.display_name || p.builder?.username || "Builder";
+            const selectable = p.status === "approved";
+            return (
+              <div key={p.id} className="glass rounded-2xl p-4 flex items-center gap-3 flex-wrap">
+                {selectable ? (
+                  <input type="checkbox" checked={selected.has(p.id)}
+                    onChange={() => setSelected((previous) => {
+                      const next = new Set(previous);
+                      next.has(p.id) ? next.delete(p.id) : next.add(p.id);
+                      return next;
+                    })} className="accent-[#4ade80]" />
+                ) : <span className="w-4" />}
+                <div className="flex-1 min-w-[210px]">
+                  <p className="text-sm font-semibold">{name}</p>
+                  <p className="text-[11px] text-gray-500">
+                    {p.payout_method === "usdt_erc20" ? "USDT ERC-20" : "USDT TRC-20"}
+                    {" · "}<code>{short(p.destination)}</code>
+                  </p>
+                  {p.rejection_reason && <p className="text-[11px] text-red-300 mt-1">{p.rejection_reason}</p>}
+                </div>
+                <span className="font-bold text-[#4ade80]">{formatPrice(p.amount_cents)}</span>
+                <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold border ${meta[1]}`}>
+                  {meta[0]}
+                </span>
+                {p.status === "requested" && (
+                  <>
+                    <button type="button" disabled={busy}
+                      onClick={() => {
+                        const fee = window.prompt(
+                          "Provider/network fee in USD to deduct from this withdrawal:",
+                          p.payout_method === "usdt_erc20" ? "5.00" : "1.00",
+                        );
+                        if (fee === null) return;
+                        const cents = Math.round(Number(fee) * 100);
+                        if (!Number.isFinite(cents) || cents < 0 || cents >= p.amount_cents) {
+                          setError("Enter a valid fee lower than the withdrawal amount.");
+                          return;
+                        }
+                        act(() => approveWithdrawal(p.id, cents), "Withdrawal approved.");
+                      }}
+                      className="px-3 py-1.5 rounded-full text-[11px] font-semibold bg-[#4ade80] text-black">
+                      Approve
+                    </button>
+                    <button type="button" disabled={busy}
+                      onClick={() => {
+                        const reason = window.prompt("Reason shown to the builder:", "Destination could not be verified.");
+                        if (reason !== null) act(() => rejectWithdrawal(p.id, reason), "Withdrawal rejected and balance released.");
+                      }}
+                      className="px-3 py-1.5 rounded-full text-[11px] border border-red-400/30 text-red-300">
+                      Reject
+                    </button>
+                  </>
+                )}
+                {p.status === "failed" && (
+                  <button type="button" disabled={busy}
+                    onClick={() => act(() => rejectWithdrawal(p.id, "Provider payout failed; funds released."), "Failed withdrawal released.")}
+                    className="px-3 py-1.5 rounded-full text-[11px] border border-white/15">
+                    Release funds
+                  </button>
+                )}
+              </div>
+            );
+          })}
         </div>
-      )}
-    </div>
-  );
-}
-
-function PayoutRow({ payout: p, selectable, checked, onToggle, onRequeue, onMarkFiatSent }) {
-  const meta = STATUS_META[p.status] || STATUS_META.pending;
-  const name = p.builder?.display_name || p.builder?.username || "Builder";
-  const canRequeue = p.status === "blocked" || p.status === "failed";
-  const isFiatCard = p.status === "fiat_card_pending";
-
-  return (
-    <div className="glass rounded-2xl p-4 flex items-center gap-3 flex-wrap">
-      {selectable ? (
-        <input
-          type="checkbox"
-          checked={checked}
-          onChange={onToggle}
-          className="w-4 h-4 accent-[#4ade80] flex-shrink-0"
-          aria-label={`Select payout to ${name}`}
-        />
-      ) : (
-        <span className="w-4 flex-shrink-0" aria-hidden="true" />
-      )}
-
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold text-gray-100 truncate">{name}</p>
-        <p className="text-[11px] text-gray-500 truncate">
-          {p.destination ? (
-            <>{isFiatCard ? "Reference" : "Wallet"} <code className="text-gray-400">{shorten(p.destination)}</code></>
-          ) : (
-            <span className="text-gray-500 italic">no payout destination on file</span>
-          )}{" "}
-          · {formatDate(p.created_at)}
-        </p>
-      </div>
-
-      <span className="font-bold text-[#4ade80] text-sm flex-shrink-0">
-        {formatPrice(p.amount_cents)}
-      </span>
-
-      <span
-        className={`px-2.5 py-1 rounded-full text-[11px] font-bold border flex-shrink-0 ${meta.cls}`}
-      >
-        {meta.label}
-      </span>
-
-      {canRequeue && (
-        <button
-          type="button"
-          onClick={onRequeue}
-          className="px-3 py-1.5 rounded-full text-[11px] font-semibold border border-white/15 text-gray-200 hover:bg-white/5 transition-all flex-shrink-0"
-        >
-          Re-queue
-        </button>
-      )}
-
-      {isFiatCard && (
-        <button
-          type="button"
-          onClick={onMarkFiatSent}
-          className="px-3 py-1.5 rounded-full text-[11px] font-semibold border border-violet-300/30 text-violet-200 hover:bg-violet-400/10 transition-all flex-shrink-0"
-        >
-          Mark sent
-        </button>
       )}
     </div>
   );
