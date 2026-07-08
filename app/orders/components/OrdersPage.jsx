@@ -772,6 +772,7 @@ const PAYOUT_CHIP = {
   sent: { label: "Paid out", cls: "bg-emerald-400/15 border-emerald-400/30 text-emerald-300" },
   failed: { label: "Retrying", cls: "bg-red-400/10 border-red-400/30 text-red-300" },
   blocked: { label: "Add wallet", cls: "bg-gray-400/10 border-gray-400/30 text-gray-300" },
+  fiat_card_pending: { label: "Card review", cls: "bg-violet-400/10 border-violet-400/30 text-violet-300" },
 };
 
 function BuilderPayoutChip({ orderId }) {

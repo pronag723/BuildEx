@@ -118,6 +118,15 @@ admin **Payouts** console rather than automatic. When an order completes, migrat
 > payout *transaction*; Mass Payout batches many builders into one transaction = one
 > network fee for the whole batch.
 
+### Fiat/card off-ramp note
+
+Migration `0034` extends builder payouts beyond USDT wallets. Builders can choose
+USDT TRC-20, USDT ERC-20, or card/fiat off-ramp. Crypto rows are sent by Mass
+Payout. Card/fiat rows are parked as `fiat_card_pending` admin-reviewed off-ramp
+requests; BuildEx stores only a provider-safe reference/contact, never raw card
+numbers. Complete those payouts in the NOWPayments dashboard/provider flow, then
+mark the row sent in the admin console.
+
 ### Secrets
 
 ```bash

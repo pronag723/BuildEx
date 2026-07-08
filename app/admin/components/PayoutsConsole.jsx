@@ -16,6 +16,7 @@ import {
   startPayoutBatch,
   confirmPayoutBatch,
   requeuePayout,
+  markFiatPayoutSent,
 } from "../../../lib/payouts/api";
 import { formatPrice } from "../../../lib/pricing";
 import { Icon } from "../../../lib/icons";
@@ -26,6 +27,7 @@ const STATUS_META = {
   sent: { label: "Sent", cls: "bg-[#4ade80]/10 border-[#4ade80]/30 text-[#4ade80]" },
   failed: { label: "Failed", cls: "bg-red-400/10 border-red-400/30 text-red-300" },
   blocked: { label: "Blocked", cls: "bg-gray-400/10 border-gray-400/30 text-gray-300" },
+  fiat_card_pending: { label: "Card review", cls: "bg-violet-400/10 border-violet-400/30 text-violet-300" },
 };
 
 function formatDate(iso) {
@@ -141,6 +143,22 @@ export default function PayoutsConsole() {
     [reload]
   );
 
+  const onMarkFiatSent = useCallback(
+    async (id) => {
+      setError(null);
+      const { error: e } = await markFiatPayoutSent(
+        id,
+        "Completed through NOWPayments off-ramp dashboard."
+      );
+      if (e) {
+        setError(e.message || "Could not mark this payout as sent.");
+        return;
+      }
+      reload();
+    },
+    [reload]
+  );
+
   return (
     <div className="space-y-6">
       <header>
@@ -235,6 +253,7 @@ export default function PayoutsConsole() {
               checked={selected.has(p.id)}
               onToggle={() => toggle(p.id)}
               onRequeue={() => onRequeue(p.id)}
+              onMarkFiatSent={() => onMarkFiatSent(p.id)}
             />
           ))}
         </div>
@@ -243,10 +262,11 @@ export default function PayoutsConsole() {
   );
 }
 
-function PayoutRow({ payout: p, selectable, checked, onToggle, onRequeue }) {
+function PayoutRow({ payout: p, selectable, checked, onToggle, onRequeue, onMarkFiatSent }) {
   const meta = STATUS_META[p.status] || STATUS_META.pending;
   const name = p.builder?.display_name || p.builder?.username || "Builder";
   const canRequeue = p.status === "blocked" || p.status === "failed";
+  const isFiatCard = p.status === "fiat_card_pending";
 
   return (
     <div className="glass rounded-2xl p-4 flex items-center gap-3 flex-wrap">
@@ -266,9 +286,9 @@ function PayoutRow({ payout: p, selectable, checked, onToggle, onRequeue }) {
         <p className="text-sm font-semibold text-gray-100 truncate">{name}</p>
         <p className="text-[11px] text-gray-500 truncate">
           {p.destination ? (
-            <>Wallet <code className="text-gray-400">{shorten(p.destination)}</code></>
+            <>{isFiatCard ? "Reference" : "Wallet"} <code className="text-gray-400">{shorten(p.destination)}</code></>
           ) : (
-            <span className="text-gray-500 italic">no wallet on file</span>
+            <span className="text-gray-500 italic">no payout destination on file</span>
           )}{" "}
           · {formatDate(p.created_at)}
         </p>
@@ -291,6 +311,16 @@ function PayoutRow({ payout: p, selectable, checked, onToggle, onRequeue }) {
           className="px-3 py-1.5 rounded-full text-[11px] font-semibold border border-white/15 text-gray-200 hover:bg-white/5 transition-all flex-shrink-0"
         >
           Re-queue
+        </button>
+      )}
+
+      {isFiatCard && (
+        <button
+          type="button"
+          onClick={onMarkFiatSent}
+          className="px-3 py-1.5 rounded-full text-[11px] font-semibold border border-violet-300/30 text-violet-200 hover:bg-violet-400/10 transition-all flex-shrink-0"
+        >
+          Mark sent
         </button>
       )}
     </div>

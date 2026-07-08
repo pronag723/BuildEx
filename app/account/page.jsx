@@ -583,6 +583,21 @@ const PAYOUT_NETWORKS = [
   },
 ];
 
+const PAYOUT_METHODS = [
+  ...PAYOUT_NETWORKS,
+  {
+    key: "fiat_card",
+    label: "Card / fiat",
+    badge: "Card payout",
+    hint: "Admin-reviewed off-ramp payout. Enter a provider-safe reference or contact, never a full card number.",
+    placeholder: "Email, payout reference, or last 4 digits only",
+  },
+];
+
+function looksLikeRawCardNumber(value) {
+  return /(?:\d[ -]?){12,19}/.test(String(value || ""));
+}
+
 async function verifyWalletOnChain(networkKey, address) {
   try {
     if (networkKey === "usdt_trc20") {
@@ -628,8 +643,9 @@ function PayoutSection({ builderProfile, onSaved }) {
   const [saving, setSaving] = useState(false);
 
   function resolveNetwork(method) {
-    if (method === "usdt_trc20" || method === "usdt_erc20") return method;
+    if (method === "usdt_trc20" || method === "usdt_erc20" || method === "fiat_card") return method;
     if (method === "crypto") return "usdt_trc20"; // legacy
+    if (method === "card") return "fiat_card"; // legacy
     return null;
   }
 
@@ -651,6 +667,11 @@ function PayoutSection({ builderProfile, onSaved }) {
 
   function validateFormat(net, addr) {
     if (!addr) return null;
+    if (net === "fiat_card") {
+      return looksLikeRawCardNumber(addr)
+        ? "Do not enter a full card number. Use a payout reference, email, or last 4 digits only."
+        : null;
+    }
     const meta = PAYOUT_NETWORKS.find((n) => n.key === net);
     return meta && !meta.regex.test(addr) ? meta.formatError : null;
   }
@@ -664,6 +685,7 @@ function PayoutSection({ builderProfile, onSaved }) {
   async function onAddressBlur() {
     const trimmed = address.trim();
     if (!trimmed || addrError || !network) return;
+    if (network === "fiat_card") return;
     setVerify({ state: "checking", msg: null });
     const result = await verifyWalletOnChain(network, trimmed);
     setVerify(result);
@@ -672,9 +694,9 @@ function PayoutSection({ builderProfile, onSaved }) {
   async function save() {
     const supabase = getSupabaseClient();
     if (!supabase || !user?.id) return;
-    if (!network) { setError("Select a network first."); return; }
+    if (!network) { setError("Select a payout method first."); return; }
     const trimmed = address.trim();
-    if (!trimmed) { setError("Enter your USDT wallet address."); return; }
+    if (!trimmed) { setError(network === "fiat_card" ? "Enter a payout reference or contact." : "Enter your USDT wallet address."); return; }
     const fmtErr = validateFormat(network, trimmed);
     if (fmtErr) { setAddrError(fmtErr); return; }
     setSaving(true);
@@ -686,9 +708,9 @@ function PayoutSection({ builderProfile, onSaved }) {
     await onSaved?.();
   }
 
-  const activeMeta = PAYOUT_NETWORKS.find((n) => n.key === network);
+  const activeMeta = PAYOUT_METHODS.find((n) => n.key === network);
   const canSave = !!network && !!address.trim() && !addrError;
-  const savedNetMeta = PAYOUT_NETWORKS.find((n) => n.key === resolveNetwork(builderProfile?.payout_method));
+  const savedNetMeta = PAYOUT_METHODS.find((n) => n.key === resolveNetwork(builderProfile?.payout_method));
   const savedWallet = builderProfile?.payout_details || null;
 
   return (
@@ -705,11 +727,11 @@ function PayoutSection({ builderProfile, onSaved }) {
 
       {editing ? (
         <div className="space-y-5">
-          {/* Step 1: pick network */}
+          {/* Step 1: pick method */}
           <div>
-            <div className="onb-label mb-3">Network</div>
+            <div className="onb-label mb-3">Payout method</div>
             <div className="flex gap-2 flex-wrap">
-              {PAYOUT_NETWORKS.map((n) => (
+              {PAYOUT_METHODS.map((n) => (
                 <button
                   key={n.key}
                   type="button"
@@ -720,7 +742,7 @@ function PayoutSection({ builderProfile, onSaved }) {
                       : "border-white/15 text-gray-400 hover:border-white/30 hover:text-gray-200"
                   }`}
                 >
-                  USDT · {n.label}
+                  {n.key === "fiat_card" ? n.label : `USDT - ${n.label}`}
                 </button>
               ))}
             </div>
@@ -733,7 +755,7 @@ function PayoutSection({ builderProfile, onSaved }) {
           {network && (
             <div>
               <label htmlFor="acc-payout-address" className="onb-label block mb-2">
-                Wallet address
+                {network === "fiat_card" ? "Payout reference" : "Wallet address"}
               </label>
               <div className="relative">
                 <input
@@ -749,19 +771,23 @@ function PayoutSection({ builderProfile, onSaved }) {
                   spellCheck={false}
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                  {verify.state === "checking" && (
+                  {network !== "fiat_card" && verify.state === "checking" && (
                     <span className="block w-4 h-4 rounded-full border-2 border-[#4ade80]/40 border-t-[#4ade80] animate-spin" />
                   )}
-                  {verify.state === "ok" && (
+                  {network !== "fiat_card" && verify.state === "ok" && (
                     <Icon name="check" size={16} strokeWidth={2.5} className="text-[#4ade80]" />
                   )}
-                  {(verify.state === "warn" || verify.state === "error") && (
+                  {network !== "fiat_card" && (verify.state === "warn" || verify.state === "error") && (
                     <Icon name="alert-triangle" size={16} className="text-amber-400" />
                   )}
                 </span>
               </div>
               {addrError ? (
                 <p className="mt-1.5 text-xs text-red-400">{addrError}</p>
+              ) : network === "fiat_card" ? (
+                <p className="mt-2 text-xs text-gray-500 leading-relaxed">
+                  Card payouts are reviewed by an admin through NOWPayments off-ramp. Do not enter a full card number.
+                </p>
               ) : verify.msg ? (
                 <p className={`mt-1.5 text-xs ${verify.state === "ok" ? "text-[#4ade80]" : "text-amber-400"}`}>
                   {verify.msg}
@@ -790,7 +816,7 @@ function PayoutSection({ builderProfile, onSaved }) {
             </>
           ) : (
             <p className="text-gray-500 text-sm italic">
-              No payout wallet set yet. Click <strong>Edit</strong> to add your USDT wallet.
+              No payout method set yet. Click <strong>Edit</strong> to add one.
             </p>
           )}
         </div>
