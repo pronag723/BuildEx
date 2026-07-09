@@ -934,8 +934,8 @@ function BuilderPayoutsDashboard({ builderProfile, onSaved }) {
       <section className="reveal glass rounded-3xl p-6 lg:p-8">
         <h2 className="font-bold text-xl">Withdraw funds</h2>
         <p className="text-xs text-gray-500 mt-1 mb-5">
-          Minimum {formatPrice(minimum)}. NOWPayments/network fees are deducted
-          from the requested amount, so the amount received may be lower.
+          Minimum {formatPrice(minimum)}. Admin-set wallet or exchange fees are
+          deducted from the requested amount, so the amount received may be lower.
         </p>
         <div className="flex gap-3 flex-wrap">
           <div className="relative flex-1 min-w-[220px]">
@@ -992,6 +992,14 @@ function BuilderPayoutsDashboard({ builderProfile, onSaved }) {
                     <p className="text-[11px] text-gray-500">
                       {new Date(p.created_at).toLocaleString()}
                     </p>
+                    {p.payout_reference && (
+                      <p className="text-[11px] text-sky-300 mt-1 break-all">
+                        Reference: {p.payout_reference}
+                      </p>
+                    )}
+                    {p.admin_note && (
+                      <p className="text-[11px] text-gray-400 mt-1">{p.admin_note}</p>
+                    )}
                     {p.rejection_reason && <p className="text-[11px] text-red-300 mt-1">{p.rejection_reason}</p>}
                   </div>
                   <span className="font-bold">{formatPrice(p.amount_cents)}</span>

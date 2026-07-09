@@ -115,7 +115,7 @@ The platform was designed with a dark glass aesthetic inspired by modern gaming 
 - A signature-verified NOWPayments webhook marks the order paid
 - Builder delivers schematic files via order thread
 - Buyer approves: earnings become available in the builder balance
-- Builder requests a partial USDT withdrawal; an admin reviews and sends it via Mass Payout
+- Builder requests a partial USDT withdrawal; an admin reviews and sends it manually
 - If buyer declines delivery: enters revision cycle
 - Dispute flow: funds held while manual review takes place
 - One review per completed order (unlocked only after completion)
@@ -150,7 +150,7 @@ The platform was designed with a dark glass aesthetic inspired by modern gaming 
 | Database | PostgreSQL via Supabase | All persistent data |
 | Auth | Supabase Auth + Discord OAuth | User sessions |
 | File Storage | Supabase Storage | Portfolio images, schematic files |
-| Payments | NOWPayments + Supabase Edge Functions | Buyer checkout, custody, and USDT Mass Payouts |
+| Payments | NOWPayments + Supabase Edge Functions | Buyer checkout, payout ledger, and manual USDT withdrawals |
 | Forms | React Hook Form + Zod | Form state and validation |
 | Notifications | react-hot-toast | In-app toast messages |
 | Icons | lucide-react | UI icons |
@@ -494,10 +494,9 @@ Per-order message thread.
 |---|---|---|---|
 | `create-invoice` Edge Function | POST | Buyer | Create NOWPayments invoice |
 | `/api/orders/[id]/accept` | POST | Builder | Accept order, capture funds |
-| `/api/orders/[id]/complete` | POST | Buyer | Approve delivery, trigger payout |
+| `/api/orders/[id]/complete` | POST | Buyer | Approve delivery, credit builder balance |
 | `/api/orders/[id]/messages` | GET/POST | Participant | Read/send messages |
 | `/api/offers/[id]` | PATCH/DELETE | Builder | Update or delete own offer |
-| `create-payout` Edge Function | POST | Admin | Create approved withdrawal batch |
 | `/api/stripe/connect/status` | GET | Builder | Check onboarding status |
 | `payment-webhook` Edge Function | POST | NOWPayments | Handle signed payment events |
 
@@ -595,9 +594,8 @@ Discord and Google OAuth are the two supported login providers. Both go through 
 
 ## Payments and Escrow
 
-BuildEx uses **NOWPayments hosted invoices, Custody, and Mass Payouts**. Secret
-operations run in Supabase Edge Functions; payout API traffic passes through a
-locked-down fixed-IP relay because NOWPayments requires source-IP allowlisting.
+BuildEx uses **NOWPayments hosted invoices** for incoming payments and a
+**manual admin payout ledger** for builder withdrawals.
 
 **Full payment lifecycle:**
 
@@ -614,16 +612,16 @@ locked-down fixed-IP relay because NOWPayments requires source-IP allowlisting.
       ↓
 6. Builder requests a partial USDT withdrawal (minimum $20)
       ↓
-7. Admin reviews and approves the destination
+7. Admin reviews the destination and approves the request
       ↓
-8. Approved requests are sent as a NOWPayments Mass Payout batch
+8. Admin sends the crypto payout manually from NOWPayments or another wallet
       ↓
-9. Admin confirms 2FA and reconciles terminal provider status
+9. Admin records the settlement reference or marks the payout failed
 ```
 
 Disputes resolved in the builder's favor credit earnings; refunds do not. Requested
 funds are reserved immediately and return to available balance on cancellation,
-rejection, or provider failure. See
+rejection, or manual payout failure. See
 [`docs/payments-supabase-setup.md`](docs/payments-supabase-setup.md) for production setup.
 
 ---
@@ -650,7 +648,7 @@ Master Builder badge has an additional CSS pulse animation (`badgePulse` keyfram
 
 - Node.js 18+
 - A Supabase project (free tier works)
-- A NOWPayments account with Custody and Mass Payouts enabled
+- A NOWPayments account for buyer checkout and optional manual withdrawals
 - Discord application for OAuth (free)
 
 ### Installation
@@ -752,7 +750,7 @@ NEXT_PUBLIC_BASE_PATH=
 - [ ] Server-side PaymentIntent with manual capture
 - [ ] Order acceptance and fund capture
 - [ ] Delivery and approval flow
-- [x] Admin-approved NOWPayments Mass Payouts
+- [x] Admin-reviewed manual crypto payouts
 - [ ] Webhook handler for async events
 
 ### Phase 7 — Trust and Retention

@@ -15,8 +15,8 @@ verify_jwt = true
 [functions.payment-webhook]
 verify_jwt = false
 
-# create-payout / verify-payout are called by an admin from the Payouts console
-# (browser), so they verify the caller's JWT (and re-check is_admin in code).
+# Legacy payout automation helpers. Manual settlement is now the primary flow,
+# but these remain deployable if automation is ever revisited.
 [functions.create-payout]
 verify_jwt = true
 
