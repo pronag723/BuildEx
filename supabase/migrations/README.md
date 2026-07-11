@@ -23,6 +23,7 @@ migrations are idempotent (safe to re-run during development).
 | 0035 | `0035_builder_withdrawals.sql` | **Builder balances and withdrawals.** Stops automatic per-order payouts, derives available balance from completed earnings, adds atomic partial withdrawal requests, admin approval/rejection, terminal provider reconciliation, and releases legacy blocked/card rows back to builder balances. |
 | 0036 | `0036_manual_payout_settlement.sql` | **Manual withdrawal settlement.** Adds optional admin reference/note fields on `payouts` plus `admin_mark_withdrawal_sent()` and `admin_mark_withdrawal_failed()`, so admins can send USDT manually and then record the outcome without any fixed-IP relay. |
 | 0037 | `0037_payment_webhook_fail_closed.sql` | **Payment integrity fix.** Requires a verified NOWPayments settlement callback to include a valid USD amount matching the order before the order can be marked paid. |
+| 0038 | `0038_enforce_payment_floor_on_orders.sql` | **Order integrity fix.** Enforces the same $20 marketplace floor inside `place_order`, preventing direct RPC calls from bypassing the rate-editor validation. |
 
 ## Field mapping (matches the app code)
 

@@ -3,6 +3,20 @@
 This guide configures buyer checkout, builder balances, and manual admin-settled
 USDT withdrawals. BuildEx no longer requires a relay VM for payouts.
 
+## Payment minimum and builder prices
+
+NOWPayments' minimum is dynamic: it depends on the selected pay-in currency,
+outcome currency, network conditions, and fee mode. BuildEx currently lets the
+buyer choose the pay-in currency, so the marketplace uses a conservative `$20`
+floor when builders set prices. This floor is enforced in the rate editor,
+inside the `place_order` database function, and again in `create-invoice`.
+
+The final provider-side check remains authoritative. If NOWPayments raises its
+live minimum above `$20`, invoice creation will reject the order instead of
+marking it paid. If you later choose one fixed pay currency, add a server-side
+`GET /v1/min-amount` check for that exact pair and update the displayed floor
+from the returned USD equivalent rather than hardcoding a value.
+
 ## 1. Apply the Supabase SQL
 
 1. Sign in at `https://supabase.com/dashboard`.
@@ -17,9 +31,10 @@ USDT withdrawals. BuildEx no longer requires a relay VM for payouts.
    4. `supabase/migrations/0035_builder_withdrawals.sql`
    5. `supabase/migrations/0036_manual_payout_settlement.sql`
    6. `supabase/migrations/0037_payment_webhook_fail_closed.sql`
-7. If the project already has `0031` to `0036`, run only
-   `0037_payment_webhook_fail_closed.sql`.
-8. Create a final new query and run:
+   7. `supabase/migrations/0038_enforce_payment_floor_on_orders.sql`
+8. If the project already has `0031` to `0037`, run only
+   `0038_enforce_payment_floor_on_orders.sql`.
+9. Create a final new query and run:
 
 ```sql
 select to_regclass('public.payments') as payments,
