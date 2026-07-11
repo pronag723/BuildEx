@@ -5,17 +5,15 @@ USDT withdrawals. BuildEx no longer requires a relay VM for payouts.
 
 ## Payment minimum and builder prices
 
-NOWPayments' minimum is dynamic: it depends on the selected pay-in currency,
-outcome currency, network conditions, and fee mode. BuildEx currently lets the
-buyer choose the pay-in currency, so the marketplace uses a conservative `$20`
-floor when builders set prices. This floor is enforced in the rate editor,
-inside the `place_order` database function, and again in `create-invoice`.
+BuildEx now pins buyer checkout to `USDTTRC20` (`usdttrc20`) because it is the
+best low-cost fit for small USD-denominated orders. The marketplace floor for
+builder prices is `$10`, enforced in the rate editor and inside the `place_order`
+database function.
 
-The final provider-side check remains authoritative. If NOWPayments raises its
-live minimum above `$20`, invoice creation will reject the order instead of
-marking it paid. If you later choose one fixed pay currency, add a server-side
-`GET /v1/min-amount` check for that exact pair and update the displayed floor
-from the returned USD equivalent rather than hardcoding a value.
+NOWPayments still documents the exact minimum as dynamic. The `create-invoice`
+Edge Function therefore calls `GET /v1/min-amount` for `usdttrc20` in USD before
+creating checkout. If the live provider minimum rises above `$10`, checkout
+rejects the order until the builder raises the price.
 
 ## 1. Apply the Supabase SQL
 
@@ -32,8 +30,9 @@ from the returned USD equivalent rather than hardcoding a value.
    5. `supabase/migrations/0036_manual_payout_settlement.sql`
    6. `supabase/migrations/0037_payment_webhook_fail_closed.sql`
    7. `supabase/migrations/0038_enforce_payment_floor_on_orders.sql`
-8. If the project already has `0031` to `0037`, run only
-   `0038_enforce_payment_floor_on_orders.sql`.
+   8. `supabase/migrations/0039_lower_payment_floor_to_10_and_pin_usdttrc20.sql`
+8. If the project already has `0031` to `0038`, run only
+   `0039_lower_payment_floor_to_10_and_pin_usdttrc20.sql`.
 9. Create a final new query and run:
 
 ```sql
@@ -69,11 +68,13 @@ search before continuing.
    `https://YOUR_PROJECT_REF.supabase.co/functions/v1/payment-webhook`
 6. Open **Settings -> Coins settings**.
 7. Enable **USDT (TRC-20)**. Its API currency code is `usdttrc20`.
-8. Enable **USDT (ERC-20)** only if you intend to support its higher network fees.
-   Its API currency code is `usdterc20`.
-9. Open **Custody** and complete activation only if you want to send withdrawals
+8. BuildEx buyer checkout is pinned to `usdttrc20`. Keep this coin enabled or
+   checkout will fail.
+9. Enable **USDT (ERC-20)** only if you intend to support its higher network fees
+   for manual withdrawals. Its API currency code is `usdterc20`.
+10. Open **Custody** and complete activation only if you want to send withdrawals
    from the NOWPayments dashboard itself.
-10. Keep enough balance on whichever network you will actually use for manual
+11. Keep enough balance on whichever network you will actually use for manual
     withdrawals.
 
 Important:
@@ -205,7 +206,11 @@ BuildEx does not yet support marketplace beneficiary bank payouts through the ap
 
 - Builder cannot request a withdrawal: check that a valid `USDT TRC-20` or
   `USDT ERC-20` address is saved in **Account -> Payouts**.
-- Amount is blocked: confirm it is at least `$20.00` and not above **Available**.
+- Buyer checkout rejects a `$10+` order: NOWPayments' live `usdttrc20` minimum
+  may be temporarily above the marketplace floor. Check the `create-invoice`
+  function logs.
+- Amount is blocked: confirm it is at least `$20.00` for withdrawals and not
+  above **Available**.
 - Admin cannot approve: fee must be a non-negative amount lower than the gross
   withdrawal amount.
 - Admin marked the wrong request as sent: correct it directly in Supabase before

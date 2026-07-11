@@ -24,6 +24,7 @@ migrations are idempotent (safe to re-run during development).
 | 0036 | `0036_manual_payout_settlement.sql` | **Manual withdrawal settlement.** Adds optional admin reference/note fields on `payouts` plus `admin_mark_withdrawal_sent()` and `admin_mark_withdrawal_failed()`, so admins can send USDT manually and then record the outcome without any fixed-IP relay. |
 | 0037 | `0037_payment_webhook_fail_closed.sql` | **Payment integrity fix.** Requires a verified NOWPayments settlement callback to include a valid USD amount matching the order before the order can be marked paid. |
 | 0038 | `0038_enforce_payment_floor_on_orders.sql` | **Order integrity fix.** Enforces the same $20 marketplace floor inside `place_order`, preventing direct RPC calls from bypassing the rate-editor validation. |
+| 0039 | `0039_lower_payment_floor_to_10_and_pin_usdttrc20.sql` | **Pricing + checkout update.** Lowers the marketplace order floor to $10 inside `place_order` and aligns production checkout around `USDTTRC20`, with the Edge Function enforcing NOWPayments' live `min-amount` response before invoice creation. |
 
 ## Field mapping (matches the app code)
 

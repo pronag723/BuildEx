@@ -15,7 +15,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
-import { createInvoice } from "../_shared/nowpayments.ts";
+import { createInvoice, getMinimumInvoiceAmount } from "../_shared/nowpayments.ts";
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -86,10 +86,11 @@ Deno.serve(async (req) => {
     return json({ error: "Order is not awaiting payment" }, 409);
   }
 
-  // NOWPayments minimum varies by coin; $20 is a safe conservative floor that
-  // keeps us above every network threshold (mirrors MIN_ORDER_CENTS in
-  // lib/pricing.js — keep the two in sync).
-  const MIN_CENTS = 2000;
+  // BuildEx standardizes buyer checkout on USDT TRC-20. The marketplace floor
+  // is $10, but NOWPayments still publishes a live per-rail minimum, so we
+  // check both here.
+  const PAY_CURRENCY = "usdttrc20";
+  const MIN_CENTS = 1000;
   if (Number(order.price_kopecks) < MIN_CENTS) {
     return json(
       { error: `Order total is below the $${MIN_CENTS / 100} minimum required by the payment gateway.` },
@@ -98,6 +99,23 @@ Deno.serve(async (req) => {
   }
 
   const amount = (Number(order.price_kopecks) / 100).toFixed(2);
+  try {
+    const minQuote = await getMinimumInvoiceAmount(PAY_CURRENCY, "usd");
+    if (minQuote.amount != null && Number(amount) + 0.000001 < minQuote.amount) {
+      return json(
+        {
+          error:
+            `Order total is below the current NOWPayments minimum for ${PAY_CURRENCY.toUpperCase()} checkout ($${minQuote.amount.toFixed(2)}). Raise the price or wait for network conditions to improve.`,
+        },
+        422,
+      );
+    }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("min-amount lookup failed:", msg);
+    return json({ error: `Payment provider error: ${msg}` }, 502);
+  }
+
   const callbackUrl = `${supabaseUrl}/functions/v1/payment-webhook`;
   // Fall back to the Supabase URL origin only as a last resort; the client
   // normally passes its own origin so the buyer returns to the right place.
@@ -110,6 +128,7 @@ Deno.serve(async (req) => {
     invoice = await createInvoice({
       amount,
       currency: "USD",
+      payCurrency: PAY_CURRENCY,
       orderId: order.id,
       callbackUrl,
       returnUrl: safeReturn,

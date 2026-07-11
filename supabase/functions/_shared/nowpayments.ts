@@ -74,6 +74,7 @@ function sortDeep(v: unknown): unknown {
 export interface CreateInvoiceInput {
   amount: string; // fiat amount as a string, e.g. "25.00"
   currency: string; // e.g. "USD"
+  payCurrency?: string; // e.g. "usdttrc20"
   orderId: string; // our orders.id — echoed back in the IPN as order_id
   callbackUrl: string; // payment-webhook function URL (ipn_callback_url)
   returnUrl: string; // where the buyer lands after paying (our /orders page)
@@ -83,6 +84,47 @@ export interface CreateInvoiceResult {
   invoiceId: string | null;
   checkoutUrl: string | null;
   raw: unknown;
+}
+
+export interface MinAmountResult {
+  amount: number | null;
+  raw: unknown;
+}
+
+export async function getMinimumInvoiceAmount(
+  payCurrency: string,
+  fiatEquivalent = "usd",
+): Promise<MinAmountResult> {
+  const apiKey = env("NOWPAYMENTS_API_KEY");
+  const params = new URLSearchParams({
+    currency_to: payCurrency.toLowerCase(),
+    fiat_equivalent: fiatEquivalent.toLowerCase(),
+  });
+
+  const res = await fetch(`${API_BASE}/min-amount?${params.toString()}`, {
+    method: "GET",
+    headers: {
+      "x-api-key": apiKey,
+    },
+  });
+
+  const raw = await res.json().catch(() => null);
+  if (!res.ok) {
+    throw new Error(
+      `NOWPayments min-amount failed (${res.status}): ${JSON.stringify(raw)}`,
+    );
+  }
+
+  const fiat = typeof raw?.fiat_equivalent === "number"
+    ? raw.fiat_equivalent
+    : typeof raw?.fiat_equivalent === "string"
+    ? Number(raw.fiat_equivalent)
+    : null;
+
+  return {
+    amount: Number.isFinite(fiat) ? fiat : null,
+    raw,
+  };
 }
 
 /**
@@ -103,6 +145,7 @@ export async function createInvoice(
   const body = {
     price_amount: Number(input.amount),
     price_currency: input.currency.toLowerCase(), // NOWPayments wants e.g. "usd"
+    pay_currency: input.payCurrency?.toLowerCase(),
     order_id: input.orderId,
     order_description: `BuildEx order ${input.orderId}`,
     ipn_callback_url: input.callbackUrl,
