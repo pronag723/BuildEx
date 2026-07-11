@@ -16,9 +16,10 @@ USDT withdrawals. BuildEx no longer requires a relay VM for payouts.
    3. `supabase/migrations/0034_payment_reconciliation_and_fiat_payouts.sql`
    4. `supabase/migrations/0035_builder_withdrawals.sql`
    5. `supabase/migrations/0036_manual_payout_settlement.sql`
-6. If the project already has `0031` to `0035`, run only
-   `0036_manual_payout_settlement.sql`.
-7. Create a final new query and run:
+   6. `supabase/migrations/0037_payment_webhook_fail_closed.sql`
+7. If the project already has `0031` to `0036`, run only
+   `0037_payment_webhook_fail_closed.sql`.
+8. Create a final new query and run:
 
 ```sql
 select to_regclass('public.payments') as payments,

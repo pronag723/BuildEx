@@ -195,20 +195,29 @@ export async function verifyWebhook(
   // NOWPayments terminal "money settled" state. We deliberately do NOT treat
   // 'confirmed' (on-chain only, pre-settlement) or 'partially_paid' (underpaid)
   // as paid — only 'finished' releases the order.
-  const isPaid = status === "finished";
+  const amountStr = payload.price_amount != null
+    ? String(payload.price_amount)
+    : null;
+  // A signed callback is not sufficient on its own: the settlement payload
+  // must also contain a well-formed fiat amount and the currency we requested.
+  // This keeps malformed/provider-version-drifted callbacks from reaching the
+  // paid ledger as NULL values.
+  const amountCents = amountStr && /^\d+(?:\.\d{1,2})?$/.test(amountStr)
+    ? Math.round(Number(amountStr) * 100)
+    : null;
+  const currency = payload.price_currency != null
+    ? String(payload.price_currency).toLowerCase()
+    : null;
+  const isPaid = status === "finished" &&
+    currency === "usd" &&
+    amountCents != null &&
+    Number.isSafeInteger(amountCents);
 
   // NOWPayments is crypto-first; pay_currency present ⇒ a crypto rail. Card (via
   // their fiat on-ramp partners, when enabled) isn't reliably distinguishable in
   // the IPN, so we report 'crypto' when we have a pay_currency and leave it null
   // otherwise rather than guess.
   const method: "crypto" | "card" | null = payload.pay_currency ? "crypto" : null;
-
-  // price_amount is the fiat order price we requested (USD); use it for the
-  // ledger, not pay_amount (the crypto amount).
-  const amountStr = payload.price_amount != null
-    ? String(payload.price_amount)
-    : null;
-  const amountCents = amountStr ? Math.round(parseFloat(amountStr) * 100) : null;
 
   return {
     valid: true,
