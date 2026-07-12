@@ -947,7 +947,7 @@ function ActionButtons({
       );
     }
   }
-  if (isBuyer && (order.status === "pending_payment" || order.status === "paid")) {
+  if (isBuyer && order.status === "pending_payment") {
     buttons.push(
       <Secondary key="cancel" onClick={onCancel} disabled={busy}>
         Cancel order

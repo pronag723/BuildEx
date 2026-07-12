@@ -39,6 +39,7 @@ export default function PayoutsConsole() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
+  const [copiedId, setCopiedId] = useState(null);
 
   const reload = useCallback(async () => {
     const { payouts: rows, error: loadError } = await listPayouts();
@@ -98,6 +99,24 @@ export default function PayoutsConsole() {
                     {p.payout_method === "usdt_erc20" ? "USDT ERC-20" : "USDT TRC-20"}
                     {" · "}<code>{short(p.destination)}</code>
                   </p>
+                  <div className="flex items-start gap-2 mt-1">
+                    <code className="min-w-0 flex-1 text-[11px] text-gray-300 break-all select-all">
+                      {p.destination || "No destination recorded"}
+                    </code>
+                    {p.destination && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await navigator.clipboard.writeText(p.destination);
+                          setCopiedId(p.id);
+                          window.setTimeout(() => setCopiedId(null), 1500);
+                        }}
+                        className="shrink-0 px-2 py-1 rounded-md border border-white/15 text-[10px] text-gray-300 hover:text-white"
+                      >
+                        {copiedId === p.id ? "Copied" : "Copy"}
+                      </button>
+                    )}
+                  </div>
                   {p.fee_amount_cents != null && (
                     <p className="text-[11px] text-gray-500 mt-1">
                       Requested {formatPrice(p.amount_cents)} · Net {formatPrice(p.net_amount_cents ?? p.amount_cents)}
