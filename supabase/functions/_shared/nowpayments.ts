@@ -97,8 +97,11 @@ export async function getMinimumInvoiceAmount(
 ): Promise<MinAmountResult> {
   const apiKey = env("NOWPAYMENTS_API_KEY");
   const params = new URLSearchParams({
+    // NOWPayments requires the fiat pay-in/source currency explicitly.
+    currency_from: fiatEquivalent.toLowerCase(),
     currency_to: payCurrency.toLowerCase(),
     fiat_equivalent: fiatEquivalent.toLowerCase(),
+    is_fee_paid_by_user: "true",
   });
 
   const res = await fetch(`${API_BASE}/min-amount?${params.toString()}`, {
