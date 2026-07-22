@@ -18,7 +18,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      NEXT_PUBLIC_BASE_PATH: /BuildEx
+      NEXT_PUBLIC_BASE_PATH: ""
 
     steps:
       - name: Checkout
