@@ -33,7 +33,7 @@ import {
 } from "../onboarding/components/RatesFields";
 
 const INPUT =
-  "w-full px-3 py-2.5 rounded-xl bg-black/25 border border-white/10 text-sm outline-none focus:border-[#4ade80]/60";
+  "studio-control catalog-select w-full px-3 py-2.5 rounded-xl bg-black/25 border border-white/10 text-sm outline-none focus:border-[#4ade80]/60";
 
 function Card({ title, description, children, aside }) {
   return (
@@ -47,6 +47,24 @@ function Card({ title, description, children, aside }) {
       </div>
       {children}
     </section>
+  );
+}
+
+function SaveButton({ changed, busy, invalid = false, onClick, children }) {
+  const disabled = busy || invalid || !changed;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`mt-5 px-5 py-2.5 rounded-full font-bold text-sm transition-all ${
+        disabled
+          ? "bg-white/[0.04] border border-white/10 text-gray-500 cursor-not-allowed"
+          : "bg-[#4ade80] text-black green-glow hover:bg-[#22c55e] hover:scale-[1.02]"
+      }`}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -128,6 +146,43 @@ export function StudioModeratorDashboard({ section = "profile" }) {
         (member) => member.status === "active" && member.availability_status === "available"
       ),
     [members]
+  );
+  const storefrontChanged = useMemo(
+    () =>
+      Boolean(
+        studio &&
+          (name.trim() !== studio.display_name ||
+            username.trim() !== studio.username ||
+            avatarUrl !== studio.avatar ||
+            accepting !== studio.accepting_orders)
+      ),
+    [accepting, avatarUrl, name, studio, username]
+  );
+  const ratesChanged = useMemo(
+    () =>
+      Boolean(
+        studio &&
+          JSON.stringify(normalizeRates(rates)) !== JSON.stringify(studio.rates || {})
+      ),
+    [rates, studio]
+  );
+  const commissionChanged = useMemo(
+    () =>
+      Boolean(
+        studio &&
+          employeePct !== "" &&
+          Math.round(Number(employeePct) * 100) !== Number(studio.employee_commission_bps)
+      ),
+    [employeePct, studio]
+  );
+  const payoutChanged = useMemo(
+    () =>
+      Boolean(
+        studio &&
+          (payoutMethod !== (studio.payout_method || "usdt_trc20") ||
+            payoutDetails.trim() !== (studio.payout_details || ""))
+      ),
+    [payoutDetails, payoutMethod, studio]
   );
 
   async function saveStudio() {
@@ -220,14 +275,14 @@ export function StudioModeratorDashboard({ section = "profile" }) {
             </label>
           </div>
         </div>
-        <button
-          type="button"
+        <SaveButton
+          changed={storefrontChanged}
+          busy={busy}
+          invalid={employeePct === ""}
           onClick={saveStudio}
-          disabled={busy || employeePct === ""}
-          className="mt-5 px-5 py-2.5 rounded-full bg-[#4ade80] text-black font-bold text-sm disabled:opacity-40"
         >
-          Save storefront
-        </button>
+          {busy ? "Saving…" : "Save storefront"}
+        </SaveButton>
       </Card>}
 
       {section === "profile" && <Card
@@ -235,14 +290,14 @@ export function StudioModeratorDashboard({ section = "profile" }) {
         description="Set the block area and client price for each project size."
       >
         <RatesEditor rates={rates} onChange={setRates} />
-        <button
-          type="button"
+        <SaveButton
+          changed={ratesChanged}
+          busy={busy}
+          invalid={employeePct === ""}
           onClick={saveStudio}
-          disabled={busy || employeePct === ""}
-          className="mt-5 px-5 py-2.5 rounded-full bg-[#4ade80] text-black font-bold text-sm disabled:opacity-40"
         >
           {busy ? "Saving…" : "Save rates"}
-        </button>
+        </SaveButton>
       </Card>}
 
       {section === "profile" && <Card
@@ -300,14 +355,14 @@ export function StudioModeratorDashboard({ section = "profile" }) {
             onChange={(e) => setEmployeePct(e.target.value)}
           />
         </label>
-        <button
-          type="button"
+        <SaveButton
+          changed={commissionChanged}
+          busy={busy}
+          invalid={employeePct === ""}
           onClick={saveStudio}
-          disabled={busy || employeePct === ""}
-          className="mt-5 px-5 py-2.5 rounded-full bg-[#4ade80] text-black font-bold text-sm disabled:opacity-40"
         >
           {busy ? "Saving…" : "Save commission"}
-        </button>
+        </SaveButton>
       </Card>}
 
       {section === "team" && <Card
@@ -463,14 +518,14 @@ export function StudioModeratorDashboard({ section = "profile" }) {
             <input className={INPUT} value={payoutDetails} onChange={(e) => setPayoutDetails(e.target.value)} placeholder="Wallet address" />
           </label>
         </div>
-        <button
-          type="button"
+        <SaveButton
+          changed={payoutChanged}
+          busy={busy}
+          invalid={employeePct === ""}
           onClick={saveStudio}
-          disabled={busy || employeePct === ""}
-          className="mt-5 px-5 py-2.5 rounded-full bg-[#4ade80] text-black font-bold text-sm disabled:opacity-40"
         >
           {busy ? "Saving…" : "Save payout details"}
-        </button>
+        </SaveButton>
       </Card>}
 
       {section === "payouts" && <Card

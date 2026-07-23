@@ -31,6 +31,28 @@ textarea::-webkit-scrollbar-button {
   display: none;
 }
 
+/* Studio settings use deliberately quiet controls: browser-provided spinner,
+   calendar and dropdown glyphs add visual noise inside the compact fields. */
+.studio-control {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: none;
+}
+
+.studio-control::-webkit-inner-spin-button,
+.studio-control::-webkit-outer-spin-button,
+.studio-control::-webkit-calendar-picker-indicator,
+.studio-control::-webkit-list-button {
+  display: none;
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input.studio-control[type="number"] {
+  -moz-appearance: textfield;
+}
+
 /* Dark, slim scrollbars for textareas + any element opting in with .bx-scroll.
    Without explicit webkit thumb/track colours, Chrome/Edge fall back to the
    bright default scrollbar (the "white sliders" in the brief + chat input). */
