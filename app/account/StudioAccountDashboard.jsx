@@ -1,7 +1,23 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import {
+  ArrowRight,
+  Check,
+  ChevronDown,
+  CircleDollarSign,
+  Clock3,
+  ExternalLink,
+  GripHorizontal,
+  ImagePlus,
+  Inbox,
+  ShieldCheck,
+  Trash2,
+  UserRoundCheck,
+  Users,
+  Wallet,
+} from "lucide-react";
 import { useAuth } from "../../lib/auth/AuthContext";
 import {
   addStudioPortfolioImage,
@@ -33,11 +49,152 @@ import {
 } from "../onboarding/components/RatesFields";
 
 const INPUT =
-  "studio-control catalog-select w-full px-3 py-2.5 rounded-xl bg-black/25 border border-white/10 text-sm outline-none focus:border-[#4ade80]/60";
+  "studio-control w-full px-4 py-3 rounded-2xl bg-black/25 border border-white/10 text-sm outline-none transition-all hover:border-white/20 focus:border-[#4ade80]/60 focus:ring-4 focus:ring-[#4ade80]/10";
+
+const PAYOUT_NETWORKS = [
+  {
+    value: "usdt_trc20",
+    label: "USDT",
+    network: "TRON",
+    badge: "TRC-20",
+    hint: "Low network fees",
+    prefix: "T",
+  },
+  {
+    value: "usdt_erc20",
+    label: "USDT",
+    network: "Ethereum",
+    badge: "ERC-20",
+    hint: "Ethereum network",
+    prefix: "0x",
+  },
+];
+
+function getWalletValidation(method, address) {
+  const value = address.trim();
+  if (!value) {
+    return { valid: false, empty: true, message: "Enter the receiving wallet address." };
+  }
+  if (method === "usdt_trc20") {
+    const valid = /^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(value);
+    return {
+      valid,
+      empty: false,
+      message: valid
+        ? "Valid TRON address format"
+        : "TRC-20 addresses must begin with T and contain 34 characters.",
+    };
+  }
+  if (method === "usdt_erc20") {
+    const valid = /^0x[0-9a-fA-F]{40}$/.test(value);
+    return {
+      valid,
+      empty: false,
+      message: valid
+        ? "Valid Ethereum address format"
+        : "ERC-20 addresses must begin with 0x followed by 40 hexadecimal characters.",
+    };
+  }
+  return { valid: false, empty: false, message: "Choose a supported payout network." };
+}
+
+function NetworkSelect({ value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef(null);
+  const selected =
+    PAYOUT_NETWORKS.find((network) => network.value === value) || PAYOUT_NETWORKS[0];
+
+  useEffect(() => {
+    function close(event) {
+      if (!rootRef.current?.contains(event.target)) setOpen(false);
+    }
+    function closeOnEscape(event) {
+      if (event.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("pointerdown", close);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", close);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, []);
+
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
+        className={`${INPUT} flex items-center justify-between gap-3 text-left`}
+      >
+        <span className="flex items-center gap-3 min-w-0">
+          <span className="w-9 h-9 rounded-xl bg-[#4ade80]/10 border border-[#4ade80]/20 text-[#4ade80] inline-flex items-center justify-center flex-shrink-0">
+            <Wallet size={17} />
+          </span>
+          <span className="min-w-0">
+            <span className="font-semibold text-gray-100">{selected.label}</span>
+            <span className="text-gray-500"> · {selected.network}</span>
+          </span>
+        </span>
+        <span className="flex items-center gap-2 flex-shrink-0">
+          <span className="hidden xs:inline-flex text-[10px] uppercase tracking-wider px-2 py-1 rounded-full bg-white/[0.05] border border-white/10 text-gray-400">
+            {selected.badge}
+          </span>
+          <ChevronDown
+            size={17}
+            className={`text-gray-400 transition-transform ${open ? "rotate-180" : ""}`}
+          />
+        </span>
+      </button>
+      {open && (
+        <div
+          role="listbox"
+          aria-label="Payout network"
+          className="absolute z-40 left-0 right-0 top-[calc(100%+8px)] p-2 rounded-2xl border border-white/15 bg-[#191d1a]/95 backdrop-blur-2xl shadow-2xl studio-network-menu"
+        >
+          {PAYOUT_NETWORKS.map((network) => {
+            const active = network.value === selected.value;
+            return (
+              <button
+                key={network.value}
+                type="button"
+                role="option"
+                aria-selected={active}
+                onClick={() => {
+                  onChange(network.value);
+                  setOpen(false);
+                }}
+                className={`w-full flex items-center gap-3 rounded-xl px-3 py-3 text-left transition-all ${
+                  active
+                    ? "bg-[#4ade80]/12 border border-[#4ade80]/25"
+                    : "border border-transparent hover:bg-white/[0.05]"
+                }`}
+              >
+                <span className={`w-9 h-9 rounded-xl inline-flex items-center justify-center text-xs font-bold ${
+                  active ? "bg-[#4ade80] text-black" : "bg-white/[0.06] text-gray-300"
+                }`}>
+                  {network.badge.split("-")[0]}
+                </span>
+                <span className="flex-1 min-w-0">
+                  <span className="block text-sm font-semibold">
+                    {network.label} on {network.network}
+                  </span>
+                  <span className="block text-[11px] text-gray-500 mt-0.5">{network.hint}</span>
+                </span>
+                {active && <Check size={17} className="text-[#4ade80]" />}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function Card({ title, description, children, aside }) {
   return (
-    <section className="glass rounded-3xl p-6 lg:p-8">
+    <section className="glass studio-panel rounded-3xl p-6 lg:p-8 detail-fade-up">
       <div className="flex items-center justify-between gap-3 mb-5">
         <div>
           <h2 className="font-bold text-xl">{title}</h2>
@@ -57,14 +214,127 @@ function SaveButton({ changed, busy, invalid = false, onClick, children }) {
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`mt-5 px-5 py-2.5 rounded-full font-bold text-sm transition-all ${
+      className={`mt-5 px-5 py-2.5 rounded-full font-bold text-sm transition-all inline-flex items-center gap-2 ${
         disabled
           ? "bg-white/[0.04] border border-white/10 text-gray-500 cursor-not-allowed"
           : "bg-[#4ade80] text-black green-glow hover:bg-[#22c55e] hover:scale-[1.02]"
       }`}
     >
       {children}
+      {!disabled && <ArrowRight size={15} />}
     </button>
+  );
+}
+
+function PortfolioRail({ studio, onReload, onError }) {
+  const railRef = useRef(null);
+  const dragRef = useRef({ active: false, x: 0, left: 0, moved: false });
+
+  function startDrag(event) {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    const rail = railRef.current;
+    if (!rail || event.target.closest("button, label, input")) return;
+    dragRef.current = {
+      active: true,
+      x: event.clientX,
+      left: rail.scrollLeft,
+      moved: false,
+    };
+    rail.setPointerCapture?.(event.pointerId);
+    rail.classList.add("is-dragging");
+  }
+
+  function moveDrag(event) {
+    const rail = railRef.current;
+    const drag = dragRef.current;
+    if (!rail || !drag.active) return;
+    const distance = event.clientX - drag.x;
+    if (Math.abs(distance) > 4) drag.moved = true;
+    rail.scrollLeft = drag.left - distance;
+  }
+
+  function finishDrag(event) {
+    const rail = railRef.current;
+    if (!rail || !dragRef.current.active) return;
+    dragRef.current.active = false;
+    rail.releasePointerCapture?.(event.pointerId);
+    rail.classList.remove("is-dragging");
+  }
+
+  return (
+    <div>
+      <div className="flex items-center gap-2 text-xs text-gray-500 mb-4">
+        <GripHorizontal size={15} className="text-[#4ade80]" />
+        Drag the gallery horizontally to browse. Hover a build for actions.
+      </div>
+      <div className="studio-portfolio-fade -mx-2 px-2">
+        <div
+          ref={railRef}
+          className="studio-portfolio-rail bx-scroll flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory cursor-grab select-none"
+          onPointerDown={startDrag}
+          onPointerMove={moveDrag}
+          onPointerUp={finishDrag}
+          onPointerCancel={finishDrag}
+          onPointerLeave={(event) => {
+            if (event.buttons === 0) finishDrag(event);
+          }}
+        >
+          {studio.portfolio.map((image, index) => (
+            <article
+              key={image.id}
+              className="studio-portfolio-card group relative flex-[0_0_clamp(250px,38vw,360px)] snap-start rounded-2xl overflow-hidden bg-black/30 border border-white/10 aspect-[16/10]"
+            >
+              <img
+                src={image.thumbnail}
+                alt={image.title}
+                className="w-full h-full object-cover pointer-events-none transition-transform duration-500 group-hover:scale-[1.06]"
+                draggable="false"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/20 opacity-60 group-hover:opacity-100 transition-opacity pointer-events-none" />
+              <span className="absolute left-3 bottom-3 text-[10px] uppercase tracking-widest px-2 py-1 rounded-full bg-black/55 border border-white/15 text-gray-200 backdrop-blur-md">
+                {index === 0 ? "Cover image" : `Build ${index + 1}`}
+              </span>
+              <button
+                type="button"
+                aria-label={`Remove ${image.title || `build ${index + 1}`}`}
+                onClick={async () => {
+                  const result = await deleteStudioPortfolioImage(image);
+                  if (result.error) onError(result.error.message);
+                  else onReload();
+                }}
+                className="absolute top-3 right-3 w-9 h-9 rounded-full bg-black/65 border border-white/15 text-gray-200 inline-flex items-center justify-center opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 focus:opacity-100 transition-all hover:bg-red-500/25 hover:text-red-200 hover:border-red-400/40"
+              >
+                <Trash2 size={16} />
+              </button>
+            </article>
+          ))}
+          <label className="studio-portfolio-add flex-[0_0_clamp(220px,30vw,300px)] aspect-[16/10] snap-start rounded-2xl border border-dashed border-[#4ade80]/40 flex flex-col gap-2 items-center justify-center text-sm text-[#4ade80] cursor-pointer transition-all hover:bg-[#4ade80]/[0.07] hover:border-[#4ade80]/70 hover:-translate-y-1">
+            <span className="w-11 h-11 rounded-2xl bg-[#4ade80]/10 border border-[#4ade80]/20 inline-flex items-center justify-center">
+              <ImagePlus size={20} />
+            </span>
+            <span className="font-semibold">Add portfolio image</span>
+            <span className="text-[11px] text-gray-500">PNG, JPG, WebP or GIF</span>
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              className="hidden"
+              onChange={async (event) => {
+                const file = event.target.files?.[0];
+                if (!file) return;
+                const result = await addStudioPortfolioImage(
+                  studio.id,
+                  file,
+                  studio.portfolio.length
+                );
+                if (result.error) onError(result.error.message);
+                else onReload();
+                event.target.value = "";
+              }}
+            />
+          </label>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -184,11 +454,19 @@ export function StudioModeratorDashboard({ section = "profile" }) {
       ),
     [payoutDetails, payoutMethod, studio]
   );
+  const walletValidation = useMemo(
+    () => getWalletValidation(payoutMethod, payoutDetails),
+    [payoutDetails, payoutMethod]
+  );
 
-  async function saveStudio() {
+  async function saveStudio(options = {}) {
     const validation = validateRates(rates);
     if (validation) {
       setError(validation);
+      return;
+    }
+    if (options.validatePayout && !walletValidation.valid) {
+      setError(walletValidation.message);
       return;
     }
     setBusy(true);
@@ -200,8 +478,8 @@ export function StudioModeratorDashboard({ section = "profile" }) {
       rates: normalizeRates(rates),
       employeeCommissionBps: Math.round(Number(employeePct) * 100),
       acceptingOrders: accepting,
-      payoutMethod,
-      payoutDetails,
+      payoutMethod: payoutDetails.trim() ? payoutMethod : null,
+      payoutDetails: payoutDetails.trim() || null,
     });
     setBusy(false);
     if (result.error) {
@@ -302,41 +580,9 @@ export function StudioModeratorDashboard({ section = "profile" }) {
 
       {section === "profile" && <Card
         title="Studio portfolio"
-        description="Show clients a focused selection of your studio's work."
+        description="A compact, scrollable showcase that matches the public builder profile."
       >
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {studio.portfolio.map((image) => (
-            <div key={image.id} className="relative rounded-2xl overflow-hidden bg-black/30 aspect-video">
-              <img src={image.thumbnail} alt={image.title} className="w-full h-full object-cover" />
-              <button
-                type="button"
-                onClick={async () => {
-                  await deleteStudioPortfolioImage(image);
-                  load();
-                }}
-                className="absolute top-2 right-2 px-2 py-1 rounded-lg bg-black/70 text-xs text-red-300"
-              >
-                Remove
-              </button>
-            </div>
-          ))}
-          <label className="aspect-video rounded-2xl border border-dashed border-[#4ade80]/40 flex items-center justify-center text-sm text-[#4ade80] cursor-pointer hover:bg-[#4ade80]/5">
-            Add portfolio image
-            <input
-              type="file"
-              accept="image/png,image/jpeg,image/webp,image/gif"
-              className="hidden"
-              onChange={async (event) => {
-                const file = event.target.files?.[0];
-                if (!file) return;
-                const result = await addStudioPortfolioImage(studio.id, file, studio.portfolio.length);
-                if (result.error) setError(result.error.message);
-                else load();
-                event.target.value = "";
-              }}
-            />
-          </label>
-        </div>
+        <PortfolioRail studio={studio} onReload={load} onError={setError} />
       </Card>}
 
       {section === "team" && <Card
@@ -370,10 +616,25 @@ export function StudioModeratorDashboard({ section = "profile" }) {
         description="Invite employees and manage everyone attached to the studio."
         aside={<span className="text-xs text-gray-500">{availableMembers.length} available</span>}
       >
-        <div className="grid md:grid-cols-[1fr_120px_160px_auto] gap-2 mb-5">
-          <input className={INPUT} value={newCode} onChange={(e) => setNewCode(e.target.value)} placeholder="New employee code" />
-          <input type="number" min="1" max="1000" className={INPUT} value={codeLimit} onChange={(e) => setCodeLimit(e.target.value)} />
-          <input type="date" className={INPUT} value={codeExpiry} onChange={(e) => setCodeExpiry(e.target.value)} />
+        <div className="grid md:grid-cols-[1fr_120px_180px_auto] gap-3 mb-5 items-end">
+          <label>
+            <span className="text-[11px] uppercase tracking-wider text-gray-500 block mb-2">
+              Invite code
+            </span>
+            <input className={INPUT} value={newCode} onChange={(e) => setNewCode(e.target.value)} placeholder="e.g. BUILDEX-CREW" />
+          </label>
+          <label>
+            <span className="text-[11px] uppercase tracking-wider text-gray-500 block mb-2">
+              Uses
+            </span>
+            <input type="number" min="1" max="1000" className={INPUT} value={codeLimit} onChange={(e) => setCodeLimit(e.target.value)} />
+          </label>
+          <label>
+            <span className="text-[11px] uppercase tracking-wider text-gray-500 block mb-2">
+              Expires
+            </span>
+            <input type="date" className={INPUT} value={codeExpiry} onChange={(e) => setCodeExpiry(e.target.value)} />
+          </label>
           <button
             type="button"
             onClick={async () => {
@@ -388,7 +649,8 @@ export function StudioModeratorDashboard({ section = "profile" }) {
                 load();
               }
             }}
-            className="px-4 py-2 rounded-xl bg-[#4ade80] text-black text-sm font-bold"
+            disabled={!newCode.trim()}
+            className="h-[46px] px-5 rounded-2xl bg-[#4ade80] text-black text-sm font-bold transition-all hover:bg-[#22c55e] hover:-translate-y-0.5 disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none"
           >
             Generate
           </button>
@@ -454,21 +716,83 @@ export function StudioModeratorDashboard({ section = "profile" }) {
         </div>
       </Card>}
 
+      {section === "orders" && (
+        <div className="grid sm:grid-cols-3 gap-3 detail-fade-up">
+          {[
+            [
+              "Open orders",
+              orders.filter(
+                (order) => !["completed", "cancelled"].includes(order.status)
+              ).length,
+              Inbox,
+            ],
+            [
+              "Ready to assign",
+              orders.filter(
+                (order) => order.status === "paid" && !order.assigned_builder_id
+              ).length,
+              UserRoundCheck,
+            ],
+            ["Available builders", availableMembers.length, Users],
+          ].map(([label, value, StatIcon]) => (
+            <div
+              key={label}
+              className="glass studio-stat-card rounded-2xl p-4 flex items-center gap-3"
+            >
+              <span className="w-10 h-10 rounded-xl bg-[#4ade80]/10 border border-[#4ade80]/20 text-[#4ade80] inline-flex items-center justify-center">
+                <StatIcon size={18} />
+              </span>
+              <span>
+                <span className="block text-xl font-extrabold">{value}</span>
+                <span className="block text-[11px] text-gray-500">{label}</span>
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
       {section === "orders" && <Card
         title="Studio orders"
         description="Review incoming work and assign it to an available employee."
       >
         <div className="space-y-3">
-          {orders.length === 0 && <p className="text-sm text-gray-500">No studio orders yet.</p>}
+          {orders.length === 0 && (
+            <div className="rounded-3xl border border-dashed border-white/15 bg-black/[0.08] px-6 py-12 text-center">
+              <span className="mx-auto w-14 h-14 rounded-2xl bg-[#4ade80]/10 border border-[#4ade80]/20 text-[#4ade80] flex items-center justify-center mb-4">
+                <Inbox size={25} />
+              </span>
+              <h3 className="font-bold text-lg">Your order queue is ready</h3>
+              <p className="text-sm text-gray-500 leading-relaxed max-w-md mx-auto mt-2">
+                New paid studio orders will appear here with the client, project
+                scale, value, and assignment controls. There is nothing waiting
+                right now.
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-2 mt-5">
+                <Link
+                  href={`/studios?s=${encodeURIComponent(studio.username)}`}
+                  className="px-4 py-2.5 rounded-full bg-[#4ade80] text-black text-sm font-bold inline-flex items-center gap-2 hover:bg-[#22c55e] transition-colors"
+                >
+                  View storefront <ExternalLink size={14} />
+                </Link>
+                <button
+                  type="button"
+                  onClick={load}
+                  className="px-4 py-2.5 rounded-full border border-white/15 bg-white/[0.04] text-sm font-semibold hover:border-white/30 hover:bg-white/[0.08] transition-all"
+                >
+                  Refresh queue
+                </button>
+              </div>
+            </div>
+          )}
           {orders.map((order) => (
-            <div key={order.id} className="rounded-2xl border border-white/10 p-4 flex flex-wrap gap-3 items-center">
+            <div key={order.id} className="studio-order-row rounded-2xl border border-white/10 bg-black/[0.08] p-4 flex flex-wrap gap-3 items-center transition-all hover:border-[#4ade80]/30 hover:bg-[#4ade80]/[0.025]">
               <div className="flex-1 min-w-[220px]">
                 <p className="text-sm font-semibold">{order.buyer?.display_name || "Buyer"} · {order.size_label || order.building_size}</p>
                 <p className="text-xs text-gray-500 mt-1">{order.status} · {formatPrice(order.price_kopecks)}</p>
               </div>
               {["paid", "in_progress"].includes(order.status) && (
                 <select
-                  className={INPUT + " max-w-[220px]"}
+                  className={`${INPUT} catalog-select max-w-[230px]`}
                   value={order.assigned_builder_id || ""}
                   onChange={async (event) => {
                     if (!event.target.value) return;
@@ -493,8 +817,8 @@ export function StudioModeratorDashboard({ section = "profile" }) {
                     ))}
                 </select>
               )}
-              <Link href={`/orders/?id=${order.id}`} className="px-3 py-2 rounded-xl border border-[#4ade80]/30 text-[#4ade80] text-xs">
-                Open order
+              <Link href={`/orders/?id=${order.id}`} className="px-3 py-2.5 rounded-xl border border-[#4ade80]/30 bg-[#4ade80]/10 text-[#4ade80] text-xs font-semibold inline-flex items-center gap-1.5 hover:bg-[#4ade80] hover:text-black transition-all">
+                Open order <ArrowRight size={13} />
               </Link>
             </div>
           ))}
@@ -503,26 +827,84 @@ export function StudioModeratorDashboard({ section = "profile" }) {
 
       {section === "payouts" && <Card
         title="Payout destination"
-        description="Choose the network and wallet used for approved studio withdrawals."
+        description="Choose the exact network and verify the receiving address before saving."
+        aside={
+          <span className="hidden sm:inline-flex items-center gap-1.5 text-[11px] text-[#4ade80]">
+            <ShieldCheck size={14} /> Format validation enabled
+          </span>
+        }
       >
         <div className="grid sm:grid-cols-2 gap-4">
           <label>
-            <span className="text-xs text-gray-400 block mb-1">Payout network</span>
-            <select className={INPUT} value={payoutMethod} onChange={(e) => setPayoutMethod(e.target.value)}>
-              <option value="usdt_trc20">USDT TRC-20</option>
-              <option value="usdt_erc20">USDT ERC-20</option>
-            </select>
+            <span className="text-[11px] uppercase tracking-wider text-gray-500 block mb-2">
+              Asset &amp; network
+            </span>
+            <NetworkSelect
+              value={payoutMethod}
+              onChange={(nextValue) => {
+                setPayoutMethod(nextValue);
+                setError(null);
+              }}
+            />
           </label>
           <label>
-            <span className="text-xs text-gray-400 block mb-1">Payout wallet</span>
-            <input className={INPUT} value={payoutDetails} onChange={(e) => setPayoutDetails(e.target.value)} placeholder="Wallet address" />
+            <span className="text-[11px] uppercase tracking-wider text-gray-500 block mb-2">
+              Receiving wallet
+            </span>
+            <div className="relative">
+              <input
+                className={`${INPUT} pr-11 ${
+                  payoutDetails && walletValidation.valid
+                    ? "!border-[#4ade80]/55 !ring-4 !ring-[#4ade80]/10"
+                    : payoutDetails
+                      ? "!border-red-400/55 !ring-4 !ring-red-400/10"
+                      : ""
+                }`}
+                value={payoutDetails}
+                spellCheck="false"
+                autoComplete="off"
+                onChange={(e) => {
+                  setPayoutDetails(e.target.value.replace(/\s/g, ""));
+                  setError(null);
+                }}
+                placeholder={`${PAYOUT_NETWORKS.find((item) => item.value === payoutMethod)?.prefix || ""}…`}
+              />
+              {payoutDetails && (
+                <span className={`absolute right-3.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full inline-flex items-center justify-center ${
+                  walletValidation.valid
+                    ? "bg-[#4ade80]/15 text-[#4ade80]"
+                    : "bg-red-400/10 text-red-300"
+                }`}>
+                  {walletValidation.valid ? (
+                    <Check size={15} />
+                  ) : (
+                    <span className="text-sm font-bold">!</span>
+                  )}
+                </span>
+              )}
+            </div>
+            <span className={`text-[11px] mt-2 min-h-[16px] flex items-center gap-1.5 ${
+              walletValidation.valid
+                ? "text-[#4ade80]"
+                : walletValidation.empty
+                  ? "text-gray-500"
+                  : "text-red-300"
+            }`}>
+              {walletValidation.valid && <ShieldCheck size={13} />}
+              {walletValidation.message}
+            </span>
           </label>
+        </div>
+        <div className="mt-4 rounded-2xl border border-amber-300/15 bg-amber-300/[0.04] px-4 py-3 text-[11px] text-amber-100/70 leading-relaxed">
+          Network and address must match. Crypto transfers are irreversible, so
+          compare the first and last characters with your wallet before requesting
+          a withdrawal.
         </div>
         <SaveButton
           changed={payoutChanged}
           busy={busy}
-          invalid={employeePct === ""}
-          onClick={saveStudio}
+          invalid={!walletValidation.valid}
+          onClick={() => saveStudio({ validatePayout: true })}
         >
           {busy ? "Saving…" : "Save payout details"}
         </SaveButton>
@@ -530,7 +912,7 @@ export function StudioModeratorDashboard({ section = "profile" }) {
 
       {section === "payouts" && <Card
         title="Studio balance"
-        description="Manage your payout destination, earnings and withdrawals."
+        description="A clear view of earnings, pending releases, and past withdrawals."
       >
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
           {[
@@ -539,22 +921,26 @@ export function StudioModeratorDashboard({ section = "profile" }) {
             ["Pending", balance?.pending_cents],
             ["Withdrawn", balance?.withdrawn_cents],
           ].map(([label, value]) => (
-            <div key={label} className="rounded-2xl bg-black/20 border border-white/10 p-3">
+            <div key={label} className="studio-stat-card rounded-2xl bg-black/20 border border-white/10 p-4 transition-all hover:border-[#4ade80]/25">
               <p className="text-xs text-gray-500">{label}</p>
-              <p className="font-bold mt-1">{formatPrice(Number(value) || 0)}</p>
+              <p className="font-extrabold text-lg mt-1">{formatPrice(Number(value) || 0)}</p>
             </div>
           ))}
         </div>
-        <div className="flex gap-2 max-w-md">
-          <input
-            type="number"
-            min="20"
-            step="0.01"
-            className={INPUT}
-            value={withdrawDollars}
-            onChange={(e) => setWithdrawDollars(e.target.value)}
-            placeholder="Withdrawal amount (USD)"
-          />
+        <div className="flex flex-col sm:flex-row gap-3 max-w-xl">
+          <label className="relative flex-1">
+            <span className="sr-only">Withdrawal amount in USD</span>
+            <CircleDollarSign size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
+            <input
+              type="number"
+              min="20"
+              step="0.01"
+              className={`${INPUT} !pl-11`}
+              value={withdrawDollars}
+              onChange={(e) => setWithdrawDollars(e.target.value)}
+              placeholder="Minimum $20.00"
+            />
+          </label>
           <button
             type="button"
             onClick={async () => {
@@ -566,11 +952,19 @@ export function StudioModeratorDashboard({ section = "profile" }) {
                 load();
               }
             }}
-            className="px-4 py-2 rounded-xl bg-[#4ade80] text-black text-sm font-bold"
+            disabled={
+              !walletValidation.valid ||
+              Number(withdrawDollars) < 20 ||
+              Number(withdrawDollars) * 100 > Number(balance?.available_cents || 0)
+            }
+            className="px-5 py-3 rounded-2xl bg-[#4ade80] text-black text-sm font-bold transition-all hover:bg-[#22c55e] hover:-translate-y-0.5 disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none"
           >
             Withdraw
           </button>
         </div>
+        <p className="text-[11px] text-gray-500 mt-2">
+          Withdrawals require a valid saved wallet, at least $20, and enough available balance.
+        </p>
         {withdrawals.length > 0 && (
           <div className="mt-5 divide-y divide-white/[0.07]">
             {withdrawals.map((withdrawal) => (

@@ -121,6 +121,88 @@ function PortfolioCarousel({ items }) {
   );
 }
 
+function DraggablePortfolioRail({ items }) {
+  const railRef = useRef(null);
+  const drag = useRef({ active: false, startX: 0, scrollLeft: 0 });
+
+  function start(event) {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    const rail = railRef.current;
+    if (!rail || event.target.closest("button")) return;
+    drag.current = {
+      active: true,
+      startX: event.clientX,
+      scrollLeft: rail.scrollLeft,
+    };
+    rail.setPointerCapture?.(event.pointerId);
+    rail.classList.add("is-dragging");
+  }
+
+  function move(event) {
+    const rail = railRef.current;
+    if (!rail || !drag.current.active) return;
+    rail.scrollLeft = drag.current.scrollLeft - (event.clientX - drag.current.startX);
+  }
+
+  function end(event) {
+    const rail = railRef.current;
+    if (!rail || !drag.current.active) return;
+    drag.current.active = false;
+    rail.releasePointerCapture?.(event.pointerId);
+    rail.classList.remove("is-dragging");
+  }
+
+  return (
+    <div className="studio-public-portfolio-shell">
+      <div
+        ref={railRef}
+        className="studio-public-portfolio bx-scroll flex gap-4 overflow-x-auto snap-x snap-mandatory pb-4 cursor-grab select-none"
+        onPointerDown={start}
+        onPointerMove={move}
+        onPointerUp={end}
+        onPointerCancel={end}
+        onPointerLeave={(event) => {
+          if (event.buttons === 0) end(event);
+        }}
+      >
+        {items.map((item, index) => (
+          <article
+            key={item.id}
+            className="group relative flex-[0_0_clamp(270px,72vw,430px)] aspect-[16/10] rounded-3xl overflow-hidden snap-start glass transition-all duration-300 hover:-translate-y-1 hover:border-[#4ade80]/40 hover:shadow-[0_18px_42px_rgba(0,0,0,0.28),0_0_24px_rgba(74,222,128,0.12)]"
+          >
+            <img
+              src={item.thumbnail}
+              alt={item.title}
+              draggable="false"
+              className="w-full h-full object-cover pointer-events-none transition-transform duration-700 group-hover:scale-[1.055]"
+              loading="lazy"
+              decoding="async"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/10 opacity-70 group-hover:opacity-100 transition-opacity pointer-events-none" />
+            <div className="absolute left-4 right-4 bottom-4 flex items-end justify-between gap-3 pointer-events-none">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.18em] text-[#4ade80] font-semibold">
+                  Studio work
+                </p>
+                <p className="font-semibold text-sm text-white mt-1">
+                  {item.title || `Portfolio build ${index + 1}`}
+                </p>
+              </div>
+              <span className="text-[10px] text-white/70 px-2 py-1 rounded-full bg-black/45 border border-white/15 backdrop-blur-md">
+                {String(index + 1).padStart(2, "0")}
+              </span>
+            </div>
+          </article>
+        ))}
+      </div>
+      <p className="text-[11px] text-gray-500 mt-1 flex items-center gap-2">
+        <span className="inline-block w-8 h-px bg-[#4ade80]/50" />
+        Drag horizontally to explore the studio&apos;s work
+      </p>
+    </div>
+  );
+}
+
 function StudioSidebar({ studio, canOrder, onOrder, onContact }) {
   return (
     <aside className="glass rounded-3xl p-6 builder-sidebar-sticky space-y-5">
@@ -187,6 +269,25 @@ function StudioSidebar({ studio, canOrder, onOrder, onContact }) {
           This studio is not accepting new orders right now. You can still contact the team about future work.
         </p>
       )}
+
+      <div className="flex items-center justify-center gap-2 text-xs text-gray-400">
+        <Icon name="clock" size={14} />
+        Team availability updates live
+      </div>
+
+      <div className="pt-3 border-t border-white/[0.06] grid grid-cols-2 gap-2">
+        {[
+          { icon: "lock", label: "Escrow Protected" },
+          { icon: "users", label: "Managed Team" },
+          { icon: "files", label: "Source Files" },
+          { icon: "chat", label: "Direct Contact" },
+        ].map(({ icon, label }) => (
+          <div key={label} className="flex items-center gap-1.5 text-[11px] text-gray-500">
+            <Icon name={icon} size={13} className="text-[#4ade80]/80" />
+            <span>{label}</span>
+          </div>
+        ))}
+      </div>
     </aside>
   );
 }
@@ -240,6 +341,24 @@ function StudioPageInner() {
       active = false;
     };
   }, [slug]);
+
+  useEffect(() => {
+    if (loading || !studio) return undefined;
+    const sections = document.querySelectorAll(".builder-profile-root .reveal");
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("active");
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.08 }
+    );
+    sections.forEach((section) => observer.observe(section));
+    return () => observer.disconnect();
+  }, [loading, studio]);
 
   async function messageStudio() {
     if (status !== "authenticated") {
@@ -327,11 +446,18 @@ function StudioPageInner() {
                       </span>
                     </div>
                     {studio.portfolio.length === 0 ? (
-                      <div className="glass rounded-3xl p-12 text-center text-gray-500 text-sm">
-                        This studio hasn&apos;t added portfolio entries yet.
+                      <div className="glass rounded-3xl px-6 py-12 text-center border-dashed">
+                        <span className="icon-tile icon-tile-lg mx-auto text-[#4ade80]">
+                          <Icon name="image" size={28} />
+                        </span>
+                        <h3 className="font-bold text-lg mt-4">Portfolio coming soon</h3>
+                        <p className="text-sm text-gray-500 leading-relaxed max-w-md mx-auto mt-2">
+                          This is a new studio profile. The team is curating its first
+                          selection of public builds.
+                        </p>
                       </div>
                     ) : (
-                      <PortfolioCarousel items={studio.portfolio} />
+                      <DraggablePortfolioRail items={studio.portfolio} />
                     )}
                   </section>
 
@@ -342,6 +468,19 @@ function StudioPageInner() {
                         Exact studio prices for each available build scale.
                       </p>
                     </div>
+                    {studio.rate_tiers.filter((tier) => tier.enabled).length === 0 ? (
+                      <div className="rounded-2xl border border-dashed border-white/15 p-8 text-center">
+                        <span className="icon-tile mx-auto text-[#4ade80]">
+                          <Icon name="scale" size={20} />
+                        </span>
+                        <p className="text-sm text-gray-400 mt-3">
+                          The studio is preparing its project scale and pricing.
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Contact the team for a custom quote in the meantime.
+                        </p>
+                      </div>
+                    ) : (
                     <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-3">
                       {studio.rate_tiers.filter((tier) => tier.enabled).map((tier) => (
                         <div key={tier.id} className="glass rounded-2xl p-5 flex flex-col gap-2 transition-all duration-300 hover:border-[#4ade80]/40 hover:shadow-[0_0_24px_rgba(74,222,128,0.12)]">
@@ -363,12 +502,23 @@ function StudioPageInner() {
                         </div>
                       ))}
                     </div>
+                    )}
                   </section>
 
                   <section className="reveal glass rounded-3xl p-6 lg:p-8">
                     <h2 className="font-bold text-xl mb-5">Reviews</h2>
                     <div className="space-y-5">
-                      {reviews.length === 0 && <p className="text-sm text-gray-500">No reviews yet.</p>}
+                      {reviews.length === 0 && (
+                        <div className="rounded-2xl border border-dashed border-white/15 p-8 text-center">
+                          <span className="icon-tile mx-auto text-[#4ade80]">
+                            <Icon name="star" size={20} />
+                          </span>
+                          <p className="text-sm text-gray-400 mt-3">No client reviews yet.</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Completed studio orders and verified reviews will appear here.
+                          </p>
+                        </div>
+                      )}
                       {reviews.map((review) => (
                         <article key={review.id} className="flex gap-3">
                           <div className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-xs font-bold text-gray-300 flex-shrink-0">
