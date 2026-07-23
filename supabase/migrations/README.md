@@ -33,6 +33,7 @@ migrations are idempotent (safe to re-run during development).
 | 0045 | `0045_studio_registration_definer_access.sql` | **Studio registration fix.** Pins moderator-invite validation and storefront creation RPCs to an owner with explicit table access, so a new studio can be created atomically without browser-level table writes. |
 | 0046 | `0046_storage_policy_private_studio_fix.sql` | **Studio logo upload fix.** Moves private studio-moderator checks out of Storage RLS expressions, preventing delivery-policy evaluation from blocking avatar uploads. |
 | 0047 | `0047_storage_policy_helper_execution.sql` | **Storage policy follow-up.** Grants authenticated users execution of the safe boolean helper used by Storage RLS. |
+| 0048 | `0048_payouts_private_studio_policy_fix.sql` | **Managed-studio RLS fix.** Moves private studio-moderator checks out of browser-evaluated policies for portfolio metadata, team data, orders, payments, disputes, and payouts, restoring managed-studio reads without exposing ownership or payout columns. |
 
 ## Field mapping (matches the app code)
 
