@@ -30,6 +30,7 @@ migrations are idempotent (safe to re-run during development).
 | 0042 | `0042_managed_studios_access_and_orders.sql` | **Managed studios access and orders.** Adds atomic moderator/employee registration, studio settings and team RPCs, permanent buyer–studio conversations, assignment/reassignment, studio order placement, snapshot economics, and participant RLS. |
 | 0043 | `0043_managed_studios_lifecycle_and_finance.sql` | **Managed studios lifecycle.** Adds availability automation, payment notifications, assigned-employee start/delivery enforcement, completion earnings, studio reviews, cutoff chat archives, balances, and withdrawal requests. |
 | 0044 | `0044_managed_studios_hardening.sql` | **Managed studios hardening.** Extends delivery and dispute authorization, closes preview mutation gaps, supports dispute release/refund accounting, exposes admin balance inspection, and adds admin ownership recovery. |
+| 0045 | `0045_studio_registration_definer_access.sql` | **Studio registration fix.** Pins moderator-invite validation and storefront creation RPCs to an owner with explicit table access, so a new studio can be created atomically without browser-level table writes. |
 
 ## Field mapping (matches the app code)
 
