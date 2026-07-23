@@ -254,14 +254,24 @@ const BASE_ACCOUNT_SECTIONS = [
   { key: "danger", label: "Account", short: "Account" },
 ];
 
-function SectionTabs({ section, setSection, isBuilder }) {
-  const sections = isBuilder
-    ? [
+const STUDIO_ACCOUNT_SECTIONS = [
+  { key: "profile", label: "Storefront", short: "Profile" },
+  { key: "team", label: "Team", short: "Team" },
+  { key: "orders", label: "Orders", short: "Orders" },
+  { key: "payouts", label: "Payouts", short: "Payouts" },
+  { key: "danger", label: "Account", short: "Account" },
+];
+
+function SectionTabs({ section, setSection, isBuilder, isStudio = false }) {
+  const sections = isStudio
+    ? STUDIO_ACCOUNT_SECTIONS
+    : isBuilder
+      ? [
         BASE_ACCOUNT_SECTIONS[0],
         { key: "payouts", label: "Payouts", short: "Payouts" },
         ...BASE_ACCOUNT_SECTIONS.slice(1),
       ]
-    : BASE_ACCOUNT_SECTIONS;
+      : BASE_ACCOUNT_SECTIONS;
   const idx = Math.max(0, sections.findIndex((s) => s.key === section));
   return (
     <div
@@ -1682,13 +1692,14 @@ function ClientPreferencesSection({ profile, onSaved }) {
 
 // ─── Account actions + danger zone ───────────────────────────────────────────
 function AccountActionsSection() {
-  const { user, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmText, setConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState(null);
 
   const canDelete = confirmText.trim().toUpperCase() === "DELETE";
+  const isStudioAccount = profile?.role === "studio";
 
   function openConfirm() {
     setConfirmText("");
@@ -1766,10 +1777,14 @@ function AccountActionsSection() {
       <div className="mt-6 pt-6 border-t border-white/10">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-red-400/25 bg-red-500/[0.06] p-5">
           <div className="min-w-0">
-            <h3 className="font-semibold text-red-200 text-sm">Delete account</h3>
+            <h3 className="font-semibold text-red-200 text-sm">
+              Delete {isStudioAccount ? "studio " : ""}account
+            </h3>
             <p className="text-xs text-gray-400 mt-1 max-w-md leading-relaxed">
-              Permanently remove your account and everything tied to it — profile, availability,
-              portfolio and rates. This can&apos;t be undone.
+              {isStudioAccount
+                ? "Permanently remove your login and release the suspended studio for administrative recovery."
+                : "Permanently remove your account and everything tied to it — profile, availability, portfolio and rates."}{" "}
+              This can&apos;t be undone.
             </p>
           </div>
           <button
@@ -1803,11 +1818,12 @@ function AccountActionsSection() {
               </svg>
             </div>
             <h3 id="delete-account-title" className="text-xl font-bold mb-2">
-              Delete your account?
+              Delete your {isStudioAccount ? "studio " : ""}account?
             </h3>
             <p className="text-sm text-gray-400 leading-relaxed mb-5">
-              This permanently deletes your BuildEx account and all associated data — profile,
-              availability, portfolio images and rates.{" "}
+              {isStudioAccount
+                ? "This permanently deletes your BuildEx login. The studio is suspended, stops accepting orders, and can only be recovered by an administrator."
+                : "This permanently deletes your BuildEx account and all associated data — profile, availability, portfolio images and rates."}{" "}
               <strong className="text-red-200">This action cannot be undone.</strong>
             </p>
             <label htmlFor="confirm-delete" className="onb-label block mb-2">
@@ -2360,13 +2376,15 @@ function AccountPageInner() {
           {/* Page intro */}
           <div className="mb-6 detail-fade-up">
             <p className="text-xs font-semibold uppercase tracking-widest text-[#4ade80]/80 mb-1.5">
-              Profile settings
+              {isStudio ? "Studio settings" : "Profile settings"}
             </p>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight logo-font">
-              Your profile
+              {isStudio ? "Your studio" : "Your profile"}
             </h1>
             <p className="text-sm text-gray-500 mt-1.5">
-              {isBuilder
+              {isStudio
+                ? "Manage your storefront, team, orders and payouts in focused sections."
+                : isBuilder
                 ? "Manage how you appear to clients across BuildEx — your identity, availability, portfolio and rates."
                 : "Manage your account details and building preferences."}
             </p>
@@ -2375,7 +2393,21 @@ function AccountPageInner() {
           {/* Section switcher — sits above the avatar and picks which group
               of cards is shown, so the page is no longer one long stack. */}
           {isStudio ? (
-            <StudioModeratorDashboard />
+            <>
+              <SectionTabs
+                section={section}
+                setSection={setSection}
+                isBuilder={false}
+                isStudio
+              />
+              {section === "danger" ? (
+                <div className="space-y-8">
+                  <AccountActionsSection />
+                </div>
+              ) : (
+                <StudioModeratorDashboard section={section} />
+              )}
+            </>
           ) : isEmployee ? (
             <StudioEmployeeDashboard builderProfile={builderProfile} />
           ) : (

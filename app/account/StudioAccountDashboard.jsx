@@ -35,11 +35,14 @@ import {
 const INPUT =
   "w-full px-3 py-2.5 rounded-xl bg-black/25 border border-white/10 text-sm outline-none focus:border-[#4ade80]/60";
 
-function Card({ title, children, aside }) {
+function Card({ title, description, children, aside }) {
   return (
-    <section className="glass rounded-3xl p-5 sm:p-6">
+    <section className="glass rounded-3xl p-6 lg:p-8">
       <div className="flex items-center justify-between gap-3 mb-5">
-        <h2 className="font-bold text-lg">{title}</h2>
+        <div>
+          <h2 className="font-bold text-xl">{title}</h2>
+          {description && <p className="text-xs text-gray-500 mt-1">{description}</p>}
+        </div>
         {aside}
       </div>
       {children}
@@ -47,7 +50,7 @@ function Card({ title, children, aside }) {
   );
 }
 
-export function StudioModeratorDashboard() {
+export function StudioModeratorDashboard({ section = "profile" }) {
   const { user } = useAuth();
   const [studio, setStudio] = useState(null);
   const [members, setMembers] = useState([]);
@@ -170,8 +173,9 @@ export function StudioModeratorDashboard() {
         </div>
       )}
 
-      <Card
+      {section === "profile" && <Card
         title="Studio storefront"
+        description="Manage the identity and availability clients see across BuildEx."
         aside={
           <span className={`text-xs px-2.5 py-1 rounded-full border ${
             studio.status === "active"
@@ -205,29 +209,6 @@ export function StudioModeratorDashboard() {
                 }
               />
             </label>
-            <label>
-              <span className="text-xs text-gray-400 block mb-1">Employee commission %</span>
-              <input
-                type="number"
-                min="0"
-                max="100"
-                step="0.01"
-                className={INPUT}
-                value={employeePct}
-                onChange={(e) => setEmployeePct(e.target.value)}
-              />
-            </label>
-            <label>
-              <span className="text-xs text-gray-400 block mb-1">Payout network</span>
-              <select className={INPUT} value={payoutMethod} onChange={(e) => setPayoutMethod(e.target.value)}>
-                <option value="usdt_trc20">USDT TRC-20</option>
-                <option value="usdt_erc20">USDT ERC-20</option>
-              </select>
-            </label>
-            <label className="sm:col-span-2">
-              <span className="text-xs text-gray-400 block mb-1">Payout wallet</span>
-              <input className={INPUT} value={payoutDetails} onChange={(e) => setPayoutDetails(e.target.value)} />
-            </label>
             <label className="sm:col-span-2 flex items-center justify-between gap-4 p-3 rounded-2xl border border-white/10">
               <span>
                 <span className="font-semibold text-sm block">Accept new orders</span>
@@ -239,20 +220,35 @@ export function StudioModeratorDashboard() {
             </label>
           </div>
         </div>
-        <div className="mt-6">
-          <RatesEditor rates={rates} onChange={setRates} />
-        </div>
         <button
           type="button"
           onClick={saveStudio}
           disabled={busy || employeePct === ""}
           className="mt-5 px-5 py-2.5 rounded-full bg-[#4ade80] text-black font-bold text-sm disabled:opacity-40"
         >
-          Save studio settings
+          Save storefront
         </button>
-      </Card>
+      </Card>}
 
-      <Card title="Studio portfolio">
+      {section === "profile" && <Card
+        title="Studio rates"
+        description="Set the block area and client price for each project size."
+      >
+        <RatesEditor rates={rates} onChange={setRates} />
+        <button
+          type="button"
+          onClick={saveStudio}
+          disabled={busy || employeePct === ""}
+          className="mt-5 px-5 py-2.5 rounded-full bg-[#4ade80] text-black font-bold text-sm disabled:opacity-40"
+        >
+          {busy ? "Saving…" : "Save rates"}
+        </button>
+      </Card>}
+
+      {section === "profile" && <Card
+        title="Studio portfolio"
+        description="Show clients a focused selection of your studio's work."
+      >
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {studio.portfolio.map((image) => (
             <div key={image.id} className="relative rounded-2xl overflow-hidden bg-black/30 aspect-video">
@@ -286,9 +282,39 @@ export function StudioModeratorDashboard() {
             />
           </label>
         </div>
-      </Card>
+      </Card>}
 
-      <Card title="Team and employee codes" aside={<span className="text-xs text-gray-500">{availableMembers.length} available</span>}>
+      {section === "team" && <Card
+        title="Employee commission"
+        description="Set the percentage tracked for employees on newly assigned orders."
+      >
+        <label className="block max-w-sm">
+          <span className="text-xs text-gray-400 block mb-1">Employee commission %</span>
+          <input
+            type="number"
+            min="0"
+            max="100"
+            step="0.01"
+            className={INPUT}
+            value={employeePct}
+            onChange={(e) => setEmployeePct(e.target.value)}
+          />
+        </label>
+        <button
+          type="button"
+          onClick={saveStudio}
+          disabled={busy || employeePct === ""}
+          className="mt-5 px-5 py-2.5 rounded-full bg-[#4ade80] text-black font-bold text-sm disabled:opacity-40"
+        >
+          {busy ? "Saving…" : "Save commission"}
+        </button>
+      </Card>}
+
+      {section === "team" && <Card
+        title="Team and employee codes"
+        description="Invite employees and manage everyone attached to the studio."
+        aside={<span className="text-xs text-gray-500">{availableMembers.length} available</span>}
+      >
         <div className="grid md:grid-cols-[1fr_120px_160px_auto] gap-2 mb-5">
           <input className={INPUT} value={newCode} onChange={(e) => setNewCode(e.target.value)} placeholder="New employee code" />
           <input type="number" min="1" max="1000" className={INPUT} value={codeLimit} onChange={(e) => setCodeLimit(e.target.value)} />
@@ -371,9 +397,12 @@ export function StudioModeratorDashboard() {
             </div>
           ))}
         </div>
-      </Card>
+      </Card>}
 
-      <Card title="Studio orders">
+      {section === "orders" && <Card
+        title="Studio orders"
+        description="Review incoming work and assign it to an available employee."
+      >
         <div className="space-y-3">
           {orders.length === 0 && <p className="text-sm text-gray-500">No studio orders yet.</p>}
           {orders.map((order) => (
@@ -415,9 +444,39 @@ export function StudioModeratorDashboard() {
             </div>
           ))}
         </div>
-      </Card>
+      </Card>}
 
-      <Card title="Studio balance">
+      {section === "payouts" && <Card
+        title="Payout destination"
+        description="Choose the network and wallet used for approved studio withdrawals."
+      >
+        <div className="grid sm:grid-cols-2 gap-4">
+          <label>
+            <span className="text-xs text-gray-400 block mb-1">Payout network</span>
+            <select className={INPUT} value={payoutMethod} onChange={(e) => setPayoutMethod(e.target.value)}>
+              <option value="usdt_trc20">USDT TRC-20</option>
+              <option value="usdt_erc20">USDT ERC-20</option>
+            </select>
+          </label>
+          <label>
+            <span className="text-xs text-gray-400 block mb-1">Payout wallet</span>
+            <input className={INPUT} value={payoutDetails} onChange={(e) => setPayoutDetails(e.target.value)} placeholder="Wallet address" />
+          </label>
+        </div>
+        <button
+          type="button"
+          onClick={saveStudio}
+          disabled={busy || employeePct === ""}
+          className="mt-5 px-5 py-2.5 rounded-full bg-[#4ade80] text-black font-bold text-sm disabled:opacity-40"
+        >
+          {busy ? "Saving…" : "Save payout details"}
+        </button>
+      </Card>}
+
+      {section === "payouts" && <Card
+        title="Studio balance"
+        description="Manage your payout destination, earnings and withdrawals."
+      >
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
           {[
             ["Available", balance?.available_cents],
@@ -482,7 +541,7 @@ export function StudioModeratorDashboard() {
             ))}
           </div>
         )}
-      </Card>
+      </Card>}
     </div>
   );
 }
