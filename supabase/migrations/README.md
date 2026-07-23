@@ -32,6 +32,7 @@ migrations are idempotent (safe to re-run during development).
 | 0044 | `0044_managed_studios_hardening.sql` | **Managed studios hardening.** Extends delivery and dispute authorization, closes preview mutation gaps, supports dispute release/refund accounting, exposes admin balance inspection, and adds admin ownership recovery. |
 | 0045 | `0045_studio_registration_definer_access.sql` | **Studio registration fix.** Pins moderator-invite validation and storefront creation RPCs to an owner with explicit table access, so a new studio can be created atomically without browser-level table writes. |
 | 0046 | `0046_storage_policy_private_studio_fix.sql` | **Studio logo upload fix.** Moves private studio-moderator checks out of Storage RLS expressions, preventing delivery-policy evaluation from blocking avatar uploads. |
+| 0047 | `0047_storage_policy_helper_execution.sql` | **Storage policy follow-up.** Grants authenticated users execution of the safe boolean helper used by Storage RLS. |
 
 ## Field mapping (matches the app code)
 

@@ -3,6 +3,7 @@
 | Function | Authentication | Purpose |
 |---|---|---|
 | `create-invoice` | user JWT | Creates a NOWPayments buyer checkout. |
+| `delete-account` | user JWT | Removes a user's Storage files through the Storage API, then permanently deletes their auth account. |
 | `payment-webhook` | NOWPayments HMAC; JWT off | Reconciles finished buyer payments. |
 
 Incoming payment provider code is in `_shared/nowpayments.ts`.
@@ -15,3 +16,9 @@ builder withdrawals.
 See [`docs/payments-supabase-setup.md`](../../docs/payments-supabase-setup.md) for
 the exact production setup, deployment, manual payout process, and rollback
 procedure.
+
+Deploy account deletion after linking the project:
+
+```powershell
+npx supabase functions deploy delete-account
+```
