@@ -354,6 +354,8 @@ export default function OnboardingGate({ expectedStep, children, allowFutureStep
 const STEP_ORDER = [
   STEPS.role,
   STEPS.clientProfile,
+  STEPS.studioSetup,
+  STEPS.builderStudio,
   STEPS.builderIdentity,
   STEPS.builderExpertise,
   STEPS.builderStyles,

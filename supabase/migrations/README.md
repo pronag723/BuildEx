@@ -25,6 +25,11 @@ migrations are idempotent (safe to re-run during development).
 | 0037 | `0037_payment_webhook_fail_closed.sql` | **Payment integrity fix.** Requires a verified NOWPayments settlement callback to include a valid USD amount matching the order before the order can be marked paid. |
 | 0038 | `0038_enforce_payment_floor_on_orders.sql` | **Order integrity fix.** Enforces the same $20 marketplace floor inside `place_order`, preventing direct RPC calls from bypassing the rate-editor validation. |
 | 0039 | `0039_lower_payment_floor_to_10_and_pin_usdttrc20.sql` | **Pricing + checkout update.** Lowers the marketplace order floor to $10 inside `place_order` and aligns production checkout around `USDTTRC20`, with the Edge Function enforcing NOWPayments' live `min-amount` response before invoice creation. |
+| 0040 | `0040_raise_payment_floor_to_20.sql` | **Pricing + checkout update.** Raises the marketplace order floor back to $20 inside `place_order`, matching the conservative buyer checkout threshold and the current NOWPayments minimum observed for USDT TRC-20. |
+| 0041 | `0041_managed_studios_core.sql` | **Managed studios core.** Adds studio moderator invitations, storefront ownership, private memberships and employee code batches, studio order/provider targets, assignment history, informational employee earnings, studio reviews/favorites, and studio withdrawals. Retires client execution of referral-era RPCs. |
+| 0042 | `0042_managed_studios_access_and_orders.sql` | **Managed studios access and orders.** Adds atomic moderator/employee registration, studio settings and team RPCs, permanent buyer–studio conversations, assignment/reassignment, studio order placement, snapshot economics, and participant RLS. |
+| 0043 | `0043_managed_studios_lifecycle_and_finance.sql` | **Managed studios lifecycle.** Adds availability automation, payment notifications, assigned-employee start/delivery enforcement, completion earnings, studio reviews, cutoff chat archives, balances, and withdrawal requests. |
+| 0044 | `0044_managed_studios_hardening.sql` | **Managed studios hardening.** Extends delivery and dispute authorization, closes preview mutation gaps, supports dispute release/refund accounting, exposes admin balance inspection, and adds admin ownership recovery. |
 
 ## Field mapping (matches the app code)
 
@@ -37,7 +42,7 @@ migrations are idempotent (safe to re-run during development).
 | Bio | `profiles.bio` | Free text. |
 | Client interests | `profiles.interests` | `text[]` of style keys. |
 | Preferred server type | `profiles.preferred_server_type` | One of: `survival`, `smp`, `creative`, `minigames`, `roleplay`, `network`, `other`. |
-| Role | `profiles.role` | `client`, `builder`, or `both`. |
+| Role | `profiles.role` | `client`, `builder`, `both`, or exclusive studio moderator `studio`. |
 | Onboarding completed | `profiles.onboarding_completed_at` | Set when the user finishes the flow. |
 | Builder rank | `builder_profiles.rank` | Defaults to `rookie`. |
 | Years of experience | `builder_profiles.years_experience` | Integer. |

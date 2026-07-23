@@ -221,6 +221,7 @@ export default function MessageThread({
   loading,
   sending,
   isDraft,
+  conversationMeta,
   onSend,
   onSendImage,
   onBack,
@@ -296,6 +297,8 @@ export default function MessageThread({
   }
 
   const peerName = peer?.display_name || peer?.username || "Builder";
+  const isStudioThread = conversationMeta?.conversation_type === "studio_client";
+  const canWrite = isDraft || conversationMeta?.can_write !== false;
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -314,7 +317,11 @@ export default function MessageThread({
           <p className="font-bold text-sm truncate leading-tight">{peerName}</p>
           {peer?.username && (
             <Link
-              href={`/builders/profile?u=${encodeURIComponent(peer.username)}`}
+              href={
+                isStudioThread && conversationMeta?.studio_slug
+                  ? `/studios?s=${encodeURIComponent(conversationMeta.studio_slug)}`
+                  : `/builders/profile?u=${encodeURIComponent(peer.username)}`
+              }
               className="text-xs text-gray-500 hover:text-[#4ade80] transition-colors"
             >
               @{peer.username}
@@ -325,6 +332,22 @@ export default function MessageThread({
 
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-5 space-y-1 min-h-0 hide-scrollbar">
+        {isStudioThread && (
+          <div className="mb-4 rounded-2xl border border-[#4ade80]/20 bg-[#4ade80]/[0.07] px-4 py-3 text-xs text-gray-300">
+            {!canWrite ? (
+              "Archived studio conversation · history is frozen at your release time."
+            ) : conversationMeta?.assigned_builder_name ? (
+              <>
+                Current assigned builder:{" "}
+                <span className="font-semibold text-[#4ade80]">
+                  {conversationMeta.assigned_builder_name}
+                </span>
+              </>
+            ) : (
+              "The studio moderator will assign an available builder after payment."
+            )}
+          </div>
+        )}
         {!loading && <ConflictNotice />}
         {loading ? (
           <div className="h-full flex items-center justify-center">
@@ -363,6 +386,22 @@ export default function MessageThread({
             }
 
             const mine = m.sender_id === meId;
+            const senderLabel =
+              !mine && isStudioThread
+                ? m.meta?.sender_role === "assigned_builder"
+                  ? `${m.meta?.sender_name || "Builder"} · Assigned builder`
+                  : m.meta?.sender_role === "studio_moderator"
+                    ? `${m.meta?.sender_name || peerName} · Studio moderator`
+                    : m.meta?.sender_role === "buyer"
+                      ? `${m.meta?.sender_name || peerName} · Buyer`
+                      : m.meta?.sender_role === "studio_team"
+                        ? `${m.meta?.sender_name || "Studio team"} · Studio team`
+                        : m.sender_id === conversationMeta?.assigned_builder_id
+                  ? conversationMeta?.assigned_builder_name || "Assigned builder"
+                  : m.sender_id === peer?.id
+                    ? peerName
+                    : "Studio moderator"
+                : null;
             const isImage = m.msg_type === "image" && m.meta?.url;
             return (
               <div key={m.id}>
@@ -373,7 +412,12 @@ export default function MessageThread({
                     </span>
                   </div>
                 )}
-                <div className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+                <div className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
+                  {senderLabel && (
+                    <span className="px-1 mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                      {senderLabel}
+                    </span>
+                  )}
                   {isImage ? (
                     <div
                       className={`max-w-[78%] sm:max-w-[60%] p-1 rounded-2xl overflow-hidden ${
@@ -439,6 +483,11 @@ export default function MessageThread({
 
       {/* Composer */}
       <div className="border-t border-white/10 p-3 flex-shrink-0">
+        {!canWrite && (
+          <p className="mb-2 text-center text-xs text-amber-300">
+            This assignment is archived. You can read messages through your release time, but cannot send new ones.
+          </p>
+        )}
         <div className="flex items-end gap-2">
           <input
             ref={fileRef}
@@ -450,7 +499,7 @@ export default function MessageThread({
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
-            disabled={sending}
+            disabled={sending || !canWrite}
             className="w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-2xl border border-white/10 text-gray-300 hover:bg-white/10 hover:text-[#4ade80] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             aria-label="Send a photo"
             title="Send a photo"
@@ -463,6 +512,7 @@ export default function MessageThread({
             onChange={autoGrow}
             onKeyDown={onKeyDown}
             onPaste={onPaste}
+            disabled={!canWrite}
             rows={1}
             placeholder={`Message ${peerName}…`}
             className="flex-1 resize-none bg-white/5 border border-white/10 focus:border-[#4ade80]/50 rounded-2xl px-4 py-2.5 text-sm outline-none transition-colors placeholder:text-gray-500 max-h-[140px]"
@@ -470,7 +520,7 @@ export default function MessageThread({
           <button
             type="button"
             onClick={submit}
-            disabled={!draft.trim() || sending}
+            disabled={!draft.trim() || sending || !canWrite}
             className="w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-2xl bg-[#4ade80] text-black green-glow hover:bg-[#22c55e] transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-[#4ade80]"
             aria-label="Send message"
           >

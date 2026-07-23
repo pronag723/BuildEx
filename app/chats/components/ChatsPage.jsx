@@ -209,6 +209,7 @@ export default function ChatsPage() {
 
   const [activeConvId, setActiveConvId] = useState(null);
   const [activePeer, setActivePeer] = useState(null);
+  const [activeConversationMeta, setActiveConversationMeta] = useState(null);
   const [isDraft, setIsDraft] = useState(false);
 
   // Mirror activeConvId into a ref so the long-lived inbox subscription (which
@@ -247,9 +248,10 @@ export default function ChatsPage() {
   }, []);
 
   const openConversation = useCallback(
-    (convId, peer) => {
+    (convId, peer, meta = null) => {
       setIsDraft(false);
       setActivePeer(peer);
+      setActiveConversationMeta(meta);
       setActiveConvId(convId);
       setMobileView("thread");
       replaceUrl(convId);
@@ -260,6 +262,7 @@ export default function ChatsPage() {
   const openDraft = useCallback((peer) => {
     setIsDraft(true);
     setActivePeer(peer);
+    setActiveConversationMeta(null);
     setActiveConvId(null);
     setMessages([]);
     setMobileView("thread");
@@ -294,11 +297,11 @@ export default function ChatsPage() {
           return;
         }
         const existing = rows.find((x) => x.other_id === peer.id);
-        if (existing) openConversation(existing.conversation_id, peerFromConversation(existing));
+        if (existing) openConversation(existing.conversation_id, peerFromConversation(existing), existing);
         else openDraft(peer);
       } else if (c) {
         const conv = rows.find((x) => x.conversation_id === c);
-        if (conv) openConversation(conv.conversation_id, peerFromConversation(conv));
+        if (conv) openConversation(conv.conversation_id, peerFromConversation(conv), conv);
       }
     })();
 
@@ -439,7 +442,7 @@ export default function ChatsPage() {
   );
 
   const handleSelect = useCallback(
-    (conv) => openConversation(conv.conversation_id, peerFromConversation(conv)),
+    (conv) => openConversation(conv.conversation_id, peerFromConversation(conv), conv),
     [openConversation]
   );
 
@@ -549,6 +552,7 @@ export default function ChatsPage() {
                       loading={messagesLoading && messages.length === 0}
                       sending={sending}
                       isDraft={isDraft}
+                      conversationMeta={activeConversationMeta}
                       onSend={handleSend}
                       onSendImage={handleSendImage}
                       onBack={() => {

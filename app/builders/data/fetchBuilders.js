@@ -21,6 +21,7 @@ import {
 } from "../../../lib/onboarding/constants";
 import { isOnline } from "../../../lib/presence/api";
 import { startsFromPrice, ratesToTiers } from "../../../lib/pricing";
+import { fetchStudios } from "../../../lib/studios/api";
 
 // Columns shared by the feed query and the single-profile query.
 // last_seen_at drives the real online/offline indicator (presence, migration
@@ -28,7 +29,7 @@ import { startsFromPrice, ratesToTiers } from "../../../lib/pricing";
 // returns it absent, in which case mapRow reads the builder as offline.
 export const PROFILE_SELECT =
   "id, username, display_name, avatar_url, bio, role, created_at, last_seen_at, onboarding_completed_at, " +
-  "builder:builder_profiles!inner(*, studio:studios(id, name, slug, logo_url, status)), " +
+  "builder:builder_profiles!inner(*), " +
   "portfolio:portfolio_images(id, url, position, alt)";
 
 // Same select WITHOUT the studio embed. Used as a fallback when the studios
@@ -110,7 +111,8 @@ export function mapRow(row) {
     bio: row.bio || "",
     // Studio referral (migration 0026) — null unless the builder joined an active
     // studio. Drives the studio badge before the nickname + storefront link.
-    studio: mapStudio(bp),
+    studio: null,
+    provider_type: "builder",
     availability_status: availability,
     // Real presence — true only when the builder's last heartbeat (last_seen_at,
     // migration 0019) is within the online window. This is independent of the
@@ -164,10 +166,16 @@ export async function fetchBuilders() {
   if (error) return { builders: [], error };
 
   const builders = (data || [])
-    .filter((row) => row.builder && !isHiddenFromFeed(row.builder))
+    .filter(
+      (row) =>
+        row.builder &&
+        row.builder.profile_type !== "studio_employee" &&
+        !isHiddenFromFeed(row.builder)
+    )
     .map(mapRow);
 
-  return { builders, error: null };
+  const { studios } = await fetchStudios();
+  return { builders: [...builders, ...(studios || [])], error: null };
 }
 
 // ─── Single builder (public profile page) ───────────────────────────────────
@@ -253,7 +261,9 @@ export async function fetchBuilderByUsername(username) {
   const { data, error } = res;
 
   if (error) return { builder: null, error };
-  if (!data || !data.builder) return { builder: null, error: null };
+  if (!data || !data.builder || data.builder.profile_type === "studio_employee") {
+    return { builder: null, error: null };
+  }
 
   return { builder: mapProfileRow(data), error: null };
 }

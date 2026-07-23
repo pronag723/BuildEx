@@ -12,7 +12,8 @@ database function.
 
 NOWPayments still documents the exact minimum as dynamic. The `create-invoice`
 Edge Function therefore calls `GET /v1/min-amount` for `usdttrc20` in USD before
-creating checkout. If the live provider minimum rises above `$10`, checkout
+creating checkout. BuildEx uses a conservative `$20` marketplace floor; if the
+live provider minimum rises above `$20`, checkout
 rejects the order until the builder raises the price.
 
 ## 1. Apply the Supabase SQL
@@ -31,8 +32,10 @@ rejects the order until the builder raises the price.
    6. `supabase/migrations/0037_payment_webhook_fail_closed.sql`
    7. `supabase/migrations/0038_enforce_payment_floor_on_orders.sql`
    8. `supabase/migrations/0039_lower_payment_floor_to_10_and_pin_usdttrc20.sql`
+   9. `supabase/migrations/0040_raise_payment_floor_to_20.sql`
 8. If the project already has `0031` to `0038`, run only
-   `0039_lower_payment_floor_to_10_and_pin_usdttrc20.sql`.
+   `0039_lower_payment_floor_to_10_and_pin_usdttrc20.sql` and
+   `0040_raise_payment_floor_to_20.sql`.
 9. Create a final new query and run:
 
 ```sql
@@ -206,7 +209,7 @@ BuildEx does not yet support marketplace beneficiary bank payouts through the ap
 
 - Builder cannot request a withdrawal: check that a valid `USDT TRC-20` or
   `USDT ERC-20` address is saved in **Account -> Payouts**.
-- Buyer checkout rejects a `$10+` order: NOWPayments' live `usdttrc20` minimum
+- Buyer checkout rejects a `$20+` order: NOWPayments' live `usdttrc20` minimum
   may be temporarily above the marketplace floor. Check the `create-invoice`
   function logs.
 - Amount is blocked: confirm it is at least `$20.00` for withdrawals and not

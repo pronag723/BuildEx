@@ -90,7 +90,11 @@ export default function PayoutsConsole() {
         <div className="space-y-3">
           {payouts.map((p) => {
             const meta = STATUS_META[p.status] || [p.status, "border-white/10 text-gray-300"];
-            const name = p.builder?.display_name || p.builder?.username || "Builder";
+            const name =
+              p.studio?.name ||
+              p.builder?.display_name ||
+              p.builder?.username ||
+              "Provider";
             return (
               <div key={p.id} className="glass rounded-2xl p-4 flex items-center gap-3 flex-wrap">
                 <div className="flex-1 min-w-[230px]">

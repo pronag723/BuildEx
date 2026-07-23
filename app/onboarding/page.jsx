@@ -15,6 +15,7 @@ import { Icon } from "../../lib/icons";
 
 const BUILDER_ICON = <Icon name="hammer" size={30} strokeWidth={1.5} />;
 const CLIENT_ICON = <Icon name="target" size={30} strokeWidth={1.5} />;
+const STUDIO_ICON = <Icon name="studio" size={22} strokeWidth={1.5} />;
 
 export default function OnboardingRolePage() {
   return (
@@ -46,7 +47,15 @@ function RoleStep({ state }) {
       return;
     }
     await refresh?.();
-    router.push(STEPS.identity);
+    router.push(
+      selected === "studio"
+        ? STEPS.studioSetup
+        : selected === "client"
+          ? STEPS.clientProfile
+          : selected === "builder"
+            ? STEPS.builderStudio
+            : STEPS.builderIdentity
+    );
   }
 
   return (
@@ -94,6 +103,22 @@ function RoleStep({ state }) {
           />
         </div>
       </div>
+
+      <button
+        type="button"
+        onClick={() => setSelected("studio")}
+        className={`mt-5 w-full sm:w-auto sm:min-w-[280px] mx-auto flex items-center justify-center gap-3 px-5 py-2.5 rounded-2xl border transition-all ${
+          selected === "studio"
+            ? "border-[#4ade80] bg-[#4ade80]/10 text-[#4ade80]"
+            : "border-white/10 bg-white/[0.03] text-gray-300 hover:border-[#4ade80]/40"
+        }`}
+      >
+        {STUDIO_ICON}
+        <span className="text-left">
+          <span className="block text-sm font-bold">I represent a studio</span>
+          <span className="block text-[11px] text-gray-500">Moderator code required</span>
+        </span>
+      </button>
 
       <p className="mt-6 text-center text-xs text-gray-500">
         Looking to do both?{" "}

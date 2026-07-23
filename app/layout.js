@@ -3,9 +3,21 @@ import Providers from "./providers";
 import RouteTracker from "./builders/components/RouteTracker";
 
 export const metadata = {
+  metadataBase: new URL("https://buildex.builders"),
   title: "BuildEx - Minecraft Builder Marketplace",
   description:
-    "Hire skilled Minecraft builders or find paid work building spawns, hubs, maps, and decorations."
+    "Hire skilled Minecraft builders or find paid work building spawns, hubs, maps, and decorations.",
+  alternates: {
+    canonical: "/"
+  },
+  openGraph: {
+    title: "BuildEx - Minecraft Builder Marketplace",
+    description:
+      "Hire skilled Minecraft builders or find paid work building spawns, hubs, maps, and decorations.",
+    url: "https://buildex.builders",
+    siteName: "BuildEx",
+    type: "website"
+  }
 };
 
 // App Router viewport. width=device-width + initialScale 1 gives correct mobile

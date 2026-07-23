@@ -182,26 +182,31 @@ export function filterBuilders(builders, filters) {
   } = filters;
 
   return builders.filter((b) => {
+    const isStudioProvider = b.provider_type === "studio";
     if (query) {
       const q = query.toLowerCase();
       const match =
         b.display_name.toLowerCase().includes(q) ||
         b.username.toLowerCase().includes(q) ||
         (b.bio || "").toLowerCase().includes(q) ||
-        b.specialties.some((s) => s.toLowerCase().includes(q)) ||
-        b.styles.some((s) => s.toLowerCase().includes(q)) ||
-        b.build_types.some((t) => t.toLowerCase().includes(q));
+        (b.specialties || []).some((s) => s.toLowerCase().includes(q)) ||
+        (b.styles || []).some((s) => s.toLowerCase().includes(q)) ||
+        (b.build_types || []).some((t) => t.toLowerCase().includes(q));
       if (!match) return false;
     }
 
-    if (styles.length > 0 && !styles.some((s) => b.styles.includes(s))) return false;
-    if (buildTypes.length > 0 && !buildTypes.some((t) => b.build_types.includes(t))) return false;
+    if (!isStudioProvider && styles.length > 0 && !styles.some((s) => b.styles.includes(s))) return false;
+    if (!isStudioProvider && buildTypes.length > 0 && !buildTypes.some((t) => b.build_types.includes(t))) return false;
     if (minPrice > 0 && b.starts_from < minPrice) return false;
     if (maxPrice > 0 && b.starts_from > maxPrice) return false;
     if (minRating > 0 && b.avg_rating < minRating) return false;
-    if (ranks.length > 0 && !ranks.includes(b.rank)) return false;
+    if (!isStudioProvider && ranks.length > 0 && !ranks.includes(b.rank)) return false;
     // Studio filter (migration 0026): match the builder's studio slug.
-    if (studios.length > 0 && !(b.studio && studios.includes(b.studio.slug))) return false;
+    if (
+      studios.length > 0 &&
+      !(isStudioProvider && studios.includes(b.slug)) &&
+      !(b.studio && studios.includes(b.studio.slug))
+    ) return false;
 
     return true;
   });

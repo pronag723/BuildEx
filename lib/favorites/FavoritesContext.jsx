@@ -51,9 +51,15 @@ export function FavoritesProvider({ children }) {
     }
 
     setReady(false);
-    listFavorites().then(({ builderIds }) => {
+    listFavorites().then(({ favoriteKeys, builderIds }) => {
       if (cancelled) return;
-      setFavoriteIds(new Set(builderIds));
+      setFavoriteIds(
+        new Set(
+          favoriteKeys?.length
+            ? favoriteKeys
+            : (builderIds || []).map((id) => `builder:${id}`)
+        )
+      );
       setReady(true);
     });
 
@@ -63,39 +69,41 @@ export function FavoritesProvider({ children }) {
   }, [status, meId]);
 
   const isFavorite = useCallback(
-    (builderId) => Boolean(builderId) && favoriteIds.has(builderId),
+    (targetId, providerType = "builder") =>
+      Boolean(targetId) && favoriteIds.has(`${providerType}:${targetId}`),
     [favoriteIds]
   );
 
   // Optimistically flip the bookmark, then persist. Returns a small result so
   // the caller can react (e.g. show a "sign in to save builders" toast).
   const toggleFavorite = useCallback(
-    async (builderId) => {
-      if (!builderId) return { ok: false, reason: "invalid" };
+    async (targetId, providerType = "builder") => {
+      if (!targetId) return { ok: false, reason: "invalid" };
       if (status !== "authenticated" || !meId) {
         return { ok: false, reason: "unauthenticated" };
       }
 
-      const wasFavorite = favoriteIds.has(builderId);
+      const key = `${providerType}:${targetId}`;
+      const wasFavorite = favoriteIds.has(key);
 
       // Optimistic update.
       setFavoriteIds((prev) => {
         const next = new Set(prev);
-        if (wasFavorite) next.delete(builderId);
-        else next.add(builderId);
+        if (wasFavorite) next.delete(key);
+        else next.add(key);
         return next;
       });
 
       const { error } = wasFavorite
-        ? await removeFavorite(meId, builderId)
-        : await addFavorite(meId, builderId);
+        ? await removeFavorite(meId, targetId, providerType)
+        : await addFavorite(meId, targetId, providerType);
 
       if (error) {
         // Roll back on failure.
         setFavoriteIds((prev) => {
           const next = new Set(prev);
-          if (wasFavorite) next.add(builderId);
-          else next.delete(builderId);
+          if (wasFavorite) next.add(key);
+          else next.delete(key);
           return next;
         });
         return { ok: false, reason: "error", error };

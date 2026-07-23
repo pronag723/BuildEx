@@ -26,6 +26,8 @@ export default function StepHeader({ currentStep, role }) {
           {role
             ? role === "builder"
               ? "Builder setup"
+              : role === "studio"
+              ? "Studio setup"
               : role === "both"
               ? "Builder + client setup"
               : "Client setup"

@@ -103,8 +103,25 @@ function formatDate(iso) {
 function counterpart(order, meId) {
   // The order embeds both parties; return whichever isn't the caller.
   if (!order || !meId) return null;
-  if (order.buyer_id === meId) return order.builder || null;
-  if (order.builder_id === meId) return order.buyer || null;
+  if (order.buyer_id === meId) {
+    if (order.studio) {
+      return {
+        id: order.studio.id,
+        username: order.studio.slug,
+        display_name: order.studio.name,
+        avatar_url: order.studio.logo_url,
+      };
+    }
+    return order.builder || null;
+  }
+  if (
+    order.builder_id === meId ||
+    order.assigned_builder_id === meId ||
+    order.assignments?.some((assignment) => assignment.builder_id === meId) ||
+    order.studio_id
+  ) {
+    return order.buyer || null;
+  }
   return null;
 }
 
@@ -509,7 +526,17 @@ function OrderDetail({ orderId, meId, onBack }) {
 
   const peer = order ? counterpart(order, meId) : null;
   const isBuyer = !!order && order.buyer_id === meId;
-  const isBuilder = !!order && order.builder_id === meId;
+  const isBuilder =
+    !!order &&
+    (order.builder_id === meId || order.assigned_builder_id === meId);
+  const historicalEmployeeAssignment = order?.assignments?.find(
+    (assignment) => assignment.builder_id === meId
+  );
+  const isStudioModerator =
+    !!order?.studio_id &&
+    !isBuyer &&
+    !isBuilder &&
+    !historicalEmployeeAssignment;
   const sizeLabel = order
     ? order.size_label || SIZE_META[order.building_size]?.label || order.building_size
     : "";
@@ -536,9 +563,13 @@ function OrderDetail({ orderId, meId, onBack }) {
   );
 
   const openChat = useCallback(() => {
+    if (order?.conversation_id) {
+      router.push(`/chats/?c=${encodeURIComponent(order.conversation_id)}`);
+      return;
+    }
     if (!peer?.username) return;
     router.push(`/chats/?to=${encodeURIComponent(peer.username)}`);
-  }, [peer, router]);
+  }, [order?.conversation_id, peer, router]);
 
   if (loading) return <Spinner />;
   if (error || !order)
@@ -564,7 +595,7 @@ function OrderDetail({ orderId, meId, onBack }) {
           />
           <div className="min-w-0 flex-1">
             <p className="text-[11px] text-gray-500 uppercase tracking-widest">
-              {isBuyer ? "Builder" : "Buyer"}
+              {isBuyer ? (order.studio_id ? "Studio" : "Builder") : "Buyer"}
             </p>
             <p className="font-bold text-lg leading-tight truncate">
               {peer?.display_name || "Unknown user"}
@@ -590,6 +621,33 @@ function OrderDetail({ orderId, meId, onBack }) {
               to the builder only. */}
           {isBuyer ? (
             <Row label="Total paid">{formatPrice(order.price_kopecks)}</Row>
+          ) : order.studio_id ? (
+            <>
+              <Row label="Buyer pays">{formatPrice(order.price_kopecks)}</Row>
+              {isStudioModerator && (
+                <>
+                  <Row label="BuildEx fee">
+                    {formatPrice(order.commission_kopecks)}
+                  </Row>
+                  <Row label="Studio net">
+                    {formatPrice(order.studio_earnings_kopecks)}
+                  </Row>
+                </>
+              )}
+              {isBuilder && (
+                <Row label="Tracked employee amount">
+                  {formatPrice(order.employee_owed_kopecks)}
+                </Row>
+              )}
+              {!isBuilder && historicalEmployeeAssignment && (
+                <>
+                  <Row label="Assignment">Archived</Row>
+                  <Row label="Commission snapshot">
+                    {(Number(historicalEmployeeAssignment.employee_commission_bps) / 100).toFixed(2)}%
+                  </Row>
+                </>
+              )}
+            </>
           ) : (
             <>
               <Row label="Buyer pays">{formatPrice(order.price_kopecks)}</Row>
@@ -638,7 +696,7 @@ function OrderDetail({ orderId, meId, onBack }) {
       {order.status === "completed" && isBuyer && (
         <ReviewSection
           orderId={order.id}
-          builderName={peer?.display_name || "the builder"}
+          builderName={peer?.display_name || (order.studio_id ? "the studio" : "the builder")}
           review={review}
           onSubmitted={reload}
         />

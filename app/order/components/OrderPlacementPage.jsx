@@ -14,9 +14,11 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "../../../lib/auth/AuthContext";
 import { useRequireAuth } from "../../../lib/auth/useRequireAuth";
 import { fetchBuilderByUsername } from "../../builders/data/fetchBuilders";
+import { fetchStudio } from "../../../lib/studios/api";
+import { STYLES } from "../../../lib/onboarding/constants";
 import { formatPrice } from "../../../lib/pricing";
 import { Icon } from "../../../lib/icons";
-import { placeOrder, markOrderPaid } from "../../../lib/orders/api";
+import { placeOrder, placeStudioOrder, markOrderPaid } from "../../../lib/orders/api";
 import { paymentsEnabled, createInvoice } from "../../../lib/payments/api";
 import CatalogNavbar from "../../builders/components/CatalogNavbar";
 import CatalogMobileMenu from "../../builders/components/CatalogMobileMenu";
@@ -46,7 +48,7 @@ function StepDots({ step }) {
 }
 
 export default function OrderPlacementPage() {
-  const { status, user } = useAuth();
+  const { status, user, profile } = useAuth();
   useRequireAuth();
   const router = useRouter();
 
@@ -69,6 +71,7 @@ export default function OrderPlacementPage() {
 
   // ── Resolve the target builder from ?to=<handle> ────────────────────────────
   const [username, setUsername] = useState(null);
+  const [studioSlug, setStudioSlug] = useState(null);
   const [builder, setBuilder] = useState(null);
   const [loadError, setLoadError] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -77,16 +80,29 @@ export default function OrderPlacementPage() {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
     setUsername(params.get("to"));
+    setStudioSlug(params.get("s"));
   }, []);
 
   useEffect(() => {
-    if (!username) {
+    if (!username && !studioSlug) {
       if (typeof window !== "undefined") setLoading(false);
       return;
     }
     let cancelled = false;
     setLoading(true);
-    fetchBuilderByUsername(username).then(({ builder: b, error }) => {
+    const loader = studioSlug
+      ? fetchStudio(studioSlug).then(({ studio, error }) => ({
+          builder: studio
+            ? {
+                ...studio,
+                rates: studio.rate_tiers,
+                specialties: STYLES.map((item) => item.key),
+              }
+            : null,
+          error,
+        }))
+      : fetchBuilderByUsername(username);
+    loader.then(({ builder: b, error }) => {
       if (cancelled) return;
       if (error) setLoadError(error.message || "Failed to load builder");
       setBuilder(b);
@@ -95,12 +111,14 @@ export default function OrderPlacementPage() {
     return () => {
       cancelled = true;
     };
-  }, [username]);
+  }, [username, studioSlug]);
 
   // The buyer can't order from themselves. Once auth + builder are both known,
   // detect the self-order case and surface it as a friendly notice.
+  const isStudioOrder = builder?.provider_type === "studio";
   const isSelf =
-    !!user && !!builder?.id && user.id === builder.id;
+    profile?.role === "studio" ||
+    (!isStudioOrder && !!user && !!builder?.id && user.id === builder.id);
   // Orders are only accepted when the builder is "available". A "busy" builder
   // is hidden from the feed and not taking work; a "limited" builder is still
   // visible but has paused new orders. Either way a direct /order?to= link could
@@ -108,7 +126,7 @@ export default function OrderPlacementPage() {
   const availabilityStatus = builder?.availability_status || "available";
   const isBusy = availabilityStatus === "busy";
   const isLimited = availabilityStatus === "limited";
-  const ordersBlocked = isBusy || isLimited;
+  const ordersBlocked = isStudioOrder ? !builder?.has_capacity : isBusy || isLimited;
   // builder.id isn't in the public mapping; resolve via builder_profiles ownership
   // by comparing username against the authenticated profile (cheap path: navbar
   // already has it; fallback to a Supabase lookup avoided to keep this page lean).
@@ -174,12 +192,19 @@ export default function OrderPlacementPage() {
     setSubmitting(true);
     setSubmitError(null);
 
-    const { orderId, error: placeError } = await placeOrder({
-      builderId: builder.id,
-      size,
-      style,
-      brief: brief.trim(),
-    });
+    const { orderId, error: placeError } = isStudioOrder
+      ? await placeStudioOrder({
+          studioId: builder.id,
+          size,
+          style,
+          brief: brief.trim(),
+        })
+      : await placeOrder({
+          builderId: builder.id,
+          size,
+          style,
+          brief: brief.trim(),
+        });
     if (placeError || !orderId) {
       setSubmitting(false);
       setSubmitError(placeError?.message || "Could not place the order.");
@@ -220,7 +245,7 @@ export default function OrderPlacementPage() {
       return;
     }
     router.push(`/orders/?id=${encodeURIComponent(orderId)}`);
-  }, [submitting, selectedSize, style, brief, builder, size, router]);
+  }, [submitting, selectedSize, style, brief, builder, size, router, isStudioOrder]);
 
   // The gateway adds its processing fee on top at checkout, so the button shows
   // the exact order price either way; "(mock)" only appears while dormant.
@@ -260,10 +285,10 @@ export default function OrderPlacementPage() {
             <div className="flex items-center justify-center py-24">
               <div className="w-10 h-10 rounded-full border-2 border-[#4ade80] border-t-transparent animate-spin" />
             </div>
-          ) : !username ? (
+          ) : !username && !studioSlug ? (
             <EmptyNotice
-              title="Pick a builder first"
-              body="Open a builder profile and tap Order now to start a commission."
+              title="Pick a provider first"
+              body="Open a builder or studio profile and tap Pay to start a commission."
             />
           ) : loadError || !builder ? (
             <EmptyNotice
@@ -272,14 +297,20 @@ export default function OrderPlacementPage() {
             />
           ) : isSelf ? (
             <EmptyNotice
-              title="That's you"
-              body="You can't place an order on your own profile."
+              title={profile?.role === "studio" ? "Studio-only account" : "That's you"}
+              body={
+                profile?.role === "studio"
+                  ? "Studio moderator accounts cannot place buyer orders."
+                  : "You can't place an order on your own profile."
+              }
             />
           ) : ordersBlocked ? (
             <EmptyNotice
               title={`${builder.display_name} isn't taking orders`}
               body={
-                isBusy
+                isStudioOrder
+                  ? "This studio has no available employees right now. You can still message the studio and return when capacity opens."
+                  : isBusy
                   ? "This builder has set their status to busy and isn't accepting new commissions right now. You can still message them — try again once they're available."
                   : "This builder has limited availability right now and isn't accepting new orders. You can still message them to line up future work."
               }

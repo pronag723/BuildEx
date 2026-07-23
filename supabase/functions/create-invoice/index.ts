@@ -87,10 +87,10 @@ Deno.serve(async (req) => {
   }
 
   // BuildEx standardizes buyer checkout on USDT TRC-20. The marketplace floor
-  // is $10, but NOWPayments still publishes a live per-rail minimum, so we
+  // is $20, but NOWPayments still publishes a live per-rail minimum, so we
   // check both here.
   const PAY_CURRENCY = "usdttrc20";
-  const MIN_CENTS = 1000;
+  const MIN_CENTS = 2000;
   if (Number(order.price_kopecks) < MIN_CENTS) {
     return json(
       { error: `Order total is below the $${MIN_CENTS / 100} minimum required by the payment gateway.` },

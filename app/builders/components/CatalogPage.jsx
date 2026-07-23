@@ -325,6 +325,9 @@ export default function CatalogPage() {
   const studioOptions = useMemo(() => {
     const bySlug = new Map();
     for (const b of builders) {
+      if (b.provider_type === "studio" && b.slug && !bySlug.has(b.slug)) {
+        bySlug.set(b.slug, { slug: b.slug, name: b.display_name });
+      }
       if (b.studio && b.studio.slug && !bySlug.has(b.studio.slug)) {
         bySlug.set(b.studio.slug, { slug: b.studio.slug, name: b.studio.name });
       }
@@ -355,7 +358,9 @@ export default function CatalogPage() {
       studios: selectedStudios,
     });
     const scoped = effectiveFavoritesOnly
-      ? filtered.filter((b) => favoriteIds.has(b.id))
+      ? filtered.filter((b) =>
+          favoriteIds.has(`${b.provider_type === "studio" ? "studio" : "builder"}:${b.id}`)
+        )
       : filtered;
     return sortBuilders(scoped, sort, feedSeed);
   }, [builders, query, selectedStyles, selectedBuildTypes, minPrice, maxPrice, minRating, selectedRanks, selectedStudios, sort, feedSeed, effectiveFavoritesOnly, favoriteIds]);
@@ -445,7 +450,7 @@ export default function CatalogPage() {
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-[#4ade80]" />
                 </span>
                 <span>
-                  <span className="text-[#4ade80] font-semibold">{builders.length}</span> active builders
+                  <span className="text-[#4ade80] font-semibold">{builders.length}</span> active providers
                 </span>
               </div>
 

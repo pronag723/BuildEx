@@ -62,6 +62,10 @@ import {
   listMyPayoutHistory,
   requestWithdrawal,
 } from "../../lib/payouts/api";
+import {
+  StudioEmployeeDashboard,
+  StudioModeratorDashboard,
+} from "./StudioAccountDashboard";
 
 const TAGLINE_MAX = 80;
 
@@ -1866,7 +1870,9 @@ function AccountHeader({ profile, builderProfile, onSaved }) {
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
   const role = profile?.role;
-  const isBuilder = role === "builder" || role === "both";
+  const isStudio = role === "studio";
+  const isEmployee = builderProfile?.profile_type === "studio_employee";
+  const isBuilder = (role === "builder" || role === "both") && !isEmployee;
 
   const trimmedName = displayName.trim();
   const nameValid =
@@ -2315,7 +2321,9 @@ function AccountPageInner() {
   }
 
   const role = profile.role;
-  const isBuilder = role === "builder" || role === "both";
+  const isStudio = role === "studio";
+  const isEmployee = builderProfile?.profile_type === "studio_employee";
+  const isBuilder = (role === "builder" || role === "both") && !isEmployee;
   const isClient = role === "client" || role === "both";
 
   return (
@@ -2366,6 +2374,12 @@ function AccountPageInner() {
 
           {/* Section switcher — sits above the avatar and picks which group
               of cards is shown, so the page is no longer one long stack. */}
+          {isStudio ? (
+            <StudioModeratorDashboard />
+          ) : isEmployee ? (
+            <StudioEmployeeDashboard builderProfile={builderProfile} />
+          ) : (
+            <>
           <SectionTabs section={section} setSection={setSection} isBuilder={isBuilder} />
 
           {section === "profile" && (
@@ -2419,6 +2433,8 @@ function AccountPageInner() {
             <div className="space-y-8">
               <AccountActionsSection />
             </div>
+          )}
+            </>
           )}
         </div>
       </main>
