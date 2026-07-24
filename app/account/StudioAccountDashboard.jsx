@@ -1033,10 +1033,10 @@ export function StudioModeratorDashboard({ section = "profile" }) {
           </span>
         }
       >
-        <div className="relative grid grid-cols-2 p-1 rounded-full bg-white/[0.04] border border-white/10">
+        <div className="studio-availability-switch relative grid grid-cols-2 p-1 rounded-full bg-white/[0.04] border border-white/10">
           <span
             aria-hidden="true"
-            className={`absolute inset-y-1 left-1 rounded-full transition-transform duration-300 ease-out ${
+            className={`studio-availability-indicator absolute inset-y-1 left-1 rounded-full transition-[transform,background-color,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
               accepting
                 ? "bg-[#4ade80]/15 shadow-[0_0_0_1px_rgba(74,222,128,0.5),0_0_14px_rgba(74,222,128,0.22)]"
                 : "bg-amber-400/15 shadow-[0_0_0_1px_rgba(251,191,36,0.5),0_0_14px_rgba(251,191,36,0.18)]"
@@ -1054,7 +1054,8 @@ export function StudioModeratorDashboard({ section = "profile" }) {
               key={String(option.value)}
               type="button"
               onClick={() => chooseAvailability(option.value)}
-              className={`relative z-10 flex items-center justify-center gap-2 py-2.5 px-2 rounded-full text-xs sm:text-sm font-semibold transition-colors ${
+              aria-pressed={accepting === option.value}
+              className={`relative z-10 flex items-center justify-center gap-2 py-2.5 px-2 rounded-full text-xs sm:text-sm font-semibold transition-[color,transform] duration-300 ${
                 accepting === option.value ? "text-white" : "text-gray-400 hover:text-gray-200"
               }`}
             >

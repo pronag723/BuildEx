@@ -275,7 +275,7 @@ function SectionTabs({ section, setSection, isBuilder, isStudio = false }) {
   const idx = Math.max(0, sections.findIndex((s) => s.key === section));
   return (
     <div
-      className="relative grid p-1 rounded-full bg-white/[0.04] border border-white/10 mb-8 detail-fade-up"
+      className="account-section-tabs relative grid p-1 rounded-full bg-white/[0.04] border border-white/10 mb-8 detail-fade-up"
       style={{ gridTemplateColumns: `repeat(${sections.length}, minmax(0, 1fr))` }}
       role="tablist"
       aria-label="Account sections"
@@ -283,7 +283,7 @@ function SectionTabs({ section, setSection, isBuilder, isStudio = false }) {
       {/* Sliding highlight */}
       <span
         aria-hidden="true"
-        className="absolute inset-y-1 left-1 rounded-full bg-[#4ade80]/15 transition-transform duration-300 ease-out"
+        className="account-section-indicator absolute inset-y-1 left-1 rounded-full bg-[#4ade80]/15 transition-[transform,background-color,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
         style={{
           width: `calc((100% - 0.5rem) / ${sections.length})`,
           transform: `translateX(calc(${idx} * 100%))`,
@@ -299,7 +299,7 @@ function SectionTabs({ section, setSection, isBuilder, isStudio = false }) {
             role="tab"
             aria-selected={isActive}
             onClick={() => setSection(s.key)}
-            className={`relative z-10 py-2.5 px-2 rounded-full text-xs sm:text-sm font-semibold transition-colors ${
+            className={`account-section-tab relative z-10 py-2.5 px-2 rounded-full text-xs sm:text-sm font-semibold transition-[color,transform] duration-300 ${
               isActive ? "text-white" : "text-gray-400 hover:text-gray-200"
             }`}
           >
