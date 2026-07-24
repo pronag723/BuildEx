@@ -41,6 +41,7 @@ migrations are idempotent (safe to re-run during development).
 | 0053 | `0053_studio_payout_and_account_reliability.sql` | **Studio settings reliability.** Preserves malformed legacy payout destinations for review while allowing unrelated profile edits, and adds friendly server-side validation whenever a studio changes its payout destination. |
 | 0054 | `0054_managed_account_deletion.sql` | **Managed account deletion.** Detaches managed-studio `RESTRICT` references so moderators and employees can permanently delete their login without deleting studio order history. |
 | 0055 | `0055_storage_api_account_deletion.sql` | **Storage-safe account deletion.** Stops the deletion RPC from writing directly to protected Storage tables; the Edge Function removes files through the supported Storage API before the database transaction deletes the account. |
+| 0056 | `0056_public_studio_about_access.sql` | **Public studio feed fix.** Grants browser roles read access to the public studio About column so active storefronts can load in the builders feed. |
 
 ## Field mapping (matches the app code)
 

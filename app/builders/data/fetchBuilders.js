@@ -146,6 +146,10 @@ export async function fetchBuilders() {
   const supabase = getSupabaseClient();
   if (!supabase) return { builders: [], error: null };
 
+  // Studios are an independent provider source. Always merge their result,
+  // even if a builder-side schema mismatch occurs.
+  const studiosPromise = fetchStudios();
+
   // builder_profiles is embedded with `*` so a not-yet-applied migration column
   // (e.g. rates/tools) never 400s the whole query — same tolerance the
   // onboarding loader relies on. `!inner` drops profiles without a builder row.
@@ -163,9 +167,7 @@ export async function fetchBuilders() {
   }
   const { data, error } = res;
 
-  if (error) return { builders: [], error };
-
-  const builders = (data || [])
+  const builders = error ? [] : (data || [])
     .filter(
       (row) =>
         row.builder &&
@@ -174,8 +176,11 @@ export async function fetchBuilders() {
     )
     .map(mapRow);
 
-  const { studios } = await fetchStudios();
-  return { builders: [...builders, ...(studios || [])], error: null };
+  const { studios, error: studiosError } = await studiosPromise;
+  return {
+    builders: [...builders, ...(studios || [])],
+    error: error || studiosError || null,
+  };
 }
 
 // ─── Single builder (public profile page) ───────────────────────────────────

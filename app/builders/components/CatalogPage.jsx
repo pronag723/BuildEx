@@ -62,6 +62,9 @@ export default function CatalogPage() {
   const minRating = Number(params.get("rating")) || 0;
   const selectedRanks = useMemo(() => parseArray(params.get("rank")), [params]);
   const selectedStudios = useMemo(() => parseArray(params.get("studio")), [params]);
+  const provider = ["builders", "studios"].includes(params.get("provider"))
+    ? params.get("provider")
+    : "all";
   const favoritesOnly = params.get("fav") === "1";
   const sort = params.get("sort") || DEFAULT_SORT;
 
@@ -319,6 +322,11 @@ export default function CatalogPage() {
     [updateURL]
   );
 
+  const handleProviderChange = useCallback(
+    (value) => updateURL({ provider: value === "all" ? null : value }),
+    [updateURL]
+  );
+
   // Studio filter options, derived from the loaded feed so only studios that
   // actually have visible builders appear (and the list stays in sync with the
   // data without a second query). Unique by slug, alphabetical.
@@ -356,6 +364,7 @@ export default function CatalogPage() {
       minRating,
       ranks: selectedRanks,
       studios: selectedStudios,
+      provider,
     });
     const scoped = effectiveFavoritesOnly
       ? filtered.filter((b) =>
@@ -363,7 +372,7 @@ export default function CatalogPage() {
         )
       : filtered;
     return sortBuilders(scoped, sort, feedSeed);
-  }, [builders, query, selectedStyles, selectedBuildTypes, minPrice, maxPrice, minRating, selectedRanks, selectedStudios, sort, feedSeed, effectiveFavoritesOnly, favoriteIds]);
+  }, [builders, query, selectedStyles, selectedBuildTypes, minPrice, maxPrice, minRating, selectedRanks, selectedStudios, provider, sort, feedSeed, effectiveFavoritesOnly, favoriteIds]);
 
   const visibleBuilders = useMemo(
     () => filteredBuilders.slice(0, pageCount * ITEMS_PER_PAGE),
@@ -372,8 +381,8 @@ export default function CatalogPage() {
 
   // Key for triggering card re-animation when filters change
   const animKey = useMemo(
-    () => `${query}|${selectedStyles}|${selectedBuildTypes}|${minPrice}|${maxPrice}|${minRating}|${selectedRanks}|${selectedStudios}|${effectiveFavoritesOnly}|${sort}|${feedSeed}`,
-    [query, selectedStyles, selectedBuildTypes, minPrice, maxPrice, minRating, selectedRanks, selectedStudios, effectiveFavoritesOnly, sort, feedSeed]
+    () => `${query}|${selectedStyles}|${selectedBuildTypes}|${minPrice}|${maxPrice}|${minRating}|${selectedRanks}|${selectedStudios}|${provider}|${effectiveFavoritesOnly}|${sort}|${feedSeed}`,
+    [query, selectedStyles, selectedBuildTypes, minPrice, maxPrice, minRating, selectedRanks, selectedStudios, provider, effectiveFavoritesOnly, sort, feedSeed]
   );
 
   // Active filter count (for mobile button badge)
@@ -385,14 +394,17 @@ export default function CatalogPage() {
     if (minRating) n++;
     if (selectedRanks.length) n++;
     if (selectedStudios.length) n++;
+    if (provider !== "all") n++;
     if (effectiveFavoritesOnly) n++;
     return n;
-  }, [selectedStyles, selectedBuildTypes, minPrice, maxPrice, minRating, selectedRanks, selectedStudios, effectiveFavoritesOnly]);
+  }, [selectedStyles, selectedBuildTypes, minPrice, maxPrice, minRating, selectedRanks, selectedStudios, provider, effectiveFavoritesOnly]);
 
   const isLight = theme === "light";
 
   // Shared filter props passed to both sidebar and modal
   const filterProps = {
+    provider,
+    onProviderChange: handleProviderChange,
     selectedStyles,
     onStyleToggle: handleStyleToggle,
     selectedBuildTypes,
@@ -542,7 +554,7 @@ export default function CatalogPage() {
                     <span className="text-white font-semibold">
                       {filteredBuilders.length}
                     </span>{" "}
-                    {filteredBuilders.length === 1 ? "builder" : "builders"} found
+                    {filteredBuilders.length === 1 ? "provider" : "providers"} found
                     {query && (
                       <span className="ml-2">
                         for{" "}

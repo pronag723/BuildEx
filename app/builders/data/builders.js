@@ -179,10 +179,13 @@ export function filterBuilders(builders, filters) {
     minRating = 0,
     ranks = [],
     studios = [],
+    provider = "all",
   } = filters;
 
   return builders.filter((b) => {
     const isStudioProvider = b.provider_type === "studio";
+    if (provider === "studios" && !isStudioProvider) return false;
+    if (provider === "builders" && isStudioProvider) return false;
     if (query) {
       const q = query.toLowerCase();
       const match =

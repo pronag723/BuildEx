@@ -249,6 +249,26 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
               <p className="text-base font-bold truncate leading-tight min-w-0">
                 {builder.display_name}
               </p>
+              {isStudio && builder.is_verified && (
+                <span
+                  className="w-5 h-5 rounded-full bg-[#4ade80] text-black flex items-center justify-center flex-shrink-0 shadow-[0_0_12px_rgba(74,222,128,0.35)]"
+                  title="Verified by BuildEx"
+                  aria-label="Verified by BuildEx"
+                >
+                  <svg
+                    className="w-3 h-3"
+                    viewBox="0 0 12 10"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M1 5l3.5 3.5L11 1" />
+                  </svg>
+                </span>
+              )}
               {isStudio ? (
                 <span className="px-2.5 py-1 rounded-full text-xs font-semibold border flex-shrink-0 bg-[#4ade80]/10 text-[#4ade80] border-[#4ade80]/30">
                   Studio
