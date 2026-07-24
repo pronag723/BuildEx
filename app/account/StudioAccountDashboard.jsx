@@ -838,14 +838,17 @@ export function StudioModeratorDashboard({ section = "profile" }) {
                 </label>
                 <label className="block">
                   <span className="onb-label block mb-2">Studio @nickname</span>
-                  <input
-                    className="onb-input"
-                    value={username}
-                    maxLength={24}
-                    onChange={(event) =>
-                      setUsername(event.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))
-                    }
-                  />
+                  <div className="onb-input-with-prefix">
+                    <span className="onb-input-prefix">@</span>
+                    <input
+                      className="onb-input"
+                      value={username}
+                      maxLength={24}
+                      onChange={(event) =>
+                        setUsername(event.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))
+                      }
+                    />
+                  </div>
                   <p className="text-xs text-gray-500 mt-2">
                     Unique to the studio — used in its profile URL and chats.
                   </p>
