@@ -8,22 +8,25 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
-async function removeUserFiles(
+async function removeFilesAtPrefix(
   admin: ReturnType<typeof createClient>,
   bucket: string,
-  userId: string,
+  prefix: string,
 ) {
-  const { data, error } = await admin.storage.from(bucket).list(userId, {
-    limit: 1000,
-    offset: 0,
-  });
-  if (error) throw new Error(`Could not list ${bucket} files: ${error.message}`);
-  const paths = (data || [])
-    .filter((item) => item.name)
-    .map((item) => `${userId}/${item.name}`);
-  if (!paths.length) return;
-  const { error: removeError } = await admin.storage.from(bucket).remove(paths);
-  if (removeError) throw new Error(`Could not remove ${bucket} files: ${removeError.message}`);
+  while (true) {
+    const { data, error } = await admin.storage.from(bucket).list(prefix, {
+      limit: 1000,
+      offset: 0,
+    });
+    if (error) throw new Error(`Could not list ${bucket} files: ${error.message}`);
+    const paths = (data || [])
+      .filter((item) => item.name)
+      .map((item) => `${prefix}/${item.name}`);
+    if (!paths.length) return;
+    const { error: removeError } = await admin.storage.from(bucket).remove(paths);
+    if (removeError) throw new Error(`Could not remove ${bucket} files: ${removeError.message}`);
+    if (paths.length < 1000) return;
+  }
 }
 
 Deno.serve(async (req) => {
@@ -44,15 +47,31 @@ Deno.serve(async (req) => {
   const { data: userData, error: userError } = await asUser.auth.getUser();
   if (userError || !userData.user) return json({ error: "Invalid session" }, 401);
 
-  const admin = createClient(url, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
+  const admin = createClient(url, serviceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
   try {
+    const userId = userData.user.id;
+    const { data: orders, error: ordersError } = await admin
+      .from("orders")
+      .select("id")
+      .or(`buyer_id.eq.${userId},builder_id.eq.${userId}`);
+    if (ordersError) throw new Error(`Could not list account orders: ${ordersError.message}`);
+
     await Promise.all([
-      removeUserFiles(admin, "avatars", userData.user.id),
-      removeUserFiles(admin, "banners", userData.user.id),
-      removeUserFiles(admin, "portfolios", userData.user.id),
-      removeUserFiles(admin, "chat-media", userData.user.id),
+      removeFilesAtPrefix(admin, "avatars", userId),
+      removeFilesAtPrefix(admin, "banners", userId),
+      removeFilesAtPrefix(admin, "portfolios", userId),
+      removeFilesAtPrefix(admin, "chat-media", userId),
+      ...(orders || []).flatMap((order) => [
+        removeFilesAtPrefix(admin, "deliverables", order.id),
+        removeFilesAtPrefix(admin, "order_previews", order.id),
+      ]),
     ]);
-    const { error: deleteError } = await admin.auth.admin.deleteUser(userData.user.id);
+    // Keep deletion inside the database transaction. In particular,
+    // delete_own_account suspends and releases a managed studio before removing
+    // its moderator profile, avoiding the studios.moderator_id RESTRICT FK.
+    const { error: deleteError } = await asUser.rpc("delete_own_account");
     if (deleteError) throw new Error(deleteError.message);
   } catch (error) {
     return json({ error: error instanceof Error ? error.message : "Could not delete account" }, 500);

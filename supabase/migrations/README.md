@@ -38,6 +38,7 @@ migrations are idempotent (safe to re-run during development).
 | 0050 | `0050_studio_payout_address_validation.sql` | **Studio payout validation.** Enforces network-specific TRON and Ethereum wallet formats for every new or updated studio payout destination while preserving legacy rows for review. |
 | 0051 | `0051_studio_about_and_profile_controls.sql` | **Studio profile parity.** Adds the public studio About field plus narrow moderator RPCs for registration, About editing, and instant availability saving. |
 | 0052 | `0052_delete_studio_employee_codes.sql` | **Studio invite management.** Adds a moderator-only RPC for permanently deleting employee invite codes from the Team settings UI. |
+| 0053 | `0053_studio_payout_and_account_reliability.sql` | **Studio settings reliability.** Preserves malformed legacy payout destinations for review while allowing unrelated profile edits, and adds friendly server-side validation whenever a studio changes its payout destination. |
 
 ## Field mapping (matches the app code)
 
