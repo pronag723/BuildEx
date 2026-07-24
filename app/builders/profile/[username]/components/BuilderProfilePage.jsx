@@ -16,6 +16,10 @@ import { AVAILABILITY_STATES } from "../../../../../lib/onboarding/constants";
 import { formatPrice, ratesToTiers, SIZE_META } from "../../../../../lib/pricing";
 import { Icon } from "../../../../../lib/icons";
 import { useFavorites } from "../../../../../lib/favorites/FavoritesContext";
+import {
+  fetchStudioReviews,
+  getOrCreateStudioConversation,
+} from "../../../../../lib/studios/api";
 
 // Neutral avatar used when a reviewer has no picture (e.g. a Discord account
 // without an avatar). Inline so it never 404s under the GitHub Pages basePath.
@@ -204,6 +208,7 @@ function RateCard({ info }) {
 
 // ─── Contact sidebar ─────────────────────────────────────────────────────────
 function ContactSidebar({ builder, onShowSoon, onContact, onOrder }) {
+  const isStudio = builder.provider_type === "studio";
   // Orders are only open when the builder is "available". "busy" hides them from
   // the feed and pauses work; "limited" keeps them visible but also pauses new
   // orders — both disable the Order CTA, with a status-specific note.
@@ -266,7 +271,7 @@ function ContactSidebar({ builder, onShowSoon, onContact, onOrder }) {
         type="button"
         onClick={onOrder}
         disabled={ordersBlocked}
-        title={ordersBlocked ? "This builder isn't taking new orders right now" : undefined}
+        title={ordersBlocked ? `This ${isStudio ? "studio" : "builder"} isn't taking new orders right now` : undefined}
         className={`w-full py-4 rounded-full font-bold text-base transition-all flex items-center justify-center gap-2 ${
           ordersBlocked
             ? "bg-white/5 border border-white/10 text-gray-500 cursor-not-allowed"
@@ -283,20 +288,26 @@ function ContactSidebar({ builder, onShowSoon, onContact, onOrder }) {
         className="w-full py-3.5 rounded-full border border-white/15 bg-white/5 text-gray-200 font-semibold text-base hover:bg-white/10 hover:border-white/30 transition-all flex items-center justify-center gap-2"
       >
         <IconChat className="w-4 h-4" />
-        Contact Builder
+        Contact {isStudio ? "Studio" : "Builder"}
       </button>
       {ordersBlocked && (
         <p className="-mt-2 text-center text-[11px] text-gray-500 leading-relaxed">
-          {isBusy
-            ? "This builder is currently busy and isn't taking new orders. You can still contact them to discuss future work."
-            : "This builder has limited availability and isn't taking new orders right now. You can still contact them to discuss future work."}
+          {isStudio
+            ? "This studio is not accepting new orders right now. You can still contact the team about future work."
+            : isBusy
+              ? "This builder is currently busy and isn't taking new orders. You can still contact them to discuss future work."
+              : "This builder has limited availability and isn't taking new orders right now. You can still contact them to discuss future work."}
         </p>
       )}
 
       {/* Response info */}
       <div className="flex items-center justify-center gap-2 text-xs text-gray-400">
         <IconClock className="w-3.5 h-3.5" />
-        Typically replies in <strong>{builder.response_time}</strong>
+        {isStudio ? (
+          <>Team availability updates live</>
+        ) : (
+          <>Typically replies in <strong>{builder.response_time}</strong></>
+        )}
       </div>
 
       {/* Trust badges */}
@@ -350,7 +361,9 @@ function ReviewsSection({ reviews, builder }) {
       <h2 className="font-bold text-xl mb-6">Reviews</h2>
 
       {total === 0 ? (
-        <p className="text-gray-500 text-sm">No reviews yet for this builder.</p>
+        <p className="text-gray-500 text-sm">
+          No reviews yet for this {builder.provider_type === "studio" ? "studio" : "builder"}.
+        </p>
       ) : (
         <>
           <div className="flex flex-col sm:flex-row gap-6 mb-8 pb-8 border-b border-white/[0.08]">
@@ -418,7 +431,8 @@ export default function BuilderProfilePage({ builder }) {
   const edgeGlowRef = useRef(null);
 
   const isLight = theme === "light";
-  const rank = RANKS[builder.rank];
+  const isStudio = builder.provider_type === "studio";
+  const rank = isStudio ? null : (RANKS[builder.rank] || RANKS.rookie);
   // Orders are only open when "available"; both "busy" and "limited" pause them.
   const ordersBlocked =
     builder.availability_status === "busy" ||
@@ -434,20 +448,23 @@ export default function BuilderProfilePage({ builder }) {
   useEffect(() => {
     if (!builder.id) return;
     let cancelled = false;
-    listBuilderReviews(builder.id).then(({ reviews: rows }) => {
+    const request = isStudio
+      ? fetchStudioReviews(builder.id)
+      : listBuilderReviews(builder.id);
+    request.then(({ reviews: rows }) => {
       if (!cancelled) setReviews(mapDbReviews(rows));
     });
     return () => {
       cancelled = true;
     };
-  }, [builder.id, builder.username]);
+  }, [builder.id, builder.username, isStudio]);
 
   const gate = useAuthGate();
   const router = useRouter();
 
   // Favorites — signed-in visitors can bookmark this builder from the header.
   const { canFavorite, isFavorite, toggleFavorite } = useFavorites();
-  const favorited = isFavorite(builder.id);
+  const favorited = isFavorite(builder.id, isStudio ? "studio" : "builder");
 
   const showSoon = useCallback((msg) => {
     setToast(msg);
@@ -458,6 +475,21 @@ export default function BuilderProfilePage({ builder }) {
   // visitors are routed to /login first, then back here. The /chats page resolves
   // the @handle to the builder and starts the conversation.
   const contactBuilder = useCallback(() => {
+    if (isStudio) {
+      const target = `/studios?s=${encodeURIComponent(builder.username)}`;
+      gate(
+        async () => {
+          const result = await getOrCreateStudioConversation(builder.id);
+          if (result.error) {
+            showSoon(result.error.message || "Couldn't open the studio conversation.");
+            return;
+          }
+          router.push(`/chats?c=${encodeURIComponent(result.conversationId)}`);
+        },
+        { redirectTo: target }
+      );
+      return;
+    }
     // Next prepends the deployment basePath to router.push automatically, so the
     // path must stay base-less here — wrapping it in withBase() would double the
     // prefix (/BuildEx/BuildEx/chats) and 404 on GitHub Pages.
@@ -468,7 +500,7 @@ export default function BuilderProfilePage({ builder }) {
       },
       { redirectTo: target }
     );
-  }, [gate, router, builder.username]);
+  }, [gate, router, builder.id, builder.username, isStudio, showSoon]);
 
   // "Order now" CTA — routes to the buyer placement flow (Stage 3).
   // Auth-gated so logged-out visitors hit /login first and come back here.
@@ -487,14 +519,16 @@ export default function BuilderProfilePage({ builder }) {
       setTimeout(() => setToast(null), 3500);
       return;
     }
-    const target = `/order/?to=${encodeURIComponent(builder.username)}`;
+    const target = isStudio
+      ? `/order?s=${encodeURIComponent(builder.username)}`
+      : `/order/?to=${encodeURIComponent(builder.username)}`;
     gate(
       () => {
         router.push(target);
       },
       { redirectTo: target }
     );
-  }, [gate, router, builder.username, builder.availability_status, builder.display_name]);
+  }, [gate, router, builder.username, builder.availability_status, builder.display_name, isStudio]);
 
   const requireAuthThenSoon = useCallback(
     (msg) => {
@@ -633,7 +667,9 @@ export default function BuilderProfilePage({ builder }) {
             <nav className="flex items-center gap-1.5 text-sm text-gray-500 flex-wrap" aria-label="Breadcrumb">
               <Link href="/" className="hover:text-[#4ade80] transition-colors">Home</Link>
               <IconChevron className="w-3 h-3 opacity-50" />
-              <Link href="/builders" className="hover:text-[#4ade80] transition-colors">Builders</Link>
+              <Link href="/builders" className="hover:text-[#4ade80] transition-colors">
+                {isStudio ? "Studios" : "Builders"}
+              </Link>
               <IconChevron className="w-3 h-3 opacity-50" />
               <span className="truncate max-w-[200px] sm:max-w-xs" aria-current="page">{builder.display_name}</span>
             </nav>
@@ -641,7 +677,7 @@ export default function BuilderProfilePage({ builder }) {
               {canFavorite && builder.id && (
                 <button
                   type="button"
-                  onClick={() => toggleFavorite(builder.id)}
+                  onClick={() => toggleFavorite(builder.id, isStudio ? "studio" : "builder")}
                   aria-pressed={favorited}
                   aria-label={favorited ? "Remove from favorites" : "Add to favorites"}
                   className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold border transition-all ${
@@ -670,7 +706,7 @@ export default function BuilderProfilePage({ builder }) {
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold border border-[#4ade80]/30 text-[#4ade80] bg-[#4ade80]/10 hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.35)] transition-all"
               >
                 <IconChevron className="w-3 h-3 rotate-180" />
-                Back to Builders
+                Back to {isStudio ? "Studios" : "Builders"}
               </Link>
             </div>
           </div>
@@ -710,9 +746,15 @@ export default function BuilderProfilePage({ builder }) {
                   <h1 className="text-2xl sm:text-3xl font-extrabold leading-tight">
                     {builder.display_name}
                   </h1>
-                  <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${rank.bgClass} ${rank.textClass} ${rank.borderClass}`}>
-                    {rank.label} Builder
-                  </span>
+                  {isStudio ? (
+                    <span className="px-2.5 py-1 rounded-full text-xs font-semibold border bg-[#4ade80]/10 text-[#4ade80] border-[#4ade80]/30">
+                      Studio
+                    </span>
+                  ) : (
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${rank.bgClass} ${rank.textClass} ${rank.borderClass}`}>
+                      {rank.label} Builder
+                    </span>
+                  )}
                 </div>
                 <p className="text-sm text-gray-500 mb-3">@{builder.username}</p>
 
@@ -729,7 +771,7 @@ export default function BuilderProfilePage({ builder }) {
                   </span>
                   <span className="flex items-center gap-1.5">
                     <IconClock className="w-3.5 h-3.5" />
-                    Replies {builder.response_time}
+                    {isStudio ? "Team availability updates live" : `Replies ${builder.response_time}`}
                   </span>
                   {(() => {
                     const avail =
@@ -776,7 +818,7 @@ export default function BuilderProfilePage({ builder }) {
                 </div>
                 {builder.portfolio.length === 0 ? (
                   <div className="glass rounded-3xl p-12 text-center text-gray-500 text-sm">
-                    This builder hasn&apos;t added portfolio entries yet.
+                    This {isStudio ? "studio" : "builder"} hasn&apos;t added portfolio entries yet.
                   </div>
                 ) : (
                   <PortfolioCarousel items={builder.portfolio} />
@@ -790,7 +832,7 @@ export default function BuilderProfilePage({ builder }) {
                   <p className="text-gray-400 leading-relaxed mb-6">{builder.bio}</p>
                 )}
 
-                <div>
+                {!isStudio && <div>
                   <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2">Tools used</p>
                   <div className="flex flex-wrap gap-1.5">
                     {builder.tools.map((t) => (
@@ -799,9 +841,9 @@ export default function BuilderProfilePage({ builder }) {
                       </span>
                     ))}
                   </div>
-                </div>
+                </div>}
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-white/[0.08]">
+                <div className={`grid grid-cols-2 ${isStudio ? "sm:grid-cols-3" : "sm:grid-cols-4"} gap-3 mt-6 pt-6 border-t border-white/[0.08]`}>
                   <div className="text-center">
                     <p className="text-xl font-bold">{builder.avg_rating.toFixed(2)}</p>
                     <p className="text-[10px] text-gray-500 uppercase tracking-wide">Avg. Rating</p>
@@ -810,10 +852,10 @@ export default function BuilderProfilePage({ builder }) {
                     <p className="text-xl font-bold">{builder.completed_projects}</p>
                     <p className="text-[10px] text-gray-500 uppercase tracking-wide">Projects</p>
                   </div>
-                  <div className="text-center">
+                  {!isStudio && <div className="text-center">
                     <p className="text-xl font-bold">{builder.response_time}</p>
                     <p className="text-[10px] text-gray-500 uppercase tracking-wide">Response</p>
-                  </div>
+                  </div>}
                   <div className="text-center">
                     <p className="text-xl font-bold">{new Date(builder.member_since).getFullYear()}</p>
                     <p className="text-[10px] text-gray-500 uppercase tracking-wide">Member Since</p>
@@ -877,7 +919,7 @@ export default function BuilderProfilePage({ builder }) {
             type="button"
             onClick={orderNow}
             disabled={ordersBlocked}
-            title={ordersBlocked ? "This builder isn't taking new orders right now" : undefined}
+            title={ordersBlocked ? `This ${isStudio ? "studio" : "builder"} isn't taking new orders right now` : undefined}
             className={`flex-1 py-3 rounded-full font-bold text-sm transition-all flex items-center justify-center gap-1.5 ${
               ordersBlocked
                 ? "bg-white/5 border border-white/10 text-gray-500 cursor-not-allowed"

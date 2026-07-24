@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { getSupabaseClient } from "../../../../lib/supabase/client";
 import { useAuth } from "../../../../lib/auth/AuthContext";
 import { saveBuilderIdentity } from "../../../../lib/onboarding/api";
-import { validateStudioCode } from "../../../../lib/studios/api";
 import { STEPS } from "../../../../lib/onboarding/state";
 import { Icon } from "../../../../lib/icons";
 import {
@@ -47,12 +46,6 @@ function BuilderIdentityStep({ state }) {
   const [bannerUrl] = useState(p.banner_url || null);
   const [bio, setBio] = useState(p.bio || "");
   const [tagline, setTagline] = useState(bp.tagline || "");
-  // Studio referral (migrations 0026/0027). A builder may belong to at most one
-  // studio, ever. The code is only VALIDATED here and stashed as pending; it's
-  // consumed when onboarding completes, so abandoning setup never burns a slot.
-  // Pre-fill from any previously entered (still pending) code.
-  const alreadyJoined = Boolean(bp.studio_id);
-  const [studioCode, setStudioCode] = useState(bp.pending_studio_code || "");
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
 
@@ -78,19 +71,6 @@ function BuilderIdentityStep({ state }) {
     setError(null);
     setSaving(true);
 
-    // Studio code is optional. Validate it first (no slot is consumed yet — it's
-    // only stashed as pending and redeemed when onboarding completes). A bad code
-    // blocks the step so the builder can fix or clear it.
-    const codeTrimmed = studioCode.trim();
-    if (!alreadyJoined && codeTrimmed) {
-      const { error: vErr } = await validateStudioCode(codeTrimmed);
-      if (vErr) {
-        setSaving(false);
-        setError(vErr.message || "That studio code couldn't be applied.");
-        return;
-      }
-    }
-
     const { error: saveErr } = await saveBuilderIdentity(supabase, user.id, {
       displayName: trimmedName,
       handle,
@@ -98,9 +78,6 @@ function BuilderIdentityStep({ state }) {
       bannerUrl,
       bio: bio.trim() || null,
       tagline: tagline.trim() || null,
-      // Stash the validated code as pending (or clear it). Skipped when already
-      // joined so an existing studio link is never disturbed.
-      ...(alreadyJoined ? {} : { pendingStudioCode: codeTrimmed || null }),
     });
     if (saveErr) {
       setSaving(false);
@@ -229,38 +206,6 @@ function BuilderIdentityStep({ state }) {
               {tagline.length}/{TAGLINE_MAX}
             </span>
           </div>
-        </div>
-
-        {/* Studio code (optional referral — migration 0026) */}
-        <div className="glass onb-card onb-fade-in onb-fade-in-3 border border-emerald-500/20 bg-emerald-500/[0.05]">
-          <label htmlFor="studioCode" className="onb-label block mb-2 flex items-center gap-2">
-            <Icon name="handshake" size={16} className="text-emerald-300" />
-            Studio code
-            <span className="text-xs font-normal text-gray-500">(optional)</span>
-          </label>
-          {alreadyJoined ? (
-            <div className="flex items-center gap-2 text-sm text-emerald-300">
-              <Icon name="check" size={16} />
-              You&apos;re linked to a studio — reduced fees are active for your first 4 months.
-            </div>
-          ) : (
-            <>
-              <input
-                id="studioCode"
-                type="text"
-                className="onb-input"
-                placeholder="e.g. ATLAS"
-                value={studioCode}
-                onChange={(e) => setStudioCode(e.target.value.slice(0, 40))}
-                autoComplete="off"
-                spellCheck={false}
-              />
-              <p className="mt-2 text-xs text-gray-500 leading-snug">
-                From a partner studio? Enter their code to get a reduced commission for
-                your first 4 months and a studio badge on your profile.
-              </p>
-            </>
-          )}
         </div>
 
         {/* Bio */}

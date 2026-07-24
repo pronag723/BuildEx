@@ -40,7 +40,10 @@ function BuilderStudioChoice() {
   const [error, setError] = useState(null);
 
   async function validateCode() {
-    if (!code.trim()) return;
+    if (!code.trim()) {
+      await skipStudio();
+      return;
+    }
     setBusy(true);
     setError(null);
     const result = await validateEmployeeCode(code.trim());
@@ -63,8 +66,11 @@ function BuilderStudioChoice() {
       setError(saveError.message || "Couldn't save your choice.");
       return;
     }
-    await refresh?.();
-    router.push(STEPS.builderIdentity);
+    // Move to profile editing immediately. Waiting for AuthContext to refetch
+    // first can let its onboarding resolver advance an OAuth-prefilled profile
+    // to the expertise step before this explicit choice is honored.
+    router.replace(STEPS.builderIdentity);
+    refresh?.();
   }
 
   async function finishEmployee() {
@@ -112,7 +118,7 @@ function BuilderStudioChoice() {
                 <button
                   type="button"
                   onClick={validateCode}
-                  disabled={busy || code.trim().length < 6}
+                  disabled={busy || (code.trim().length > 0 && code.trim().length < 6)}
                   className="px-5 rounded-2xl bg-[#4ade80] text-black text-sm font-bold disabled:opacity-40"
                 >
                   Continue
@@ -125,7 +131,7 @@ function BuilderStudioChoice() {
               disabled={busy}
               className="w-full py-3 rounded-2xl border border-white/10 text-sm text-gray-300 hover:border-[#4ade80]/40 hover:bg-white/5"
             >
-              I&apos;m an independent builder — skip
+              I&apos;m not from a studio
             </button>
           </>
         ) : (

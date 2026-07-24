@@ -12,6 +12,7 @@ import {
   GripHorizontal,
   ImagePlus,
   Inbox,
+  Pencil,
   ShieldCheck,
   Trash2,
   UserRoundCheck,
@@ -39,7 +40,7 @@ import {
 } from "../../lib/studios/api";
 import { listMyOrders } from "../../lib/orders/api";
 import { listMyPayoutHistory } from "../../lib/payouts/api";
-import { formatPrice } from "../../lib/pricing";
+import { formatPrice, ratesToTiers } from "../../lib/pricing";
 import AvatarUploader from "../onboarding/components/AvatarUploader";
 import {
   RatesEditor,
@@ -192,9 +193,9 @@ function NetworkSelect({ value, onChange }) {
   );
 }
 
-function Card({ title, description, children, aside }) {
+function Card({ title, description, children, aside, className = "" }) {
   return (
-    <section className="glass studio-panel rounded-3xl p-6 lg:p-8 detail-fade-up">
+    <section className={`glass studio-panel rounded-3xl p-6 lg:p-8 detail-fade-up ${className}`}>
       <div className="flex items-center justify-between gap-3 mb-5">
         <div>
           <h2 className="font-bold text-xl">{title}</h2>
@@ -226,7 +227,7 @@ function SaveButton({ changed, busy, invalid = false, onClick, children }) {
   );
 }
 
-function PortfolioRail({ studio, onReload, onError }) {
+function PortfolioRail({ studio, onReload, onError, editing }) {
   const railRef = useRef(null);
   const dragRef = useRef({ active: false, x: 0, left: 0, moved: false });
 
@@ -294,21 +295,23 @@ function PortfolioRail({ studio, onReload, onError }) {
               <span className="absolute left-3 bottom-3 text-[10px] uppercase tracking-widest px-2 py-1 rounded-full bg-black/55 border border-white/15 text-gray-200 backdrop-blur-md">
                 {index === 0 ? "Cover image" : `Build ${index + 1}`}
               </span>
-              <button
-                type="button"
-                aria-label={`Remove ${image.title || `build ${index + 1}`}`}
-                onClick={async () => {
-                  const result = await deleteStudioPortfolioImage(image);
-                  if (result.error) onError(result.error.message);
-                  else onReload();
-                }}
-                className="absolute top-3 right-3 w-9 h-9 rounded-full bg-black/65 border border-white/15 text-gray-200 inline-flex items-center justify-center opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 focus:opacity-100 transition-all hover:bg-red-500/25 hover:text-red-200 hover:border-red-400/40"
-              >
-                <Trash2 size={16} />
-              </button>
+              {editing && (
+                <button
+                  type="button"
+                  aria-label={`Remove ${image.title || `build ${index + 1}`}`}
+                  onClick={async () => {
+                    const result = await deleteStudioPortfolioImage(image);
+                    if (result.error) onError(result.error.message);
+                    else onReload();
+                  }}
+                  className="absolute top-3 right-3 w-9 h-9 rounded-full bg-black/65 border border-white/15 text-gray-200 inline-flex items-center justify-center opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 focus:opacity-100 transition-all hover:bg-red-500/25 hover:text-red-200 hover:border-red-400/40"
+                >
+                  <Trash2 size={16} />
+                </button>
+              )}
             </article>
           ))}
-          <label className="studio-portfolio-add flex-[0_0_clamp(220px,30vw,300px)] aspect-[16/10] snap-start rounded-2xl border border-dashed border-[#4ade80]/40 flex flex-col gap-2 items-center justify-center text-sm text-[#4ade80] cursor-pointer transition-all hover:bg-[#4ade80]/[0.07] hover:border-[#4ade80]/70 hover:-translate-y-1">
+          {editing && <label className="studio-portfolio-add flex-[0_0_clamp(220px,30vw,300px)] aspect-[16/10] snap-start rounded-2xl border border-dashed border-[#4ade80]/40 flex flex-col gap-2 items-center justify-center text-sm text-[#4ade80] cursor-pointer transition-all hover:bg-[#4ade80]/[0.07] hover:border-[#4ade80]/70 hover:-translate-y-1">
             <span className="w-11 h-11 rounded-2xl bg-[#4ade80]/10 border border-[#4ade80]/20 inline-flex items-center justify-center">
               <ImagePlus size={20} />
             </span>
@@ -331,9 +334,42 @@ function PortfolioRail({ studio, onReload, onError }) {
                 event.target.value = "";
               }}
             />
-          </label>
+          </label>}
         </div>
       </div>
+    </div>
+  );
+}
+
+function StudioRatesPreview({ rates }) {
+  const tiers = ratesToTiers(rates).filter((tier) => tier.enabled && tier.price > 0);
+  if (tiers.length === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed border-white/15 p-8 text-center text-sm text-gray-500">
+        No studio rates have been published yet.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {tiers.map((tier) => (
+        <div key={tier.id} className="rounded-2xl border border-white/10 p-4">
+          <div className="flex items-center gap-2.5">
+            <span className="icon-tile icon-tile-sm text-[#4ade80]">
+              <Wallet size={16} />
+            </span>
+            <h3 className="font-semibold text-sm">{tier.label}</h3>
+          </div>
+          <p className="text-xs text-gray-400 mt-2">
+            {tier.blocks > 0 ? `Up to ${tier.blocks}×${tier.blocks} blocks` : "Custom scope"}
+          </p>
+          <div className="mt-3 pt-3 border-t border-white/[0.07]">
+            <p className="text-[10px] text-gray-500 uppercase tracking-wide">Exact price</p>
+            <p className="text-[#4ade80] font-extrabold text-xl">{formatPrice(tier.price)}</p>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -359,6 +395,8 @@ export function StudioModeratorDashboard({ section = "profile" }) {
   const [codeLimit, setCodeLimit] = useState(1);
   const [codeExpiry, setCodeExpiry] = useState("");
   const [withdrawDollars, setWithdrawDollars] = useState("");
+  const [ratesEditing, setRatesEditing] = useState(false);
+  const [portfolioEditing, setPortfolioEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState(null);
   const [error, setError] = useState(null);
@@ -487,6 +525,7 @@ export function StudioModeratorDashboard({ section = "profile" }) {
       return;
     }
     setNotice("Studio settings saved.");
+    if (ratesChanged) setRatesEditing(false);
     load();
   }
 
@@ -499,7 +538,7 @@ export function StudioModeratorDashboard({ section = "profile" }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6">
       {(error || notice) && (
         <div className={error ? "auth-banner auth-banner-error" : "auth-banner"}>
           {error || notice}
@@ -507,8 +546,8 @@ export function StudioModeratorDashboard({ section = "profile" }) {
       )}
 
       {section === "profile" && <Card
-        title="Studio storefront"
-        description="Manage the identity and availability clients see across BuildEx."
+        title="Profile"
+        description="Manage the studio identity clients see across BuildEx."
         aside={
           <span className={`text-xs px-2.5 py-1 rounded-full border ${
             studio.status === "active"
@@ -542,15 +581,6 @@ export function StudioModeratorDashboard({ section = "profile" }) {
                 }
               />
             </label>
-            <label className="sm:col-span-2 flex items-center justify-between gap-4 p-3 rounded-2xl border border-white/10">
-              <span>
-                <span className="font-semibold text-sm block">Accept new orders</span>
-                <span className="text-xs text-gray-500">
-                  Requires an active BuildEx commission and an available employee.
-                </span>
-              </span>
-              <input type="checkbox" checked={accepting} onChange={(e) => setAccepting(e.target.checked)} />
-            </label>
           </div>
         </div>
         <SaveButton
@@ -559,30 +589,105 @@ export function StudioModeratorDashboard({ section = "profile" }) {
           invalid={employeePct === ""}
           onClick={saveStudio}
         >
-          {busy ? "Saving…" : "Save storefront"}
+          {busy ? "Saving…" : "Save profile"}
         </SaveButton>
       </Card>}
 
       {section === "profile" && <Card
-        title="Studio rates"
-        description="Set the block area and client price for each project size."
+        title="Availability"
+        description="Let clients know whether the studio is taking new commissions."
       >
-        <RatesEditor rates={rates} onChange={setRates} />
-        <SaveButton
-          changed={ratesChanged}
-          busy={busy}
-          invalid={employeePct === ""}
-          onClick={saveStudio}
-        >
-          {busy ? "Saving…" : "Save rates"}
+        <div className="grid grid-cols-2 rounded-full border border-white/10 bg-black/20 p-1">
+          <button
+            type="button"
+            onClick={() => setAccepting(true)}
+            className={`py-2.5 rounded-full text-sm font-semibold transition-all ${
+              accepting
+                ? "bg-[#4ade80]/20 text-[#4ade80] border border-[#4ade80]/35"
+                : "text-gray-400"
+            }`}
+          >
+            Available
+          </button>
+          <button
+            type="button"
+            onClick={() => setAccepting(false)}
+            className={`py-2.5 rounded-full text-sm font-semibold transition-all ${
+              !accepting
+                ? "bg-amber-400/15 text-amber-300 border border-amber-400/30"
+                : "text-gray-400"
+            }`}
+          >
+            Not taking orders
+          </button>
+        </div>
+        <div className="mt-4 rounded-2xl border border-white/10 px-4 py-3 flex items-center gap-3">
+          <span className={`w-2 h-2 rounded-full ${accepting ? "bg-[#4ade80]" : "bg-amber-400"}`} />
+          <div>
+            <p className="text-sm font-semibold">{accepting ? "Available" : "Not taking orders"}</p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {accepting
+                ? "The studio can accept orders whenever an employee is available."
+                : "Clients can still view and contact the studio, but new orders are paused."}
+            </p>
+          </div>
+        </div>
+        <SaveButton changed={storefrontChanged} busy={busy} invalid={employeePct === ""} onClick={saveStudio}>
+          {busy ? "Saving…" : "Save availability"}
         </SaveButton>
       </Card>}
 
       {section === "profile" && <Card
-        title="Studio portfolio"
-        description="A compact, scrollable showcase that matches the public builder profile."
+        title="Rates & Project Scale"
+        description="Set an exact price for each build scale. Toggle off sizes the studio doesn't offer."
+        aside={
+          <button
+            type="button"
+            onClick={() => setRatesEditing((current) => !current)}
+            className="px-3 py-1.5 rounded-full text-xs font-semibold border border-[#4ade80]/30 text-[#4ade80] bg-[#4ade80]/10 inline-flex items-center gap-1.5"
+          >
+            <Pencil size={13} />
+            {ratesEditing ? "Cancel" : "Edit"}
+          </button>
+        }
       >
-        <PortfolioRail studio={studio} onReload={load} onError={setError} />
+        {ratesEditing ? (
+          <>
+            <RatesEditor rates={rates} onChange={setRates} />
+            <SaveButton
+              changed={ratesChanged}
+              busy={busy}
+              invalid={employeePct === "" || Boolean(validateRates(rates))}
+              onClick={saveStudio}
+            >
+              {busy ? "Saving…" : "Save rates"}
+            </SaveButton>
+          </>
+        ) : (
+          <StudioRatesPreview rates={studio.rates} />
+        )}
+      </Card>}
+
+      {section === "profile" && <Card
+        title="Portfolio"
+        description="Drag in the studio's best builds. The first image becomes the cover."
+        aside={
+          <button
+            type="button"
+            onClick={() => setPortfolioEditing((current) => !current)}
+            className="px-3 py-1.5 rounded-full text-xs font-semibold border border-[#4ade80]/30 text-[#4ade80] bg-[#4ade80]/10 inline-flex items-center gap-1.5"
+          >
+            <Pencil size={13} />
+            {portfolioEditing ? "Done editing" : "Manage portfolio"}
+          </button>
+        }
+      >
+        <PortfolioRail
+          studio={studio}
+          onReload={load}
+          onError={setError}
+          editing={portfolioEditing}
+        />
       </Card>}
 
       {section === "team" && <Card
@@ -826,8 +931,9 @@ export function StudioModeratorDashboard({ section = "profile" }) {
       </Card>}
 
       {section === "payouts" && <Card
-        title="Payout destination"
-        description="Choose the exact network and verify the receiving address before saving."
+        title="Payout"
+        description="Choose the exact network and verify the receiving address."
+        className="order-2"
         aside={
           <span className="hidden sm:inline-flex items-center gap-1.5 text-[11px] text-[#4ade80]">
             <ShieldCheck size={14} /> Format validation enabled
@@ -911,8 +1017,9 @@ export function StudioModeratorDashboard({ section = "profile" }) {
       </Card>}
 
       {section === "payouts" && <Card
-        title="Studio balance"
-        description="A clear view of earnings, pending releases, and past withdrawals."
+        title="Balance"
+        description="Balances are shown in USD."
+        className="order-1"
       >
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
           {[
@@ -927,6 +1034,11 @@ export function StudioModeratorDashboard({ section = "profile" }) {
             </div>
           ))}
         </div>
+        <div className="mt-6 pt-6 border-t border-white/[0.08]">
+          <h3 className="font-bold text-lg">Withdraw funds</h3>
+          <p className="text-xs text-gray-500 mt-1 mb-4">
+            Minimum $20.00. Network or exchange fees may reduce the amount received.
+          </p>
         <div className="flex flex-col sm:flex-row gap-3 max-w-xl">
           <label className="relative flex-1">
             <span className="sr-only">Withdrawal amount in USD</span>
@@ -965,8 +1077,12 @@ export function StudioModeratorDashboard({ section = "profile" }) {
         <p className="text-[11px] text-gray-500 mt-2">
           Withdrawals require a valid saved wallet, at least $20, and enough available balance.
         </p>
-        {withdrawals.length > 0 && (
-          <div className="mt-5 divide-y divide-white/[0.07]">
+        </div>
+        <div className="mt-6 pt-6 border-t border-white/[0.08] divide-y divide-white/[0.07]">
+            <h3 className="font-bold text-lg pb-4">Withdrawal history</h3>
+            {withdrawals.length === 0 && (
+              <p className="text-sm text-gray-500 py-2">No withdrawals yet.</p>
+            )}
             {withdrawals.map((withdrawal) => (
               <div key={withdrawal.id} className="py-3 flex justify-between gap-3 text-sm">
                 <span className="capitalize text-gray-400">{withdrawal.status}</span>
@@ -988,8 +1104,7 @@ export function StudioModeratorDashboard({ section = "profile" }) {
                 </span>
               </div>
             ))}
-          </div>
-        )}
+        </div>
       </Card>}
     </div>
   );
