@@ -548,6 +548,8 @@ export function StudioModeratorDashboard({ section = "profile" }) {
   const [codeActionId, setCodeActionId] = useState(null);
   const [copiedCodeId, setCopiedCodeId] = useState(null);
   const [withdrawDollars, setWithdrawDollars] = useState("");
+  const [orderStatusFilter, setOrderStatusFilter] = useState("active");
+  const [assignmentSelections, setAssignmentSelections] = useState({});
   const [ratesEditing, setRatesEditing] = useState(false);
   const [portfolioEditing, setPortfolioEditing] = useState(false);
   const [profileEditing, setProfileEditing] = useState(false);
@@ -638,6 +640,13 @@ export function StudioModeratorDashboard({ section = "profile" }) {
       ),
     [members]
   );
+  const visibleOrders = useMemo(() => {
+    if (orderStatusFilter === "all") return orders;
+    if (orderStatusFilter === "active") {
+      return orders.filter((order) => !["completed", "cancelled"].includes(order.status));
+    }
+    return orders.filter((order) => order.status === orderStatusFilter);
+  }, [orderStatusFilter, orders]);
   const storefrontChanged = useMemo(
     () =>
       Boolean(
@@ -797,6 +806,26 @@ export function StudioModeratorDashboard({ section = "profile" }) {
     }
     setCodes((current) => current.filter((item) => item.id !== codeRow.id));
     setNotice("Invite code deleted.");
+  }
+
+  async function confirmAssignment(order) {
+    const builderId = assignmentSelections[order.id] || order.assigned_builder_id;
+    if (!builderId || builderId === order.assigned_builder_id) return;
+    setBusy(true);
+    setError(null);
+    const result = await assignStudioOrder(order.id, builderId);
+    setBusy(false);
+    if (result.error) {
+      setError(result.error.message || "Couldn't assign the order.");
+      return;
+    }
+    setAssignmentSelections((current) => {
+      const next = { ...current };
+      delete next[order.id];
+      return next;
+    });
+    setNotice("Builder assigned to the order.");
+    await load();
   }
 
   if (!studio) {
@@ -1295,9 +1324,24 @@ export function StudioModeratorDashboard({ section = "profile" }) {
             </div>
           )}
         </div>
-        <div className="divide-y divide-white/[0.07]">
+        <div className="grid gap-3">
           {members.filter((member) => member.status === "active").map((member) => (
-            <div key={member.id} className="py-3 flex flex-wrap items-center gap-3">
+            <div key={member.id} className="rounded-2xl border border-white/10 bg-black/[0.08] p-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
+                <div className="rounded-xl bg-white/[0.04] px-3 py-2">
+                  <p className="text-[10px] uppercase tracking-wide text-gray-500">Earned</p>
+                  <p className="text-sm font-bold text-[#4ade80] mt-1">{formatPrice(employeeEarnings.filter((row) => row.builder_id === member.builder_id).reduce((sum, row) => sum + Number(row.amount_kopecks || 0), 0))}</p>
+                </div>
+                <div className="rounded-xl bg-white/[0.04] px-3 py-2">
+                  <p className="text-[10px] uppercase tracking-wide text-gray-500">Completed</p>
+                  <p className="text-sm font-bold mt-1">{employeeEarnings.filter((row) => row.builder_id === member.builder_id).length}</p>
+                </div>
+                <div className="rounded-xl bg-white/[0.04] px-3 py-2 col-span-2 sm:col-span-1">
+                  <p className="text-[10px] uppercase tracking-wide text-gray-500">Current work</p>
+                  <p className="text-sm font-bold mt-1">{orders.filter((order) => order.assigned_builder_id === member.builder_id && !["completed", "cancelled"].includes(order.status)).length}</p>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
               <div className="flex-1 min-w-[200px]">
                 <p className="text-sm font-semibold">{member.builder?.display_name}</p>
                 <p className="text-[11px] text-gray-500 mt-1">
@@ -1329,6 +1373,7 @@ export function StudioModeratorDashboard({ section = "profile" }) {
               >
                 Remove
               </button>
+              </div>
             </div>
           ))}
         </div>
@@ -1371,10 +1416,23 @@ export function StudioModeratorDashboard({ section = "profile" }) {
 
       {section === "orders" && <Card
         title="Studio orders"
-        description="Review incoming work and assign it to an available employee."
+        description="Review incoming work, filter the queue, then confirm each builder assignment."
       >
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+          <div>
+            <p className="text-xs font-semibold text-gray-300">Show orders</p>
+            <p className="text-[11px] text-gray-500 mt-1">Completed and cancelled orders stay available for review.</p>
+          </div>
+          <div className="inline-flex flex-wrap items-center gap-1 rounded-2xl border border-white/10 bg-black/20 p-1" role="group" aria-label="Filter orders by status">
+            {[['active', 'Active'], ['completed', 'Completed'], ['cancelled', 'Cancelled'], ['all', 'All']].map(([value, label]) => (
+              <button key={value} type="button" aria-pressed={orderStatusFilter === value} onClick={() => setOrderStatusFilter(value)} className={`rounded-xl px-3 py-2 text-xs font-semibold transition-all ${orderStatusFilter === value ? "bg-[#4ade80] text-black" : "text-gray-400 hover:bg-white/5 hover:text-white"}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="space-y-3">
-          {orders.length === 0 && (
+          {visibleOrders.length === 0 && (
             <div className="rounded-3xl border border-dashed border-white/15 bg-black/[0.08] px-6 py-12 text-center">
               <span className="mx-auto w-14 h-14 rounded-2xl bg-[#4ade80]/10 border border-[#4ade80]/20 text-[#4ade80] flex items-center justify-center mb-4">
                 <Inbox size={25} />
@@ -1402,38 +1460,38 @@ export function StudioModeratorDashboard({ section = "profile" }) {
               </div>
             </div>
           )}
-          {orders.map((order) => (
+          {visibleOrders.map((order) => (
             <div key={order.id} className="studio-order-row rounded-2xl border border-white/10 bg-black/[0.08] p-4 flex flex-wrap gap-3 items-center transition-all hover:border-[#4ade80]/30 hover:bg-[#4ade80]/[0.025]">
               <div className="flex-1 min-w-[220px]">
                 <p className="text-sm font-semibold">{order.buyer?.display_name || "Buyer"} · {order.size_label || order.building_size}</p>
                 <p className="text-xs text-gray-500 mt-1">{order.status} · {formatPrice(order.price_kopecks)}</p>
               </div>
               {["paid", "in_progress"].includes(order.status) && (
-                <select
-                  className={`${INPUT} catalog-select max-w-[230px]`}
-                  value={order.assigned_builder_id || ""}
-                  onChange={async (event) => {
-                    if (!event.target.value) return;
-                    const result = await assignStudioOrder(order.id, event.target.value);
-                    if (result.error) setError(result.error.message);
-                    else load();
-                  }}
-                >
-                  <option value="">Assign available employee</option>
-                  {members
-                    .filter(
-                      (member) =>
-                        member.status === "active" &&
-                        (member.availability_status === "available" ||
-                          member.builder_id === order.assigned_builder_id)
-                    )
-                    .map((member) => (
-                    <option key={member.builder_id} value={member.builder_id}>
-                      {member.builder?.display_name}
-                      {member.builder_id === order.assigned_builder_id ? " (assigned)" : ""}
-                    </option>
-                    ))}
-                </select>
+                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                  <select
+                    className={`${INPUT} catalog-select max-w-[230px]`}
+                    value={assignmentSelections[order.id] ?? order.assigned_builder_id ?? ""}
+                    onChange={(event) => setAssignmentSelections((current) => ({ ...current, [order.id]: event.target.value }))}
+                    aria-label={`Select builder for order ${order.id}`}
+                  >
+                    <option value="">Select a builder</option>
+                    {members
+                      .filter((member) => member.status === "active" && (member.availability_status === "available" || member.builder_id === order.assigned_builder_id))
+                      .map((member) => (
+                        <option key={member.builder_id} value={member.builder_id}>
+                          {member.builder?.display_name || "Builder"}{member.builder_id === order.assigned_builder_id ? " (assigned)" : ""}
+                        </option>
+                      ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => confirmAssignment(order)}
+                    disabled={busy || !(assignmentSelections[order.id] || order.assigned_builder_id) || assignmentSelections[order.id] === order.assigned_builder_id}
+                    className="px-4 py-2.5 rounded-xl bg-[#4ade80] text-black text-xs font-bold hover:bg-[#22c55e] transition-colors disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+                  >
+                    <Check size={14} /> Confirm
+                  </button>
+                </div>
               )}
               <Link href={`/orders/?id=${order.id}`} className="px-3 py-2.5 rounded-xl border border-[#4ade80]/30 bg-[#4ade80]/10 text-[#4ade80] text-xs font-semibold inline-flex items-center gap-1.5 hover:bg-[#4ade80] hover:text-black transition-all">
                 Open order <ArrowRight size={13} />
