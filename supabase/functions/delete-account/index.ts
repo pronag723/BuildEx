@@ -68,9 +68,10 @@ Deno.serve(async (req) => {
         removeFilesAtPrefix(admin, "order_previews", order.id),
       ]),
     ]);
-    // Keep deletion inside the database transaction. In particular,
-    // delete_own_account suspends and releases a managed studio before removing
-    // its moderator profile, avoiding the studios.moderator_id RESTRICT FK.
+    // Storage cleanup above must use the Storage API; Supabase deliberately
+    // blocks direct deletes from storage.objects. The RPC only handles the
+    // relational transaction: detach retained studio references, then remove
+    // the auth user and its cascading profile data.
     const { error: deleteError } = await asUser.rpc("delete_own_account");
     if (deleteError) throw new Error(deleteError.message);
   } catch (error) {
