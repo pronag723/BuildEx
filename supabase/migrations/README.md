@@ -39,6 +39,7 @@ migrations are idempotent (safe to re-run during development).
 | 0051 | `0051_studio_about_and_profile_controls.sql` | **Studio profile parity.** Adds the public studio About field plus narrow moderator RPCs for registration, About editing, and instant availability saving. |
 | 0052 | `0052_delete_studio_employee_codes.sql` | **Studio invite management.** Adds a moderator-only RPC for permanently deleting employee invite codes from the Team settings UI. |
 | 0053 | `0053_studio_payout_and_account_reliability.sql` | **Studio settings reliability.** Preserves malformed legacy payout destinations for review while allowing unrelated profile edits, and adds friendly server-side validation whenever a studio changes its payout destination. |
+| 0054 | `0054_managed_account_deletion.sql` | **Managed account deletion.** Detaches managed-studio `RESTRICT` references so moderators and employees can permanently delete their login without deleting studio order history. |
 
 ## Field mapping (matches the app code)
 
