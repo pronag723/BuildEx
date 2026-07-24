@@ -9,10 +9,11 @@ project_id = "buildex"
 [functions.create-invoice]
 verify_jwt = true
 
-# Deletes the caller's Storage objects through the Storage API before deleting
-# the auth user, which is not possible safely from a database trigger/RPC.
+# The function validates the Authorization token with auth.getUser() itself.
+# Keep gateway verification off because this project uses asymmetric ES256 keys
+# and the gateway can lag behind Auth's key set during key rotation.
 [functions.delete-account]
-verify_jwt = true
+verify_jwt = false
 
 # payment-webhook is called by NOWPayments (IPN), which is unauthenticated — it
 # proves itself with an HMAC request signature we verify in code instead. JWT
