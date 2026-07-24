@@ -845,7 +845,7 @@ export function StudioModeratorDashboard({ section = "profile" }) {
       )}
 
       {section === "profile" && (
-        <section className="detail-fade-up glass rounded-3xl p-6 lg:p-8">
+        <section className="detail-fade-up glass studio-profile-hero rounded-3xl p-6 lg:p-8">
           {profileEditing ? (
             <div className="flex flex-col sm:flex-row gap-7 items-center sm:items-start">
               <AvatarUploader
@@ -909,6 +909,7 @@ export function StudioModeratorDashboard({ section = "profile" }) {
               </div>
             </div>
           ) : (
+            <>
             <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
               <div className="relative flex-shrink-0">
                 <Avatar
@@ -942,6 +943,21 @@ export function StudioModeratorDashboard({ section = "profile" }) {
                 Edit profile
               </button>
             </div>
+            <div className="mt-7 pt-5 border-t border-white/[0.08] grid grid-cols-3 gap-3 text-center">
+              <div>
+                <p className="text-xl font-extrabold">{studio.completed_projects || 0}</p>
+                <p className="text-[10px] text-gray-500 uppercase tracking-wide">Projects</p>
+              </div>
+              <div>
+                <p className="text-xl font-extrabold">{Number(studio.avg_rating || 0).toFixed(2)}</p>
+                <p className="text-[10px] text-gray-500 uppercase tracking-wide">Avg. rating</p>
+              </div>
+              <div>
+                <p className="text-xl font-extrabold">{availableMembers.length}</p>
+                <p className="text-[10px] text-gray-500 uppercase tracking-wide">Available builders</p>
+              </div>
+            </div>
+            </>
           )}
         </section>
       )}
@@ -1327,6 +1343,18 @@ export function StudioModeratorDashboard({ section = "profile" }) {
         <div className="grid gap-3">
           {members.filter((member) => member.status === "active").map((member) => (
             <div key={member.id} className="rounded-2xl border border-white/10 bg-black/[0.08] p-4">
+              <div className="flex items-center gap-3 mb-4">
+                <Avatar
+                  src={member.builder?.avatar_url}
+                  name={member.builder?.display_name || "Builder"}
+                  className="w-12 h-12 rounded-2xl ring-2 ring-[#4ade80]/25 text-lg"
+                />
+                <div className="min-w-0">
+                  <p className="font-semibold truncate">{member.builder?.display_name || "Builder"}</p>
+                  <p className="text-xs text-gray-500 truncate">@{member.builder?.username || "unknown"}</p>
+                </div>
+                <span className={`ml-auto w-2.5 h-2.5 rounded-full ${member.availability_status === "available" ? "bg-[#4ade80]" : "bg-amber-400"}`} />
+              </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
                 <div className="rounded-xl bg-white/[0.04] px-3 py-2">
                   <p className="text-[10px] uppercase tracking-wide text-gray-500">Earned</p>

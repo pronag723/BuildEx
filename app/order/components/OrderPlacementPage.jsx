@@ -149,7 +149,7 @@ export default function OrderPlacementPage() {
       label: tier.label,
       icon: tier.icon,
       hint: tier.hint || "",
-      areaText: tier.areaText || "",
+      areaText: tier.areaText || (tier.blocks > 0 ? `Up to ${tier.blocks}×${tier.blocks} blocks` : "Custom area"),
       enabled: tier.enabled && Number(tier.price) > 0,
       price: Number(tier.price) || 0,
       blocks: Number(tier.blocks) || 0,
@@ -337,6 +337,7 @@ export default function OrderPlacementPage() {
                 <ReviewStep
                   builder={builder}
                   sizeLabel={selectedSize?.label || size}
+                  sizeArea={selectedSize?.areaText}
                   style={style}
                   brief={brief}
                   priceKopecks={priceKopecks}
@@ -518,14 +519,17 @@ function BriefStep({ value, onChange }) {
 }
 
 // ─── Step 4: review ─────────────────────────────────────────────────────────
-function ReviewStep({ builder, sizeLabel, style, brief, priceKopecks }) {
+function ReviewStep({ builder, sizeLabel, sizeArea, style, brief, priceKopecks }) {
   return (
     <div className="space-y-4">
       <h2 className="font-bold text-base">Review your order</h2>
 
       <dl className="space-y-2 text-sm">
         <Row label="Builder">{builder.display_name}</Row>
-        <Row label="Size">{sizeLabel}</Row>
+        <Row label="Size">
+          <span>{sizeLabel}</span>
+          {sizeArea && <span className="block text-xs text-gray-400 font-normal mt-0.5">{sizeArea}</span>}
+        </Row>
         <Row label="Style" capitalize>
           {style}
         </Row>
