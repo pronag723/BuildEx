@@ -36,6 +36,7 @@ migrations are idempotent (safe to re-run during development).
 | 0048 | `0048_payouts_private_studio_policy_fix.sql` | **Managed-studio RLS fix.** Moves private studio-moderator checks out of browser-evaluated policies for portfolio metadata, team data, orders, payments, disputes, and payouts, restoring managed-studio reads without exposing ownership or payout columns. |
 | 0049 | `0049_studio_account_deletion.sql` | **Studio account deletion fix.** Suspends and releases a moderator-owned studio before deleting the moderator login, preserving financial and order history for administrative recovery while allowing the account deletion to complete. |
 | 0050 | `0050_studio_payout_address_validation.sql` | **Studio payout validation.** Enforces network-specific TRON and Ethereum wallet formats for every new or updated studio payout destination while preserving legacy rows for review. |
+| 0051 | `0051_studio_about_and_profile_controls.sql` | **Studio profile parity.** Adds the public studio About field plus narrow moderator RPCs for registration, About editing, and instant availability saving. |
 
 ## Field mapping (matches the app code)
 

@@ -19,6 +19,7 @@ import {
   normalizeRates,
   validateRates,
 } from "../components/RatesFields";
+import { BIO_MAX } from "../../../lib/onboarding/constants";
 
 const INPUT =
   "w-full px-4 py-3 rounded-2xl bg-black/25 border border-white/10 text-sm outline-none focus:border-[#4ade80]/60 focus:ring-2 focus:ring-[#4ade80]/15";
@@ -41,6 +42,7 @@ function StudioOnboarding() {
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [avatarUrl, setAvatarUrl] = useState(null);
+  const [about, setAbout] = useState("");
   const [rates, setRates] = useState(() => mergeRates(null));
   const [portfolioCount, setPortfolioCount] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -82,6 +84,7 @@ function StudioOnboarding() {
       name: name.trim(),
       username: username.trim().toLowerCase(),
       avatarUrl,
+      about: about.trim() || null,
       rates: normalizeRates(rates),
     });
     setBusy(false);
@@ -155,6 +158,19 @@ function StudioOnboarding() {
                   maxLength={24}
                   placeholder="aurora_builds"
                 />
+              </label>
+              <label className="block">
+                <span className="onb-label block mb-2">About the studio</span>
+                <textarea
+                  value={about}
+                  onChange={(event) => setAbout(event.target.value.slice(0, BIO_MAX))}
+                  className="onb-input onb-textarea"
+                  maxLength={BIO_MAX}
+                  placeholder="Tell clients about your team, specialties, and the projects you love building."
+                />
+                <span className="text-xs text-gray-500 mt-2 block text-right">
+                  {about.length}/{BIO_MAX}
+                </span>
               </label>
             </div>
           </div>

@@ -34,14 +34,24 @@ import {
   listStudioMembers,
   removeStudioEmployee,
   requestStudioWithdrawal,
+  setMyStudioAcceptingOrders,
   setEmployeeCodeStatus,
   setMyEmployeeAvailability,
   updateMyStudio,
+  updateMyStudioAbout,
+  updateStudioPortfolioPositions,
 } from "../../lib/studios/api";
 import { listMyOrders } from "../../lib/orders/api";
 import { listMyPayoutHistory } from "../../lib/payouts/api";
 import { formatPrice, ratesToTiers } from "../../lib/pricing";
 import AvatarUploader from "../onboarding/components/AvatarUploader";
+import Avatar from "../../lib/ui/Avatar";
+import {
+  BIO_MAX,
+  PORTFOLIO_ACCEPTED_MIME,
+  PORTFOLIO_MAX_FILE_MB,
+  PORTFOLIO_MAX_IMAGES,
+} from "../../lib/onboarding/constants";
 import {
   RatesEditor,
   mergeRates,
@@ -341,6 +351,186 @@ function PortfolioRail({ studio, onReload, onError, editing }) {
   );
 }
 
+function StudioPortfolioEditor({ studio, onReload, onError }) {
+  const inputRef = useRef(null);
+  const [images, setImages] = useState(studio.portfolio || []);
+  const [dragOver, setDragOver] = useState(false);
+  const [uploading, setUploading] = useState(0);
+
+  useEffect(() => {
+    setImages(studio.portfolio || []);
+  }, [studio.portfolio]);
+
+  function validFile(file) {
+    if (!PORTFOLIO_ACCEPTED_MIME.includes(file.type)) {
+      onError?.(`"${file.name}" isn't a supported image format.`);
+      return false;
+    }
+    if (file.size > PORTFOLIO_MAX_FILE_MB * 1024 * 1024) {
+      onError?.(`"${file.name}" is larger than ${PORTFOLIO_MAX_FILE_MB} MB.`);
+      return false;
+    }
+    return true;
+  }
+
+  async function addFiles(fileList) {
+    const incoming = Array.from(fileList || []).filter(validFile);
+    const remaining = PORTFOLIO_MAX_IMAGES - images.length;
+    const accepted = incoming.slice(0, Math.max(0, remaining));
+    if (accepted.length === 0) {
+      if (incoming.length > 0) onError?.(`Maximum ${PORTFOLIO_MAX_IMAGES} portfolio images.`);
+      return;
+    }
+    if (accepted.length < incoming.length) {
+      onError?.(`Only ${accepted.length} image${accepted.length === 1 ? "" : "s"} fit — maximum ${PORTFOLIO_MAX_IMAGES}.`);
+    }
+
+    setUploading(accepted.length);
+    const basePosition = images.length;
+    const results = await Promise.all(
+      accepted.map((file, index) =>
+        addStudioPortfolioImage(studio.id, file, basePosition + index)
+      )
+    );
+    setUploading(0);
+    const failed = results.find((result) => result.error);
+    if (failed?.error) onError?.(failed.error.message || "Failed to upload an image.");
+    await onReload();
+  }
+
+  async function remove(image) {
+    const previous = images;
+    setImages((current) => current.filter((item) => item.id !== image.id));
+    const result = await deleteStudioPortfolioImage(image);
+    if (result.error) {
+      setImages(previous);
+      onError?.(result.error.message || "Failed to remove the image.");
+      return;
+    }
+    await onReload();
+  }
+
+  async function move(imageId, delta) {
+    const index = images.findIndex((image) => image.id === imageId);
+    const target = index + delta;
+    if (index < 0 || target < 0 || target >= images.length) return;
+    const next = [...images];
+    const [image] = next.splice(index, 1);
+    next.splice(target, 0, image);
+    const positioned = next.map((item, position) => ({ ...item, position }));
+    setImages(positioned);
+    const result = await updateStudioPortfolioPositions(studio.id, positioned);
+    if (result.error) {
+      setImages(images);
+      onError?.(result.error.message || "Failed to reorder the portfolio.");
+      return;
+    }
+    await onReload();
+  }
+
+  const used = images.length + uploading;
+  const remaining = Math.max(0, PORTFOLIO_MAX_IMAGES - used);
+
+  return (
+    <div>
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => inputRef.current?.click()}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            inputRef.current?.click();
+          }
+        }}
+        onDragOver={(event) => {
+          event.preventDefault();
+          setDragOver(true);
+        }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={(event) => {
+          event.preventDefault();
+          setDragOver(false);
+          addFiles(event.dataTransfer.files);
+        }}
+        className={`upload-tile w-full py-10 ${dragOver ? "is-dragging" : ""}`}
+        aria-label="Upload studio portfolio images"
+      >
+        <ImagePlus size={38} className="text-[#4ade80] mb-2" />
+        <div className="text-base font-semibold">Drop images here or click to browse</div>
+        <p className="text-xs text-gray-500 mt-1">
+          PNG, JPG, WebP, GIF · up to {PORTFOLIO_MAX_FILE_MB} MB each · up to {PORTFOLIO_MAX_IMAGES} images
+        </p>
+        <p className="text-[11px] mt-3 text-gray-500">
+          <span className={remaining > 0 ? "text-[#4ade80]" : "text-amber-300"}>
+            {uploading > 0
+              ? `Uploading ${uploading} image${uploading === 1 ? "" : "s"}…`
+              : remaining > 0
+                ? `${remaining} slot${remaining === 1 ? "" : "s"} left`
+                : "Portfolio full"}
+          </span>
+          {used > 0 && <span className="text-gray-600"> · {used}/{PORTFOLIO_MAX_IMAGES} used</span>}
+        </p>
+      </div>
+      <input
+        ref={inputRef}
+        type="file"
+        multiple
+        accept={PORTFOLIO_ACCEPTED_MIME.join(",")}
+        className="hidden"
+        onChange={(event) => {
+          addFiles(event.target.files);
+          event.target.value = "";
+        }}
+      />
+
+      {images.length > 0 && (
+        <div className="portfolio-grid mt-6">
+          {images.map((image, index) => (
+            <div key={image.id} className="portfolio-tile group">
+              <img src={image.thumbnail} alt={image.title || "Studio portfolio image"} loading="lazy" />
+              <div className="tile-actions">
+                {index === 0 ? <span className="tile-badge">Cover</span> : <span />}
+                <button
+                  type="button"
+                  onClick={() => remove(image)}
+                  className="tile-btn"
+                  aria-label="Remove image"
+                  title="Remove"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+              <div className="tile-reorder">
+                <button
+                  type="button"
+                  onClick={() => move(image.id, -1)}
+                  className="tile-btn"
+                  disabled={index === 0}
+                  aria-label="Move left"
+                  title="Move left"
+                >
+                  ‹
+                </button>
+                <button
+                  type="button"
+                  onClick={() => move(image.id, 1)}
+                  className="tile-btn"
+                  disabled={index === images.length - 1}
+                  aria-label="Move right"
+                  title="Move right"
+                >
+                  ›
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function StudioRatesPreview({ rates }) {
   const tiers = ratesToTiers(rates).filter((tier) => tier.enabled && tier.price > 0);
   if (tiers.length === 0) {
@@ -386,6 +576,7 @@ export function StudioModeratorDashboard({ section = "profile" }) {
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [avatarUrl, setAvatarUrl] = useState(null);
+  const [about, setAbout] = useState("");
   const [rates, setRates] = useState(() => mergeRates(null));
   const [employeePct, setEmployeePct] = useState("");
   const [accepting, setAccepting] = useState(false);
@@ -397,6 +588,10 @@ export function StudioModeratorDashboard({ section = "profile" }) {
   const [withdrawDollars, setWithdrawDollars] = useState("");
   const [ratesEditing, setRatesEditing] = useState(false);
   const [portfolioEditing, setPortfolioEditing] = useState(false);
+  const [profileEditing, setProfileEditing] = useState(false);
+  const [aboutEditing, setAboutEditing] = useState(false);
+  const [availabilityStatus, setAvailabilityStatus] = useState("idle");
+  const availabilityTimer = useRef(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState(null);
   const [error, setError] = useState(null);
@@ -412,6 +607,7 @@ export function StudioModeratorDashboard({ section = "profile" }) {
     setName(row.display_name);
     setUsername(row.username);
     setAvatarUrl(row.avatar);
+    setAbout(row.about || "");
     setRates(mergeRates(row.rates));
     setEmployeePct(
       row.employee_commission_bps == null ? "" : String(row.employee_commission_bps / 100)
@@ -448,6 +644,8 @@ export function StudioModeratorDashboard({ section = "profile" }) {
     load();
   }, [load]);
 
+  useEffect(() => () => clearTimeout(availabilityTimer.current), []);
+
   const availableMembers = useMemo(
     () =>
       members.filter(
@@ -461,10 +659,9 @@ export function StudioModeratorDashboard({ section = "profile" }) {
         studio &&
           (name.trim() !== studio.display_name ||
             username.trim() !== studio.username ||
-            avatarUrl !== studio.avatar ||
-            accepting !== studio.accepting_orders)
+            avatarUrl !== studio.avatar)
       ),
-    [accepting, avatarUrl, name, studio, username]
+    [avatarUrl, name, studio, username]
   );
   const ratesChanged = useMemo(
     () =>
@@ -525,8 +722,57 @@ export function StudioModeratorDashboard({ section = "profile" }) {
       return;
     }
     setNotice("Studio settings saved.");
+    if (options.closeProfile) setProfileEditing(false);
     if (ratesChanged) setRatesEditing(false);
     load();
+  }
+
+  function startProfileEdit() {
+    setName(studio.display_name);
+    setUsername(studio.username);
+    setAvatarUrl(studio.avatar);
+    setError(null);
+    setProfileEditing(true);
+  }
+
+  function cancelProfileEdit() {
+    setName(studio.display_name);
+    setUsername(studio.username);
+    setAvatarUrl(studio.avatar);
+    setProfileEditing(false);
+  }
+
+  async function saveAbout() {
+    setBusy(true);
+    setError(null);
+    const result = await updateMyStudioAbout(about);
+    setBusy(false);
+    if (result.error) {
+      setError(result.error.message || "Couldn't save the studio description.");
+      return;
+    }
+    setStudio((current) => ({ ...current, about: about.trim(), bio: about.trim() }));
+    setAboutEditing(false);
+    setNotice("Studio description saved.");
+  }
+
+  async function chooseAvailability(next) {
+    if (next === accepting && availabilityStatus !== "error") return;
+    const previous = accepting;
+    setAccepting(next);
+    setAvailabilityStatus("saving");
+    setError(null);
+    clearTimeout(availabilityTimer.current);
+    const result = await setMyStudioAcceptingOrders(next);
+    if (result.error) {
+      setAccepting(previous);
+      setAvailabilityStatus("error");
+      setError(result.error.message || "Couldn't update studio availability.");
+      return;
+    }
+    setStudio((current) => ({ ...current, accepting_orders: next }));
+    setAvailabilityStatus("saved");
+    availabilityTimer.current = setTimeout(() => setAvailabilityStatus("idle"), 1800);
   }
 
   if (!studio) {
@@ -545,81 +791,205 @@ export function StudioModeratorDashboard({ section = "profile" }) {
         </div>
       )}
 
+      {section === "profile" && (
+        <section className="reveal glass rounded-3xl p-6 lg:p-8">
+          {profileEditing ? (
+            <div className="flex flex-col sm:flex-row gap-7 items-center sm:items-start">
+              <AvatarUploader
+                userId={user?.id}
+                value={avatarUrl}
+                onChange={setAvatarUrl}
+                onError={setError}
+                fallbackInitial={(name || "S")[0]}
+              />
+              <div className="flex-1 w-full space-y-4">
+                <label className="block">
+                  <span className="onb-label block mb-2">Studio name</span>
+                  <input
+                    className="onb-input"
+                    value={name}
+                    maxLength={80}
+                    onChange={(event) => setName(event.target.value)}
+                  />
+                </label>
+                <label className="block">
+                  <span className="onb-label block mb-2">Studio @nickname</span>
+                  <input
+                    className="onb-input"
+                    value={username}
+                    maxLength={24}
+                    onChange={(event) =>
+                      setUsername(event.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))
+                    }
+                  />
+                  <p className="text-xs text-gray-500 mt-2">
+                    Unique to the studio — used in its profile URL and chats.
+                  </p>
+                </label>
+              </div>
+              <div className="flex items-center gap-2 self-center sm:self-start">
+                <button
+                  type="button"
+                  onClick={cancelProfileEdit}
+                  className="px-4 py-2 rounded-full text-xs font-semibold border border-white/15 text-gray-300 hover:bg-white/5 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => saveStudio({ closeProfile: true })}
+                  disabled={
+                    busy ||
+                    !storefrontChanged ||
+                    name.trim().length < 2 ||
+                    username.trim().length < 3 ||
+                    employeePct === ""
+                  }
+                  className="px-5 py-2 rounded-full text-xs font-bold bg-[#4ade80] text-black hover:bg-[#22c55e] transition-all disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+                >
+                  {busy && <span className="w-3 h-3 rounded-full border-2 border-black/40 border-t-black animate-spin" />}
+                  Save
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
+              <div className="relative flex-shrink-0">
+                <Avatar
+                  src={studio.avatar}
+                  name={studio.display_name}
+                  className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl ring-2 ring-[#4ade80]/30 shadow-xl text-4xl"
+                />
+                <span className={`absolute bottom-1 right-1 w-5 h-5 rounded-full border-[3px] border-[#1a1a1a] ${
+                  accepting ? "bg-[#4ade80] online-dot" : "bg-amber-400"
+                }`} />
+              </div>
+              <div className="flex-1 min-w-0 text-center sm:text-left">
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-2">
+                  <h2 className="text-2xl sm:text-3xl font-extrabold">{studio.display_name}</h2>
+                  <span className="px-2.5 py-1 rounded-full text-xs font-semibold border bg-[#4ade80]/10 text-[#4ade80] border-[#4ade80]/30">
+                    Studio
+                  </span>
+                </div>
+                <p className="text-sm text-gray-500 mb-3">@{studio.username}</p>
+                <p className={`text-sm inline-flex items-center gap-1.5 ${accepting ? "text-[#4ade80]" : "text-amber-300"}`}>
+                  <span className={`w-2 h-2 rounded-full ${accepting ? "bg-[#4ade80]" : "bg-amber-400"}`} />
+                  {accepting ? "Available for new projects" : "Not taking new orders"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={startProfileEdit}
+                className="px-4 py-2 rounded-full text-xs font-semibold border border-[#4ade80]/30 text-[#4ade80] bg-[#4ade80]/10 hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.35)] transition-all inline-flex items-center gap-1.5"
+              >
+                <Pencil size={14} />
+                Edit profile
+              </button>
+            </div>
+          )}
+        </section>
+      )}
+
       {section === "profile" && <Card
-        title="Profile"
-        description="Manage the studio identity clients see across BuildEx."
+        title="About"
         aside={
-          <span className={`text-xs px-2.5 py-1 rounded-full border ${
-            studio.status === "active"
-              ? "text-[#4ade80] border-[#4ade80]/30 bg-[#4ade80]/10"
-              : "text-amber-300 border-amber-400/30 bg-amber-400/10"
-          }`}>
-            {studio.status}
-          </span>
+          aboutEditing ? (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setAbout(studio.about || "");
+                  setAboutEditing(false);
+                }}
+                className="px-4 py-1.5 rounded-full text-xs font-semibold border border-white/15 text-gray-300 hover:bg-white/5 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={saveAbout}
+                disabled={busy}
+                className="px-4 py-1.5 rounded-full text-xs font-bold bg-[#4ade80] text-black hover:bg-[#22c55e] transition-all disabled:opacity-50 inline-flex items-center gap-1.5"
+              >
+                {busy && <span className="w-3 h-3 rounded-full border-2 border-black/40 border-t-black animate-spin" />}
+                Save
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setAboutEditing(true)}
+              className="px-3 py-1.5 rounded-full text-xs font-semibold border border-[#4ade80]/30 text-[#4ade80] bg-[#4ade80]/10 hover:bg-[#4ade80] hover:text-black hover:shadow-[0_0_18px_rgba(74,222,128,0.35)] transition-all inline-flex items-center gap-1.5"
+            >
+              <Pencil size={13} />
+              Edit
+            </button>
+          )
         }
       >
-        <div className="grid lg:grid-cols-[150px_1fr] gap-6">
-          <AvatarUploader
-            userId={user?.id}
-            value={avatarUrl}
-            onChange={setAvatarUrl}
-            onError={setError}
-            fallbackInitial={(name || "S")[0]}
-          />
-          <div className="grid sm:grid-cols-2 gap-4">
-            <label>
-              <span className="text-xs text-gray-400 block mb-1">Studio name</span>
-              <input className={INPUT} value={name} onChange={(e) => setName(e.target.value)} />
-            </label>
-            <label>
-              <span className="text-xs text-gray-400 block mb-1">Username</span>
-              <input
-                className={INPUT}
-                value={username}
-                onChange={(e) =>
-                  setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))
-                }
-              />
-            </label>
+        {aboutEditing ? (
+          <div>
+            <label htmlFor="studio-about" className="onb-label block mb-2">Bio</label>
+            <textarea
+              id="studio-about"
+              className="onb-input onb-textarea"
+              value={about}
+              maxLength={BIO_MAX}
+              onChange={(event) => setAbout(event.target.value.slice(0, BIO_MAX))}
+              placeholder="Tell clients about your team, specialties, and the projects you love building."
+            />
+            <p className="mt-2 text-xs text-gray-500 text-right">{about.length}/{BIO_MAX}</p>
           </div>
-        </div>
-        <SaveButton
-          changed={storefrontChanged}
-          busy={busy}
-          invalid={employeePct === ""}
-          onClick={saveStudio}
-        >
-          {busy ? "Saving…" : "Save profile"}
-        </SaveButton>
+        ) : (
+          <p className={studio.about ? "text-gray-400 leading-relaxed" : "text-gray-500 text-sm italic"}>
+            {studio.about || "Tell clients about the studio, its team, and the work it specializes in."}
+          </p>
+        )}
       </Card>}
 
       {section === "profile" && <Card
         title="Availability"
-        description="Let clients know whether the studio is taking new commissions."
+        description="Let clients know whether the studio is taking new commissions. Changes save instantly."
+        aside={
+          <span className={`text-xs font-medium transition-opacity duration-300 inline-flex items-center gap-1.5 ${
+            availabilityStatus === "idle" ? "opacity-0" : "opacity-100"
+          } ${availabilityStatus === "error" ? "text-red-300" : "text-[#4ade80]"}`}>
+            {availabilityStatus === "saving" && <span className="w-3 h-3 rounded-full border-2 border-[#4ade80]/40 border-t-[#4ade80] animate-spin" />}
+            {availabilityStatus === "saving" && "Saving…"}
+            {availabilityStatus === "saved" && <><Check size={13} /> Saved</>}
+            {availabilityStatus === "error" && "Couldn't save — try again"}
+          </span>
+        }
       >
-        <div className="grid grid-cols-2 rounded-full border border-white/10 bg-black/20 p-1">
-          <button
-            type="button"
-            onClick={() => setAccepting(true)}
-            className={`py-2.5 rounded-full text-sm font-semibold transition-all ${
+        <div className="relative grid grid-cols-2 p-1 rounded-full bg-white/[0.04] border border-white/10">
+          <span
+            aria-hidden="true"
+            className={`absolute inset-y-1 left-1 rounded-full transition-transform duration-300 ease-out ${
               accepting
-                ? "bg-[#4ade80]/20 text-[#4ade80] border border-[#4ade80]/35"
-                : "text-gray-400"
+                ? "bg-[#4ade80]/15 shadow-[0_0_0_1px_rgba(74,222,128,0.5),0_0_14px_rgba(74,222,128,0.22)]"
+                : "bg-amber-400/15 shadow-[0_0_0_1px_rgba(251,191,36,0.5),0_0_14px_rgba(251,191,36,0.18)]"
             }`}
-          >
-            Available
-          </button>
-          <button
-            type="button"
-            onClick={() => setAccepting(false)}
-            className={`py-2.5 rounded-full text-sm font-semibold transition-all ${
-              !accepting
-                ? "bg-amber-400/15 text-amber-300 border border-amber-400/30"
-                : "text-gray-400"
-            }`}
-          >
-            Not taking orders
-          </button>
+            style={{
+              width: "calc((100% - 0.5rem) / 2)",
+              transform: accepting ? "translateX(0)" : "translateX(100%)",
+            }}
+          />
+          {[
+            { value: true, label: "Available", dot: "bg-[#4ade80]" },
+            { value: false, label: "Not taking orders", dot: "bg-amber-400" },
+          ].map((option) => (
+            <button
+              key={String(option.value)}
+              type="button"
+              onClick={() => chooseAvailability(option.value)}
+              className={`relative z-10 flex items-center justify-center gap-2 py-2.5 px-2 rounded-full text-xs sm:text-sm font-semibold transition-colors ${
+                accepting === option.value ? "text-white" : "text-gray-400 hover:text-gray-200"
+              }`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${option.dot}`} />
+              {option.label}
+            </button>
+          ))}
         </div>
         <div className="mt-4 rounded-2xl border border-white/10 px-4 py-3 flex items-center gap-3">
           <span className={`w-2 h-2 rounded-full ${accepting ? "bg-[#4ade80]" : "bg-amber-400"}`} />
@@ -627,14 +997,11 @@ export function StudioModeratorDashboard({ section = "profile" }) {
             <p className="text-sm font-semibold">{accepting ? "Available" : "Not taking orders"}</p>
             <p className="text-xs text-gray-500 mt-0.5">
               {accepting
-                ? "The studio can accept orders whenever an employee is available."
-                : "Clients can still view and contact the studio, but new orders are paused."}
+                ? "The studio appears in the feed and can accept orders whenever an employee is available."
+                : "The storefront remains visible and contactable, but new orders are paused."}
             </p>
           </div>
         </div>
-        <SaveButton changed={storefrontChanged} busy={busy} invalid={employeePct === ""} onClick={saveStudio}>
-          {busy ? "Saving…" : "Save availability"}
-        </SaveButton>
       </Card>}
 
       {section === "profile" && <Card
@@ -668,27 +1035,35 @@ export function StudioModeratorDashboard({ section = "profile" }) {
         )}
       </Card>}
 
-      {section === "profile" && <Card
-        title="Portfolio"
-        description="Drag in the studio's best builds. The first image becomes the cover."
-        aside={
+      {section === "profile" && <section className="reveal">
+        <div className="flex items-center justify-between mb-5 flex-wrap gap-2">
+          <div>
+            <h2 className="font-bold text-xl">Portfolio</h2>
+            <p className="text-xs text-gray-500 mt-1">
+              Drag in the studio&apos;s best builds. The first image becomes the cover.
+            </p>
+          </div>
           <button
             type="button"
             onClick={() => setPortfolioEditing((current) => !current)}
-            className="px-3 py-1.5 rounded-full text-xs font-semibold border border-[#4ade80]/30 text-[#4ade80] bg-[#4ade80]/10 inline-flex items-center gap-1.5"
+            className="px-3 py-1.5 rounded-full text-xs font-semibold border border-[#4ade80]/30 text-[#4ade80] bg-[#4ade80]/10 hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.35)] transition-all inline-flex items-center gap-1.5"
           >
             <Pencil size={13} />
             {portfolioEditing ? "Done editing" : "Manage portfolio"}
           </button>
-        }
-      >
-        <PortfolioRail
-          studio={studio}
-          onReload={load}
-          onError={setError}
-          editing={portfolioEditing}
-        />
-      </Card>}
+        </div>
+        {portfolioEditing ? (
+          <div className="glass rounded-3xl p-6 lg:p-8">
+            <StudioPortfolioEditor studio={studio} onReload={load} onError={setError} />
+          </div>
+        ) : studio.portfolio.length === 0 ? (
+          <div className="glass rounded-3xl p-12 text-center text-gray-500 text-sm">
+            No builds in the studio portfolio yet. Click <strong>Manage portfolio</strong> to add some.
+          </div>
+        ) : (
+          <PortfolioRail studio={studio} onReload={load} onError={setError} editing={false} />
+        )}
+      </section>}
 
       {section === "team" && <Card
         title="Employee commission"
@@ -1017,20 +1392,34 @@ export function StudioModeratorDashboard({ section = "profile" }) {
       </Card>}
 
       {section === "payouts" && <Card
-        title="Balance"
-        description="Balances are shown in USD."
+        title={
+          <span>
+            <span className="block text-xs font-medium uppercase tracking-[0.16em] text-[#4ade80] mb-1">
+              Studio wallet
+            </span>
+            <span className="block text-2xl">Balance</span>
+          </span>
+        }
+        aside={<span className="text-xs text-gray-500">Balances are shown in USD.</span>}
         className="order-1"
       >
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+        <div className="grid sm:grid-cols-3 gap-3 mb-5">
           {[
             ["Available", balance?.available_cents],
-            ["Earned", balance?.earned_cents],
             ["Pending", balance?.pending_cents],
-            ["Withdrawn", balance?.withdrawn_cents],
+            ["Lifetime paid", balance?.withdrawn_cents],
           ].map(([label, value]) => (
-            <div key={label} className="studio-stat-card rounded-2xl bg-black/20 border border-white/10 p-4 transition-all hover:border-[#4ade80]/25">
+            <div key={label} className="studio-stat-card rounded-2xl bg-black/20 border border-white/10 p-5 transition-all hover:border-[#4ade80]/25">
               <p className="text-xs text-gray-500">{label}</p>
-              <p className="font-extrabold text-lg mt-1">{formatPrice(Number(value) || 0)}</p>
+              <p className={`font-extrabold text-2xl mt-1 ${
+                label === "Available"
+                  ? "text-[#4ade80]"
+                  : label === "Pending"
+                    ? "text-amber-300"
+                    : ""
+              }`}>
+                {formatPrice(Number(value) || 0)}
+              </p>
             </div>
           ))}
         </div>
