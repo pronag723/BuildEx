@@ -29,6 +29,31 @@ async function removeFilesAtPrefix(
   }
 }
 
+async function deleteAccountWithAdmin(
+  admin: ReturnType<typeof createClient>,
+  userId: string,
+) {
+  const operations = [
+    admin
+      .from("studios")
+      .update({ status: "suspended", accepting_orders: false, moderator_id: null })
+      .eq("moderator_id", userId),
+    admin.from("studio_moderator_invites").delete().eq("created_by", userId),
+    admin.from("orders").update({ assigned_builder_id: null }).eq("assigned_builder_id", userId),
+    admin.from("studio_order_assignments").delete().eq("builder_id", userId),
+    admin.from("studio_employee_earnings").delete().eq("builder_id", userId),
+    admin.from("studio_memberships").delete().eq("builder_id", userId),
+  ];
+  const results = await Promise.all(operations);
+  const failed = results.find((result) => result.error);
+  if (failed?.error) {
+    throw new Error(`Could not detach account references: ${failed.error.message}`);
+  }
+
+  const { error } = await admin.auth.admin.deleteUser(userId);
+  if (error) throw new Error(`Could not delete auth account: ${error.message}`);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
@@ -73,7 +98,16 @@ Deno.serve(async (req) => {
     // relational transaction: detach retained studio references, then remove
     // the auth user and its cascading profile data.
     const { error: deleteError } = await asUser.rpc("delete_own_account");
-    if (deleteError) throw new Error(deleteError.message);
+    if (deleteError) {
+      // Migration 0029 used a direct storage.objects DELETE, which newer
+      // Supabase projects reject. Keep production deletion working while 0055
+      // rolls out, but do not hide any unrelated database failure.
+      if (/direct deletion from storage tables is not allowed/i.test(deleteError.message)) {
+        await deleteAccountWithAdmin(admin, userId);
+      } else {
+        throw new Error(deleteError.message);
+      }
+    }
   } catch (error) {
     return json({ error: error instanceof Error ? error.message : "Could not delete account" }, 500);
   }
