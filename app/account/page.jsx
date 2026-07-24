@@ -1888,7 +1888,11 @@ function AccountHeader({ profile, builderProfile, onSaved }) {
   const role = profile?.role;
   const isStudio = role === "studio";
   const isEmployee = builderProfile?.profile_type === "studio_employee";
-  const isBuilder = (role === "builder" || role === "both") && !isEmployee;
+  // Studio employees are still public builders. Keep them on the shared
+  // builder identity/header path so their studio profile can be edited with
+  // the same avatar, name, handle, rank, and availability UI as independent
+  // builders.
+  const isBuilder = role === "builder" || role === "both" || isEmployee;
 
   const trimmedName = displayName.trim();
   const nameValid =
@@ -2339,7 +2343,7 @@ function AccountPageInner() {
   const role = profile.role;
   const isStudio = role === "studio";
   const isEmployee = builderProfile?.profile_type === "studio_employee";
-  const isBuilder = (role === "builder" || role === "both") && !isEmployee;
+  const isBuilder = role === "builder" || role === "both" || isEmployee;
   const isClient = role === "client" || role === "both";
 
   return (
@@ -2409,7 +2413,14 @@ function AccountPageInner() {
               )}
             </>
           ) : isEmployee ? (
-            <StudioEmployeeDashboard builderProfile={builderProfile} />
+            <>
+              <AccountHeader
+                profile={profile}
+                builderProfile={builderProfile}
+                onSaved={refresh}
+              />
+              <StudioEmployeeDashboard builderProfile={builderProfile} />
+            </>
           ) : (
             <>
           <SectionTabs section={section} setSection={setSection} isBuilder={isBuilder} />
