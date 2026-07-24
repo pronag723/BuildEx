@@ -8,6 +8,7 @@ import {
   ChevronDown,
   CircleDollarSign,
   Clock3,
+  Copy,
   ExternalLink,
   GripHorizontal,
   ImagePlus,
@@ -25,6 +26,7 @@ import {
   assignStudioOrder,
   cancelStudioWithdrawal,
   createEmployeeCode,
+  deleteEmployeeCode,
   deleteStudioPortfolioImage,
   fetchMyStudio,
   getStudioBalance,
@@ -543,6 +545,8 @@ export function StudioModeratorDashboard({ section = "profile" }) {
   const [newCode, setNewCode] = useState("");
   const [codeLimit, setCodeLimit] = useState(1);
   const [codeExpiry, setCodeExpiry] = useState("");
+  const [codeActionId, setCodeActionId] = useState(null);
+  const [copiedCodeId, setCopiedCodeId] = useState(null);
   const [withdrawDollars, setWithdrawDollars] = useState("");
   const [ratesEditing, setRatesEditing] = useState(false);
   const [portfolioEditing, setPortfolioEditing] = useState(false);
@@ -555,47 +559,70 @@ export function StudioModeratorDashboard({ section = "profile" }) {
   const [error, setError] = useState(null);
 
   const load = useCallback(async () => {
-    const studioResult = await fetchMyStudio();
-    if (studioResult.error || !studioResult.studio) {
-      setError(studioResult.error?.message || "Studio not found.");
-      return;
+    try {
+      const studioResult = await fetchMyStudio();
+      if (studioResult.error || !studioResult.studio) {
+        setError(studioResult.error?.message || "Studio not found.");
+        return;
+      }
+      const row = studioResult.studio;
+      setStudio(row);
+      setName(row.display_name);
+      setUsername(row.username);
+      setAvatarUrl(row.avatar);
+      setAbout(row.about || "");
+      setRates(mergeRates(row.rates));
+      setEmployeePct(
+        row.employee_commission_bps == null ? "" : String(row.employee_commission_bps / 100)
+      );
+      setAccepting(row.accepting_orders);
+      setPayoutMethod(row.payout_method || "usdt_trc20");
+      setPayoutDetails(row.payout_details || "");
+
+      const settled = await Promise.allSettled([
+        listStudioMembers(row.id),
+        listEmployeeCodes(row.id),
+        listMyOrders(),
+        getStudioBalance(),
+        listStudioEmployeeEarnings(row.id),
+        listMyPayoutHistory(),
+      ]);
+      const results = settled.map((result) =>
+        result.status === "fulfilled"
+          ? result.value
+          : { error: result.reason || new Error("Request failed") }
+      );
+      const [
+        memberResult,
+        codeResult,
+        orderResult,
+        balanceResult,
+        earningsResult,
+        withdrawalResult,
+      ] = results;
+
+      if (!memberResult.error) setMembers(memberResult.members || []);
+      if (!codeResult.error) setCodes(codeResult.codes || []);
+      if (!orderResult.error) {
+        setOrders((orderResult.orders || []).filter((order) => order.studio_id === row.id));
+      }
+      if (!balanceResult.error) setBalance(balanceResult.summary || null);
+      if (!earningsResult.error) setEmployeeEarnings(earningsResult.earnings || []);
+      if (!withdrawalResult.error) {
+        setWithdrawals(
+          (withdrawalResult.payouts || []).filter((payout) => payout.studio_id === row.id)
+        );
+      }
+
+      const partialError = results.find((result) => result.error)?.error;
+      setError(
+        partialError
+          ? partialError.message || "Some studio details couldn't be refreshed. Try again."
+          : null
+      );
+    } catch (loadFailure) {
+      setError(loadFailure?.message || "Couldn't load the studio dashboard. Try again.");
     }
-    const row = studioResult.studio;
-    setStudio(row);
-    setName(row.display_name);
-    setUsername(row.username);
-    setAvatarUrl(row.avatar);
-    setAbout(row.about || "");
-    setRates(mergeRates(row.rates));
-    setEmployeePct(
-      row.employee_commission_bps == null ? "" : String(row.employee_commission_bps / 100)
-    );
-    setAccepting(row.accepting_orders);
-    setPayoutMethod(row.payout_method || "usdt_trc20");
-    setPayoutDetails(row.payout_details || "");
-    const [
-      memberResult,
-      codeResult,
-      orderResult,
-      balanceResult,
-      earningsResult,
-      withdrawalResult,
-    ] = await Promise.all([
-      listStudioMembers(row.id),
-      listEmployeeCodes(row.id),
-      listMyOrders(),
-      getStudioBalance(),
-      listStudioEmployeeEarnings(row.id),
-      listMyPayoutHistory(),
-    ]);
-    setMembers(memberResult.members || []);
-    setCodes(codeResult.codes || []);
-    setOrders((orderResult.orders || []).filter((order) => order.studio_id === row.id));
-    setBalance(balanceResult.summary || null);
-    setEmployeeEarnings(earningsResult.earnings || []);
-    setWithdrawals(
-      (withdrawalResult.payouts || []).filter((payout) => payout.studio_id === row.id)
-    );
   }, []);
 
   useEffect(() => {
@@ -733,6 +760,45 @@ export function StudioModeratorDashboard({ section = "profile" }) {
     availabilityTimer.current = setTimeout(() => setAvailabilityStatus("idle"), 1800);
   }
 
+  async function copyCode(codeRow) {
+    try {
+      await navigator.clipboard.writeText(String(codeRow.code));
+      setCopiedCodeId(codeRow.id);
+      setTimeout(() => setCopiedCodeId(null), 1800);
+    } catch {
+      setError("Couldn't copy the invite code. Select it and copy it manually.");
+    }
+  }
+
+  async function toggleCode(codeRow) {
+    setCodeActionId(codeRow.id);
+    setError(null);
+    const result = await setEmployeeCodeStatus(
+      codeRow.id,
+      codeRow.status === "active" ? "disabled" : "active"
+    );
+    setCodeActionId(null);
+    if (result.error) {
+      setError(result.error.message || "Couldn't update the invite code.");
+      return;
+    }
+    await load();
+  }
+
+  async function removeCode(codeRow) {
+    if (!window.confirm(`Delete invite code "${codeRow.code}"? This can't be undone.`)) return;
+    setCodeActionId(codeRow.id);
+    setError(null);
+    const result = await deleteEmployeeCode(codeRow.id);
+    setCodeActionId(null);
+    if (result.error) {
+      setError(result.error.message || "Couldn't delete the invite code.");
+      return;
+    }
+    setCodes((current) => current.filter((item) => item.id !== codeRow.id));
+    setNotice("Invite code deleted.");
+  }
+
   if (!studio) {
     return (
       <div className="glass rounded-3xl p-8 text-center">
@@ -750,7 +816,7 @@ export function StudioModeratorDashboard({ section = "profile" }) {
       )}
 
       {section === "profile" && (
-        <section className="reveal glass rounded-3xl p-6 lg:p-8">
+        <section className="detail-fade-up glass rounded-3xl p-6 lg:p-8">
           {profileEditing ? (
             <div className="flex flex-col sm:flex-row gap-7 items-center sm:items-start">
               <AvatarUploader
@@ -993,7 +1059,7 @@ export function StudioModeratorDashboard({ section = "profile" }) {
         )}
       </Card>}
 
-      {section === "profile" && <section className="reveal">
+      {section === "profile" && <section className="detail-fade-up">
         <div className="flex items-center justify-between mb-5 flex-wrap gap-2">
           <div>
             <h2 className="font-bold text-xl">Portfolio</h2>
@@ -1052,9 +1118,26 @@ export function StudioModeratorDashboard({ section = "profile" }) {
       {section === "team" && <Card
         title="Team and employee codes"
         description="Invite employees and manage everyone attached to the studio."
-        aside={<span className="text-xs text-gray-500">{availableMembers.length} available</span>}
+        aside={
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[#4ade80]/20 bg-[#4ade80]/10 px-3 py-1.5 text-xs font-semibold text-[#4ade80]">
+            <Users size={13} />
+            {availableMembers.length} available
+          </span>
+        }
       >
-        <div className="grid md:grid-cols-[1fr_120px_180px_auto] gap-3 mb-5 items-end">
+        <div className="rounded-2xl border border-white/10 bg-black/20 p-4 sm:p-5">
+          <div className="flex items-start justify-between gap-4 mb-4">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-100">Create an invite code</h3>
+              <p className="text-xs text-gray-500 mt-1">
+                Set how many teammates can redeem it and when it should expire.
+              </p>
+            </div>
+            <span className="hidden sm:inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#4ade80]/20 bg-[#4ade80]/10 text-[#4ade80]">
+              <UserRoundCheck size={17} />
+            </span>
+          </div>
+          <div className="grid md:grid-cols-[1fr_120px_180px_auto] gap-3 items-end">
           <label>
             <span className="text-[11px] uppercase tracking-wider text-gray-500 block mb-2">
               Invite code
@@ -1092,28 +1175,122 @@ export function StudioModeratorDashboard({ section = "profile" }) {
           >
             Generate
           </button>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2 mb-6">
-          {codes.map((codeRow) => (
-            <button
-              key={codeRow.id}
-              type="button"
-              onClick={async () => {
-                await setEmployeeCodeStatus(
-                  codeRow.id,
-                  codeRow.status === "active" ? "disabled" : "active"
+        <div className="mt-7 mb-6">
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-100">Generated invite codes</h3>
+              <p className="text-xs text-gray-500 mt-1">Copy, pause, or permanently delete a code.</p>
+            </div>
+            <span className="text-xs text-gray-500">
+              {codes.length} {codes.length === 1 ? "code" : "codes"}
+            </span>
+          </div>
+
+          {codes.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-white/10 px-5 py-8 text-center">
+              <p className="text-sm font-medium text-gray-300">No invite codes yet</p>
+              <p className="text-xs text-gray-500 mt-1">Generate one above to start building your team.</p>
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {codes.map((codeRow) => {
+                const expired = Boolean(
+                  codeRow.expires_at && new Date(codeRow.expires_at).getTime() < Date.now()
                 );
-                load();
-              }}
-              className="px-3 py-2 rounded-xl border border-white/10 text-xs text-left"
-              title="Click to enable or disable"
-            >
-              <span className="font-mono text-gray-200">{String(codeRow.code)}</span>
-              <span className="text-gray-500 ml-2">
-                {codeRow.redemptions_used}/{codeRow.max_redemptions} · {codeRow.status}
-              </span>
-            </button>
-          ))}
+                const enabled = codeRow.status === "active" && !expired;
+                const usage = Math.min(
+                  100,
+                  Math.round(
+                    (Number(codeRow.redemptions_used || 0) /
+                      Math.max(Number(codeRow.max_redemptions || 1), 1)) *
+                      100
+                  )
+                );
+                const actionBusy = codeActionId === codeRow.id;
+
+                return (
+                  <article
+                    key={codeRow.id}
+                    className="rounded-2xl border border-white/10 bg-white/[0.025] p-4 sm:p-5 transition-colors hover:border-white/20"
+                  >
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <code className="break-all font-mono text-lg sm:text-xl font-bold tracking-[0.08em] text-white">
+                            {String(codeRow.code)}
+                          </code>
+                          <span
+                            className={`rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${
+                              enabled
+                                ? "border-[#4ade80]/25 bg-[#4ade80]/10 text-[#4ade80]"
+                                : expired
+                                  ? "border-amber-400/25 bg-amber-400/10 text-amber-300"
+                                  : "border-white/10 bg-white/5 text-gray-400"
+                            }`}
+                          >
+                            {expired ? "Expired" : codeRow.status}
+                          </span>
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs text-gray-400">
+                          <span>
+                            <strong className="text-gray-200">{codeRow.redemptions_used}</strong>
+                            /{codeRow.max_redemptions} uses
+                          </span>
+                          <span>
+                            {codeRow.expires_at
+                              ? `Expires ${new Intl.DateTimeFormat(undefined, {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric",
+                                }).format(new Date(codeRow.expires_at))}`
+                              : "Never expires"}
+                          </span>
+                        </div>
+                        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
+                          <div
+                            className="h-full rounded-full bg-[#4ade80] transition-[width]"
+                            style={{ width: `${usage}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                        <button
+                          type="button"
+                          onClick={() => copyCode(codeRow)}
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 px-3 py-2 text-xs font-semibold text-gray-200 transition-colors hover:border-[#4ade80]/30 hover:bg-[#4ade80]/10 hover:text-[#4ade80]"
+                        >
+                          {copiedCodeId === codeRow.id ? <Check size={14} /> : <Copy size={14} />}
+                          {copiedCodeId === codeRow.id ? "Copied" : "Copy"}
+                        </button>
+                        {!expired && (
+                          <button
+                            type="button"
+                            onClick={() => toggleCode(codeRow)}
+                            disabled={actionBusy}
+                            className="rounded-xl border border-white/10 px-3 py-2 text-xs font-semibold text-gray-300 transition-colors hover:bg-white/5 disabled:opacity-50"
+                          >
+                            {codeRow.status === "active" ? "Disable" : "Enable"}
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removeCode(codeRow)}
+                          disabled={actionBusy}
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-red-400/20 bg-red-400/[0.05] px-3 py-2 text-xs font-semibold text-red-300 transition-colors hover:border-red-400/40 hover:bg-red-400/10 disabled:opacity-50"
+                        >
+                          <Trash2 size={14} />
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
         </div>
         <div className="divide-y divide-white/[0.07]">
           {members.filter((member) => member.status === "active").map((member) => (

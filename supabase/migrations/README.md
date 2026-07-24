@@ -37,6 +37,7 @@ migrations are idempotent (safe to re-run during development).
 | 0049 | `0049_studio_account_deletion.sql` | **Studio account deletion fix.** Suspends and releases a moderator-owned studio before deleting the moderator login, preserving financial and order history for administrative recovery while allowing the account deletion to complete. |
 | 0050 | `0050_studio_payout_address_validation.sql` | **Studio payout validation.** Enforces network-specific TRON and Ethereum wallet formats for every new or updated studio payout destination while preserving legacy rows for review. |
 | 0051 | `0051_studio_about_and_profile_controls.sql` | **Studio profile parity.** Adds the public studio About field plus narrow moderator RPCs for registration, About editing, and instant availability saving. |
+| 0052 | `0052_delete_studio_employee_codes.sql` | **Studio invite management.** Adds a moderator-only RPC for permanently deleting employee invite codes from the Team settings UI. |
 
 ## Field mapping (matches the app code)
 
