@@ -238,67 +238,25 @@ function SaveButton({ changed, busy, invalid = false, onClick, children }) {
 }
 
 function PortfolioRail({ studio, onReload, onError, editing }) {
-  const railRef = useRef(null);
-  const dragRef = useRef({ active: false, x: 0, left: 0, moved: false });
-
-  function startDrag(event) {
-    if (event.pointerType === "mouse" && event.button !== 0) return;
-    const rail = railRef.current;
-    if (!rail || event.target.closest("button, label, input")) return;
-    dragRef.current = {
-      active: true,
-      x: event.clientX,
-      left: rail.scrollLeft,
-      moved: false,
-    };
-    rail.setPointerCapture?.(event.pointerId);
-    rail.classList.add("is-dragging");
-  }
-
-  function moveDrag(event) {
-    const rail = railRef.current;
-    const drag = dragRef.current;
-    if (!rail || !drag.active) return;
-    const distance = event.clientX - drag.x;
-    if (Math.abs(distance) > 4) drag.moved = true;
-    rail.scrollLeft = drag.left - distance;
-  }
-
-  function finishDrag(event) {
-    const rail = railRef.current;
-    if (!rail || !dragRef.current.active) return;
-    dragRef.current.active = false;
-    rail.releasePointerCapture?.(event.pointerId);
-    rail.classList.remove("is-dragging");
-  }
-
   return (
     <div>
       <div className="flex items-center gap-2 text-xs text-gray-500 mb-4">
         <GripHorizontal size={15} className="text-[#4ade80]" />
-        Drag the gallery horizontally to browse. Hover a build for actions.
+        Scroll horizontally to browse the studio's work.
       </div>
       <div className="studio-portfolio-fade -mx-2 px-2">
         <div
-          ref={railRef}
-          className="studio-portfolio-rail bx-scroll flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory cursor-grab select-none"
-          onPointerDown={startDrag}
-          onPointerMove={moveDrag}
-          onPointerUp={finishDrag}
-          onPointerCancel={finishDrag}
-          onPointerLeave={(event) => {
-            if (event.buttons === 0) finishDrag(event);
-          }}
+          className="studio-portfolio-rail bx-scroll flex gap-4 overflow-x-auto pb-4"
         >
           {studio.portfolio.map((image, index) => (
             <article
               key={image.id}
-              className="studio-portfolio-card group relative flex-[0_0_clamp(250px,38vw,360px)] snap-start rounded-2xl overflow-hidden bg-black/30 border border-white/10 aspect-[16/10]"
+              className="studio-portfolio-card group relative flex-[0_0_clamp(250px,38vw,360px)] rounded-2xl overflow-hidden bg-black/30 border border-white/10 aspect-[16/10]"
             >
               <img
                 src={image.thumbnail}
                 alt={image.title}
-                className="w-full h-full object-cover pointer-events-none transition-transform duration-500 group-hover:scale-[1.06]"
+                className="w-full h-full object-cover"
                 draggable="false"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/20 opacity-60 group-hover:opacity-100 transition-opacity pointer-events-none" />
