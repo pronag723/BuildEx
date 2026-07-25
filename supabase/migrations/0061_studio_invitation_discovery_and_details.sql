@@ -42,7 +42,6 @@ begin
      and pending.status = 'pending'
    where p.username is not null
      and p.role in ('builder', 'both')
-     and bp.profile_type = 'independent'
      and not exists (
        select 1 from public.studio_memberships m
         where m.builder_id = p.id and m.status = 'active'
@@ -105,7 +104,6 @@ begin
      where p.id = p_builder
        and p.username is not null
        and p.role in ('builder', 'both')
-       and bp.profile_type = 'independent'
   ) then raise exception 'Only an independent completed builder can be invited'; end if;
   if exists (select 1 from public.studio_memberships m where m.builder_id = p_builder and m.status = 'active') then
     raise exception 'This builder already belongs to a studio';
@@ -148,7 +146,7 @@ begin
     select 1 from public.profiles p
     join public.builder_profiles bp on bp.id = p.id
     where p.id = p_builder and p.username is not null
-      and p.role in ('builder', 'both') and bp.profile_type = 'independent'
+      and p.role in ('builder', 'both')
   ) then raise exception 'Only an independent completed builder can be invited'; end if;
   if exists (select 1 from public.studio_memberships m where m.builder_id = p_builder and m.status = 'active') then
     raise exception 'This builder already belongs to a studio';
@@ -171,6 +169,53 @@ $$;
 
 revoke all on function public.create_studio_builder_invitation_v2(uuid) from public;
 grant execute on function public.create_studio_builder_invitation_v2(uuid) to authenticated;
+
+-- Accept invitations for any builder account that is not currently attached to
+-- an active studio. A stale profile_type from an earlier studio membership must
+-- not prevent the account from rejoining a different studio.
+create or replace function public.respond_to_studio_builder_invitation(
+  p_invitation uuid,
+  p_response text
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  me uuid := auth.uid();
+  v_inv public.studio_builder_invitations%rowtype;
+  v_status text;
+begin
+  if me is null then raise exception 'Not authenticated'; end if;
+  if p_response not in ('accept', 'decline') then raise exception 'Invalid invitation response'; end if;
+  select * into v_inv from public.studio_builder_invitations
+   where id = p_invitation and builder_id = me for update;
+  if v_inv.id is null or v_inv.status <> 'pending' then raise exception 'Invitation is no longer pending'; end if;
+  if p_response = 'decline' then
+    update public.studio_builder_invitations set status = 'declined', responded_at = now() where id = v_inv.id;
+    return;
+  end if;
+  if exists (select 1 from public.studio_memberships where builder_id = me and status = 'active') then
+    raise exception 'This account already belongs to a studio';
+  end if;
+  select availability_status into v_status from public.builder_profiles where id = me;
+  v_status := case when v_status = 'available' then 'available' else 'busy' end;
+  update public.builder_profiles
+     set profile_type = 'studio_employee',
+         studio_id = v_inv.studio_id,
+         availability_status = v_status,
+         is_available = (v_status = 'available')
+   where id = me;
+  if not found then raise exception 'Builder profile not found'; end if;
+  insert into public.studio_memberships (studio_id, builder_id, availability_status, busy_source)
+  values (v_inv.studio_id, me, v_status, case when v_status = 'busy' then 'manual' else null end);
+  update public.studio_builder_invitations set status = 'accepted', responded_at = now() where id = v_inv.id;
+end;
+$$;
+
+revoke all on function public.respond_to_studio_builder_invitation(uuid, text) from public;
+grant execute on function public.respond_to_studio_builder_invitation(uuid, text) to authenticated;
 
 create or replace function public.list_my_studio_builder_invitations()
 returns table (
