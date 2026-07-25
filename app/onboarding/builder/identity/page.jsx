@@ -98,8 +98,11 @@ function BuilderIdentityStep({ state }) {
       banner_url: bannerUrl ?? null,
       bio: bio.trim() || null,
     });
-    await refresh?.();
-    router.push(STEPS.builderExpertise);
+    const isJoiningStudio = Boolean(state.builderProfile?.pending_employee_code);
+    // Employee-code onboarding stops after the essentials. The studio owns
+    // service details such as pricing, portfolio and public availability.
+    router.replace(isJoiningStudio ? STEPS.builderStudioComplete : STEPS.builderExpertise);
+    refresh?.();
   }
 
   return (

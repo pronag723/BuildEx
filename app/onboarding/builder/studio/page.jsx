@@ -79,8 +79,11 @@ function BuilderStudioChoice() {
       setError(result.error.message || "Couldn't save the studio code.");
       return;
     }
-    await refresh?.();
-    router.push(STEPS.builderIdentity);
+    // Route first. Waiting for AuthContext's profile refresh here lets its
+    // resolver see the newly-created builder_profile and forward an
+    // OAuth-prefilled account past the required identity screen.
+    router.replace(STEPS.builderIdentity);
+    refresh?.();
   }
 
   return (
@@ -132,9 +135,8 @@ function BuilderStudioChoice() {
               <p className="font-bold mt-1">{studio.name}</p>
             </div>
             <p className="text-sm text-gray-300 leading-relaxed">
-              Continue through the normal builder profile steps so your studio moderator can see your identity,
-              expertise, styles, project types, response time, availability, and rates. Portfolio photos are optional
-              for studio employees.
+              We only need your name and unique @nickname. Your studio manages
+              pricing, public availability, and its portfolio; an avatar is optional.
             </p>
           </>
         )}
@@ -148,8 +150,8 @@ function BuilderStudioChoice() {
           onNext={continueEmployee}
           nextDisabled={busy}
           isSaving={busy}
-          nextLabel="Continue profile"
-          helper="Your studio code is saved while you complete the standard builder profile."
+          nextLabel="Continue"
+          helper="Your code is saved while you add the basics for your studio profile."
         />
       )}
     </div>

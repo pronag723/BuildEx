@@ -267,10 +267,16 @@ const STUDIO_ACCOUNT_SECTIONS = [
   { key: "danger", label: "Account", short: "Account" },
 ];
 
-function SectionTabs({ section, setSection, isBuilder, isStudio = false }) {
+function SectionTabs({ section, setSection, isBuilder, isStudio = false, isEmployee = false }) {
   const sections = isStudio
     ? STUDIO_ACCOUNT_SECTIONS
-    : isBuilder
+    : isEmployee
+      ? [
+        BASE_ACCOUNT_SECTIONS[0],
+        { key: "orders", label: "Assignments", short: "Orders" },
+        BASE_ACCOUNT_SECTIONS[3],
+      ]
+      : isBuilder
       ? [
         BASE_ACCOUNT_SECTIONS[0],
         { key: "payouts", label: "Payouts", short: "Payouts" },
@@ -2500,6 +2506,8 @@ function AccountPageInner() {
             <p className="text-sm text-gray-500 mt-1.5">
               {isStudio
                 ? "Manage your storefront, team, orders and payouts in focused sections."
+                : isEmployee
+                ? "Manage your studio identity, employment status, assignments, and account settings."
                 : isBuilder
                 ? "Manage how you appear to clients across BuildEx — your identity, availability, portfolio and rates."
                 : "Manage your account details and building preferences."}
@@ -2526,7 +2534,7 @@ function AccountPageInner() {
             </>
           ) : isEmployee ? (
             <>
-              <SectionTabs section={section} setSection={setSection} isBuilder />
+              <SectionTabs section={section} setSection={setSection} isBuilder isEmployee />
               {section === "danger" ? (
                 <div className="space-y-8"><AccountActionsSection /></div>
               ) : section === "payouts" ? (

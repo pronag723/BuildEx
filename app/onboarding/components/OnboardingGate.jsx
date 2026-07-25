@@ -357,6 +357,7 @@ const STEP_ORDER = [
   STEPS.studioSetup,
   STEPS.builderStudio,
   STEPS.builderIdentity,
+  STEPS.builderStudioComplete,
   STEPS.builderExpertise,
   STEPS.builderStyles,
   STEPS.builderRates,
