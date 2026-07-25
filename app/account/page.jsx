@@ -2414,12 +2414,30 @@ function AccountPageInner() {
             </>
           ) : isEmployee ? (
             <>
-              <AccountHeader
-                profile={profile}
-                builderProfile={builderProfile}
-                onSaved={refresh}
-              />
-              <StudioEmployeeDashboard builderProfile={builderProfile} />
+              <SectionTabs section={section} setSection={setSection} isBuilder />
+              {section === "danger" ? (
+                <div className="space-y-8"><AccountActionsSection /></div>
+              ) : section === "payouts" ? (
+                <section className="reveal glass rounded-3xl p-6 lg:p-8">
+                  <h2 className="font-bold text-xl">Payment information</h2>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Payment details for studio commissions will be available here soon.
+                  </p>
+                  <div className="mt-5 rounded-2xl border border-dashed border-white/15 p-5 text-sm text-gray-500">
+                    No payment method has been added yet.
+                  </div>
+                </section>
+              ) : (
+                <>
+                  {section === "profile" && (
+                    <>
+                      <AccountHeader profile={profile} builderProfile={builderProfile} onSaved={refresh} />
+                      <AboutSection profile={profile} builderProfile={builderProfile} isBuilder onSaved={refresh} />
+                    </>
+                  )}
+                  <StudioEmployeeDashboard builderProfile={builderProfile} section={section} />
+                </>
+              )}
             </>
           ) : (
             <>

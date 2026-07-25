@@ -1724,7 +1724,7 @@ export function StudioModeratorDashboard({ section = "profile" }) {
   );
 }
 
-export function StudioEmployeeDashboard({ builderProfile }) {
+export function StudioEmployeeDashboard({ builderProfile, section = "profile" }) {
   const { user } = useAuth();
   const [status, setStatus] = useState(builderProfile?.availability_status || "available");
   const [earnings, setEarnings] = useState([]);
@@ -1751,34 +1751,63 @@ export function StudioEmployeeDashboard({ builderProfile }) {
       ["paid", "in_progress", "delivered", "disputed"].includes(order.status)
   );
 
+  const employeeStatus = status === "busy" ? "busy" : "available";
+  const statusOptions = [
+    { key: "available", label: "Available", dot: "#4ade80" },
+    { key: "busy", label: "Busy", dot: "#fbbf24" },
+  ];
+  const statusIndex = Math.max(0, statusOptions.findIndex((option) => option.key === employeeStatus));
+  const activeStatus = statusOptions[statusIndex];
+
   return (
     <div className="space-y-6">
       {error && <div className="auth-banner auth-banner-error">{error}</div>}
-      <Card title="Employment status">
-        <div className="flex flex-wrap gap-3 items-center">
-          {["available", "busy"].map((value) => (
+      {section === "profile" && <Card title="Employment status">
+        <p className="text-xs text-gray-500 mb-4">
+          Let your studio know whether you can take on another assignment. Changes save instantly.
+        </p>
+        <div
+          className="relative grid grid-cols-2 p-1 rounded-full bg-white/[0.04] border border-white/10"
+          role="radiogroup"
+          aria-label="Employment status"
+        >
+          <span
+            aria-hidden="true"
+            className="absolute inset-y-1 left-1 rounded-full transition-transform duration-300 ease-out"
+            style={{
+              width: "calc((100% - 0.5rem) / 2)",
+              transform: `translateX(calc(${statusIndex} * 100%))`,
+              backgroundColor: `${activeStatus.dot}29`,
+              boxShadow: `0 0 0 1px ${activeStatus.dot}80, 0 0 14px ${activeStatus.dot}38`,
+            }}
+          />
+          {statusOptions.map(({ key, label, dot }) => (
             <button
-              key={value}
+              key={key}
               type="button"
+              role="radio"
+              aria-checked={employeeStatus === key}
               disabled={Boolean(active)}
               onClick={async () => {
-                const result = await setMyEmployeeAvailability(value);
+                const result = await setMyEmployeeAvailability(key);
                 if (result.error) setError(result.error.message);
-                else setStatus(value);
+                else setStatus(key);
               }}
-              className={`px-4 py-2 rounded-full border text-sm capitalize ${
-                status === value
-                  ? "border-[#4ade80] bg-[#4ade80]/10 text-[#4ade80]"
-                  : "border-white/10 text-gray-400"
-              } disabled:opacity-40`}
+              className={`relative z-10 flex items-center justify-center gap-2 py-2.5 px-2 rounded-full text-xs sm:text-sm font-semibold transition-colors ${
+                employeeStatus === key ? "text-white" : "text-gray-400 hover:text-gray-200"
+              } disabled:cursor-not-allowed disabled:opacity-40`}
             >
-              {value}
+              <span
+                className="w-2 h-2 rounded-full flex-shrink-0"
+                style={{ background: dot, boxShadow: employeeStatus === key ? `0 0 10px ${dot}` : "none" }}
+              />
+              <span>{label}</span>
             </button>
           ))}
-          {active && <span className="text-xs text-gray-500">Status is controlled by your active order.</span>}
         </div>
-      </Card>
-      <Card title="Assigned and archived orders">
+        {active && <p className="mt-4 text-xs text-gray-500">Status is controlled by your active order.</p>}
+      </Card>}
+      {section === "orders" && <Card title="Assigned and archived orders">
         <div className="space-y-3">
           {orders.length === 0 && <p className="text-sm text-gray-500">No studio orders assigned yet.</p>}
           {orders.map((order) => (
@@ -1809,8 +1838,8 @@ export function StudioEmployeeDashboard({ builderProfile }) {
             </div>
           ))}
         </div>
-      </Card>
-      <Card title="Tracked employee commission">
+      </Card>}
+      {section === "orders" && <Card title="Tracked employee commission">
         <p className="text-2xl font-extrabold text-[#4ade80]">{formatPrice(total)}</p>
         <p className="text-xs text-gray-500 mt-1">
           Informational amount owed by the studio; employee payouts are currently handled off-platform.
@@ -1823,7 +1852,7 @@ export function StudioEmployeeDashboard({ builderProfile }) {
             </div>
           ))}
         </div>
-      </Card>
+      </Card>}
     </div>
   );
 }
