@@ -19,8 +19,6 @@ import OnboardingFooter from "../../components/OnboardingFooter";
 import AvatarUploader from "../../components/AvatarUploader";
 import HandleInput from "../../components/HandleInput";
 
-const TAGLINE_MAX = 80;
-
 export default function BuilderIdentityPage() {
   return (
     <OnboardingShell currentStep={STEPS.builderIdentity} role="builder" maxWidth="max-w-3xl">
@@ -35,7 +33,6 @@ function BuilderIdentityStep({ state }) {
   const router = useRouter();
   const { user, refresh, updateProfile } = useAuth();
   const p = state.profile || {};
-  const bp = state.builderProfile || {};
 
   const [displayName, setDisplayName] = useState(p.display_name || "");
   const [handle, setHandle] = useState(p.username || "");
@@ -45,7 +42,6 @@ function BuilderIdentityStep({ state }) {
   // and pass through any previously stored value so a re-save doesn't wipe it.
   const [bannerUrl] = useState(p.banner_url || null);
   const [bio, setBio] = useState(p.bio || "");
-  const [tagline, setTagline] = useState(bp.tagline || "");
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
 
@@ -62,7 +58,7 @@ function BuilderIdentityStep({ state }) {
   const trimmedName = displayName.trim();
   const nameValid =
     trimmedName.length >= DISPLAY_NAME_MIN && trimmedName.length <= DISPLAY_NAME_MAX;
-  const canContinue = nameValid && handleValid && !!handle && !!avatarUrl;
+  const canContinue = nameValid && handleValid && !!handle;
 
   async function handleContinue() {
     if (!canContinue) return;
@@ -77,7 +73,6 @@ function BuilderIdentityStep({ state }) {
       avatarUrl,
       bannerUrl,
       bio: bio.trim() || null,
-      tagline: tagline.trim() || null,
     });
     if (saveErr) {
       setSaving(false);
@@ -186,28 +181,6 @@ function BuilderIdentityStep({ state }) {
           </div>
         </div>
 
-        {/* Tagline */}
-        <div className="glass onb-card onb-fade-in onb-fade-in-3">
-          <label htmlFor="tagline" className="onb-label block mb-2">
-            Tagline
-          </label>
-          <input
-            id="tagline"
-            type="text"
-            className="onb-input"
-            placeholder="Master spawn builder — medieval & fantasy specialist"
-            value={tagline}
-            onChange={(e) => setTagline(e.target.value.slice(0, TAGLINE_MAX))}
-            maxLength={TAGLINE_MAX}
-          />
-          <div className="mt-2 flex items-start justify-between text-xs">
-            <p className="text-gray-500">One line — what makes you stand out.</p>
-            <span className="text-gray-500">
-              {tagline.length}/{TAGLINE_MAX}
-            </span>
-          </div>
-        </div>
-
         {/* Bio */}
         <div className="glass onb-card onb-fade-in onb-fade-in-3">
           <label htmlFor="bio" className="onb-label block mb-3">
@@ -243,7 +216,7 @@ function BuilderIdentityStep({ state }) {
         onNext={handleContinue}
         nextDisabled={!canContinue}
         isSaving={saving}
-        helper={canContinue ? null : "Add your name, pick a unique @nickname, and choose an avatar to continue"}
+        helper={canContinue ? null : "Add your name and pick a unique @nickname to continue"}
       />
     </div>
   );
