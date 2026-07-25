@@ -575,7 +575,7 @@ export function StudioModeratorDashboard({ section = "profile" }) {
   const [removeConfirmation, setRemoveConfirmation] = useState("");
   const [removingMember, setRemovingMember] = useState(false);
 
-  const canRemoveMember = removeConfirmation.trim().toUpperCase() === "DELETE";
+  const canRemoveMember = removeConfirmation.trim().toUpperCase() === "REMOVE";
 
   function openRemoveConfirmation(member) {
     setRemoveTarget(member);
@@ -1906,7 +1906,7 @@ export function StudioModeratorDashboard({ section = "profile" }) {
               This removes <strong className="text-gray-200">{removeTarget.builder?.display_name || "this builder"}</strong> from your studio. They will lose access to studio work and return to an independent profile.
             </p>
             <label htmlFor="confirm-remove-builder" className="onb-label mt-5 block mb-2">
-              Type <span className="font-bold text-red-200">DELETE</span> to confirm
+              Type <span className="font-bold text-red-200">REMOVE</span> to confirm
             </label>
             <input
               id="confirm-remove-builder"
@@ -1914,7 +1914,7 @@ export function StudioModeratorDashboard({ section = "profile" }) {
               className="onb-input"
               value={removeConfirmation}
               onChange={(event) => setRemoveConfirmation(event.target.value)}
-              placeholder="DELETE"
+              placeholder="REMOVE"
               autoComplete="off"
               autoFocus
             />
@@ -1934,7 +1934,7 @@ export function StudioModeratorDashboard({ section = "profile" }) {
   );
 }
 
-export function StudioEmployeeDashboard({ builderProfile, section = "profile" }) {
+export function StudioEmployeeDashboard({ builderProfile, section = "profile", onAvailabilitySaved }) {
   const { user } = useAuth();
   const [status, setStatus] = useState(builderProfile?.availability_status || "available");
   const [earnings, setEarnings] = useState([]);
@@ -1953,6 +1953,10 @@ export function StudioEmployeeDashboard({ builderProfile, section = "profile" })
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    setStatus(builderProfile?.availability_status || "available");
+  }, [builderProfile?.availability_status]);
 
   const total = earnings.reduce((sum, row) => sum + Number(row.amount_kopecks || 0), 0);
   const active = orders.find(
@@ -1999,9 +2003,14 @@ export function StudioEmployeeDashboard({ builderProfile, section = "profile" })
               aria-checked={employeeStatus === key}
               disabled={Boolean(active)}
               onClick={async () => {
+                if (key === employeeStatus) return;
+                setError(null);
                 const result = await setMyEmployeeAvailability(key);
                 if (result.error) setError(result.error.message);
-                else setStatus(key);
+                else {
+                  setStatus(key);
+                  await onAvailabilitySaved?.();
+                }
               }}
               className={`relative z-10 flex items-center justify-center gap-2 py-2.5 px-2 rounded-full text-xs sm:text-sm font-semibold transition-colors ${
                 employeeStatus === key ? "text-white" : "text-gray-400 hover:text-gray-200"

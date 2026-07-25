@@ -2523,14 +2523,14 @@ function AccountPageInner() {
                   {section === "profile" && (
                     <div className="space-y-8">
                       <AccountHeader profile={profile} builderProfile={builderProfile} onSaved={refresh} />
-                      <StudioEmployeeDashboard builderProfile={builderProfile} section="profile" />
+                      <StudioEmployeeDashboard builderProfile={builderProfile} section="profile" onAvailabilitySaved={refresh} />
                       <AboutSection profile={profile} builderProfile={builderProfile} isBuilder onSaved={refresh} />
                       {!isEmployee && <RatesSection builderProfile={builderProfile} onSaved={refresh} />}
                       <SpecialtiesSection builderProfile={builderProfile} onSaved={refresh} />
                       <ExpertiseSection builderProfile={builderProfile} onSaved={refresh} />
                     </div>
                   )}
-                  {section !== "profile" && <StudioEmployeeDashboard builderProfile={builderProfile} section={section} />}
+                  {section !== "profile" && <StudioEmployeeDashboard builderProfile={builderProfile} section={section} onAvailabilitySaved={refresh} />}
                 </>
               )}
             </>

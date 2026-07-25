@@ -49,7 +49,8 @@ migrations are idempotent (safe to re-run during development).
 | 0061–0062 | _(studio invitation follow-ups)_ | Adds invitation discovery/details, then the now-superseded abbreviated employee onboarding flow. |
 | 0063 | `0063_restore_studio_employee_builder_details.sql` | **Studio employee profile fix.** Restores the normal builder-details stages for employee-code registration (portfolio remains optional) and prevents an incomplete removed employee from setting an independent profile to available. |
 | 0065 | `0065_restore_removed_builder_availability.sql` | **Removed employee recovery.** Returns removed employees to an independent, completed account while keeping them unavailable until their independent profile is ready. |
-| 0066 | `0066_rejoin_availability_and_employee_removal_confirmation.sql` | **Studio rejoin and removal safety.** Rejoined employees start available instead of inheriting removal's busy fallback, and removal requires `DELETE` confirmation. |
+| 0066 | `0066_rejoin_availability_and_employee_removal_confirmation.sql` | **Studio rejoin and removal safety.** Rejoined employees start available instead of inheriting removal's busy fallback; its confirmation wording is superseded by 0067. |
+| 0067 | `0067_fix_employee_availability_lock_and_remove_confirmation.sql` | **Employee availability repair.** Releases legacy closed-order assignment locks, limits availability locking to real active orders, and requires `REMOVE` confirmation before removal. |
 
 ## Field mapping (matches the app code)
 
