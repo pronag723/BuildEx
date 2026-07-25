@@ -52,8 +52,11 @@ function BuilderPortfolioStep({ state }) {
     // finalized transactionally above after all standard builder details exist.
     if (!isPendingEmployee) await finalizeStudioCode();
     setSaving(false);
-    await refresh?.();
-    router.push(STEPS.complete);
+    // Navigation must not wait for the global auth refresh: a slow profile
+    // read can otherwise leave the Finish button spinning even though the
+    // completion write already succeeded.
+    refresh?.();
+    router.replace(STEPS.complete);
   }
 
   return (

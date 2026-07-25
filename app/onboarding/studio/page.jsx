@@ -92,8 +92,8 @@ function StudioOnboarding() {
       setError(result.error.message || "Couldn't create the studio.");
       return;
     }
-    await refresh?.();
-    router.push(STEPS.complete);
+    refresh?.();
+    router.replace(STEPS.complete);
   }
 
   const titles = {

@@ -254,6 +254,7 @@ function ActiveOrdersSection({ userId }) {
 // stacks everything in one long scroll.
 const BASE_ACCOUNT_SECTIONS = [
   { key: "profile", label: "Profile", short: "Profile" },
+  { key: "invitations", label: "Invitations", short: "Invites" },
   { key: "orders", label: "Active orders", short: "Orders" },
   { key: "danger", label: "Account", short: "Account" },
 ];
@@ -2156,37 +2157,58 @@ function StudioInvitationCard({ onAccepted }) {
     return () => { active = false; };
   }, []);
 
-  if (invitations.length === 0 && !error) return null;
   return (
     <section className="reveal glass rounded-3xl p-6 lg:p-8">
-      <h2 className="font-bold text-xl">Studio invitations</h2>
-      <p className="text-sm text-gray-500 mt-1">Accepting an invitation keeps your existing builder profile, but removes it from the public builder feed while you work with the studio.</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs uppercase tracking-[0.18em] text-[#4ade80]/80">Studio network</p>
+          <h2 className="font-bold text-xl mt-1">Studio invitations</h2>
+          <p className="text-sm text-gray-500 mt-2 max-w-2xl">Review invitations from studios before joining their team. Your existing builder profile is preserved when you accept.</p>
+        </div>
+        <div className="hidden sm:flex w-11 h-11 rounded-2xl border border-[#4ade80]/20 bg-[#4ade80]/10 items-center justify-center text-[#4ade80]">✦</div>
+      </div>
       {error && <p className="auth-banner auth-banner-error mt-4">{error}</p>}
+      <div className="mt-5 rounded-2xl border border-white/10 bg-black/15 p-4 sm:p-5">
+        <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">What joining means</p>
+        <div className="mt-3 grid gap-2 text-sm text-gray-300">
+          <p>• Your identity, expertise, rates, and existing portfolio stay on your account.</p>
+          <p>• Your builder profile leaves the public feed while you are part of the studio.</p>
+          <p>• Studio availability uses Available or Busy and is managed alongside assignments.</p>
+        </div>
+      </div>
       <div className="mt-5 space-y-3">
+        {invitations.length === 0 && !error && (
+          <div className="rounded-2xl border border-dashed border-white/10 p-6 text-center text-sm text-gray-500">No pending studio invitations.</div>
+        )}
         {invitations.map((invitation) => (
-          <div key={invitation.id} className="rounded-2xl border border-[#4ade80]/20 bg-[#4ade80]/[0.05] p-4 flex flex-wrap items-center gap-3">
-            {invitation.studio?.logo_url && <img src={invitation.studio.logo_url} alt="" className="w-10 h-10 rounded-xl object-cover" />}
-            <div className="min-w-0 flex-1">
-              <p className="font-semibold">{invitation.studio?.name || "Studio"}</p>
-              <p className="text-xs text-gray-500 mt-1">Invited {new Date(invitation.created_at).toLocaleDateString()}</p>
+          <div key={invitation.id} className="rounded-2xl border border-[#4ade80]/25 bg-gradient-to-br from-[#4ade80]/10 to-transparent p-4 sm:p-5">
+            <div className="flex items-center gap-3">
+              {invitation.studio?.logo_url ? <img src={invitation.studio.logo_url} alt="" className="w-12 h-12 rounded-2xl object-cover border border-white/10" /> : <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-lg font-bold">{(invitation.studio?.name || "S").charAt(0)}</div>}
+              <div className="min-w-0 flex-1">
+                <p className="text-xs uppercase tracking-wider text-[#4ade80]">Invitation from</p>
+                <p className="font-bold text-lg truncate">{invitation.studio?.name || "Studio"}</p>
+                <p className="text-xs text-gray-500 mt-1">Received {new Date(invitation.created_at).toLocaleDateString()}</p>
+              </div>
             </div>
-            <button type="button" disabled={busyId === invitation.id} onClick={async () => {
-              setBusyId(invitation.id);
-              const result = await respondToStudioBuilderInvitation(invitation.id, "decline");
-              setBusyId(null);
-              if (result.error) setError(result.error.message || "Couldn't decline invitation.");
-              else setInvitations((current) => current.filter((item) => item.id !== invitation.id));
-            }} className="px-3 py-2 rounded-xl border border-white/10 text-xs text-gray-300 disabled:opacity-50">Decline</button>
-            <button type="button" disabled={busyId === invitation.id} onClick={async () => {
-              setBusyId(invitation.id);
-              const result = await respondToStudioBuilderInvitation(invitation.id, "accept");
-              setBusyId(null);
-              if (result.error) setError(result.error.message || "Couldn't accept invitation.");
-              else {
-                setInvitations((current) => current.filter((item) => item.id !== invitation.id));
-                await onAccepted?.();
-              }
-            }} className="px-3 py-2 rounded-xl bg-[#4ade80] text-black text-xs font-bold disabled:opacity-50">{busyId === invitation.id ? "Saving…" : "Accept"}</button>
+            <div className="mt-4 pt-4 border-t border-white/10 flex flex-wrap items-center justify-end gap-2">
+              <button type="button" disabled={busyId === invitation.id} onClick={async () => {
+                setBusyId(invitation.id);
+                const result = await respondToStudioBuilderInvitation(invitation.id, "decline");
+                setBusyId(null);
+                if (result.error) setError(result.error.message || "Couldn't decline invitation.");
+                else setInvitations((current) => current.filter((item) => item.id !== invitation.id));
+              }} className="px-4 py-2 rounded-xl border border-white/10 text-xs text-gray-300 disabled:opacity-50">Decline</button>
+              <button type="button" disabled={busyId === invitation.id} onClick={async () => {
+                setBusyId(invitation.id);
+                const result = await respondToStudioBuilderInvitation(invitation.id, "accept");
+                setBusyId(null);
+                if (result.error) setError(result.error.message || "Couldn't accept invitation.");
+                else {
+                  setInvitations((current) => current.filter((item) => item.id !== invitation.id));
+                  await onAccepted?.();
+                }
+              }} className="px-4 py-2 rounded-xl bg-[#4ade80] text-black text-xs font-bold disabled:opacity-50">{busyId === invitation.id ? "Saving…" : "Accept invitation"}</button>
+            </div>
           </div>
         ))}
       </div>
@@ -2502,7 +2524,6 @@ function AccountPageInner() {
 
           {section === "profile" && (
             <>
-              {isBuilder && <StudioInvitationCard onAccepted={refresh} />}
               <AccountHeader
                 profile={profile}
                 builderProfile={builderProfile}
@@ -2542,6 +2563,10 @@ function AccountPageInner() {
             <div className="space-y-8">
               <ActiveOrdersSection userId={user?.id} />
             </div>
+          )}
+
+          {section === "invitations" && isBuilder && (
+            <StudioInvitationCard onAccepted={refresh} />
           )}
 
           {section === "payouts" && isBuilder && (

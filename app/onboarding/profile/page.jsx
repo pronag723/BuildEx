@@ -116,8 +116,8 @@ function ClientProfileStep({ state }) {
       interests,
       preferred_server_type: serverType ?? null,
     });
-    await refresh?.();
-    router.push(STEPS.complete);
+    refresh?.();
+    router.replace(STEPS.complete);
   }
 
   return (
