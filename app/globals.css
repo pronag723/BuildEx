@@ -142,7 +142,19 @@ button.carousel-arrow:active {
 /* The active portfolio marker grows from a dot rather than snapping between
    widths. A dedicated transition avoids animating unrelated layout values. */
 .carousel-progress-indicator {
-  transition: width 360ms cubic-bezier(0.22, 1, 0.36, 1), background-color 240ms ease, opacity 240ms ease;
+  display: block;
+  padding: 0;
+  border: 0;
+  will-change: width, background-color, box-shadow;
+  transition: width 460ms cubic-bezier(0.16, 1, 0.3, 1), background-color 280ms ease, box-shadow 360ms ease, opacity 240ms ease;
+}
+
+.carousel-progress-indicator[aria-selected="true"] {
+  box-shadow: 0 0 12px rgba(74, 222, 128, 0.7);
+}
+
+.card-carousel {
+  touch-action: pan-y;
 }
 
 /* Studio team controls share the same responsive, tactile feedback as the

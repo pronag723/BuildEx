@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   Check,
@@ -530,6 +531,7 @@ function StudioRatesPreview({ rates }) {
 
 export function StudioModeratorDashboard({ section = "profile" }) {
   const { user } = useAuth();
+  const router = useRouter();
   const [studio, setStudio] = useState(null);
   const [members, setMembers] = useState([]);
   const [candidateQuery, setCandidateQuery] = useState("");
@@ -569,6 +571,10 @@ export function StudioModeratorDashboard({ section = "profile" }) {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState(null);
   const [error, setError] = useState(null);
+
+  const openOrder = useCallback((orderId) => {
+    router.push(withBase(`/orders/?id=${encodeURIComponent(orderId)}`));
+  }, [router]);
 
   const load = useCallback(async () => {
     try {
@@ -1642,7 +1648,15 @@ export function StudioModeratorDashboard({ section = "profile" }) {
                   </button>
                 </div>
               )}
-              <Link href={withBase(`/orders/?id=${encodeURIComponent(order.id)}`)} className="px-3 py-2.5 rounded-xl border border-[#4ade80]/30 bg-[#4ade80]/10 text-[#4ade80] text-xs font-semibold inline-flex items-center gap-1.5 hover:-translate-y-0.5 hover:bg-[#4ade80] hover:text-black hover:shadow-[0_8px_20px_rgba(74,222,128,0.2)] transition-all">
+              <Link
+                href={withBase(`/orders/?id=${encodeURIComponent(order.id)}`)}
+                onClick={(event) => {
+                  if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                  event.preventDefault();
+                  openOrder(order.id);
+                }}
+                className="px-3 py-2.5 rounded-xl border border-[#4ade80]/30 bg-[#4ade80]/10 text-[#4ade80] text-xs font-semibold inline-flex items-center gap-1.5 hover:-translate-y-0.5 hover:bg-[#4ade80] hover:text-black hover:shadow-[0_8px_20px_rgba(74,222,128,0.2)] transition-all"
+              >
                 Open order <ArrowRight size={13} />
               </Link>
             </div>

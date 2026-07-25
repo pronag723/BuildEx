@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { RANKS } from "../data/builders";
 import { publicAsset, withBase } from "../../home/utils";
@@ -56,6 +56,7 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
 
   const [index, setIndex] = useState(0);
   const [infoHover, setInfoHover] = useState(false);
+  const touchStartX = useRef(null);
 
   const { canFavorite, isFavorite, toggleFavorite } = useFavorites();
   const favorited = isFavorite(builder.id, isStudio ? "studio" : "builder");
@@ -74,6 +75,24 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
     toggleFavorite(builder.id, isStudio ? "studio" : "builder");
   };
 
+  const selectSlide = (e, nextIndex) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIndex(nextIndex);
+  };
+
+  const onTouchStart = (event) => {
+    touchStartX.current = event.touches[0]?.clientX ?? null;
+  };
+
+  const onTouchEnd = (event) => {
+    const startX = touchStartX.current;
+    const endX = event.changedTouches[0]?.clientX;
+    touchStartX.current = null;
+    if (startX == null || endX == null || Math.abs(endX - startX) < 36 || count < 2) return;
+    setIndex((current) => (endX < startX ? (current + 1) % count : (current - 1 + count) % count));
+  };
+
   return (
     <Link
       href={
@@ -85,7 +104,11 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
       style={{ animationDelay: `${animationDelay}ms` }}
     >
       {/* ── Portfolio carousel (full-bleed, swipeable thumbnails) ──────── */}
-      <div className="group/media relative h-64 sm:h-72 flex-shrink-0 overflow-hidden bg-black/40">
+      <div
+        className="group/media card-carousel relative h-64 sm:h-72 flex-shrink-0 overflow-hidden bg-black/40"
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+      >
         {count === 0 ? (
           <div className="w-full h-full bg-white/[0.03] flex items-center justify-center text-gray-600 text-sm">
             Portfolio coming soon
@@ -151,10 +174,15 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
             </button>
 
             {/* Slide dots */}
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 opacity-80 group-hover/media:opacity-100 transition-opacity duration-200">
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 opacity-80 group-hover/media:opacity-100 transition-opacity duration-200" role="tablist" aria-label="Portfolio images">
               {previews.map((p, i) => (
-                <span
+                <button
+                  type="button"
                   key={p.id}
+                  onClick={(event) => selectSlide(event, i)}
+                  role="tab"
+                  aria-selected={i === index}
+                  aria-label={`Show image ${i + 1}`}
                   className={`carousel-progress-indicator h-1.5 rounded-full ${
                     i === index ? "w-4 bg-[#4ade80]" : "w-1.5 bg-white/50"
                   }`}

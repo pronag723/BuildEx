@@ -174,6 +174,13 @@ export default function OrdersPage() {
   // appear stuck while the address bar changed.
   const [orderId, setOrderId] = useState(readOrderId);
 
+  // A navigation from another dashboard can hydrate this client component
+  // before its query string is observed. Re-read it after mount so an explicit
+  // order action never falls back to the general list.
+  useEffect(() => {
+    setOrderId(readOrderId());
+  }, []);
+
   const navigate = useCallback((id) => {
     const url = id ? `/orders/?id=${encodeURIComponent(id)}` : "/orders/";
     window.history.pushState(window.history.state, "", withBase(url));
