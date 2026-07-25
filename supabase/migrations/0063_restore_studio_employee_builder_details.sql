@@ -69,9 +69,10 @@ end;
 $$;
 
 -- An independent builder becomes publicly available only after completing the
--- whole independent-builder profile, including a personal portfolio. This
--- matters after a studio removes an employee: their former studio profile must
--- not be advertised as an independent one until it is complete.
+-- independent-builder flow. That flow itself requires a portfolio, but this
+-- check deliberately relies on its completion marker rather than duplicating
+-- every legacy profile field here: fully completed former employees must be
+-- able to return to the feed even if an older row uses a legacy rate shape.
 create or replace function public.set_my_builder_availability(p_status text)
 returns void
 language plpgsql
@@ -91,14 +92,8 @@ begin
        and p.role in ('builder', 'both')
        and p.onboarding_completed_at is not null
        and bp.profile_type = 'independent'
-       and coalesce(array_length(bp.tools, 1), 0) > 0
-       and coalesce(array_length(bp.specialties, 1), 0) > 0
-       and coalesce(array_length(bp.build_types, 1), 0) > 0
-       and coalesce(bp.response_time_hours, 0) > 0
-       and jsonb_typeof(bp.rates) = 'object' and bp.rates <> '{}'::jsonb
-       and exists (select 1 from public.portfolio_images pi where pi.builder_id = p.id)
   ) then
-    raise exception 'Finish your independent profile and add a portfolio image before becoming available';
+    raise exception 'Finish your independent builder profile before becoming available';
   end if;
 
   update public.builder_profiles
