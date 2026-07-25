@@ -11,6 +11,8 @@
 //     have a builder_profiles row are listed.
 //   • Builders whose availability is "busy" (the red end of the slider) are
 //     hidden from the feed entirely, per product spec.
+//   • Active studio employees are private team members, not marketplace
+//     providers, and are never listed or exposed through a public profile.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { getSupabaseClient } from "../../../lib/supabase/client";
@@ -67,6 +69,7 @@ function deriveStartsFrom(rates) {
 // `availability_status === "busy"` is the source of truth; `is_available` is a
 // mirror kept in sync by the account page, checked as a fallback.
 function isHiddenFromFeed(builderProfile) {
+  if (builderProfile?.profile_type === "studio_employee") return true;
   const status = builderProfile?.availability_status || "available";
   if (status === "busy") return true;
   if (builderProfile?.is_available === false) return true;
@@ -264,7 +267,7 @@ export async function fetchBuilderByUsername(username) {
   const { data, error } = res;
 
   if (error) return { builder: null, error };
-  if (!data || !data.builder) {
+  if (!data || !data.builder || data.builder.profile_type === "studio_employee") {
     return { builder: null, error: null };
   }
 

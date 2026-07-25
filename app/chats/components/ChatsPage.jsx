@@ -376,7 +376,7 @@ export default function ChatsPage() {
         if (!convId) {
           const { conversationId, error } = await getOrCreateConversation(activePeer.id);
           if (error || !conversationId) {
-            showNotice("Couldn't start this conversation. Please try again.");
+            showNotice(error?.message || "Couldn't start this conversation. Please try again.");
             return;
           }
           convId = conversationId;
@@ -414,7 +414,7 @@ export default function ChatsPage() {
         if (!convId) {
           const { conversationId, error } = await getOrCreateConversation(activePeer.id);
           if (error || !conversationId) {
-            showNotice("Couldn't start this conversation. Please try again.");
+            showNotice(error?.message || "Couldn't start this conversation. Please try again.");
             return;
           }
           convId = conversationId;

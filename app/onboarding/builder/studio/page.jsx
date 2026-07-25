@@ -135,9 +135,9 @@ function BuilderStudioChoice() {
               <p className="font-bold mt-1">{studio.name}</p>
             </div>
             <p className="text-sm text-gray-300 leading-relaxed">
-              You will complete the same builder details as every other builder:
-              tools, styles, collaboration preferences, and rates. A portfolio
-              is the only optional step for studio employees.
+              You will add your profile, tools, styles, and collaboration
+              preferences. Your studio controls client pricing, so you will not
+              set public rates. A portfolio is optional for studio employees.
             </p>
           </>
         )}

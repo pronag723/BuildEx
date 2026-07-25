@@ -1501,11 +1501,6 @@ export function StudioModeratorDashboard({ section = "profile" }) {
                   {member.builder?.builder_profile?.project_types?.length || 0} project types · {member.builder?.portfolio?.length || 0} portfolio images · response in {member.builder?.builder_profile?.response_time_hours || "—"}h
                 </p>
                 {member.builder?.bio && <p className="text-xs text-gray-400 mt-2 line-clamp-2">{member.builder.bio}</p>}
-                {member.builder?.builder_profile?.rates && Object.keys(member.builder.builder_profile.rates).length > 0 && (
-                  <p className="text-[11px] text-gray-500 mt-2">
-                    Rates: {Object.entries(member.builder.builder_profile.rates).filter(([, tier]) => tier?.enabled !== false && tier?.price != null).map(([size, tier]) => `${size} ${formatPrice(tier.price)}`).join(" · ")}
-                  </p>
-                )}
                 {member.builder?.portfolio?.length > 0 && (
                   <div className="flex gap-2 mt-3">
                     {member.builder.portfolio.slice(0, 4).map((image) => <img key={image.id} src={image.url} alt={image.alt || "Builder portfolio"} className="w-12 h-9 rounded-lg object-cover border border-white/10" />)}

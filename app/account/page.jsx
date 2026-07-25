@@ -1874,10 +1874,8 @@ function AccountHeader({ profile, builderProfile, onSaved }) {
   const role = profile?.role;
   const isStudio = role === "studio";
   const isEmployee = builderProfile?.profile_type === "studio_employee";
-  // Studio employees are still public builders. Keep them on the shared
-  // builder identity/header path so their studio profile can be edited with
-  // the same avatar, name, handle, rank, and availability UI as independent
-  // builders.
+  // Employees use the shared identity/header editor, but are not public
+  // marketplace builders while their studio membership is active.
   const isBuilder = role === "builder" || role === "both" || isEmployee;
 
   const trimmedName = displayName.trim();
@@ -2529,7 +2527,7 @@ function AccountPageInner() {
                       <AccountHeader profile={profile} builderProfile={builderProfile} onSaved={refresh} />
                       <StudioEmployeeDashboard builderProfile={builderProfile} section="profile" />
                       <AboutSection profile={profile} builderProfile={builderProfile} isBuilder onSaved={refresh} />
-                      <RatesSection builderProfile={builderProfile} onSaved={refresh} />
+                      {!isEmployee && <RatesSection builderProfile={builderProfile} onSaved={refresh} />}
                       <SpecialtiesSection builderProfile={builderProfile} onSaved={refresh} />
                       <ExpertiseSection builderProfile={builderProfile} onSaved={refresh} />
                     </div>
