@@ -137,7 +137,7 @@ function PortfolioCarousel({ items }) {
             type="button"
             aria-label="Previous build"
             onClick={() => go(-1)}
-            className="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-[#4ade80]/25 text-white border border-[#4ade80]/50 backdrop-blur-md shadow-[0_2px_10px_rgba(0,0,0,0.3)] hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.55)] transition-all duration-200"
+            className="carousel-arrow absolute left-3 top-1/2 -translate-y-1/2 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-[#4ade80]/25 text-white border border-[#4ade80]/50 backdrop-blur-md shadow-[0_2px_10px_rgba(0,0,0,0.3)] hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.55)] transition-all duration-200"
           >
             <IconChevron className="w-5 h-5 rotate-180" />
           </button>
@@ -145,7 +145,7 @@ function PortfolioCarousel({ items }) {
             type="button"
             aria-label="Next build"
             onClick={() => go(1)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-[#4ade80]/25 text-white border border-[#4ade80]/50 backdrop-blur-md shadow-[0_2px_10px_rgba(0,0,0,0.3)] hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.55)] transition-all duration-200"
+            className="carousel-arrow absolute right-3 top-1/2 -translate-y-1/2 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-[#4ade80]/25 text-white border border-[#4ade80]/50 backdrop-blur-md shadow-[0_2px_10px_rgba(0,0,0,0.3)] hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.55)] transition-all duration-200"
           >
             <IconChevron className="w-5 h-5" />
           </button>
@@ -180,8 +180,11 @@ function toRateCards(rates) {
     ...t,
     label: SIZE_META[t.id]?.label || t.label,
     areaText:
-      (rates?.[t.id]?.label) ||
-      (t.blocks > 0 ? `Up to ${t.blocks}×${t.blocks} blocks` : "Quote on request"),
+      t.blocks > 0
+        ? t.id === "large"
+          ? `${t.blocks}×${t.blocks} blocks and beyond`
+          : `Up to ${t.blocks}×${t.blocks} blocks`
+        : rates?.[t.id]?.label || "Quote on request",
   }));
 }
 

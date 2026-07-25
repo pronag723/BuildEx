@@ -133,6 +133,12 @@ button:not(:disabled):active {
   transform: scale(0.98);
 }
 
+/* Carousel arrows are positioned with translateY(-50%). Keep that geometry
+   fixed while still allowing other buttons to use the global press feedback. */
+button.carousel-arrow:active {
+  transform: translateY(-50%) !important;
+}
+
 .studio-profile-hero {
   position: relative;
   overflow: hidden;
