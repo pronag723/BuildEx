@@ -62,7 +62,7 @@ function BuilderIdentityStep({ state }) {
   const trimmedName = displayName.trim();
   const nameValid =
     trimmedName.length >= DISPLAY_NAME_MIN && trimmedName.length <= DISPLAY_NAME_MAX;
-  const canContinue = nameValid && handleValid && !!handle;
+  const canContinue = nameValid && handleValid && !!handle && !!avatarUrl;
 
   async function handleContinue() {
     if (!canContinue) return;
@@ -243,7 +243,7 @@ function BuilderIdentityStep({ state }) {
         onNext={handleContinue}
         nextDisabled={!canContinue}
         isSaving={saving}
-        helper={canContinue ? null : "Add your name and pick a unique @nickname to continue"}
+        helper={canContinue ? null : "Add your name, pick a unique @nickname, and choose an avatar to continue"}
       />
     </div>
   );
