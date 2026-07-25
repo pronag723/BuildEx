@@ -44,6 +44,8 @@ migrations are idempotent (safe to re-run during development).
 | 0056 | `0056_public_studio_about_access.sql` | **Public studio feed fix.** Grants browser roles read access to the public studio About column so active storefronts can load in the builders feed. |
 | 0057 | `0057_studio_builder_invitations.sql` | **Studio builder lifecycle.** Adds moderator invitations, builder acceptance/decline, complete code-based employee onboarding without portfolio requirements, and safe employee removal back to an independent busy profile. |
 | 0058 | `0058_invited_builder_studio_access.sql` | **Invitation RLS fix.** Lets a builder with a pending invitation read the invited studio’s public identity details without granting access to private studio data. |
+| 0059 | `0059_fix_invited_studio_policy_recursion.sql` | **Invitation policy recursion fix.** Moves the pending-invitation check behind a row-security-safe helper so embedded studio details load without an RLS cycle. |
+| 0060 | `0060_fix_invitation_studio_grant_policy.sql` | **Invitation grant fix.** Uses the existing moderator helper instead of directly querying private studio columns from invitation RLS. |
 
 ## Field mapping (matches the app code)
 
