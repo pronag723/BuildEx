@@ -50,6 +50,7 @@ import { listMyPayoutHistory } from "../../lib/payouts/api";
 import { formatPrice, ratesToTiers } from "../../lib/pricing";
 import AvatarUploader from "../onboarding/components/AvatarUploader";
 import Avatar from "../../lib/ui/Avatar";
+import { RANKS } from "../builders/data/builders";
 import {
   BIO_MAX,
   PORTFOLIO_ACCEPTED_MIME,
@@ -1222,12 +1223,28 @@ export function StudioModeratorDashboard({ section = "profile" }) {
                 <div key={candidate.id} className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/20 p-3">
                   <Avatar src={candidate.avatar_url} name={candidate.display_name || candidate.username || "Builder"} className="w-9 h-9 rounded-xl" />
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold truncate">{candidate.display_name || "Builder"}</p>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <p className="text-sm font-semibold truncate">{candidate.display_name || "Builder"}</p>
+                      {candidate.builder_profile?.rank && (
+                        <span className="rounded-full border border-[#4ade80]/25 bg-[#4ade80]/10 px-2 py-0.5 text-[10px] font-semibold text-[#86efac]">
+                          {(RANKS[candidate.builder_profile.rank] || RANKS.rookie).label}
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-gray-500 truncate">@{candidate.username}</p>
+                    <p className="mt-1 text-[11px] text-gray-400">
+                      ★ {Number(candidate.builder_profile?.avg_rating || 0).toFixed(2)} · {Number(candidate.builder_profile?.reviews_count || 0)} reviews · {Number(candidate.builder_profile?.completed_orders || 0)} projects
+                    </p>
                   </div>
+                  <Link
+                    href={`/builders/profile?u=${encodeURIComponent(candidate.username)}`}
+                    className="inline-flex rounded-xl border border-white/15 px-3 py-2 text-xs font-semibold text-gray-300 hover:border-[#4ade80]/50 hover:text-[#4ade80]"
+                  >
+                    Profile
+                  </Link>
                   <button
                     type="button"
-                    disabled={invitationActionId === candidate.id}
+                    disabled={invitationActionId === candidate.id || Boolean(candidate.pending_invitation_id)}
                     onClick={async () => {
                       setInvitationActionId(candidate.id);
                       const result = await createStudioBuilderInvitation(candidate.id);
@@ -1235,12 +1252,17 @@ export function StudioModeratorDashboard({ section = "profile" }) {
                       if (result.error) setError(result.error.message || "Couldn't send the invitation.");
                       else {
                         setNotice("Studio invitation sent.");
-                        setCandidates((current) => current.filter((item) => item.id !== candidate.id));
+                        setCandidates((current) => current.map((item) => item.id === candidate.id
+                          ? { ...item, pending_invitation_id: result.invitationId, pending_invitation_status: "pending" }
+                          : item
+                        ));
                       }
                     }}
-                    className="px-3 py-2 rounded-xl bg-[#4ade80] text-black text-xs font-bold disabled:opacity-50"
+                    className={`px-3 py-2 rounded-xl text-xs font-bold disabled:cursor-not-allowed ${candidate.pending_invitation_id
+                      ? "border border-white/10 bg-white/10 text-gray-500"
+                      : "bg-[#4ade80] text-black disabled:opacity-50"}`}
                   >
-                    {invitationActionId === candidate.id ? "Sending…" : "Invite"}
+                    {invitationActionId === candidate.id ? "Sending…" : candidate.pending_invitation_id ? "Sent" : "Invite"}
                   </button>
                 </div>
               ))}

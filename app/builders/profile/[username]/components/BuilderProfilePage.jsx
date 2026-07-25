@@ -435,6 +435,7 @@ export default function BuilderProfilePage({ builder }) {
 
   const isLight = theme === "light";
   const isStudio = builder.provider_type === "studio";
+  const isStudioEmployee = builder.profile_type === "studio_employee";
   const rank = isStudio ? null : (RANKS[builder.rank] || RANKS.rookie);
   // Orders are only open when "available"; both "busy" and "limited" pause them.
   const ordersBlocked =
@@ -811,8 +812,9 @@ export default function BuilderProfilePage({ builder }) {
             {/* LEFT: Content */}
             <div className="space-y-8 min-w-0">
 
-              {/* Portfolio gallery */}
-              <section className="reveal">
+              {/* Portfolio gallery. Affiliated builders can keep a standard
+                  profile without needing portfolio screenshots. */}
+              {(builder.portfolio.length > 0 || !isStudioEmployee) && <section className="reveal">
                 <div className="flex items-end justify-between mb-5">
                   <h2 className="font-bold text-xl">Portfolio</h2>
                   <span className="text-xs text-gray-500">
@@ -826,7 +828,7 @@ export default function BuilderProfilePage({ builder }) {
                 ) : (
                   <PortfolioCarousel items={builder.portfolio} />
                 )}
-              </section>
+              </section>}
 
               {/* About */}
               <section className="reveal glass rounded-3xl p-6 lg:p-8">

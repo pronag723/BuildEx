@@ -2190,7 +2190,40 @@ function StudioInvitationCard({ onAccepted }) {
                 <p className="text-xs text-gray-500 mt-1">Received {new Date(invitation.created_at).toLocaleDateString()}</p>
               </div>
             </div>
+            <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div className="rounded-xl border border-white/10 bg-black/15 p-3">
+                <p className="text-lg font-bold">{Number(invitation.studio?.avg_rating || 0).toFixed(2)}</p>
+                <p className="text-[10px] uppercase tracking-wide text-gray-500">Rating</p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-black/15 p-3">
+                <p className="text-lg font-bold">{Number(invitation.studio?.reviews_count || 0)}</p>
+                <p className="text-[10px] uppercase tracking-wide text-gray-500">Reviews</p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-black/15 p-3">
+                <p className="text-lg font-bold">{Number(invitation.studio?.completed_orders || 0)}</p>
+                <p className="text-[10px] uppercase tracking-wide text-gray-500">Projects</p>
+              </div>
+              <div className="rounded-xl border border-[#4ade80]/20 bg-[#4ade80]/5 p-3">
+                <p className="text-lg font-bold text-[#4ade80]">
+                  {invitation.studio?.employee_commission_bps == null
+                    ? "—"
+                    : `${(Number(invitation.studio.employee_commission_bps) / 100).toFixed(2)}%`}
+                </p>
+                <p className="text-[10px] uppercase tracking-wide text-gray-500">Employee rate</p>
+              </div>
+            </div>
+            {invitation.studio?.about && (
+              <p className="mt-4 text-sm leading-relaxed text-gray-400">{invitation.studio.about}</p>
+            )}
             <div className="mt-4 pt-4 border-t border-white/10 flex flex-wrap items-center justify-end gap-2">
+              {invitation.studio?.slug && (
+                <Link
+                  href={`/studios?s=${encodeURIComponent(invitation.studio.slug)}`}
+                  className="mr-auto inline-flex items-center rounded-xl border border-[#4ade80]/30 bg-[#4ade80]/10 px-4 py-2 text-xs font-semibold text-[#4ade80] hover:bg-[#4ade80]/20"
+                >
+                  View studio profile
+                </Link>
+              )}
               <button type="button" disabled={busyId === invitation.id} onClick={async () => {
                 setBusyId(invitation.id);
                 const result = await respondToStudioBuilderInvitation(invitation.id, "decline");

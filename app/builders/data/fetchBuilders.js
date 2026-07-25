@@ -29,7 +29,7 @@ import { fetchStudios } from "../../../lib/studios/api";
 // returns it absent, in which case mapRow reads the builder as offline.
 export const PROFILE_SELECT =
   "id, username, display_name, avatar_url, bio, role, created_at, last_seen_at, onboarding_completed_at, " +
-  "builder:builder_profiles!inner(*), " +
+  "builder:builder_profiles!inner(*, studio:studio_id(id, name, slug, logo_url, status)), " +
   "portfolio:portfolio_images(id, url, position, alt)";
 
 // Same select WITHOUT the studio embed. Used as a fallback when the studios
@@ -111,7 +111,8 @@ export function mapRow(row) {
     bio: row.bio || "",
     // Studio referral (migration 0026) — null unless the builder joined an active
     // studio. Drives the studio badge before the nickname + storefront link.
-    studio: null,
+    studio: mapStudio(bp),
+    profile_type: bp.profile_type || "independent",
     provider_type: "builder",
     availability_status: availability,
     // Real presence — true only when the builder's last heartbeat (last_seen_at,
@@ -266,7 +267,7 @@ export async function fetchBuilderByUsername(username) {
   const { data, error } = res;
 
   if (error) return { builder: null, error };
-  if (!data || !data.builder || data.builder.profile_type === "studio_employee") {
+  if (!data || !data.builder) {
     return { builder: null, error: null };
   }
 
