@@ -43,6 +43,7 @@ migrations are idempotent (safe to re-run during development).
 | 0055 | `0055_storage_api_account_deletion.sql` | **Storage-safe account deletion.** Stops the deletion RPC from writing directly to protected Storage tables; the Edge Function removes files through the supported Storage API before the database transaction deletes the account. |
 | 0056 | `0056_public_studio_about_access.sql` | **Public studio feed fix.** Grants browser roles read access to the public studio About column so active storefronts can load in the builders feed. |
 | 0057 | `0057_studio_builder_invitations.sql` | **Studio builder lifecycle.** Adds moderator invitations, builder acceptance/decline, complete code-based employee onboarding without portfolio requirements, and safe employee removal back to an independent busy profile. |
+| 0058 | `0058_invited_builder_studio_access.sql` | **Invitation RLS fix.** Lets a builder with a pending invitation read the invited studio’s public identity details without granting access to private studio data. |
 
 ## Field mapping (matches the app code)
 
