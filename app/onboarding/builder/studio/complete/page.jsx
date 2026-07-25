@@ -46,14 +46,13 @@ function StudioEmployeeComplete() {
       <div className="text-center mb-8">
         <h1 className="onb-section-title">Ready to join your studio?</h1>
         <p className="onb-section-sub mt-3 mx-auto">
-          Your studio profile will use the name and @nickname you just chose.
-          You can add an avatar or bio later from your account.
+          Your studio profile now includes the builder details you provided.
         </p>
       </div>
       <div className="glass onb-card text-sm text-gray-300 leading-relaxed">
-        Studio employees receive assignments through their studio. Studio
-        pricing, portfolio, and client-facing availability are managed by the
-        studio, so there is nothing else to set up here.
+        Studio employees receive assignments through their studio. Your skills,
+        styles, tools, response time, and rates help the studio match you to
+        the right projects. A personal portfolio is not required.
         {error && <div role="alert" className="auth-banner auth-banner-error mt-5">{error}</div>}
       </div>
       <OnboardingFooter
@@ -61,7 +60,7 @@ function StudioEmployeeComplete() {
         onNext={finish}
         isSaving={saving}
         nextLabel="Finish registration"
-        helper="You can update your identity later; an avatar is never required."
+        helper="You can update your profile details later; a portfolio is never required."
       />
     </div>
   );

@@ -71,8 +71,6 @@ import {
   respondToStudioBuilderInvitation,
 } from "../../lib/studios/api";
 
-const TAGLINE_MAX = 80;
-
 // #rrggbb → rgba(), used for the availability slider's tinted highlight.
 function hexToRgba(hex, alpha = 1) {
   const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || "");
@@ -496,13 +494,11 @@ function AboutSection({ profile, builderProfile, isBuilder, onSaved }) {
   const { user } = useAuth();
   const [editing, setEditing] = useState(false);
   const [bio, setBio] = useState(profile?.bio || "");
-  const [tagline, setTagline] = useState(builderProfile?.tagline || "");
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
 
   function startEdit() {
     setBio(profile?.bio || "");
-    setTagline(builderProfile?.tagline || "");
     setError(null);
     setEditing(true);
   }
@@ -518,10 +514,7 @@ function AboutSection({ profile, builderProfile, isBuilder, onSaved }) {
       bio: bio.trim() || null,
     };
     const { error: err } = isBuilder
-      ? await saveBuilderIdentity(supabase, user.id, {
-          ...payload,
-          tagline: tagline.trim() || null,
-        })
+      ? await saveBuilderIdentity(supabase, user.id, payload)
       : await saveClientProfile(supabase, user.id, {
           ...payload,
           interests: profile?.interests || [],
@@ -549,21 +542,6 @@ function AboutSection({ profile, builderProfile, isBuilder, onSaved }) {
 
       {editing ? (
         <div className="space-y-4">
-          {isBuilder && (
-            <div>
-              <label htmlFor="acc-tagline" className="onb-label block mb-2">Tagline</label>
-              <input
-                id="acc-tagline"
-                type="text"
-                className="onb-input"
-                placeholder="Master spawn builder — medieval & fantasy specialist"
-                value={tagline}
-                onChange={(e) => setTagline(e.target.value.slice(0, TAGLINE_MAX))}
-                maxLength={TAGLINE_MAX}
-              />
-              <p className="mt-2 text-xs text-gray-500">{tagline.length}/{TAGLINE_MAX}</p>
-            </div>
-          )}
           <div>
             <label htmlFor="acc-bio" className="onb-label block mb-2">Bio</label>
             <textarea
@@ -584,9 +562,6 @@ function AboutSection({ profile, builderProfile, isBuilder, onSaved }) {
         </div>
       ) : (
         <div className="space-y-3">
-          {isBuilder && builderProfile?.tagline && (
-            <p className="text-sm text-[#4ade80] font-semibold break-words">{builderProfile.tagline}</p>
-          )}
           {profile?.bio ? (
             <p className="text-gray-400 leading-relaxed break-words whitespace-pre-wrap">{profile.bio}</p>
           ) : (
@@ -2553,6 +2528,9 @@ function AccountPageInner() {
                     <>
                       <AccountHeader profile={profile} builderProfile={builderProfile} onSaved={refresh} />
                       <AboutSection profile={profile} builderProfile={builderProfile} isBuilder onSaved={refresh} />
+                      <SpecialtiesSection builderProfile={builderProfile} onSaved={refresh} />
+                      <ExpertiseSection builderProfile={builderProfile} onSaved={refresh} />
+                      <RatesSection builderProfile={builderProfile} onSaved={refresh} />
                     </>
                   )}
                   <StudioEmployeeDashboard builderProfile={builderProfile} section={section} />

@@ -46,6 +46,8 @@ migrations are idempotent (safe to re-run during development).
 | 0058 | `0058_invited_builder_studio_access.sql` | **Invitation RLS fix.** Lets a builder with a pending invitation read the invited studio’s public identity details without granting access to private studio data. |
 | 0059 | `0059_fix_invited_studio_policy_recursion.sql` | **Invitation policy recursion fix.** Moves the pending-invitation check behind a row-security-safe helper so embedded studio details load without an RLS cycle. |
 | 0060 | `0060_fix_invitation_studio_grant_policy.sql` | **Invitation grant fix.** Uses the existing moderator helper instead of directly querying private studio columns from invitation RLS. |
+| 0061–0062 | _(studio invitation follow-ups)_ | Adds invitation discovery/details, then the now-superseded abbreviated employee onboarding flow. |
+| 0063 | `0063_restore_studio_employee_builder_details.sql` | **Studio employee profile fix.** Restores the normal builder-details stages for employee-code registration (portfolio remains optional) and prevents an incomplete removed employee from setting an independent profile to available. |
 
 ## Field mapping (matches the app code)
 
