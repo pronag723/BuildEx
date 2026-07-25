@@ -1968,7 +1968,7 @@ export function StudioEmployeeDashboard({ builderProfile, section = "profile", o
   const employeeStatus = status === "busy" ? "busy" : "available";
   const statusOptions = [
     { key: "available", label: "Available", dot: "#4ade80" },
-    { key: "busy", label: "Busy", dot: "#fbbf24" },
+    { key: "busy", label: "Busy", dot: "#f87171" },
   ];
   const statusIndex = Math.max(0, statusOptions.findIndex((option) => option.key === employeeStatus));
   const activeStatus = statusOptions[statusIndex];
