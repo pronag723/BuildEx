@@ -351,6 +351,7 @@ function AvailabilitySection({ builderProfile, onSaved }) {
   const saved = builderProfile?.availability_status || "available";
   const [value, setValue] = useState(saved);
   const [status, setStatus] = useState("idle"); // idle | saving | saved | error
+  const [errorMessage, setErrorMessage] = useState("");
   const statusTimer = useRef(null);
 
   // Re-sync if the profile is refreshed elsewhere.
@@ -368,17 +369,20 @@ function AvailabilitySection({ builderProfile, onSaved }) {
     const prev = value;
     setValue(key); // optimistic
     setStatus("saving");
+    setErrorMessage("");
     clearTimeout(statusTimer.current);
 
     const supabase = getSupabaseClient();
     if (!supabase || !user?.id) {
       setValue(prev);
+      setErrorMessage("Your account connection is unavailable. Refresh and try again.");
       setStatus("error");
       return;
     }
     const { error } = await saveBuilderAvailability(supabase, user.id, key);
     if (error) {
       setValue(prev);
+      setErrorMessage(error.message || "Couldn't save your availability. Try again.");
       setStatus("error");
       return;
     }
@@ -408,6 +412,9 @@ function AvailabilitySection({ builderProfile, onSaved }) {
           {status === "error" && "Couldn't save — try again"}
         </span>
       </div>
+      {status === "error" && errorMessage && (
+        <p role="alert" className="text-xs text-red-300 mb-4">{errorMessage}</p>
+      )}
       <p className="text-xs text-gray-500 mb-4">
         Let clients know whether you&apos;re taking on new commissions. Changes save instantly.
       </p>

@@ -7,6 +7,13 @@
       "runtimeArgs": ["run", "dev"],
       "port": 3000,
       "autoPort": true
+    },
+    {
+      "name": "buildex-launch",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["-y", "serve", "../buildex-launch", "-l", "4321"],
+      "port": 4321,
+      "autoPort": true
     }
   ]
 }

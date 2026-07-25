@@ -48,6 +48,8 @@ migrations are idempotent (safe to re-run during development).
 | 0060 | `0060_fix_invitation_studio_grant_policy.sql` | **Invitation grant fix.** Uses the existing moderator helper instead of directly querying private studio columns from invitation RLS. |
 | 0061–0062 | _(studio invitation follow-ups)_ | Adds invitation discovery/details, then the now-superseded abbreviated employee onboarding flow. |
 | 0063 | `0063_restore_studio_employee_builder_details.sql` | **Studio employee profile fix.** Restores the normal builder-details stages for employee-code registration (portfolio remains optional) and prevents an incomplete removed employee from setting an independent profile to available. |
+| 0065 | `0065_restore_removed_builder_availability.sql` | **Removed employee recovery.** Returns removed employees to an independent, completed account while keeping them unavailable until their independent profile is ready. |
+| 0066 | `0066_rejoin_availability_and_employee_removal_confirmation.sql` | **Studio rejoin and removal safety.** Rejoined employees start available instead of inheriting removal's busy fallback, and removal requires `DELETE` confirmation. |
 
 ## Field mapping (matches the app code)
 

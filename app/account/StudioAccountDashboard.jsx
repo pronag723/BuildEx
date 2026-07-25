@@ -571,6 +571,35 @@ export function StudioModeratorDashboard({ section = "profile" }) {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState(null);
   const [error, setError] = useState(null);
+  const [removeTarget, setRemoveTarget] = useState(null);
+  const [removeConfirmation, setRemoveConfirmation] = useState("");
+  const [removingMember, setRemovingMember] = useState(false);
+
+  const canRemoveMember = removeConfirmation.trim().toUpperCase() === "DELETE";
+
+  function openRemoveConfirmation(member) {
+    setRemoveTarget(member);
+    setRemoveConfirmation("");
+    setError(null);
+  }
+
+  function closeRemoveConfirmation() {
+    if (!removingMember) setRemoveTarget(null);
+  }
+
+  async function confirmRemoveMember() {
+    if (!removeTarget || !canRemoveMember || removingMember) return;
+    setRemovingMember(true);
+    const result = await removeStudioEmployee(removeTarget.builder_id, removeConfirmation);
+    setRemovingMember(false);
+    if (result.error) {
+      setError(result.error.message || "Couldn't remove this builder.");
+      return;
+    }
+    setRemoveTarget(null);
+    setNotice(`${removeTarget.builder?.display_name || "Builder"} was removed from the studio.`);
+    load();
+  }
 
   const openOrder = useCallback((orderId) => {
     router.push(withBase(`/orders/?id=${encodeURIComponent(orderId)}`));
@@ -1519,11 +1548,7 @@ export function StudioModeratorDashboard({ section = "profile" }) {
               </Link>
               <button
                 type="button"
-                onClick={async () => {
-                  const result = await removeStudioEmployee(member.builder_id);
-                  if (result.error) setError(result.error.message);
-                  else load();
-                }}
+                onClick={() => openRemoveConfirmation(member)}
                 className="team-action-button px-3 py-1.5 rounded-lg border border-red-400/20 text-red-300 text-xs"
               >
                 Remove
@@ -1862,6 +1887,49 @@ export function StudioModeratorDashboard({ section = "profile" }) {
             ))}
         </div>
       </Card>}
+      {removeTarget && (
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="remove-builder-title"
+        >
+          <button
+            type="button"
+            className="absolute inset-0 cursor-default bg-black/75 backdrop-blur-md"
+            onClick={closeRemoveConfirmation}
+            aria-label="Close remove builder confirmation"
+          />
+          <div className="relative w-full max-w-md rounded-3xl border border-red-400/25 bg-[#181a19] p-6 shadow-2xl">
+            <h3 id="remove-builder-title" className="text-xl font-bold text-red-100">Remove builder?</h3>
+            <p className="mt-2 text-sm leading-relaxed text-gray-400">
+              This removes <strong className="text-gray-200">{removeTarget.builder?.display_name || "this builder"}</strong> from your studio. They will lose access to studio work and return to an independent profile.
+            </p>
+            <label htmlFor="confirm-remove-builder" className="onb-label mt-5 block mb-2">
+              Type <span className="font-bold text-red-200">DELETE</span> to confirm
+            </label>
+            <input
+              id="confirm-remove-builder"
+              type="text"
+              className="onb-input"
+              value={removeConfirmation}
+              onChange={(event) => setRemoveConfirmation(event.target.value)}
+              placeholder="DELETE"
+              autoComplete="off"
+              autoFocus
+            />
+            <div className="mt-6 flex items-center justify-end gap-2">
+              <button type="button" onClick={closeRemoveConfirmation} disabled={removingMember} className="rounded-full border border-white/15 px-4 py-2 text-sm font-semibold text-gray-300 hover:bg-white/5 disabled:opacity-50">
+                Cancel
+              </button>
+              <button type="button" onClick={confirmRemoveMember} disabled={removingMember || !canRemoveMember} className="inline-flex items-center gap-2 rounded-full bg-red-500 px-5 py-2 text-sm font-bold text-white hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-40">
+                {removingMember && <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" />}
+                {removingMember ? "Removing…" : "Remove builder"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
