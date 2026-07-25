@@ -1578,9 +1578,17 @@ export function StudioModeratorDashboard({ section = "profile" }) {
             <p className="text-xs font-semibold text-gray-300">Show orders</p>
             <p className="text-[11px] text-gray-500 mt-1">Completed and cancelled orders stay available for review.</p>
           </div>
-          <div className="inline-flex flex-wrap items-center gap-1 rounded-2xl border border-white/10 bg-black/20 p-1" role="group" aria-label="Filter orders by status">
+          <div className="relative grid grid-cols-4 items-center rounded-2xl border border-white/10 bg-black/20 p-1" role="group" aria-label="Filter orders by status">
+            <span
+              aria-hidden="true"
+              className="absolute inset-y-1 left-1 rounded-xl bg-[#4ade80] transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
+              style={{
+                width: "calc((100% - 0.5rem) / 4)",
+                transform: `translateX(${["active", "completed", "cancelled", "all"].indexOf(orderStatusFilter) * 100}%)`,
+              }}
+            />
             {[['active', 'Active'], ['completed', 'Completed'], ['cancelled', 'Cancelled'], ['all', 'All']].map(([value, label]) => (
-              <button key={value} type="button" aria-pressed={orderStatusFilter === value} onClick={() => setOrderStatusFilter(value)} className={`rounded-xl px-3 py-2 text-xs font-semibold transition-all ${orderStatusFilter === value ? "bg-[#4ade80] text-black" : "text-gray-400 hover:bg-white/5 hover:text-white"}`}>
+              <button key={value} type="button" aria-pressed={orderStatusFilter === value} onClick={() => setOrderStatusFilter(value)} className={`relative z-10 rounded-xl px-3 py-2 text-xs font-semibold transition-colors duration-300 ${orderStatusFilter === value ? "text-black" : "text-gray-400 hover:text-white"}`}>
                 {label}
               </button>
             ))}
