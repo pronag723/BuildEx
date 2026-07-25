@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { getSupabaseClient } from "../../../../lib/supabase/client";
 import { useAuth } from "../../../../lib/auth/AuthContext";
 import { markOnboardingComplete } from "../../../../lib/onboarding/api";
-import { finalizeStudioCode } from "../../../../lib/studios/api";
+import { completePendingEmployeeRegistration, finalizeStudioCode } from "../../../../lib/studios/api";
 import { STEPS } from "../../../../lib/onboarding/state";
 import { withBase } from "../../../home/utils";
 import OnboardingShell from "../../components/OnboardingShell";
@@ -31,7 +31,8 @@ function BuilderPortfolioStep({ state }) {
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
 
-  const canFinish = count >= 1;
+  const isPendingEmployee = Boolean(state.builderProfile?.pending_employee_code);
+  const canFinish = isPendingEmployee || count >= 1;
 
   async function handleFinish() {
     if (!canFinish) return;
@@ -39,15 +40,17 @@ function BuilderPortfolioStep({ state }) {
     if (!supabase || !user?.id) return;
     setError(null);
     setSaving(true);
-    const { error: doneErr } = await markOnboardingComplete(supabase, user.id);
+    const { error: doneErr } = isPendingEmployee
+      ? (await completePendingEmployeeRegistration()).error
+      : (await markOnboardingComplete(supabase, user.id)).error;
     if (doneErr) {
       setSaving(false);
       setError(doneErr.message || "Couldn't finalize. Try again.");
       return;
     }
-    // Studios (0027): now that onboarding is complete, consume the pending studio
-    // code (if any). Best-effort — a failure here must not block finishing setup.
-    await finalizeStudioCode();
+    // Legacy referral codes remain best-effort; managed employee codes are
+    // finalized transactionally above after all standard builder details exist.
+    if (!isPendingEmployee) await finalizeStudioCode();
     setSaving(false);
     await refresh?.();
     router.push(STEPS.complete);
@@ -84,9 +87,11 @@ function BuilderPortfolioStep({ state }) {
         isSaving={saving}
         nextLabel="Finish setup"
         helper={
-          canFinish
-            ? `${count} image${count === 1 ? "" : "s"} ready · you can add more later`
-            : "Upload at least one image to finish"
+          isPendingEmployee
+            ? "Portfolio photos are optional for studio employees"
+            : canFinish
+              ? `${count} image${count === 1 ? "" : "s"} ready · you can add more later`
+              : "Upload at least one image to finish"
         }
       />
     </div>

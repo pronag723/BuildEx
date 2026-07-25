@@ -26,6 +26,7 @@ import {
   assignStudioOrder,
   cancelStudioWithdrawal,
   createEmployeeCode,
+  createStudioBuilderInvitation,
   deleteEmployeeCode,
   deleteStudioPortfolioImage,
   fetchMyStudio,
@@ -34,6 +35,7 @@ import {
   listMyEmployeeEarnings,
   listStudioEmployeeEarnings,
   listStudioMembers,
+  searchIndependentBuilders,
   removeStudioEmployee,
   requestStudioWithdrawal,
   setMyStudioAcceptingOrders,
@@ -528,6 +530,10 @@ export function StudioModeratorDashboard({ section = "profile" }) {
   const { user } = useAuth();
   const [studio, setStudio] = useState(null);
   const [members, setMembers] = useState([]);
+  const [candidateQuery, setCandidateQuery] = useState("");
+  const [candidates, setCandidates] = useState([]);
+  const [candidateBusy, setCandidateBusy] = useState(false);
+  const [invitationActionId, setInvitationActionId] = useState(null);
   const [codes, setCodes] = useState([]);
   const [orders, setOrders] = useState([]);
   const [balance, setBalance] = useState(null);
@@ -556,6 +562,7 @@ export function StudioModeratorDashboard({ section = "profile" }) {
   const [aboutEditing, setAboutEditing] = useState(false);
   const [availabilityStatus, setAvailabilityStatus] = useState("idle");
   const availabilityTimer = useRef(null);
+  const candidateSearchTimer = useRef(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState(null);
   const [error, setError] = useState(null);
@@ -632,6 +639,23 @@ export function StudioModeratorDashboard({ section = "profile" }) {
   }, [load]);
 
   useEffect(() => () => clearTimeout(availabilityTimer.current), []);
+  useEffect(() => () => clearTimeout(candidateSearchTimer.current), []);
+
+  useEffect(() => {
+    if (section !== "team" || candidateQuery.trim().length < 2) {
+      setCandidates([]);
+      return undefined;
+    }
+    clearTimeout(candidateSearchTimer.current);
+    candidateSearchTimer.current = setTimeout(async () => {
+      setCandidateBusy(true);
+      const result = await searchIndependentBuilders(candidateQuery);
+      setCandidateBusy(false);
+      if (result.error) setError(result.error.message || "Couldn't search builders.");
+      else setCandidates(result.builders || []);
+    }, 250);
+    return () => clearTimeout(candidateSearchTimer.current);
+  }, [candidateQuery, section]);
 
   const availableMembers = useMemo(
     () =>
@@ -1174,6 +1198,58 @@ export function StudioModeratorDashboard({ section = "profile" }) {
           </span>
         }
       >
+        <div className="rounded-2xl border border-[#4ade80]/15 bg-[#4ade80]/[0.04] p-4 sm:p-5 mb-6">
+          <div className="flex items-start justify-between gap-4 mb-4">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-100">Invite an existing builder</h3>
+              <p className="text-xs text-gray-500 mt-1">Search independent builders by handle or display name. Their profile data stays intact if they accept.</p>
+            </div>
+            <Users size={17} className="text-[#4ade80]" />
+          </div>
+          <input
+            className={INPUT}
+            value={candidateQuery}
+            onChange={(event) => setCandidateQuery(event.target.value)}
+            placeholder="Search @handle or builder name"
+          />
+          {candidateQuery.trim().length > 0 && candidateQuery.trim().length < 2 && (
+            <p className="text-xs text-gray-500 mt-2">Type at least two characters.</p>
+          )}
+          {candidateBusy && <p className="text-xs text-gray-500 mt-3">Searching builders…</p>}
+          {!candidateBusy && candidates.length > 0 && (
+            <div className="mt-3 grid gap-2">
+              {candidates.map((candidate) => (
+                <div key={candidate.id} className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/20 p-3">
+                  <Avatar src={candidate.avatar_url} name={candidate.display_name || candidate.username || "Builder"} className="w-9 h-9 rounded-xl" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold truncate">{candidate.display_name || "Builder"}</p>
+                    <p className="text-xs text-gray-500 truncate">@{candidate.username}</p>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={invitationActionId === candidate.id}
+                    onClick={async () => {
+                      setInvitationActionId(candidate.id);
+                      const result = await createStudioBuilderInvitation(candidate.id);
+                      setInvitationActionId(null);
+                      if (result.error) setError(result.error.message || "Couldn't send the invitation.");
+                      else {
+                        setNotice("Studio invitation sent.");
+                        setCandidates((current) => current.filter((item) => item.id !== candidate.id));
+                      }
+                    }}
+                    className="px-3 py-2 rounded-xl bg-[#4ade80] text-black text-xs font-bold disabled:opacity-50"
+                  >
+                    {invitationActionId === candidate.id ? "Sending…" : "Invite"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          {!candidateBusy && candidateQuery.trim().length >= 2 && candidates.length === 0 && (
+            <p className="text-xs text-gray-500 mt-3">No eligible independent builders found.</p>
+          )}
+        </div>
         <div className="rounded-2xl border border-white/10 bg-black/20 p-4 sm:p-5">
           <div className="flex items-start justify-between gap-4 mb-4">
             <div>
@@ -1387,6 +1463,26 @@ export function StudioModeratorDashboard({ section = "profile" }) {
                 <p className="text-xs text-gray-500">
                   @{member.builder?.username} · {member.availability_status}
                 </p>
+                {member.builder?.builder_profile && (
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {(member.builder.builder_profile.tools || []).map((tool) => <span key={tool} className="rounded-full border border-white/10 px-2 py-1 text-[10px] text-gray-400">{tool}</span>)}
+                    {(member.builder.builder_profile.specialties || []).map((style) => <span key={style} className="rounded-full border border-[#4ade80]/20 bg-[#4ade80]/5 px-2 py-1 text-[10px] text-[#86efac]">{style}</span>)}
+                  </div>
+                )}
+                <p className="text-[11px] text-gray-500 mt-2">
+                  {member.builder?.builder_profile?.project_types?.length || 0} project types · {member.builder?.portfolio?.length || 0} portfolio images · response in {member.builder?.builder_profile?.response_time_hours || "—"}h
+                </p>
+                {member.builder?.bio && <p className="text-xs text-gray-400 mt-2 line-clamp-2">{member.builder.bio}</p>}
+                {member.builder?.builder_profile?.rates && Object.keys(member.builder.builder_profile.rates).length > 0 && (
+                  <p className="text-[11px] text-gray-500 mt-2">
+                    Rates: {Object.entries(member.builder.builder_profile.rates).filter(([, tier]) => tier?.enabled !== false && tier?.price != null).map(([size, tier]) => `${size} ${formatPrice(tier.price)}`).join(" · ")}
+                  </p>
+                )}
+                {member.builder?.portfolio?.length > 0 && (
+                  <div className="flex gap-2 mt-3">
+                    {member.builder.portfolio.slice(0, 4).map((image) => <img key={image.id} src={image.url} alt={image.alt || "Builder portfolio"} className="w-12 h-9 rounded-lg object-cover border border-white/10" />)}
+                  </div>
+                )}
               </div>
               <Link href={`/chats?to=${encodeURIComponent(member.builder?.username || "")}`} className="px-3 py-1.5 rounded-lg border border-white/10 text-xs">
                 Message

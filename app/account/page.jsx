@@ -66,6 +66,10 @@ import {
   StudioEmployeeDashboard,
   StudioModeratorDashboard,
 } from "./StudioAccountDashboard";
+import {
+  listMyStudioInvitations,
+  respondToStudioBuilderInvitation,
+} from "../../lib/studios/api";
 
 const TAGLINE_MAX = 80;
 
@@ -2137,6 +2141,59 @@ function AccountHeader({ profile, builderProfile, onSaved }) {
   );
 }
 
+function StudioInvitationCard({ onAccepted }) {
+  const [invitations, setInvitations] = useState([]);
+  const [busyId, setBusyId] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let active = true;
+    listMyStudioInvitations().then((result) => {
+      if (!active) return;
+      if (result.error) setError(result.error.message || "Couldn't load studio invitations.");
+      else setInvitations(result.invitations || []);
+    });
+    return () => { active = false; };
+  }, []);
+
+  if (invitations.length === 0 && !error) return null;
+  return (
+    <section className="reveal glass rounded-3xl p-6 lg:p-8">
+      <h2 className="font-bold text-xl">Studio invitations</h2>
+      <p className="text-sm text-gray-500 mt-1">Accepting an invitation keeps your existing builder profile, but removes it from the public builder feed while you work with the studio.</p>
+      {error && <p className="auth-banner auth-banner-error mt-4">{error}</p>}
+      <div className="mt-5 space-y-3">
+        {invitations.map((invitation) => (
+          <div key={invitation.id} className="rounded-2xl border border-[#4ade80]/20 bg-[#4ade80]/[0.05] p-4 flex flex-wrap items-center gap-3">
+            {invitation.studio?.logo_url && <img src={invitation.studio.logo_url} alt="" className="w-10 h-10 rounded-xl object-cover" />}
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold">{invitation.studio?.name || "Studio"}</p>
+              <p className="text-xs text-gray-500 mt-1">Invited {new Date(invitation.created_at).toLocaleDateString()}</p>
+            </div>
+            <button type="button" disabled={busyId === invitation.id} onClick={async () => {
+              setBusyId(invitation.id);
+              const result = await respondToStudioBuilderInvitation(invitation.id, "decline");
+              setBusyId(null);
+              if (result.error) setError(result.error.message || "Couldn't decline invitation.");
+              else setInvitations((current) => current.filter((item) => item.id !== invitation.id));
+            }} className="px-3 py-2 rounded-xl border border-white/10 text-xs text-gray-300 disabled:opacity-50">Decline</button>
+            <button type="button" disabled={busyId === invitation.id} onClick={async () => {
+              setBusyId(invitation.id);
+              const result = await respondToStudioBuilderInvitation(invitation.id, "accept");
+              setBusyId(null);
+              if (result.error) setError(result.error.message || "Couldn't accept invitation.");
+              else {
+                setInvitations((current) => current.filter((item) => item.id !== invitation.id));
+                await onAccepted?.();
+              }
+            }} className="px-3 py-2 rounded-xl bg-[#4ade80] text-black text-xs font-bold disabled:opacity-50">{busyId === invitation.id ? "Saving…" : "Accept"}</button>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 // ─── Page ───────────────────────────────────────────────────────────────────
 export default function AccountPage() {
   return (
@@ -2445,6 +2502,7 @@ function AccountPageInner() {
 
           {section === "profile" && (
             <>
+              {isBuilder && <StudioInvitationCard onAccepted={refresh} />}
               <AccountHeader
                 profile={profile}
                 builderProfile={builderProfile}

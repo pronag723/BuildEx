@@ -6,14 +6,13 @@ import { getSupabaseClient } from "../../../../lib/supabase/client";
 import { useAuth } from "../../../../lib/auth/AuthContext";
 import { chooseIndependentBuilderPath } from "../../../../lib/onboarding/api";
 import {
-  completeEmployeeRegistration,
+  savePendingEmployeeCode,
   validateEmployeeCode,
 } from "../../../../lib/studios/api";
 import { STEPS } from "../../../../lib/onboarding/state";
 import OnboardingShell from "../../components/OnboardingShell";
 import OnboardingGate from "../../components/OnboardingGate";
 import OnboardingFooter from "../../components/OnboardingFooter";
-import AvatarUploader from "../../components/AvatarUploader";
 
 const INPUT =
   "w-full px-4 py-3 rounded-2xl bg-black/25 border border-white/10 text-sm outline-none focus:border-[#4ade80]/60 focus:ring-2 focus:ring-[#4ade80]/15";
@@ -33,9 +32,6 @@ function BuilderStudioChoice() {
   const { user, refresh } = useAuth();
   const [code, setCode] = useState("");
   const [studio, setStudio] = useState(null);
-  const [displayName, setDisplayName] = useState("");
-  const [username, setUsername] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
 
@@ -73,23 +69,18 @@ function BuilderStudioChoice() {
     refresh?.();
   }
 
-  async function finishEmployee() {
-    if (!studio || !displayName.trim() || !username.trim() || !avatarUrl) return;
+  async function continueEmployee() {
+    if (!studio) return;
     setBusy(true);
     setError(null);
-    const result = await completeEmployeeRegistration({
-      code: code.trim(),
-      displayName: displayName.trim(),
-      username: username.trim().toLowerCase(),
-      avatarUrl,
-    });
+    const result = await savePendingEmployeeCode(code.trim());
     setBusy(false);
     if (result.error) {
-      setError(result.error.message || "Couldn't join the studio.");
+      setError(result.error.message || "Couldn't save the studio code.");
       return;
     }
     await refresh?.();
-    router.push(STEPS.complete);
+    router.push(STEPS.builderIdentity);
   }
 
   return (
@@ -140,39 +131,11 @@ function BuilderStudioChoice() {
               <p className="text-xs uppercase tracking-widest text-[#4ade80]">Joining studio</p>
               <p className="font-bold mt-1">{studio.name}</p>
             </div>
-            <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
-              <AvatarUploader
-                userId={user?.id}
-                value={avatarUrl}
-                onChange={setAvatarUrl}
-                onError={setError}
-                fallbackInitial={(displayName || "B")[0]}
-              />
-              <div className="flex-1 w-full space-y-4">
-                <label className="block">
-                  <span className="onb-label block mb-2">Nickname</span>
-                  <input
-                    value={displayName}
-                    onChange={(event) => setDisplayName(event.target.value)}
-                    className={INPUT}
-                    maxLength={32}
-                    placeholder="How the studio knows you"
-                  />
-                </label>
-                <label className="block">
-                  <span className="onb-label block mb-2">Username</span>
-                  <input
-                    value={username}
-                    onChange={(event) =>
-                      setUsername(event.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))
-                    }
-                    className={INPUT}
-                    maxLength={24}
-                    placeholder="minecraft_builder"
-                  />
-                </label>
-              </div>
-            </div>
+            <p className="text-sm text-gray-300 leading-relaxed">
+              Continue through the normal builder profile steps so your studio moderator can see your identity,
+              expertise, styles, project types, response time, availability, and rates. Portfolio photos are optional
+              for studio employees.
+            </p>
           </>
         )}
 
@@ -182,16 +145,11 @@ function BuilderStudioChoice() {
       {studio && (
         <OnboardingFooter
           onBack={() => setStudio(null)}
-          onNext={finishEmployee}
-          nextDisabled={
-            busy ||
-            displayName.trim().length < 2 ||
-            username.trim().length < 3 ||
-            !avatarUrl
-          }
+          onNext={continueEmployee}
+          nextDisabled={busy}
           isSaving={busy}
-          nextLabel="Join studio"
-          helper="Employees are private and do not create a public portfolio."
+          nextLabel="Continue profile"
+          helper="Your studio code is saved while you complete the standard builder profile."
         />
       )}
     </div>

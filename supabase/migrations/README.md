@@ -42,6 +42,7 @@ migrations are idempotent (safe to re-run during development).
 | 0054 | `0054_managed_account_deletion.sql` | **Managed account deletion.** Detaches managed-studio `RESTRICT` references so moderators and employees can permanently delete their login without deleting studio order history. |
 | 0055 | `0055_storage_api_account_deletion.sql` | **Storage-safe account deletion.** Stops the deletion RPC from writing directly to protected Storage tables; the Edge Function removes files through the supported Storage API before the database transaction deletes the account. |
 | 0056 | `0056_public_studio_about_access.sql` | **Public studio feed fix.** Grants browser roles read access to the public studio About column so active storefronts can load in the builders feed. |
+| 0057 | `0057_studio_builder_invitations.sql` | **Studio builder lifecycle.** Adds moderator invitations, builder acceptance/decline, complete code-based employee onboarding without portfolio requirements, and safe employee removal back to an independent busy profile. |
 
 ## Field mapping (matches the app code)
 
