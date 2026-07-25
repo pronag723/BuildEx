@@ -16,6 +16,7 @@ import { AVAILABILITY_STATES } from "../../../../../lib/onboarding/constants";
 import { formatPrice, ratesToTiers, SIZE_META } from "../../../../../lib/pricing";
 import { Icon } from "../../../../../lib/icons";
 import { useFavorites } from "../../../../../lib/favorites/FavoritesContext";
+import StudioOfficialBadge from "../../../components/StudioOfficialBadge";
 import {
   fetchStudioReviews,
   getOrCreateStudioConversation,
@@ -750,6 +751,7 @@ export default function BuilderProfilePage({ builder }) {
                   <h1 className="text-2xl sm:text-3xl font-extrabold leading-tight">
                     {builder.display_name}
                   </h1>
+                  {isStudio && builder.is_verified && <StudioOfficialBadge />}
                   {isStudio ? (
                     <span className="px-2.5 py-1 rounded-full text-xs font-semibold border bg-[#4ade80]/10 text-[#4ade80] border-[#4ade80]/30">
                       Studio
