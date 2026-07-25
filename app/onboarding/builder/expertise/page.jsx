@@ -47,6 +47,7 @@ function BuilderExpertiseStep({ state }) {
   const [availability, setAvailability] = useState(bp.availability_status || "available");
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
+  const isPendingStudioEmployee = Boolean(bp.pending_employee_code);
 
   const canContinue = tools.length >= 1 && !!responseKey;
 
@@ -61,7 +62,7 @@ function BuilderExpertiseStep({ state }) {
       tools,
       projectTypes,
       responseTimeHours,
-      availabilityStatus: availability,
+      ...(isPendingStudioEmployee ? {} : { availabilityStatus: availability }),
     });
     setSaving(false);
     if (saveErr) {
@@ -125,30 +126,32 @@ function BuilderExpertiseStep({ state }) {
           />
         </div>
 
-        {/* Availability */}
-        <div className="glass onb-card onb-fade-in onb-fade-in-4">
-          <div className="onb-label mb-3">Right now you&apos;re…</div>
-          <div className="flex flex-wrap gap-2">
-            {AVAILABILITY_STATES.map((opt) => {
-              const active = availability === opt.key;
-              return (
-                <button
-                  key={opt.key}
-                  type="button"
-                  onClick={() => setAvailability(opt.key)}
-                  className={`availability-pill ${active ? "is-active" : ""}`}
-                  aria-pressed={active}
-                >
-                  <span
-                    className="availability-dot"
-                    style={{ background: opt.dot, boxShadow: `0 0 10px ${opt.dot}` }}
-                  />
-                  <span>{opt.label}</span>
-                </button>
-              );
-            })}
+        {/* Employment status is set by studio employees after account creation. */}
+        {!isPendingStudioEmployee && (
+          <div className="glass onb-card onb-fade-in onb-fade-in-4">
+            <div className="onb-label mb-3">Right now you&apos;re…</div>
+            <div className="flex flex-wrap gap-2">
+              {AVAILABILITY_STATES.map((opt) => {
+                const active = availability === opt.key;
+                return (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() => setAvailability(opt.key)}
+                    className={`availability-pill ${active ? "is-active" : ""}`}
+                    aria-pressed={active}
+                  >
+                    <span
+                      className="availability-dot"
+                      style={{ background: opt.dot, boxShadow: `0 0 10px ${opt.dot}` }}
+                    />
+                    <span>{opt.label}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
         {error && (
           <div role="alert" className="auth-banner auth-banner-error">
