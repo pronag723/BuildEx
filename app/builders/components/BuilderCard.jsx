@@ -155,7 +155,7 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
               {previews.map((p, i) => (
                 <span
                   key={p.id}
-                  className={`h-1.5 rounded-full transition-all duration-200 ${
+                  className={`carousel-progress-indicator h-1.5 rounded-full ${
                     i === index ? "w-4 bg-[#4ade80]" : "w-1.5 bg-white/50"
                   }`}
                 />

@@ -272,6 +272,7 @@ function SectionTabs({ section, setSection, isBuilder, isStudio = false, isEmplo
       ? [
         BASE_ACCOUNT_SECTIONS[0],
         { key: "orders", label: "Assignments", short: "Orders" },
+        { key: "payouts", label: "Payments", short: "Payments" },
         BASE_ACCOUNT_SECTIONS[3],
       ]
       : isBuilder
@@ -2510,16 +2511,6 @@ function AccountPageInner() {
               <SectionTabs section={section} setSection={setSection} isBuilder isEmployee />
               {section === "danger" ? (
                 <div className="space-y-8"><AccountActionsSection /></div>
-              ) : section === "payouts" ? (
-                <section className="reveal glass rounded-3xl p-6 lg:p-8">
-                  <h2 className="font-bold text-xl">Payment information</h2>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Payment details for studio commissions will be available here soon.
-                  </p>
-                  <div className="mt-5 rounded-2xl border border-dashed border-white/15 p-5 text-sm text-gray-500">
-                    No payment method has been added yet.
-                  </div>
-                </section>
               ) : (
                 <>
                   {section === "profile" && (

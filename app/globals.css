@@ -139,6 +139,53 @@ button.carousel-arrow:active {
   transform: translateY(-50%) !important;
 }
 
+/* The active portfolio marker grows from a dot rather than snapping between
+   widths. A dedicated transition avoids animating unrelated layout values. */
+.carousel-progress-indicator {
+  transition: width 360ms cubic-bezier(0.22, 1, 0.36, 1), background-color 240ms ease, opacity 240ms ease;
+}
+
+/* Studio team controls share the same responsive, tactile feedback as the
+   marketplace CTAs while keeping destructive actions visually restrained. */
+.team-action-button {
+  transition-property: transform, color, background-color, border-color, box-shadow, opacity;
+  transition-duration: 260ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.team-action-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.team-action-button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.2);
+}
+
+.team-member-card {
+  transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1), border-color 260ms ease, background-color 260ms ease, box-shadow 320ms ease;
+}
+
+.team-member-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(74, 222, 128, 0.3);
+  background-color: rgba(74, 222, 128, 0.035);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.16);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .carousel-progress-indicator,
+  .team-action-button,
+  .team-member-card {
+    transition-duration: 1ms;
+  }
+
+  .team-action-button:hover:not(:disabled),
+  .team-member-card:hover {
+    transform: none;
+  }
+}
+
 .studio-profile-hero {
   position: relative;
   overflow: hidden;

@@ -51,6 +51,7 @@ import { formatPrice, ratesToTiers } from "../../lib/pricing";
 import AvatarUploader from "../onboarding/components/AvatarUploader";
 import Avatar from "../../lib/ui/Avatar";
 import { RANKS } from "../builders/data/builders";
+import { withBase } from "../home/utils";
 import {
   BIO_MAX,
   PORTFOLIO_ACCEPTED_MIME,
@@ -1239,7 +1240,7 @@ export function StudioModeratorDashboard({ section = "profile" }) {
                   </div>
                   <Link
                     href={`/builders/profile?u=${encodeURIComponent(candidate.username)}`}
-                    className="inline-flex rounded-xl border border-white/15 px-3 py-2 text-xs font-semibold text-gray-300 hover:border-[#4ade80]/50 hover:text-[#4ade80]"
+                    className="team-action-button inline-flex rounded-xl border border-white/15 px-3 py-2 text-xs font-semibold text-gray-300 hover:border-[#4ade80]/50 hover:bg-white/[0.04] hover:text-[#4ade80]"
                   >
                     Profile
                   </Link>
@@ -1264,7 +1265,7 @@ export function StudioModeratorDashboard({ section = "profile" }) {
                         ));
                       }
                     }}
-                    className={`px-3 py-2 rounded-xl text-xs font-bold transition-[transform,background-color,border-color,color,box-shadow,opacity] duration-300 ease-out disabled:cursor-not-allowed ${candidate.pending_invitation_id || invitedBuilderIds.has(candidate.id)
+                    className={`team-action-button px-3 py-2 rounded-xl text-xs font-bold transition-[transform,background-color,border-color,color,box-shadow,opacity] duration-300 ease-out disabled:cursor-not-allowed ${candidate.pending_invitation_id || invitedBuilderIds.has(candidate.id)
                       ? "border border-white/10 bg-white/10 text-gray-500 opacity-100"
                       : "bg-[#4ade80] text-black disabled:opacity-50 hover:-translate-y-0.5 hover:bg-[#86efac] hover:shadow-[0_8px_20px_rgba(74,222,128,0.22)]"}`}
                   >
@@ -1324,7 +1325,7 @@ export function StudioModeratorDashboard({ section = "profile" }) {
               }
             }}
             disabled={!newCode.trim()}
-            className="h-[46px] px-5 rounded-2xl bg-[#4ade80] text-black text-sm font-bold transition-all hover:bg-[#22c55e] hover:-translate-y-0.5 disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none"
+            className="team-action-button h-[46px] px-5 rounded-2xl bg-[#4ade80] text-black text-sm font-bold transition-all hover:bg-[#22c55e] hover:-translate-y-0.5 hover:shadow-[0_10px_24px_rgba(74,222,128,0.24)] disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none"
           >
             Generate
           </button>
@@ -1366,7 +1367,7 @@ export function StudioModeratorDashboard({ section = "profile" }) {
                 return (
                   <article
                     key={codeRow.id}
-                    className="rounded-2xl border border-white/10 bg-white/[0.025] p-4 sm:p-5 transition-colors hover:border-white/20"
+                    className="team-member-card rounded-2xl border border-white/10 bg-white/[0.025] p-4 sm:p-5 transition-colors hover:border-white/20"
                   >
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
                       <div className="min-w-0 flex-1">
@@ -1413,7 +1414,7 @@ export function StudioModeratorDashboard({ section = "profile" }) {
                         <button
                           type="button"
                           onClick={() => copyCode(codeRow)}
-                          className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 px-3 py-2 text-xs font-semibold text-gray-200 transition-colors hover:border-[#4ade80]/30 hover:bg-[#4ade80]/10 hover:text-[#4ade80]"
+                          className="team-action-button inline-flex items-center gap-1.5 rounded-xl border border-white/10 px-3 py-2 text-xs font-semibold text-gray-200 transition-colors hover:border-[#4ade80]/30 hover:bg-[#4ade80]/10 hover:text-[#4ade80]"
                         >
                           {copiedCodeId === codeRow.id ? <Check size={14} /> : <Copy size={14} />}
                           {copiedCodeId === codeRow.id ? "Copied" : "Copy"}
@@ -1423,7 +1424,7 @@ export function StudioModeratorDashboard({ section = "profile" }) {
                             type="button"
                             onClick={() => toggleCode(codeRow)}
                             disabled={actionBusy}
-                            className="rounded-xl border border-white/10 px-3 py-2 text-xs font-semibold text-gray-300 transition-colors hover:bg-white/5 disabled:opacity-50"
+                            className="team-action-button rounded-xl border border-white/10 px-3 py-2 text-xs font-semibold text-gray-300 transition-colors hover:bg-white/5 disabled:opacity-50"
                           >
                             {codeRow.status === "active" ? "Disable" : "Enable"}
                           </button>
@@ -1432,7 +1433,7 @@ export function StudioModeratorDashboard({ section = "profile" }) {
                           type="button"
                           onClick={() => removeCode(codeRow)}
                           disabled={actionBusy}
-                          className="inline-flex items-center gap-1.5 rounded-xl border border-red-400/20 bg-red-400/[0.05] px-3 py-2 text-xs font-semibold text-red-300 transition-colors hover:border-red-400/40 hover:bg-red-400/10 disabled:opacity-50"
+                          className="team-action-button inline-flex items-center gap-1.5 rounded-xl border border-red-400/20 bg-red-400/[0.05] px-3 py-2 text-xs font-semibold text-red-300 transition-colors hover:border-red-400/40 hover:bg-red-400/10 disabled:opacity-50"
                         >
                           <Trash2 size={14} />
                           Delete
@@ -1447,7 +1448,7 @@ export function StudioModeratorDashboard({ section = "profile" }) {
         </div>
         <div className="grid gap-3">
           {members.filter((member) => member.status === "active").map((member) => (
-            <div key={member.id} className="rounded-2xl border border-white/10 bg-black/[0.08] p-4">
+            <div key={member.id} className="team-member-card rounded-2xl border border-white/10 bg-black/[0.08] p-4">
               <div className="flex items-center gap-3 mb-4">
                 <Avatar
                   src={member.builder?.avatar_url}
@@ -1507,7 +1508,7 @@ export function StudioModeratorDashboard({ section = "profile" }) {
                   </div>
                 )}
               </div>
-              <Link href={`/chats?to=${encodeURIComponent(member.builder?.username || "")}`} className="px-3 py-1.5 rounded-lg border border-white/10 text-xs">
+              <Link href={`/chats?to=${encodeURIComponent(member.builder?.username || "")}`} className="team-action-button px-3 py-1.5 rounded-lg border border-white/10 text-xs">
                 Message
               </Link>
               <button
@@ -1517,7 +1518,7 @@ export function StudioModeratorDashboard({ section = "profile" }) {
                   if (result.error) setError(result.error.message);
                   else load();
                 }}
-                className="px-3 py-1.5 rounded-lg border border-red-400/20 text-red-300 text-xs"
+                className="team-action-button px-3 py-1.5 rounded-lg border border-red-400/20 text-red-300 text-xs"
               >
                 Remove
               </button>
@@ -1641,7 +1642,7 @@ export function StudioModeratorDashboard({ section = "profile" }) {
                   </button>
                 </div>
               )}
-              <Link href={`/orders/?id=${order.id}`} className="px-3 py-2.5 rounded-xl border border-[#4ade80]/30 bg-[#4ade80]/10 text-[#4ade80] text-xs font-semibold inline-flex items-center gap-1.5 hover:bg-[#4ade80] hover:text-black transition-all">
+              <Link href={withBase(`/orders/?id=${encodeURIComponent(order.id)}`)} className="px-3 py-2.5 rounded-xl border border-[#4ade80]/30 bg-[#4ade80]/10 text-[#4ade80] text-xs font-semibold inline-flex items-center gap-1.5 hover:-translate-y-0.5 hover:bg-[#4ade80] hover:text-black hover:shadow-[0_8px_20px_rgba(74,222,128,0.2)] transition-all">
                 Open order <ArrowRight size={13} />
               </Link>
             </div>
@@ -1932,8 +1933,8 @@ export function StudioEmployeeDashboard({ builderProfile, section = "profile" })
           {orders.map((order) => (
             <div key={order.id} className="rounded-2xl border border-white/10">
             <Link
-              href={`/orders/?id=${order.id}`}
-              className="block p-4 hover:text-[#4ade80]"
+              href={withBase(`/orders/?id=${encodeURIComponent(order.id)}`)}
+              className="block p-4 transition-[color,transform] duration-300 hover:text-[#4ade80]"
             >
               <p className="font-semibold text-sm">{order.buyer?.display_name || "Buyer"}</p>
               <p className="text-xs text-gray-500 mt-1">{order.status} · {order.style}</p>
@@ -1958,12 +1959,16 @@ export function StudioEmployeeDashboard({ builderProfile, section = "profile" })
           ))}
         </div>
       </Card>}
-      {section === "orders" && <Card title="Tracked employee commission">
-        <p className="text-2xl font-extrabold text-[#4ade80]">{formatPrice(total)}</p>
-        <p className="text-xs text-gray-500 mt-1">
-          Informational amount owed by the studio; employee payouts are currently handled off-platform.
-        </p>
-        <div className="mt-4 divide-y divide-white/[0.07]">
+      {section === "payouts" && <Card title="Payment balance" description="Your studio commission is already accounted for in every amount shown.">
+        <div className="rounded-2xl border border-[#4ade80]/20 bg-[#4ade80]/[0.06] p-5 sm:p-6">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#86efac]">Earned through your studio</p>
+          <p className="mt-2 text-3xl font-extrabold tracking-tight text-[#4ade80]">{formatPrice(total)}</p>
+          <p className="mt-2 max-w-xl text-xs leading-relaxed text-gray-400">
+            This is your tracked share after the studio&apos;s commission. Payments are not available in BuildEx yet, so your studio will settle this balance separately.
+          </p>
+        </div>
+        <div className="mt-5 divide-y divide-white/[0.07]">
+          {earnings.length === 0 && <p className="py-4 text-sm text-gray-500">Completed studio work will appear here once it earns a commission.</p>}
           {earnings.map((row) => (
             <div key={row.id} className="py-3 flex justify-between gap-3 text-sm">
               <span>{row.studio?.name || "Studio"} · {(Number(row.commission_bps) / 100).toFixed(2)}%</span>
