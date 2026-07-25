@@ -2181,7 +2181,7 @@ function StudioInvitationCard({ onAccepted }) {
           <div className="rounded-2xl border border-dashed border-white/10 p-6 text-center text-sm text-gray-500">No pending studio invitations.</div>
         )}
         {invitations.map((invitation) => (
-          <div key={invitation.id} className="rounded-2xl border border-[#4ade80]/25 bg-gradient-to-br from-[#4ade80]/10 to-transparent p-4 sm:p-5">
+          <div key={invitation.id} className="rounded-2xl border border-[#4ade80]/25 bg-gradient-to-br from-[#4ade80]/10 to-transparent p-4 sm:p-5 transition-[transform,background-color,border-color,box-shadow] duration-500 ease-out hover:-translate-y-0.5 hover:border-[#4ade80]/40 hover:shadow-[0_16px_36px_rgba(0,0,0,0.18)]">
             <div className="flex items-center gap-3">
               {invitation.studio?.logo_url ? <img src={invitation.studio.logo_url} alt="" className="w-12 h-12 rounded-2xl object-cover border border-white/10" /> : <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-lg font-bold">{(invitation.studio?.name || "S").charAt(0)}</div>}
               <div className="min-w-0 flex-1">
@@ -2191,19 +2191,19 @@ function StudioInvitationCard({ onAccepted }) {
               </div>
             </div>
             <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <div className="rounded-xl border border-white/10 bg-black/15 p-3">
+              <div className="rounded-xl border border-white/10 bg-black/15 p-3 transition-[transform,background-color,border-color] duration-300 ease-out hover:-translate-y-0.5 hover:border-white/20 hover:bg-black/25">
                 <p className="text-lg font-bold">{Number(invitation.studio?.avg_rating || 0).toFixed(2)}</p>
                 <p className="text-[10px] uppercase tracking-wide text-gray-500">Rating</p>
               </div>
-              <div className="rounded-xl border border-white/10 bg-black/15 p-3">
+              <div className="rounded-xl border border-white/10 bg-black/15 p-3 transition-[transform,background-color,border-color] duration-300 ease-out hover:-translate-y-0.5 hover:border-white/20 hover:bg-black/25">
                 <p className="text-lg font-bold">{Number(invitation.studio?.reviews_count || 0)}</p>
                 <p className="text-[10px] uppercase tracking-wide text-gray-500">Reviews</p>
               </div>
-              <div className="rounded-xl border border-white/10 bg-black/15 p-3">
+              <div className="rounded-xl border border-white/10 bg-black/15 p-3 transition-[transform,background-color,border-color] duration-300 ease-out hover:-translate-y-0.5 hover:border-white/20 hover:bg-black/25">
                 <p className="text-lg font-bold">{Number(invitation.studio?.completed_orders || 0)}</p>
                 <p className="text-[10px] uppercase tracking-wide text-gray-500">Projects</p>
               </div>
-              <div className="rounded-xl border border-[#4ade80]/20 bg-[#4ade80]/5 p-3">
+              <div className="rounded-xl border border-[#4ade80]/20 bg-[#4ade80]/5 p-3 transition-[transform,background-color,border-color] duration-300 ease-out hover:-translate-y-0.5 hover:border-[#4ade80]/40 hover:bg-[#4ade80]/10">
                 <p className="text-lg font-bold text-[#4ade80]">
                   {invitation.studio?.employee_commission_bps == null
                     ? "—"
@@ -2219,7 +2219,7 @@ function StudioInvitationCard({ onAccepted }) {
               {invitation.studio?.slug && (
                 <Link
                   href={`/studios?s=${encodeURIComponent(invitation.studio.slug)}`}
-                  className="mr-auto inline-flex items-center rounded-xl border border-[#4ade80]/30 bg-[#4ade80]/10 px-4 py-2 text-xs font-semibold text-[#4ade80] hover:bg-[#4ade80]/20"
+                  className="mr-auto inline-flex items-center rounded-xl border border-[#4ade80]/30 bg-[#4ade80]/10 px-4 py-2 text-xs font-semibold text-[#4ade80] transition-[transform,background-color,border-color,box-shadow] duration-300 ease-out hover:-translate-y-0.5 hover:border-[#4ade80]/60 hover:bg-[#4ade80]/20 hover:shadow-[0_8px_20px_rgba(74,222,128,0.14)]"
                 >
                   View studio profile
                 </Link>
@@ -2230,7 +2230,7 @@ function StudioInvitationCard({ onAccepted }) {
                 setBusyId(null);
                 if (result.error) setError(result.error.message || "Couldn't decline invitation.");
                 else setInvitations((current) => current.filter((item) => item.id !== invitation.id));
-              }} className="px-4 py-2 rounded-xl border border-white/10 text-xs text-gray-300 disabled:opacity-50">Decline</button>
+              }} className="px-4 py-2 rounded-xl border border-white/10 text-xs text-gray-300 transition-[transform,background-color,border-color] duration-300 ease-out hover:-translate-y-0.5 hover:border-white/25 hover:bg-white/5 disabled:opacity-50">Decline</button>
               <button type="button" disabled={busyId === invitation.id} onClick={async () => {
                 setBusyId(invitation.id);
                 const result = await respondToStudioBuilderInvitation(invitation.id, "accept");
@@ -2240,7 +2240,7 @@ function StudioInvitationCard({ onAccepted }) {
                   setInvitations((current) => current.filter((item) => item.id !== invitation.id));
                   await onAccepted?.();
                 }
-              }} className="px-4 py-2 rounded-xl bg-[#4ade80] text-black text-xs font-bold disabled:opacity-50">{busyId === invitation.id ? "Saving…" : "Accept invitation"}</button>
+              }} className="px-4 py-2 rounded-xl bg-[#4ade80] text-black text-xs font-bold transition-[transform,background-color,box-shadow] duration-300 ease-out hover:-translate-y-0.5 hover:bg-[#86efac] hover:shadow-[0_8px_20px_rgba(74,222,128,0.22)] disabled:opacity-50">{busyId === invitation.id ? "Saving…" : "Accept invitation"}</button>
             </div>
           </div>
         ))}

@@ -533,6 +533,7 @@ export function StudioModeratorDashboard({ section = "profile" }) {
   const [members, setMembers] = useState([]);
   const [candidateQuery, setCandidateQuery] = useState("");
   const [candidates, setCandidates] = useState([]);
+  const [invitedBuilderIds, setInvitedBuilderIds] = useState(() => new Set());
   const [candidateBusy, setCandidateBusy] = useState(false);
   const [invitationActionId, setInvitationActionId] = useState(null);
   const [codes, setCodes] = useState([]);
@@ -1220,7 +1221,7 @@ export function StudioModeratorDashboard({ section = "profile" }) {
           {!candidateBusy && candidates.length > 0 && (
             <div className="mt-3 grid gap-2">
               {candidates.map((candidate) => (
-                <div key={candidate.id} className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/20 p-3">
+                <div key={candidate.id} className="group flex items-center gap-3 rounded-xl border border-white/10 bg-black/20 p-3 transition-[transform,background-color,border-color,box-shadow] duration-300 ease-out hover:-translate-y-0.5 hover:border-[#4ade80]/25 hover:bg-[#4ade80]/[0.04] hover:shadow-[0_10px_30px_rgba(0,0,0,0.16)]">
                   <Avatar src={candidate.avatar_url} name={candidate.display_name || candidate.username || "Builder"} className="w-9 h-9 rounded-xl" />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 min-w-0">
@@ -1244,7 +1245,7 @@ export function StudioModeratorDashboard({ section = "profile" }) {
                   </Link>
                   <button
                     type="button"
-                    disabled={invitationActionId === candidate.id || Boolean(candidate.pending_invitation_id)}
+                    disabled={invitationActionId === candidate.id || Boolean(candidate.pending_invitation_id) || invitedBuilderIds.has(candidate.id)}
                     onClick={async () => {
                       setInvitationActionId(candidate.id);
                       const result = await createStudioBuilderInvitation(candidate.id);
@@ -1252,17 +1253,22 @@ export function StudioModeratorDashboard({ section = "profile" }) {
                       if (result.error) setError(result.error.message || "Couldn't send the invitation.");
                       else {
                         setNotice("Studio invitation sent.");
+                        setInvitedBuilderIds((current) => {
+                          const next = new Set(current);
+                          next.add(candidate.id);
+                          return next;
+                        });
                         setCandidates((current) => current.map((item) => item.id === candidate.id
                           ? { ...item, pending_invitation_id: result.invitationId, pending_invitation_status: "pending" }
                           : item
                         ));
                       }
                     }}
-                    className={`px-3 py-2 rounded-xl text-xs font-bold disabled:cursor-not-allowed ${candidate.pending_invitation_id
-                      ? "border border-white/10 bg-white/10 text-gray-500"
-                      : "bg-[#4ade80] text-black disabled:opacity-50"}`}
+                    className={`px-3 py-2 rounded-xl text-xs font-bold transition-[transform,background-color,border-color,color,box-shadow,opacity] duration-300 ease-out disabled:cursor-not-allowed ${candidate.pending_invitation_id || invitedBuilderIds.has(candidate.id)
+                      ? "border border-white/10 bg-white/10 text-gray-500 opacity-100"
+                      : "bg-[#4ade80] text-black disabled:opacity-50 hover:-translate-y-0.5 hover:bg-[#86efac] hover:shadow-[0_8px_20px_rgba(74,222,128,0.22)]"}`}
                   >
-                    {invitationActionId === candidate.id ? "Sending…" : candidate.pending_invitation_id ? "Sent" : "Invite"}
+                    {invitationActionId === candidate.id ? "Sending…" : candidate.pending_invitation_id || invitedBuilderIds.has(candidate.id) ? "Invited" : "Invite"}
                   </button>
                 </div>
               ))}
