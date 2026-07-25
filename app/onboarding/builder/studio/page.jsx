@@ -135,8 +135,9 @@ function BuilderStudioChoice() {
               <p className="font-bold mt-1">{studio.name}</p>
             </div>
             <p className="text-sm text-gray-300 leading-relaxed">
-              We only need your name and unique @nickname. Your studio manages
-              pricing, public availability, and its portfolio; an avatar is optional.
+              You will complete the same builder details as every other builder:
+              tools, styles, collaboration preferences, and rates. A portfolio
+              is the only optional step for studio employees.
             </p>
           </>
         )}

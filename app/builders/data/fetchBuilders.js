@@ -171,9 +171,7 @@ export async function fetchBuilders() {
   const builders = error ? [] : (data || [])
     .filter(
       (row) =>
-        row.builder &&
-        row.builder.profile_type !== "studio_employee" &&
-        !isHiddenFromFeed(row.builder)
+        row.builder && !isHiddenFromFeed(row.builder)
     )
     .map(mapRow);
 
@@ -237,7 +235,6 @@ function mapProfileRow(row) {
     // RLS, so exposing the uuid here is no different from selecting it directly.
     id: row.id,
     response_time: responseTimeLabel(bp.response_time_hours),
-    workflow: bp.tagline || "",
     tools: toolLabels(bp.tools),
     rates: normalizeProfileRates(bp.rates),
     member_since: base.member_since || new Date().toISOString(),
