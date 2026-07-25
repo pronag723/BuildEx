@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { publicAsset, withBase } from "../utils";
+import { withBase } from "../utils";
 import { fetchBuilders } from "../../builders/data/fetchBuilders";
 import { Stars } from "../../../lib/icons";
 
@@ -70,7 +70,7 @@ export default function HeroSection({ heroVisualRef, onAnchorClick }) {
           <div className="glass rounded-3xl p-6 w-80 floating-card card-hover absolute -right-8 top-12 shadow-2xl border border-white/10">
             <div className="flex items-center gap-3 mb-4">
               <img
-                src={publicAsset("/avatars/reviewer-4.svg")}
+                src="https://picsum.photos/id/1015/64/64"
                 alt="Builder"
                 className="w-12 h-12 rounded-2xl object-cover minecraft-img"
                 loading="lazy"
@@ -89,13 +89,12 @@ export default function HeroSection({ heroVisualRef, onAnchorClick }) {
                 <div className="text-[#4ade80] font-semibold">$850</div>
                 <div className="text-xs text-emerald-400">+8% fee (Master)</div>
               </div>
-              <a
-                href={withBase("/builders")}
-                onClick={(event) => onAnchorClick(event, "/builders")}
+              <button
+                type="button"
                 className="text-xs bg-white/10 hover:bg-white/20 px-4 py-2 rounded-full transition-colors"
               >
                 View Build
-              </a>
+              </button>
             </div>
           </div>
 
@@ -108,13 +107,12 @@ export default function HeroSection({ heroVisualRef, onAnchorClick }) {
                 <div className="font-medium">$620</div>
                 <div className="text-xs text-emerald-400">by Architect • 4h ago</div>
               </div>
-              <a
-                href={withBase("/builders")}
-                onClick={(event) => onAnchorClick(event, "/builders")}
+              <button
+                type="button"
                 className="text-xs bg-[#4ade80] hover:bg-[#22c55e] text-black px-4 py-2 rounded-full transition-all font-medium"
               >
                 Accept
-              </a>
+              </button>
             </div>
           </div>
 

@@ -17,24 +17,9 @@ export function withBase(path) {
   return publicAsset(path);
 }
 
-let activeScrollAnimation = null;
-
 export function smoothScrollTo(target, duration = 800) {
   const targetElement = document.querySelector(target);
   if (!targetElement) return;
-
-  // A second navigation click used to start a competing requestAnimationFrame
-  // loop, making the page lurch between two destinations. Keep one scroll
-  // transaction at a time and honour the system motion preference.
-  if (activeScrollAnimation) {
-    window.cancelAnimationFrame(activeScrollAnimation);
-    activeScrollAnimation = null;
-  }
-
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    targetElement.scrollIntoView({ block: "start", behavior: "auto" });
-    return;
-  }
 
   const startPosition = window.pageYOffset;
   const targetPosition =
@@ -52,14 +37,10 @@ export function smoothScrollTo(target, duration = 800) {
         : -1 + (4 - 2 * progress) * progress;
 
     window.scrollTo(0, startPosition + distance * ease);
-    if (timeElapsed < duration) {
-      activeScrollAnimation = requestAnimationFrame(animation);
-    } else {
-      activeScrollAnimation = null;
-    }
+    if (timeElapsed < duration) requestAnimationFrame(animation);
   }
 
-  activeScrollAnimation = requestAnimationFrame(animation);
+  requestAnimationFrame(animation);
 }
 
 export function showSoon(message) {

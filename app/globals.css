@@ -129,27 +129,14 @@ button:not(:disabled) {
   transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Keep the pressed state from replacing a component's translate/rotate
-   transform. Replacing it with scale() caused a visible "jump" on controls
-   that lift or slide on hover (tabs, cards and menu buttons in particular). */
 button:not(:disabled):active {
-  opacity: 0.88;
+  transform: scale(0.98);
 }
 
-button:not(:disabled):focus-visible,
-a:focus-visible,
-input:focus-visible,
-textarea:focus-visible,
-select:focus-visible,
-[role="button"]:focus-visible {
-  outline: 2px solid #4ade80;
-  outline-offset: 3px;
-}
-
-/* Browser-native focus rings on dark glass frequently disappear into the
-   surface. A consistent ring makes keyboard navigation feel intentional. */
-:focus:not(:focus-visible) {
-  outline: none;
+/* Carousel arrows are positioned with translateY(-50%). Keep that geometry
+   fixed while still allowing other buttons to use the global press feedback. */
+button.carousel-arrow:active {
+  transform: translateY(-50%) !important;
 }
 
 /* The active portfolio marker grows from a dot rather than snapping between
@@ -906,8 +893,7 @@ body {
 
 .mobile-menu-panel {
   transform: translateY(-16px);
-  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
-  will-change: transform;
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .mobile-menu.open .mobile-menu-panel {
@@ -927,8 +913,7 @@ body {
   transition:
     opacity 0.25s ease,
     visibility 0.25s ease,
-    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
-  will-change: opacity, transform;
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .profile-menu.open {
@@ -952,7 +937,6 @@ body {
 }
 
 .mobile-nav-link:hover,
-.mobile-nav-link:focus-visible,
 .mobile-nav-link.active {
   background: rgba(74, 222, 128, 0.1);
   color: #4ade80;
@@ -3220,28 +3204,5 @@ body {
 
 @media (min-width: 1800px) {
   .onb-section-title { font-size: 3rem; }
-}
-
-/* One reliable reduced-motion boundary for every surface. Individual rules
-   above preserve layout-specific final states; this prevents late-added
-   utility animations (spinners excluded) from reintroducing movement. */
-@media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto !important;
-  }
-
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    scroll-behavior: auto !important;
-    transition-duration: 0.01ms !important;
-  }
-
-  .reveal {
-    opacity: 1;
-    transform: none;
-  }
 }
 
