@@ -73,6 +73,13 @@ export default function BuildExPage() {
     const edgeGlow = edgeGlowRef.current;
     if (!gradientBg || !edgeGlow) return undefined;
 
+    // The moving ambience is decorative, so do not keep a continuous render
+    // loop alive for visitors who ask their OS to reduce motion.
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      edgeGlow.style.opacity = "0.5";
+      return undefined;
+    }
+
     const config = {
       edgeOffset: 12,
       speedMultiplier: 1,
@@ -265,6 +272,11 @@ export default function BuildExPage() {
     // Hash anchors (e.g. "#projects") — smooth scroll
     if (href && href !== "#") {
       smoothScrollTo(href);
+      return;
+    }
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      window.scrollTo({ top: 0, behavior: "auto" });
       return;
     }
 
