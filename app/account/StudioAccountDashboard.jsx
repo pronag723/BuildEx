@@ -16,10 +16,14 @@ import {
   GripHorizontal,
   ImagePlus,
   Inbox,
+  MessageCircle,
   Pencil,
+  Search,
   ShieldCheck,
+  SlidersHorizontal,
   Star,
   Trash2,
+  UserMinus,
   UserRoundCheck,
   Users,
   Wallet,
@@ -58,10 +62,13 @@ import Avatar from "../../lib/ui/Avatar";
 import { RANKS } from "../builders/data/builders";
 import { withBase } from "../home/utils";
 import {
+  AVAILABILITY_STATES,
   BIO_MAX,
+  BUILDER_TOOLS,
   PORTFOLIO_ACCEPTED_MIME,
   PORTFOLIO_MAX_FILE_MB,
   PORTFOLIO_MAX_IMAGES,
+  PROJECT_TYPES,
 } from "../../lib/onboarding/constants";
 import {
   RatesEditor,
@@ -72,6 +79,24 @@ import {
 
 const INPUT =
   "studio-control w-full px-4 py-3 rounded-2xl bg-black/25 border border-white/10 text-sm outline-none transition-all hover:border-white/20 focus:border-[#4ade80]/60 focus:ring-4 focus:ring-[#4ade80]/10";
+
+const TOOL_LABELS = Object.fromEntries(BUILDER_TOOLS.map(({ key, label }) => [key, label]));
+const PROJECT_TYPE_LABELS = Object.fromEntries(
+  PROJECT_TYPES.map(({ key, label }) => [key, label])
+);
+const AVAILABILITY_COPY = Object.fromEntries(
+  AVAILABILITY_STATES.map(({ key, label, short }) => [key, { label, short }])
+);
+
+function readableProfileValue(value, labels = {}) {
+  if (!value) return "";
+  return (
+    labels[value] ||
+    String(value)
+      .replace(/[_-]+/g, " ")
+      .replace(/\b\w/g, (letter) => letter.toUpperCase())
+  );
+}
 
 const PAYOUT_NETWORKS = [
   {
@@ -564,6 +589,9 @@ export function StudioModeratorDashboard({ section = "profile" }) {
   const [copiedCodeId, setCopiedCodeId] = useState(null);
   const [withdrawDollars, setWithdrawDollars] = useState("");
   const [orderStatusFilter, setOrderStatusFilter] = useState("active");
+  const [memberQuery, setMemberQuery] = useState("");
+  const [memberAvailabilityFilter, setMemberAvailabilityFilter] = useState("all");
+  const [memberSort, setMemberSort] = useState("name");
   const [assignmentOrder, setAssignmentOrder] = useState(null);
   const [assignmentTarget, setAssignmentTarget] = useState(null);
   const [assigningBuilder, setAssigningBuilder] = useState(false);
@@ -708,6 +736,70 @@ export function StudioModeratorDashboard({ section = "profile" }) {
       ),
     [members]
   );
+  const teamMembers = useMemo(() => {
+    const query = memberQuery.trim().toLowerCase();
+    const active = members
+      .filter((member) => member.status === "active")
+      .map((member) => {
+        const profile = member.builder?.builder_profile || {};
+        const memberOrders = orders.filter(
+          (order) => order.assigned_builder_id === member.builder_id
+        );
+        const earnings = employeeEarnings.filter(
+          (row) => row.builder_id === member.builder_id
+        );
+        return {
+          ...member,
+          profile,
+          trackedEarnings: earnings.reduce(
+            (sum, row) => sum + Number(row.amount_kopecks || 0),
+            0
+          ),
+          completedProjects: memberOrders.filter((order) => order.status === "completed").length,
+          activeAssignments: memberOrders.filter(
+            (order) => !["completed", "cancelled"].includes(order.status)
+          ).length,
+        };
+      })
+      .filter((member) => {
+        if (
+          memberAvailabilityFilter !== "all" &&
+          member.availability_status !== memberAvailabilityFilter
+        ) {
+          return false;
+        }
+        if (!query) return true;
+        return [
+          member.builder?.display_name,
+          member.builder?.username,
+          member.builder?.bio,
+          ...(member.profile.tools || []),
+          ...(member.profile.specialties || []),
+          ...(member.profile.project_types || []),
+        ].some((value) => String(value || "").toLowerCase().includes(query));
+      });
+
+    return active.sort((a, b) => {
+      if (memberSort === "active-work") return b.activeAssignments - a.activeAssignments;
+      if (memberSort === "completed") return b.completedProjects - a.completedProjects;
+      if (memberSort === "availability") {
+        const priority = { available: 0, limited: 1, busy: 2 };
+        const difference =
+          (priority[a.availability_status] ?? 3) - (priority[b.availability_status] ?? 3);
+        if (difference) return difference;
+      }
+      return String(a.builder?.display_name || a.builder?.username || "").localeCompare(
+        String(b.builder?.display_name || b.builder?.username || "")
+      );
+    });
+  }, [
+    employeeEarnings,
+    memberAvailabilityFilter,
+    memberQuery,
+    memberSort,
+    members,
+    orders,
+  ]);
   const visibleOrders = useMemo(() => {
     if (orderStatusFilter === "all") return orders;
     if (orderStatusFilter === "active") {
@@ -1496,82 +1588,170 @@ export function StudioModeratorDashboard({ section = "profile" }) {
             </div>
           )}
         </div>
-        <div className="grid gap-3">
-          {members.filter((member) => member.status === "active").map((member) => (
-            <div key={member.id} className="team-member-card rounded-2xl border border-white/10 bg-black/[0.08] p-4">
-              <div className="flex items-center gap-3 mb-4">
-                <Avatar
-                  src={member.builder?.avatar_url}
-                  name={member.builder?.display_name || "Builder"}
-                  className="w-12 h-12 rounded-2xl ring-2 ring-[#4ade80]/25 text-lg"
-                />
-                <div className="min-w-0">
-                  <p className="font-semibold truncate">{member.builder?.display_name || "Builder"}</p>
-                  <p className="text-xs text-gray-500 truncate">@{member.builder?.username || "unknown"}</p>
-                </div>
-                <span className={`ml-auto w-2.5 h-2.5 rounded-full ${member.availability_status === "available" ? "bg-[#4ade80]" : "bg-amber-400"}`} />
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
-                <div className="rounded-xl bg-white/[0.04] px-3 py-2">
-                  <p className="text-[10px] uppercase tracking-wide text-gray-500">Earned</p>
-                  <p className="text-sm font-bold text-[#4ade80] mt-1">{formatPrice(employeeEarnings.filter((row) => row.builder_id === member.builder_id).reduce((sum, row) => sum + Number(row.amount_kopecks || 0), 0))}</p>
-                </div>
-                <div className="rounded-xl bg-white/[0.04] px-3 py-2">
-                  <p className="text-[10px] uppercase tracking-wide text-gray-500">Completed</p>
-                  <p className="text-sm font-bold mt-1">{employeeEarnings.filter((row) => row.builder_id === member.builder_id).length}</p>
-                </div>
-                <div className="rounded-xl bg-white/[0.04] px-3 py-2 col-span-2 sm:col-span-1">
-                  <p className="text-[10px] uppercase tracking-wide text-gray-500">Current work</p>
-                  <p className="text-sm font-bold mt-1">{orders.filter((order) => order.assigned_builder_id === member.builder_id && !["completed", "cancelled"].includes(order.status)).length}</p>
-                </div>
-              </div>
-              <div className="flex flex-wrap items-center gap-3">
-              <div className="flex-1 min-w-[200px]">
-                <p className="text-sm font-semibold">{member.builder?.display_name}</p>
-                <p className="text-[11px] text-gray-500 mt-1">
-                  Tracked total:{" "}
-                  {formatPrice(
-                    employeeEarnings
-                      .filter((row) => row.builder_id === member.builder_id)
-                      .reduce((sum, row) => sum + Number(row.amount_kopecks || 0), 0)
-                  )}
-                  {orders.some((order) => order.assigned_builder_id === member.builder_id)
-                    ? " · currently assigned"
-                    : ""}
-                </p>
-                <p className="text-xs text-gray-500">
-                  @{member.builder?.username} · {member.availability_status}
-                </p>
-                {member.builder?.builder_profile && (
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {(member.builder.builder_profile.tools || []).map((tool) => <span key={tool} className="rounded-full border border-white/10 px-2 py-1 text-[10px] text-gray-400">{tool}</span>)}
-                    {(member.builder.builder_profile.specialties || []).map((style) => <span key={style} className="rounded-full border border-[#4ade80]/20 bg-[#4ade80]/5 px-2 py-1 text-[10px] text-[#86efac]">{style}</span>)}
-                  </div>
-                )}
-                <p className="text-[11px] text-gray-500 mt-2">
-                  {member.builder?.builder_profile?.project_types?.length || 0} project types · {member.builder?.portfolio?.length || 0} portfolio images · response in {member.builder?.builder_profile?.response_time_hours || "—"}h
-                </p>
-                {member.builder?.bio && <p className="text-xs text-gray-400 mt-2 line-clamp-2">{member.builder.bio}</p>}
-                {member.builder?.portfolio?.length > 0 && (
-                  <div className="flex gap-2 mt-3">
-                    {member.builder.portfolio.slice(0, 4).map((image) => <img key={image.id} src={image.url} alt={image.alt || "Builder portfolio"} className="w-12 h-9 rounded-lg object-cover border border-white/10" />)}
-                  </div>
-                )}
-              </div>
-              <Link href={`/chats?to=${encodeURIComponent(member.builder?.username || "")}`} className="team-action-button px-3 py-1.5 rounded-lg border border-white/10 text-xs">
-                Message
-              </Link>
-              <button
-                type="button"
-                onClick={() => openRemoveConfirmation(member)}
-                className="team-action-button px-3 py-1.5 rounded-lg border border-red-400/20 text-red-300 text-xs"
+        <div className="mb-4 rounded-2xl border border-white/10 bg-white/[0.025] p-3 sm:p-4">
+          <div className="grid gap-3 lg:grid-cols-[minmax(240px,1fr)_180px_190px]">
+            <label className="relative">
+              <span className="sr-only">Search team members</span>
+              <Search size={16} aria-hidden="true" className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+              <input
+                type="search"
+                value={memberQuery}
+                onChange={(event) => setMemberQuery(event.target.value)}
+                placeholder="Search name, handle, tool, or specialty"
+                className={`${INPUT} py-2.5 pl-10`}
+              />
+            </label>
+            <label className="relative">
+              <span className="sr-only">Filter by availability</span>
+              <SlidersHorizontal size={15} aria-hidden="true" className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+              <select
+                value={memberAvailabilityFilter}
+                onChange={(event) => setMemberAvailabilityFilter(event.target.value)}
+                className={`${INPUT} appearance-none py-2.5 pl-10 pr-9`}
               >
-                Remove
-              </button>
-              </div>
-            </div>
-          ))}
+                <option value="all">All availability</option>
+                <option value="available">Available</option>
+                <option value="limited">Limited capacity</option>
+                <option value="busy">Not taking work</option>
+              </select>
+              <ChevronDown size={15} aria-hidden="true" className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+            </label>
+            <label className="relative">
+              <span className="sr-only">Sort team members</span>
+              <select
+                value={memberSort}
+                onChange={(event) => setMemberSort(event.target.value)}
+                className={`${INPUT} appearance-none py-2.5 pr-9`}
+              >
+                <option value="name">Sort: Name</option>
+                <option value="availability">Sort: Availability</option>
+                <option value="active-work">Sort: Active work</option>
+                <option value="completed">Sort: Completed</option>
+              </select>
+              <ChevronDown size={15} aria-hidden="true" className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+            </label>
+          </div>
+          <p className="mt-3 text-xs text-gray-500" aria-live="polite">
+            Showing {teamMembers.length} of {members.filter((member) => member.status === "active").length} builders
+          </p>
         </div>
+
+        {teamMembers.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-white/10 px-6 py-10 text-center">
+            <p className="font-semibold text-gray-200">No builders match these filters</p>
+            <p className="mt-1 text-sm text-gray-500">Try another search or availability setting.</p>
+          </div>
+        ) : (
+          <div className="grid gap-4">
+            {teamMembers.map((member) => {
+              const availability = AVAILABILITY_COPY[member.availability_status] || {
+                short: "Status unavailable",
+                label: "The builder has not set an availability preference.",
+              };
+              const tools = member.profile.tools || [];
+              const specialties = member.profile.specialties || [];
+              const projectTypes = member.profile.project_types || [];
+
+              return (
+                <article key={member.id} className="team-member-card overflow-hidden rounded-3xl border border-white/10 bg-black/[0.12] p-5 sm:p-6">
+                  <header className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                    <div className="flex min-w-0 items-center gap-4">
+                      <Avatar
+                        src={member.builder?.avatar_url}
+                        name={member.builder?.display_name || "Builder"}
+                        className="h-14 w-14 rounded-2xl ring-2 ring-[#4ade80]/25 text-lg"
+                      />
+                      <div className="min-w-0">
+                        <h3 className="truncate text-lg font-bold text-white">{member.builder?.display_name || "Builder"}</h3>
+                        <p className="truncate text-sm text-gray-400">@{member.builder?.username || "unknown"}</p>
+                      </div>
+                    </div>
+                    <div className="sm:ml-auto sm:max-w-[290px]">
+                      <p className="text-sm font-bold text-gray-100">{availability.short}</p>
+                      <p className="mt-0.5 text-xs leading-relaxed text-gray-400">{availability.label}</p>
+                    </div>
+                  </header>
+
+                  <div className="mt-5 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+                    {[
+                      ["Tracked earnings", formatPrice(member.trackedEarnings), true],
+                      ["Completed projects", member.completedProjects, false],
+                      ["Active assignments", member.activeAssignments, false],
+                    ].map(([label, value, accent]) => (
+                      <div key={label} className="rounded-2xl border border-white/[0.06] bg-white/[0.04] px-4 py-3">
+                        <p className="text-xs font-medium text-gray-400">{label}</p>
+                        <p className={`mt-1 text-xl font-extrabold ${accent ? "text-[#4ade80]" : "text-white"}`}>{value}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+                    <div className="min-w-0 space-y-4">
+                      {tools.length > 0 && (
+                        <div>
+                          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">Proficient tools</p>
+                          <div className="flex flex-wrap gap-2">
+                            {tools.map((tool) => (
+                              <span key={tool} className="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1.5 text-xs font-medium text-gray-200">
+                                {readableProfileValue(tool, TOOL_LABELS)}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {specialties.length > 0 && (
+                        <div>
+                          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">Build specialties</p>
+                          <div className="flex flex-wrap gap-2">
+                            {specialties.map((specialty) => (
+                              <span key={specialty} className="rounded-full border border-[#4ade80]/20 bg-[#4ade80]/[0.06] px-3 py-1.5 text-xs font-medium text-[#86efac]">
+                                {readableProfileValue(specialty)}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-gray-400">
+                        <span>
+                          <strong className="font-semibold text-gray-200">Project interests:</strong>{" "}
+                          {projectTypes.length
+                            ? projectTypes.map((type) => readableProfileValue(type, PROJECT_TYPE_LABELS)).join(", ")
+                            : "Not specified"}
+                        </span>
+                        <span><strong className="font-semibold text-gray-200">Portfolio:</strong> {member.builder?.portfolio?.length || 0} images</span>
+                        <span>
+                          <strong className="font-semibold text-gray-200">Typical response:</strong>{" "}
+                          {member.profile.response_time_hours ? `within ${member.profile.response_time_hours}h` : "Not specified"}
+                        </span>
+                      </div>
+                      {member.builder?.bio && (
+                        <p className="max-w-3xl text-sm leading-relaxed text-gray-400 line-clamp-2">{member.builder.bio}</p>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 lg:justify-end">
+                      <Link
+                        href={`/chats?to=${encodeURIComponent(member.builder?.username || "")}`}
+                        className="team-action-button group inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#4ade80]/30 bg-[#4ade80]/10 px-4 py-2.5 text-sm font-bold text-[#86efac] shadow-[0_8px_24px_rgba(74,222,128,0.08)] hover:border-[#4ade80]/60 hover:bg-[#4ade80] hover:text-black hover:shadow-[0_12px_28px_rgba(74,222,128,0.2)]"
+                      >
+                        <MessageCircle size={17} aria-hidden="true" className="transition-transform duration-300 group-hover:scale-110" />
+                        Message
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => openRemoveConfirmation(member)}
+                        className="team-action-button group inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-red-400/20 bg-red-400/[0.04] px-4 py-2.5 text-sm font-semibold text-red-300 hover:border-red-400/50 hover:bg-red-400/10 hover:text-red-200 hover:shadow-[0_12px_28px_rgba(248,113,113,0.12)]"
+                      >
+                        <UserMinus size={17} aria-hidden="true" className="transition-transform duration-300 group-hover:-translate-x-0.5" />
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
       </Card>}
 
       {section === "orders" && (

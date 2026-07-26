@@ -169,6 +169,11 @@ button.carousel-arrow:active {
   transform: translateY(-2px);
 }
 
+.team-action-button:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+  transition-duration: 90ms;
+}
+
 .team-action-button:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.2);
