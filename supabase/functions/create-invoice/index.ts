@@ -17,6 +17,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { createInvoice, getMinimumInvoiceAmount } from "../_shared/nowpayments.ts";
 
+// Emergency checkout pause. Flip to false and redeploy this function to allow
+// invoice creation again. This protects the payment endpoint from direct calls
+// while the client-side order form is paused.
+const CHECKOUT_PAUSED = true;
+
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -30,6 +35,9 @@ Deno.serve(async (req) => {
   }
   if (req.method !== "POST") {
     return json({ error: "Method not allowed" }, 405);
+  }
+  if (CHECKOUT_PAUSED) {
+    return json({ error: "Checkout is temporarily unavailable" }, 503);
   }
 
   const authHeader = req.headers.get("Authorization");
