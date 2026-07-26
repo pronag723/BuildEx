@@ -83,6 +83,23 @@ const TOOL_LABELS = Object.fromEntries(BUILDER_TOOLS.map(({ key, label }) => [ke
 const AVAILABILITY_COPY = Object.fromEntries(
   AVAILABILITY_STATES.map(({ key, label, short }) => [key, { label, short }])
 );
+const AVAILABILITY_PRESENTATION = {
+  available: {
+    Icon: Check,
+    badge: "border-[#4ade80]/30 bg-[#4ade80]/10 text-[#86efac]",
+    icon: "bg-[#4ade80] text-[#07120a] shadow-[0_0_14px_rgba(74,222,128,0.3)]",
+  },
+  limited: {
+    Icon: Clock3,
+    badge: "border-amber-400/30 bg-amber-400/10 text-amber-200",
+    icon: "bg-amber-400 text-[#181204] shadow-[0_0_14px_rgba(251,191,36,0.24)]",
+  },
+  busy: {
+    Icon: X,
+    badge: "border-red-400/30 bg-red-400/10 text-red-200",
+    icon: "bg-red-400 text-[#190707] shadow-[0_0_14px_rgba(248,113,113,0.24)]",
+  },
+};
 const TEAM_AVAILABILITY_OPTIONS = [
   { value: "all", label: "All availability" },
   { value: "available", label: "Available" },
@@ -1782,6 +1799,13 @@ export function StudioModeratorDashboard({ section = "profile" }) {
                 short: "Status unavailable",
                 label: "The builder has not set an availability preference.",
               };
+              const availabilityPresentation =
+                AVAILABILITY_PRESENTATION[member.availability_status] || {
+                  Icon: ShieldCheck,
+                  badge: "border-white/15 bg-white/[0.05] text-gray-300",
+                  icon: "bg-gray-500 text-white",
+                };
+              const AvailabilityIcon = availabilityPresentation.Icon;
               const tools = member.profile.tools || [];
               const specialties = member.profile.specialties || [];
 
@@ -1800,8 +1824,19 @@ export function StudioModeratorDashboard({ section = "profile" }) {
                       </div>
                     </div>
                     <div className="sm:ml-auto sm:max-w-[290px]">
-                      <p className="text-sm font-bold text-gray-100">{availability.short}</p>
-                      <p className="mt-0.5 text-xs leading-relaxed text-gray-400">{availability.label}</p>
+                      <span
+                        className={`inline-flex items-center gap-2 rounded-full border py-1.5 pl-1.5 pr-3 text-sm font-bold ${availabilityPresentation.badge}`}
+                      >
+                        <span
+                          className={`inline-flex h-5 w-5 items-center justify-center rounded-full ${availabilityPresentation.icon}`}
+                        >
+                          <AvailabilityIcon size={13} strokeWidth={3} aria-hidden="true" />
+                        </span>
+                        {availability.short}
+                      </span>
+                      <p className="mt-1.5 text-xs leading-relaxed text-gray-400">
+                        {availability.label}
+                      </p>
                     </div>
                   </header>
 
