@@ -2361,6 +2361,70 @@ body {
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+.studio-assignment-backdrop {
+  animation: studioBackdropIn 0.24s ease-out both;
+}
+
+.studio-assignment-dialog {
+  animation: studioDialogIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.studio-builder-option {
+  animation: studioBuilderIn 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--builder-index, 0) * 45ms + 80ms);
+  transition:
+    transform 0.24s ease,
+    border-color 0.24s ease,
+    background-color 0.24s ease,
+    opacity 0.24s ease;
+}
+
+.studio-builder-option:hover {
+  transform: translateY(-2px);
+}
+
+.studio-confirm-layer {
+  animation: studioBackdropIn 0.2s ease-out both;
+}
+
+.studio-confirm-card {
+  animation: studioConfirmIn 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.studio-builder-list {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(74, 222, 128, 0.28) transparent;
+}
+
+.studio-builder-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.studio-builder-list::-webkit-scrollbar-thumb {
+  background: rgba(74, 222, 128, 0.28);
+  border-radius: 999px;
+}
+
+@keyframes studioBackdropIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes studioDialogIn {
+  from { opacity: 0; transform: translateY(28px) scale(0.975); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes studioBuilderIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes studioConfirmIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 .light .studio-portfolio-fade::after,
 .light .studio-public-portfolio-shell::after {
   background: linear-gradient(90deg, transparent, rgba(243, 244, 242, 0.82));
@@ -2389,6 +2453,16 @@ body {
   border-color: rgba(34, 197, 94, 0.65);
 }
 
+.light .studio-assignment-dialog {
+  background: rgba(249, 250, 249, 0.98);
+  border-color: rgba(15, 23, 42, 0.12);
+}
+
+.light .studio-confirm-card {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.12);
+}
+
 @media (max-width: 640px) {
   .studio-panel {
     border-radius: 1.35rem;
@@ -2402,7 +2476,12 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .studio-portfolio-card,
   .studio-stat-card,
-  .studio-network-menu {
+  .studio-network-menu,
+  .studio-assignment-backdrop,
+  .studio-assignment-dialog,
+  .studio-builder-option,
+  .studio-confirm-layer,
+  .studio-confirm-card {
     animation: none;
     transition: none;
   }

@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
+  BriefcaseBusiness,
+  CalendarDays,
   Check,
   ChevronDown,
   CircleDollarSign,
@@ -16,10 +18,12 @@ import {
   Inbox,
   Pencil,
   ShieldCheck,
+  Star,
   Trash2,
   UserRoundCheck,
   Users,
   Wallet,
+  X,
 } from "lucide-react";
 import { useAuth } from "../../lib/auth/AuthContext";
 import {
@@ -560,7 +564,9 @@ export function StudioModeratorDashboard({ section = "profile" }) {
   const [copiedCodeId, setCopiedCodeId] = useState(null);
   const [withdrawDollars, setWithdrawDollars] = useState("");
   const [orderStatusFilter, setOrderStatusFilter] = useState("active");
-  const [assignmentSelections, setAssignmentSelections] = useState({});
+  const [assignmentOrder, setAssignmentOrder] = useState(null);
+  const [assignmentTarget, setAssignmentTarget] = useState(null);
+  const [assigningBuilder, setAssigningBuilder] = useState(false);
   const [ratesEditing, setRatesEditing] = useState(false);
   const [portfolioEditing, setPortfolioEditing] = useState(false);
   const [profileEditing, setProfileEditing] = useState(false);
@@ -870,23 +876,32 @@ export function StudioModeratorDashboard({ section = "profile" }) {
     setNotice("Invite code deleted.");
   }
 
-  async function confirmAssignment(order) {
-    const builderId = assignmentSelections[order.id] || order.assigned_builder_id;
-    if (!builderId || builderId === order.assigned_builder_id) return;
-    setBusy(true);
+  function closeAssignmentDialog() {
+    if (assigningBuilder) return;
+    setAssignmentOrder(null);
+    setAssignmentTarget(null);
+  }
+
+  async function confirmAssignment() {
+    if (!assignmentOrder || !assignmentTarget || assigningBuilder) return;
+    setAssigningBuilder(true);
     setError(null);
-    const result = await assignStudioOrder(order.id, builderId);
-    setBusy(false);
+    const result = await assignStudioOrder(
+      assignmentOrder.id,
+      assignmentTarget.builder_id
+    );
+    setAssigningBuilder(false);
     if (result.error) {
       setError(result.error.message || "Couldn't assign the order.");
       return;
     }
-    setAssignmentSelections((current) => {
-      const next = { ...current };
-      delete next[order.id];
-      return next;
-    });
-    setNotice("Builder assigned to the order.");
+    const builderName =
+      assignmentTarget.builder?.display_name ||
+      assignmentTarget.builder?.username ||
+      "Builder";
+    setAssignmentOrder(null);
+    setAssignmentTarget(null);
+    setNotice(`${builderName} was assigned to the order.`);
     await load();
   }
 
@@ -1648,54 +1663,130 @@ export function StudioModeratorDashboard({ section = "profile" }) {
               </div>
             </div>
           )}
-          {visibleOrders.map((order) => (
-            <div key={order.id} className="studio-order-row rounded-2xl border border-white/10 bg-black/[0.08] p-4 flex flex-wrap gap-3 items-center transition-all hover:border-[#4ade80]/30 hover:bg-[#4ade80]/[0.025]">
-              <div className="flex-1 min-w-[220px]">
-                <p className="text-sm font-semibold">{order.buyer?.display_name || "Buyer"} · {order.size_label || order.building_size}</p>
-                <p className="text-xs text-gray-500 mt-1">{order.status} · {formatPrice(order.price_kopecks)}</p>
-              </div>
-              {["paid", "in_progress"].includes(order.status) && (
-                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                  <select
-                    className={`${INPUT} catalog-select max-w-[230px]`}
-                    value={assignmentSelections[order.id] ?? order.assigned_builder_id ?? ""}
-                    onChange={(event) => setAssignmentSelections((current) => ({ ...current, [order.id]: event.target.value }))}
-                    aria-label={`Select builder for order ${order.id}`}
-                  >
-                    <option value="">Select a builder</option>
-                    {members
-                      .filter((member) => member.status === "active" && (member.availability_status === "available" || member.builder_id === order.assigned_builder_id))
-                      .map((member) => (
-                        <option key={member.builder_id} value={member.builder_id}>
-                          {member.builder?.display_name || "Builder"}{member.builder_id === order.assigned_builder_id ? " (assigned)" : ""}
-                        </option>
-                      ))}
-                  </select>
-                  <button
-                    type="button"
-                    onClick={() => confirmAssignment(order)}
-                    disabled={busy || !(assignmentSelections[order.id] || order.assigned_builder_id) || assignmentSelections[order.id] === order.assigned_builder_id}
-                    className="px-4 py-2.5 rounded-xl bg-[#4ade80] text-black text-xs font-bold hover:bg-[#22c55e] transition-colors disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
-                  >
-                    <Check size={14} /> Confirm
-                  </button>
-                </div>
-              )}
-              <Link
-                href={withBase(`/orders/?id=${encodeURIComponent(order.id)}`)}
-                onClick={(event) => {
-                  if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-                  event.preventDefault();
-                  openOrder(order.id);
-                }}
-                className="px-3 py-2.5 rounded-xl border border-[#4ade80]/30 bg-[#4ade80]/10 text-[#4ade80] text-xs font-semibold inline-flex items-center gap-1.5 hover:-translate-y-0.5 hover:bg-[#4ade80] hover:text-black hover:shadow-[0_8px_20px_rgba(74,222,128,0.2)] transition-all"
+          {visibleOrders.map((order) => {
+            const assignedMember = members.find(
+              (member) => member.builder_id === order.assigned_builder_id
+            );
+            const canAssign = ["paid", "in_progress"].includes(order.status);
+            const createdDate = order.created_at
+              ? new Intl.DateTimeFormat(undefined, {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                }).format(new Date(order.created_at))
+              : null;
+
+            return (
+              <article
+                key={order.id}
+                className="studio-order-row group rounded-3xl border border-white/10 bg-black/[0.08] p-4 transition-all hover:-translate-y-0.5 hover:border-[#4ade80]/30 hover:bg-[#4ade80]/[0.025] hover:shadow-[0_18px_45px_-30px_rgba(74,222,128,0.45)] sm:p-5"
               >
-                Open order <ArrowRight size={13} />
-              </Link>
-            </div>
-          ))}
+                <div className="flex flex-col gap-5 lg:flex-row lg:items-center">
+                  <div className="flex min-w-0 flex-1 items-start gap-3.5">
+                    <Avatar
+                      src={order.buyer?.avatar_url}
+                      name={order.buyer?.display_name || "Buyer"}
+                      className="h-11 w-11 flex-shrink-0 rounded-2xl text-base ring-1 ring-white/10"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="truncate text-sm font-bold text-gray-100 sm:text-base">
+                          {order.style || "Custom build"}
+                        </h3>
+                        <span className="rounded-full border border-[#4ade80]/20 bg-[#4ade80]/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#86efac]">
+                          {String(order.status || "new").replaceAll("_", " ")}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs text-gray-500">
+                        {order.buyer?.display_name || "Buyer"} ·{" "}
+                        {order.size_label || order.building_size || "Custom size"}
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] text-gray-500">
+                        <span className="font-bold text-[#4ade80]">
+                          {formatPrice(order.price_kopecks)}
+                        </span>
+                        {createdDate && (
+                          <span className="inline-flex items-center gap-1.5">
+                            <CalendarDays size={12} />
+                            {createdDate}
+                          </span>
+                        )}
+                        <span className="font-mono text-[10px] text-gray-600">
+                          #{String(order.id).slice(0, 8)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {assignedMember && (
+                    <div className="flex items-center gap-2.5 rounded-2xl border border-white/[0.08] bg-white/[0.025] px-3 py-2.5 lg:max-w-[190px]">
+                      <Avatar
+                        src={assignedMember.builder?.avatar_url}
+                        name={assignedMember.builder?.display_name || "Builder"}
+                        className="h-8 w-8 flex-shrink-0 rounded-xl text-xs"
+                      />
+                      <div className="min-w-0">
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-gray-500">
+                          Assigned builder
+                        </p>
+                        <p className="truncate text-xs font-semibold text-gray-200">
+                          {assignedMember.builder?.display_name || "Builder"}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="grid w-full grid-cols-2 gap-2 lg:w-auto lg:flex lg:items-center">
+                    {canAssign && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAssignmentOrder(order);
+                          setAssignmentTarget(null);
+                        }}
+                        className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#4ade80] px-4 py-2.5 text-xs font-bold text-black transition-all hover:-translate-y-0.5 hover:bg-[#22c55e] hover:shadow-[0_9px_24px_rgba(74,222,128,0.22)]"
+                      >
+                        <UserRoundCheck size={14} />
+                        {order.assigned_builder_id ? "Change builder" : "Assign builder"}
+                      </button>
+                    )}
+                    <Link
+                      href={withBase(`/orders/?id=${encodeURIComponent(order.id)}`)}
+                      onClick={(event) => {
+                        if (
+                          event.button !== 0 ||
+                          event.metaKey ||
+                          event.ctrlKey ||
+                          event.shiftKey ||
+                          event.altKey
+                        )
+                          return;
+                        event.preventDefault();
+                        openOrder(order.id);
+                      }}
+                      className={`${canAssign ? "" : "col-span-2"} inline-flex items-center justify-center gap-1.5 rounded-xl border border-white/15 bg-white/[0.035] px-4 py-2.5 text-xs font-semibold text-gray-200 transition-all hover:-translate-y-0.5 hover:border-[#4ade80]/35 hover:bg-[#4ade80]/10 hover:text-[#4ade80]`}
+                    >
+                      Open order <ArrowRight size={13} />
+                    </Link>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
         </div>
       </Card>}
+
+      {assignmentOrder && (
+        <OrderAssignmentDialog
+          order={assignmentOrder}
+          members={members}
+          confirmingMember={assignmentTarget}
+          assigning={assigningBuilder}
+          onChoose={setAssignmentTarget}
+          onConfirm={confirmAssignment}
+          onClose={closeAssignmentDialog}
+        />
+      )}
 
       {section === "payouts" && <Card
         title="Payout"
@@ -1930,6 +2021,275 @@ export function StudioModeratorDashboard({ section = "profile" }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function OrderAssignmentDialog({
+  order,
+  members,
+  confirmingMember,
+  assigning,
+  onChoose,
+  onConfirm,
+  onClose,
+}) {
+  const dialogRef = useRef(null);
+  const sortedMembers = useMemo(
+    () =>
+      members
+        .filter((member) => member.status === "active")
+        .sort((a, b) => {
+          const availabilityDifference =
+            Number(b.availability_status === "available") -
+            Number(a.availability_status === "available");
+          if (availabilityDifference) return availabilityDifference;
+          return (a.builder?.display_name || a.builder?.username || "").localeCompare(
+            b.builder?.display_name || b.builder?.username || ""
+          );
+        }),
+    [members]
+  );
+  const availableCount = sortedMembers.filter(
+    (member) => member.availability_status === "available"
+  ).length;
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    dialogRef.current?.focus();
+    function closeOnEscape(event) {
+      if (event.key === "Escape" && !assigning) onClose();
+    }
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [assigning, onClose]);
+
+  if (!order) return null;
+
+  return (
+    <div
+      className="studio-assignment-backdrop fixed inset-0 z-[100] flex items-end justify-center bg-black/75 p-0 backdrop-blur-sm sm:items-center sm:p-6"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget && !assigning) onClose();
+      }}
+    >
+      <section
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="assignment-dialog-title"
+        tabIndex={-1}
+        className="studio-assignment-dialog relative flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-t-[1.75rem] border border-white/10 bg-[#171b18] shadow-[0_30px_100px_rgba(0,0,0,0.65)] outline-none sm:rounded-[1.75rem]"
+      >
+        <div className="relative border-b border-white/[0.08] px-5 py-5 sm:px-7 sm:py-6">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(74,222,128,0.12),transparent_48%)]" />
+          <div className="relative flex items-start justify-between gap-4">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#4ade80]">
+                Order assignment
+              </p>
+              <h2 id="assignment-dialog-title" className="mt-1.5 text-xl font-bold sm:text-2xl">
+                Choose the right builder
+              </h2>
+              <p className="mt-1.5 max-w-xl text-xs leading-relaxed text-gray-400 sm:text-sm">
+                {order.style || "Custom"} · {order.size_label || order.building_size} ·{" "}
+                {formatPrice(order.price_kopecks)}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={assigning}
+              aria-label="Close builder selection"
+              className="rounded-xl border border-white/10 bg-white/[0.04] p-2.5 text-gray-400 transition-all hover:rotate-90 hover:border-white/20 hover:bg-white/[0.08] hover:text-white disabled:opacity-40"
+            >
+              <X size={18} />
+            </button>
+          </div>
+          <div className="relative mt-4 flex flex-wrap items-center gap-2 text-[11px]">
+            <span className="rounded-full border border-[#4ade80]/20 bg-[#4ade80]/10 px-2.5 py-1 text-[#86efac]">
+              {availableCount} available now
+            </span>
+            <span className="rounded-full border border-white/10 bg-white/[0.035] px-2.5 py-1 text-gray-400">
+              {sortedMembers.length} team members
+            </span>
+          </div>
+        </div>
+
+        <div className="studio-builder-list overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
+          {sortedMembers.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-white/15 px-6 py-12 text-center">
+              <Users className="mx-auto text-gray-500" size={25} />
+              <p className="mt-3 text-sm font-semibold">No active builders yet</p>
+              <p className="mt-1 text-xs text-gray-500">
+                Add builders from the Team section before assigning this order.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {sortedMembers.map((member, index) => {
+                const profile = member.builder?.builder_profile || {};
+                const available = member.availability_status === "available";
+                const assigned = member.builder_id === order.assigned_builder_id;
+                const styles = profile.specialties || [];
+                const builderName =
+                  member.builder?.display_name || member.builder?.username || "Builder";
+
+                return (
+                  <article
+                    key={member.builder_id}
+                    className={`studio-builder-option rounded-2xl border p-4 sm:p-5 ${
+                      available
+                        ? "border-white/10 bg-white/[0.025] hover:border-[#4ade80]/35 hover:bg-[#4ade80]/[0.035]"
+                        : "border-white/[0.06] bg-black/15 opacity-65"
+                    }`}
+                    style={{ "--builder-index": index }}
+                  >
+                    <div className="flex items-start gap-3 sm:gap-4">
+                      <div className="relative flex-shrink-0">
+                        <Avatar
+                          src={member.builder?.avatar_url}
+                          name={builderName}
+                          className="h-12 w-12 rounded-2xl text-lg ring-2 ring-white/10 sm:h-14 sm:w-14"
+                        />
+                        <span
+                          className={`absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full border-[3px] border-[#171b18] ${
+                            available ? "bg-[#4ade80]" : "bg-amber-400"
+                          }`}
+                        />
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
+                          <div className="min-w-0">
+                            <h3 className="truncate text-sm font-bold text-gray-100 sm:text-base">
+                              {builderName}
+                            </h3>
+                            <p className="truncate text-xs text-gray-500">
+                              @{member.builder?.username || "unknown"}
+                            </p>
+                          </div>
+                          <span
+                            className={`rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${
+                              available
+                                ? "border-[#4ade80]/25 bg-[#4ade80]/10 text-[#4ade80]"
+                                : "border-amber-400/20 bg-amber-400/[0.08] text-amber-300"
+                            }`}
+                          >
+                            {assigned ? "Assigned" : available ? "Available" : "Busy"}
+                          </span>
+                        </div>
+
+                        <div className="mt-3 flex flex-wrap gap-1.5">
+                          {styles.length > 0 ? (
+                            styles.slice(0, 4).map((style) => (
+                              <span
+                                key={style}
+                                className={`rounded-full border px-2 py-1 text-[10px] ${
+                                  style === order.style
+                                    ? "border-[#4ade80]/30 bg-[#4ade80]/10 text-[#86efac]"
+                                    : "border-white/10 bg-white/[0.025] text-gray-400"
+                                }`}
+                              >
+                                {style}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-[11px] text-gray-500">No styles listed</span>
+                          )}
+                        </div>
+
+                        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] text-gray-500">
+                          <span className="inline-flex items-center gap-1.5">
+                            <Star size={12} className="text-amber-300" />
+                            {Number(profile.avg_rating || 0).toFixed(1)} rating
+                          </span>
+                          <span className="inline-flex items-center gap-1.5">
+                            <BriefcaseBusiness size={12} />
+                            {Number(profile.completed_orders || 0)} completed
+                          </span>
+                          <span className="inline-flex items-center gap-1.5">
+                            <Clock3 size={12} />
+                            Responds in {profile.response_time_hours || "—"}h
+                          </span>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => onChoose(member)}
+                        disabled={!available || assigned || assigning}
+                        className="hidden min-w-[88px] rounded-xl bg-[#4ade80] px-4 py-2.5 text-xs font-bold text-black transition-all hover:-translate-y-0.5 hover:bg-[#22c55e] hover:shadow-[0_10px_24px_rgba(74,222,128,0.22)] disabled:cursor-not-allowed disabled:bg-white/[0.06] disabled:text-gray-500 disabled:shadow-none disabled:transform-none sm:block"
+                      >
+                        {assigned ? "Assigned" : available ? "Assign" : "Unavailable"}
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onChoose(member)}
+                      disabled={!available || assigned || assigning}
+                      className="mt-4 w-full rounded-xl bg-[#4ade80] px-4 py-2.5 text-xs font-bold text-black transition-all disabled:cursor-not-allowed disabled:bg-white/[0.06] disabled:text-gray-500 sm:hidden"
+                    >
+                      {assigned ? "Assigned" : available ? "Assign builder" : "Unavailable"}
+                    </button>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {confirmingMember && (
+          <div className="studio-confirm-layer absolute inset-0 z-10 flex items-end justify-center bg-black/75 p-4 backdrop-blur-md sm:items-center sm:p-8">
+            <div className="studio-confirm-card w-full max-w-md rounded-3xl border border-white/10 bg-[#1c211d] p-5 shadow-2xl sm:p-6">
+              <div className="flex items-center gap-3">
+                <Avatar
+                  src={confirmingMember.builder?.avatar_url}
+                  name={confirmingMember.builder?.display_name || "Builder"}
+                  className="h-12 w-12 rounded-2xl text-lg ring-2 ring-[#4ade80]/25"
+                />
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#4ade80]">
+                    Confirm assignment
+                  </p>
+                  <h3 className="truncate text-lg font-bold">
+                    {confirmingMember.builder?.display_name || "Builder"}
+                  </h3>
+                </div>
+              </div>
+              <p className="mt-4 text-sm leading-relaxed text-gray-400">
+                Assign this {order.style || "custom"} order to{" "}
+                <strong className="text-gray-100">
+                  @{confirmingMember.builder?.username || "builder"}
+                </strong>
+                ? They’ll be notified immediately and marked busy.
+              </p>
+              <div className="mt-5 grid grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => onChoose(null)}
+                  disabled={assigning}
+                  className="rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold text-gray-300 transition-colors hover:bg-white/[0.05] disabled:opacity-40"
+                >
+                  Go back
+                </button>
+                <button
+                  type="button"
+                  onClick={onConfirm}
+                  disabled={assigning}
+                  className="rounded-xl bg-[#4ade80] px-4 py-3 text-sm font-bold text-black transition-all hover:bg-[#22c55e] hover:shadow-[0_10px_28px_rgba(74,222,128,0.22)] disabled:cursor-wait disabled:opacity-60"
+                >
+                  {assigning ? "Assigning…" : "Confirm assignment"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </section>
     </div>
   );
 }
