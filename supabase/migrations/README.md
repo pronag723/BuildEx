@@ -51,6 +51,7 @@ migrations are idempotent (safe to re-run during development).
 | 0065 | `0065_restore_removed_builder_availability.sql` | **Removed employee recovery.** Returns removed employees to an independent, completed account while keeping them unavailable until their independent profile is ready. |
 | 0066 | `0066_rejoin_availability_and_employee_removal_confirmation.sql` | **Studio rejoin and removal safety.** Rejoined employees start available instead of inheriting removal's busy fallback; its confirmation wording is superseded by 0067. |
 | 0067 | `0067_fix_employee_availability_lock_and_remove_confirmation.sql` | **Employee availability repair.** Releases legacy closed-order assignment locks, limits availability locking to real active orders, and requires `REMOVE` confirmation before removal. |
+| 0068 | `0068_restore_delivery_preview_chat_action.sql` | **Chat 3D preview fix.** Restores the `has_preview` delivery-event metadata lost in the managed-studio lifecycle rewrite so future chat delivery cards expose the inline viewer. |
 
 ## Field mapping (matches the app code)
 

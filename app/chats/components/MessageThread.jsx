@@ -82,9 +82,10 @@ function OrderEventMessage({ message, onPreview }) {
   const href = orderId ? `/orders/?id=${encodeURIComponent(orderId)}` : "/orders";
 
   if (event === "delivered") {
-    // Delivery card: shows the file, and — when the builder's browser produced
-    // a voxel artifact (meta.has_preview) — a "View 3D preview" button that
-    // opens the viewer right here in the chat, without leaving the thread.
+    // Delivery card: shows the file and, unless the event explicitly says that
+    // no preview exists, a "View 3D preview" button. Some delivery events
+    // created by migration 0043 omitted has_preview even though the artifact
+    // was uploaded, so an absent legacy flag must not hide the viewer.
     return (
       <div className="flex justify-center my-4 px-2">
         <div className="block max-w-[460px] w-full rounded-2xl border border-purple-400/30 bg-purple-400/[0.08] p-4">
@@ -100,7 +101,7 @@ function OrderEventMessage({ message, onPreview }) {
             </p>
           )}
           <div className="flex flex-wrap items-center gap-2">
-            {meta.has_preview && orderId && (
+            {meta.has_preview !== false && orderId && (
               <button
                 type="button"
                 onClick={() => onPreview?.(orderId)}
