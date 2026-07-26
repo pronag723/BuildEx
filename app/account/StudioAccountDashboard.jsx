@@ -97,7 +97,6 @@ const AVAILABILITY_PRESENTATION = {
 const TEAM_AVAILABILITY_OPTIONS = [
   { value: "all", label: "All availability" },
   { value: "available", label: "Available" },
-  { value: "limited", label: "Limited capacity" },
   { value: "busy", label: "Not taking work" },
 ];
 const TEAM_SORT_OPTIONS = [
