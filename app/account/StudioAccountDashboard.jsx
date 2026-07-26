@@ -2302,11 +2302,219 @@ function OrderAssignmentDialog({
   );
 }
 
+function EmployeeOrdersCard({
+  assignedOrders,
+  assignmentFilter,
+  assignmentFilters,
+  activeAssignmentFilter,
+  onFilterChange,
+  userId,
+}) {
+  const activeIndex = Math.max(
+    0,
+    assignmentFilters.findIndex((filter) => filter.key === assignmentFilter)
+  );
+
+  return (
+    <Card
+      title="Studio assignments"
+      description="Track active work, completed builds, disputes, and your commission on every order."
+      aside={
+        <span className="hidden rounded-full border border-[#4ade80]/20 bg-[#4ade80]/10 px-3 py-1.5 text-[11px] font-semibold text-[#86efac] sm:inline-flex">
+          {assignedOrders.length} total
+        </span>
+      }
+    >
+      <div
+        className="relative mb-5 grid grid-cols-4 rounded-2xl border border-white/10 bg-white/[0.025] p-1"
+        role="tablist"
+        aria-label="Assignment status"
+      >
+        <span
+          aria-hidden="true"
+          className="absolute inset-y-1 left-1 rounded-xl bg-[#4ade80]/15 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
+          style={{
+            width: "calc((100% - 0.5rem) / 4)",
+            transform: `translateX(calc(${activeIndex} * 100%))`,
+            boxShadow:
+              "0 0 0 1px rgba(74,222,128,0.45), 0 0 16px rgba(74,222,128,0.14)",
+          }}
+        />
+        {assignmentFilters.map((filter) => (
+          <button
+            key={filter.key}
+            type="button"
+            role="tab"
+            aria-selected={filter.key === assignmentFilter}
+            onClick={() => onFilterChange(filter.key)}
+            className={`relative z-10 inline-flex min-w-0 items-center justify-center gap-1 rounded-xl px-1 py-2.5 text-[11px] font-semibold transition-colors sm:text-xs ${
+              filter.key === assignmentFilter
+                ? "text-white"
+                : "text-gray-500 hover:text-gray-200"
+            }`}
+          >
+            <span className="truncate">{filter.label}</span>
+            {filter.rows.length > 0 && (
+              <span
+                className={`inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-bold ${
+                  filter.key === "disputed"
+                    ? "bg-red-400/20 text-red-300"
+                    : filter.key === assignmentFilter
+                      ? "bg-[#4ade80]/25 text-[#86efac]"
+                      : "bg-white/[0.07] text-gray-500"
+                }`}
+              >
+                {filter.rows.length}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      <div className="space-y-3">
+        {activeAssignmentFilter.rows.length === 0 && (
+          <div className="rounded-3xl border border-dashed border-white/15 bg-black/[0.08] px-6 py-10 text-center">
+            <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl border border-[#4ade80]/20 bg-[#4ade80]/10 text-[#4ade80]">
+              <Inbox size={22} />
+            </span>
+            <p className="text-sm font-semibold">
+              No {activeAssignmentFilter.label.toLowerCase()} assignments
+            </p>
+            <p className="mt-1 text-xs text-gray-500">
+              Orders in this stage will appear here automatically.
+            </p>
+          </div>
+        )}
+        {activeAssignmentFilter.rows.map((order, orderIndex) => {
+          const assignment = order.assignments?.find(
+            (row) => row.builder_id === userId
+          );
+          const commissionBps = Number(
+            assignment?.employee_commission_bps ??
+              order.employee_commission_bps_snapshot ??
+              0
+          );
+          const createdDate = order.created_at
+            ? new Intl.DateTimeFormat(undefined, {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              }).format(new Date(order.created_at))
+            : null;
+          const isCurrent = order.assigned_builder_id === userId;
+
+          return (
+            <article
+              key={order.id}
+              className="studio-order-row rounded-3xl border border-white/10 bg-black/[0.08] p-5 hover:border-[#4ade80]/25 hover:bg-white/[0.018] sm:p-6"
+              style={{ "--order-index": orderIndex }}
+            >
+              <div className="flex flex-col gap-5">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-gray-500">
+                      Order #{String(order.id).slice(0, 8)}
+                    </p>
+                    <span
+                      className={`rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider ${
+                        order.status === "disputed"
+                          ? "border-red-400/25 bg-red-400/10 text-red-300"
+                          : order.status === "completed"
+                            ? "border-emerald-400/25 bg-emerald-400/10 text-emerald-300"
+                            : "border-[#4ade80]/20 bg-[#4ade80]/10 text-[#86efac]"
+                      }`}
+                    >
+                      {String(order.status || "new").replaceAll("_", " ")}
+                    </span>
+                    {!isCurrent && (
+                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-gray-400">
+                        Historical
+                      </span>
+                    )}
+                  </div>
+                  {createdDate && (
+                    <span className="inline-flex items-center gap-1.5 text-xs text-gray-500">
+                      <CalendarDays size={13} />
+                      Placed {createdDate}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-5 lg:flex-row lg:items-end">
+                  <dl className="grid min-w-0 flex-1 grid-cols-2 gap-x-5 gap-y-5 sm:grid-cols-5">
+                    <div>
+                      <dt className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-600">
+                        Client
+                      </dt>
+                      <dd className="mt-1.5 truncate text-sm font-semibold text-gray-100">
+                        @{order.buyer?.username || order.buyer?.display_name || "buyer"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-600">
+                        Build style
+                      </dt>
+                      <dd className="mt-1.5 truncate text-sm font-semibold capitalize text-gray-100">
+                        {order.style || "Custom"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-600">
+                        Project size
+                      </dt>
+                      <dd className="mt-1.5 truncate text-sm font-semibold text-gray-100">
+                        {order.size_label || order.building_size || "Custom"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-600">
+                        Order value
+                      </dt>
+                      <dd className="mt-1.5 text-sm font-bold text-[#4ade80]">
+                        {formatPrice(order.price_kopecks)}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-600">
+                        Your commission
+                      </dt>
+                      <dd className="mt-1.5 text-sm font-bold text-[#86efac]">
+                        {(commissionBps / 100).toFixed(2)}%
+                      </dd>
+                    </div>
+                  </dl>
+
+                  <Link
+                    href={withBase(`/orders/?id=${encodeURIComponent(order.id)}`)}
+                    className="studio-pressable inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-white/15 bg-white/[0.035] px-5 py-3 text-xs font-semibold text-gray-200 hover:border-[#4ade80]/35 hover:bg-[#4ade80]/10 hover:text-[#86efac] lg:w-auto"
+                  >
+                    Open order <ArrowRight size={13} />
+                  </Link>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.06] pt-3 text-[11px] text-gray-500">
+                  <span>{isCurrent ? "Current studio assignment" : "Archived studio assignment"}</span>
+                  {assignment?.released_at && (
+                    <span>
+                      Released {new Date(assignment.released_at).toLocaleDateString()}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
 export function StudioEmployeeDashboard({ builderProfile, section = "profile", onAvailabilitySaved }) {
   const { user } = useAuth();
   const [status, setStatus] = useState(builderProfile?.availability_status || "available");
   const [earnings, setEarnings] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [assignmentFilter, setAssignmentFilter] = useState("active");
   const [error, setError] = useState(null);
 
   const load = useCallback(async () => {
@@ -2332,6 +2540,33 @@ export function StudioEmployeeDashboard({ builderProfile, section = "profile", o
       order.assigned_builder_id === user?.id &&
       ["paid", "in_progress", "delivered", "disputed"].includes(order.status)
   );
+  const assignedOrders = useMemo(
+    () =>
+      orders.filter(
+        (order) =>
+          order.assigned_builder_id === user?.id ||
+          order.assignments?.some((assignment) => assignment.builder_id === user?.id)
+      ),
+    [orders, user?.id]
+  );
+  const assignmentFilters = useMemo(() => {
+    const activeStatuses = new Set(["pending_payment", "paid", "in_progress", "delivered"]);
+    const buckets = {
+      active: assignedOrders.filter((order) => activeStatuses.has(order.status)),
+      completed: assignedOrders.filter((order) => order.status === "completed"),
+      disputed: assignedOrders.filter((order) => order.status === "disputed"),
+      all: assignedOrders,
+    };
+    return [
+      { key: "active", label: "Active", rows: buckets.active },
+      { key: "completed", label: "Completed", rows: buckets.completed },
+      { key: "disputed", label: "Disputed", rows: buckets.disputed },
+      { key: "all", label: "All", rows: buckets.all },
+    ];
+  }, [assignedOrders]);
+  const activeAssignmentFilter =
+    assignmentFilters.find((filter) => filter.key === assignmentFilter) ||
+    assignmentFilters[0];
 
   const employeeStatus = status === "busy" ? "busy" : "available";
   const statusOptions = [
@@ -2394,38 +2629,16 @@ export function StudioEmployeeDashboard({ builderProfile, section = "profile", o
         </div>
         {active && <p className="mt-4 text-xs text-gray-500">Status is controlled by your active order.</p>}
       </Card>}
-      {section === "orders" && <Card title="Assigned and archived orders">
-        <div className="space-y-3">
-          {orders.length === 0 && <p className="text-sm text-gray-500">No studio orders assigned yet.</p>}
-          {orders.map((order) => (
-            <div key={order.id} className="rounded-2xl border border-white/10">
-            <Link
-              href={withBase(`/orders/?id=${encodeURIComponent(order.id)}`)}
-              className="block p-4 transition-[color,transform] duration-300 hover:text-[#4ade80]"
-            >
-              <p className="font-semibold text-sm">{order.buyer?.display_name || "Buyer"}</p>
-              <p className="text-xs text-gray-500 mt-1">{order.status} · {order.style}</p>
-            </Link>
-            <div className="px-4 -mt-2 pb-3">
-              <p className="text-[11px] text-gray-500">
-                {order.assigned_builder_id === user?.id ? "Current assignment" : "Archived assignment"}
-              </p>
-              {order.assignments
-                ?.filter((assignment) => assignment.builder_id === user?.id)
-                .map((assignment) => (
-                  <p key={assignment.id} className="text-[11px] text-gray-500 mt-1">
-                    Commission snapshot:{" "}
-                    {(Number(assignment.employee_commission_bps) / 100).toFixed(2)}%
-                    {assignment.released_at
-                      ? ` · released ${new Date(assignment.released_at).toLocaleDateString()}`
-                      : ""}
-                  </p>
-                ))}
-            </div>
-            </div>
-          ))}
-        </div>
-      </Card>}
+      {section === "orders" && (
+        <EmployeeOrdersCard
+          assignedOrders={assignedOrders}
+          assignmentFilter={assignmentFilter}
+          assignmentFilters={assignmentFilters}
+          activeAssignmentFilter={activeAssignmentFilter}
+          onFilterChange={setAssignmentFilter}
+          userId={user?.id}
+        />
+      )}
       {section === "payouts" && <Card title="Payment balance" description="Your studio commission is already accounted for in every amount shown.">
         <div className="rounded-2xl border border-[#4ade80]/20 bg-[#4ade80]/[0.06] p-5 sm:p-6">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#86efac]">Earned through your studio</p>

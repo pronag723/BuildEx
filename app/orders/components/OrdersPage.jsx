@@ -218,7 +218,7 @@ export default function OrdersPage() {
       />
 
       <main className="relative z-10 flex-1 px-4 pt-28 pb-20">
-        <div className="max-w-3xl mx-auto">
+        <div className={`${orderId ? "max-w-3xl" : "max-w-5xl"} mx-auto`}>
           {!ready ? (
             <Spinner />
           ) : orderId ? (
@@ -408,8 +408,14 @@ function Section({ title, subtitle, rows, meId, onOpen, emptyText }) {
         </div>
       ) : (
         <div className="space-y-2">
-          {rows.map((o) => (
-            <OrderRow key={o.id} order={o} meId={meId} onOpen={onOpen} />
+          {rows.map((o, index) => (
+            <OrderSummaryRow
+              key={o.id}
+              order={o}
+              meId={meId}
+              onOpen={onOpen}
+              index={index}
+            />
           ))}
         </div>
       )}
@@ -417,57 +423,161 @@ function Section({ title, subtitle, rows, meId, onOpen, emptyText }) {
   );
 }
 
-function OrderRow({ order, meId, onOpen }) {
+function OrderSummaryRow({ order, meId, onOpen, index }) {
   const peer = counterpart(order, meId);
   const meta = STATUS_META[order.status] || STATUS_META.pending_payment;
   const sizeLabel =
     order.size_label || SIZE_META[order.building_size]?.label || order.building_size;
   const iAmBuyer = order.buyer_id === meId;
+  const employeeAssignment = order.assignments?.find(
+    (assignment) => assignment.builder_id === meId
+  );
+  const iAmStudioEmployee =
+    order.assigned_builder_id === meId || Boolean(employeeAssignment);
+  const valueLabel = iAmBuyer
+    ? "Order total"
+    : iAmStudioEmployee
+      ? "Your earnings"
+      : order.studio_id
+        ? "Studio earnings"
+        : "Your earnings";
+  const value = iAmBuyer
+    ? order.price_kopecks
+    : iAmStudioEmployee
+      ? order.employee_owed_kopecks
+      : order.studio_id
+        ? order.studio_earnings_kopecks
+        : order.builder_earnings_kopecks;
+  const commissionBps = iAmStudioEmployee
+    ? Number(
+        employeeAssignment?.employee_commission_bps ??
+          order.employee_commission_bps_snapshot ??
+          0
+      )
+    : null;
+  const createdDate = order.created_at
+    ? new Date(order.created_at).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : null;
 
   return (
     <a
       href={withBase(`/orders/?id=${encodeURIComponent(order.id)}`)}
-      onClick={(e) => handleNavClick(e, () => onOpen(order.id))}
-      className="glass rounded-2xl p-4 flex items-center gap-3 hover:border-[#4ade80]/40 hover:shadow-[0_0_18px_rgba(74,222,128,0.12)] transition-all"
+      onClick={(event) => handleNavClick(event, () => onOpen(order.id))}
+      className="orders-summary-card studio-order-row glass group block rounded-3xl p-5 hover:border-[#4ade80]/40 hover:shadow-[0_0_22px_rgba(74,222,128,0.12)] sm:p-6"
+      style={{ "--order-index": index }}
     >
-      <Avatar
-        src={peer?.avatar_url}
-        name={peer?.display_name}
-        className="w-11 h-11 rounded-full ring-1 ring-white/10 flex-shrink-0 text-base"
-      />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2 flex-wrap">
-          <p className="font-semibold text-sm truncate">
-            {peer?.display_name || "Unknown user"}
-          </p>
-          <span
-            className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${meta.badgeClass}`}
-          >
-            {meta.label}
-          </span>
-          <span
-            className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
-              iAmBuyer
-                ? "bg-white/5 text-gray-300 border-white/10"
-                : "bg-[#4ade80]/10 text-[#4ade80] border-[#4ade80]/25"
-            }`}
-          >
-            {iAmBuyer ? "Buying" : "Selling"}
+      <div className="flex flex-col gap-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-gray-500">
+              Order #{String(order.id).slice(0, 8)}
+            </p>
+            <span
+              className={`rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider ${meta.badgeClass}`}
+            >
+              {meta.label}
+            </span>
+            <span
+              className={`rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider ${
+                iAmBuyer
+                  ? "border-white/10 bg-white/5 text-gray-300"
+                  : "border-[#4ade80]/25 bg-[#4ade80]/10 text-[#86efac]"
+              }`}
+            >
+              {iAmBuyer ? "Buying" : "Selling"}
+            </span>
+          </div>
+          {createdDate && (
+            <span className="text-xs text-gray-500">Placed {createdDate}</span>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end">
+          <div className="flex min-w-0 flex-1 items-center gap-3 lg:max-w-[220px]">
+            <Avatar
+              src={peer?.avatar_url}
+              name={peer?.display_name}
+              className="h-11 w-11 flex-shrink-0 rounded-full ring-1 ring-[#4ade80]/25 text-base"
+            />
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-600">
+                {iAmBuyer ? (order.studio_id ? "Studio" : "Builder") : "Client"}
+              </p>
+              <p className="mt-1 truncate text-sm font-semibold text-gray-100">
+                {peer?.display_name || "Unknown user"}
+              </p>
+              {peer?.username && (
+                <p className="truncate text-[11px] text-gray-500">@{peer.username}</p>
+              )}
+            </div>
+          </div>
+
+          <dl className="grid min-w-0 flex-[2] grid-cols-2 gap-x-5 gap-y-4 sm:grid-cols-4">
+            <div>
+              <dt className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-600">
+                Build style
+              </dt>
+              <dd className="mt-1.5 truncate text-sm font-semibold capitalize text-gray-100">
+                {order.style || "Custom"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-600">
+                Project size
+              </dt>
+              <dd className="mt-1.5 truncate text-sm font-semibold text-gray-100">
+                {sizeLabel || "Custom"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-600">
+                {valueLabel}
+              </dt>
+              <dd className="mt-1.5 text-sm font-bold text-[#4ade80]">
+                {formatPrice(value ?? order.price_kopecks)}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-600">
+                {commissionBps !== null ? "Commission" : "Order value"}
+              </dt>
+              <dd className="mt-1.5 text-sm font-bold text-gray-200">
+                {commissionBps !== null
+                  ? `${(commissionBps / 100).toFixed(2)}%`
+                  : formatPrice(order.price_kopecks)}
+              </dd>
+            </div>
+          </dl>
+
+          <span className="studio-pressable inline-flex w-full flex-shrink-0 items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.035] px-5 py-3 text-xs font-semibold text-gray-200 group-hover:border-[#4ade80]/35 group-hover:bg-[#4ade80]/10 group-hover:text-[#86efac] lg:w-auto">
+            Open order
+            <span
+              aria-hidden="true"
+              className="transition-transform duration-300 group-hover:translate-x-1"
+            >
+              →
+            </span>
           </span>
         </div>
-        <p className="text-[11px] text-gray-500 truncate capitalize">
-          {sizeLabel} · {order.style} ·{" "}
-          {new Date(order.created_at).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          })}
-        </p>
-      </div>
-      <div className="text-right flex-shrink-0">
-        <p className="font-bold text-[#4ade80] text-sm">
-          {formatPrice(order.price_kopecks)}
-        </p>
+
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.06] pt-3 text-[11px] text-gray-500">
+          <span>
+            {iAmBuyer
+              ? "Your purchase"
+              : iAmStudioEmployee
+                ? "Studio assignment"
+                : order.studio_id
+                  ? "Studio order"
+                  : "Independent order"}
+          </span>
+          <span className="transition-colors duration-300 group-hover:text-[#86efac]">
+            View details and actions
+          </span>
+        </div>
       </div>
     </a>
   );
