@@ -54,6 +54,7 @@ import {
   validateRates,
 } from "../onboarding/components/RatesFields";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { listMyOrders } from "../../lib/orders/api";
 import { formatPrice, SIZE_META } from "../../lib/pricing";
 import {
@@ -2253,6 +2254,7 @@ export default function AccountPage() {
 
 function AccountPageInner() {
   useRequireAuth();
+  const searchParams = useSearchParams();
   const {
     status,
     user,
@@ -2265,8 +2267,17 @@ function AccountPageInner() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [toast, setToast] = useState(null);
   // Top-level account view: "profile" (visuals/identity), "orders" (active
-  // orders), or "danger" (account controls + delete). Toggled by SectionTabs.
-  const [section, setSection] = useState("profile");
+  // orders), or "danger" (account controls + delete). Keep it in the URL so
+  // a refresh or shared account link restores the selected tab.
+  const [section, setSection] = useState(() => searchParams.get("section") || "profile");
+  const selectSection = useCallback((nextSection) => {
+    setSection(nextSection);
+
+    const url = new URL(window.location.href);
+    if (nextSection === "profile") url.searchParams.delete("section");
+    else url.searchParams.set("section", nextSection);
+    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+  }, []);
   // AuthContext owns the profile row (hydrated from localStorage on mount,
   // refreshed from Supabase in the background). The page reads it directly
   // from there instead of re-fetching, which was the source of the duplicate
@@ -2501,7 +2512,7 @@ function AccountPageInner() {
             <>
               <SectionTabs
                 section={section}
-                setSection={setSection}
+                setSection={selectSection}
                 isBuilder={false}
                 isStudio
               />
@@ -2515,7 +2526,7 @@ function AccountPageInner() {
             </>
           ) : isEmployee ? (
             <>
-              <SectionTabs section={section} setSection={setSection} isBuilder isEmployee />
+              <SectionTabs section={section} setSection={selectSection} isBuilder isEmployee />
               {section === "danger" ? (
                 <div className="space-y-8"><AccountActionsSection /></div>
               ) : (
@@ -2536,7 +2547,7 @@ function AccountPageInner() {
             </>
           ) : (
             <>
-          <SectionTabs section={section} setSection={setSection} isBuilder={isBuilder} />
+          <SectionTabs section={section} setSection={selectSection} isBuilder={isBuilder} />
 
           {section === "profile" && (
             <>
