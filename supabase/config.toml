@@ -21,9 +21,6 @@ verify_jwt = false
 [functions.payment-webhook]
 verify_jwt = false
 
-[functions.complete-test-payment]
-verify_jwt = true
-
 # Legacy payout automation helpers. Manual settlement is now the primary flow,
 # but these remain deployable if automation is ever revisited.
 [functions.create-payout]

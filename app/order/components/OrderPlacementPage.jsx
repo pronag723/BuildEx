@@ -18,8 +18,8 @@ import { fetchStudio } from "../../../lib/studios/api";
 import { STYLES } from "../../../lib/onboarding/constants";
 import { formatPrice } from "../../../lib/pricing";
 import { Icon } from "../../../lib/icons";
-import { placeOrder, placeStudioOrder } from "../../../lib/orders/api";
-import { checkoutAvailable, completeTestPayment, createInvoice, paymentsEnabled } from "../../../lib/payments/api";
+import { placeOrder, placeStudioOrder, markOrderPaid } from "../../../lib/orders/api";
+import { paymentsEnabled, createInvoice } from "../../../lib/payments/api";
 import CatalogNavbar from "../../builders/components/CatalogNavbar";
 import CatalogMobileMenu from "../../builders/components/CatalogMobileMenu";
 import { useGradientBackground } from "../../../lib/ui/useGradientBackground";
@@ -127,8 +127,6 @@ export default function OrderPlacementPage() {
   const isBusy = availabilityStatus === "busy";
   const isLimited = availabilityStatus === "limited";
   const ordersBlocked = isStudioOrder ? !builder?.has_capacity : isBusy || isLimited;
-  const checkoutOpen = checkoutAvailable();
-  const realPaymentsEnabled = paymentsEnabled();
   // builder.id isn't in the public mapping; resolve via builder_profiles ownership
   // by comparing username against the authenticated profile (cheap path: navbar
   // already has it; fallback to a Supabase lookup avoided to keep this page lean).
@@ -183,13 +181,9 @@ export default function OrderPlacementPage() {
     if (i > 0) setStep(STEPS[i - 1]);
   }, [step]);
 
-  // ── Submit ─────────────────────────────────────────────────────────────────
+  // ── Submit (mock pay) ──────────────────────────────────────────────────────
   const onPay = useCallback(async () => {
     if (submitting) return;
-    if (!checkoutOpen) {
-      setSubmitError("Checkout is temporarily unavailable. Please try again later.");
-      return;
-    }
     if (!selectedSize?.enabled || !style || brief.trim().length < 20) return;
     if (!builder?.id) {
       setSubmitError("Builder identity not loaded yet — please retry.");
@@ -217,38 +211,46 @@ export default function OrderPlacementPage() {
       return;
     }
 
-    if (!realPaymentsEnabled) {
-      const { error: mockPaymentError } = await completeTestPayment(orderId);
-      if (mockPaymentError) {
+    // REAL PAYMENT (Stage 12): when the NOWPayments gateway is enabled, hand the
+    // buyer off to the hosted checkout. The payment-webhook flips the order to
+    // 'paid' server-side; the buyer returns to /orders via the gateway's return
+    // URL. We deliberately do NOT call markOrderPaid here — only a verified
+    // webhook may mark a real order paid.
+    if (paymentsEnabled()) {
+      const { checkoutUrl, error: invoiceError } = await createInvoice(orderId);
+      if (invoiceError || !checkoutUrl) {
         setSubmitting(false);
         setSubmitError(
-          (mockPaymentError.message || "Could not complete the test payment.") +
-            " Your order is awaiting payment."
+          (invoiceError?.message || "Could not start checkout.") +
+            " Your order is saved and awaiting payment."
         );
         router.push(`/orders/?id=${encodeURIComponent(orderId)}`);
         return;
       }
-      router.push(`/orders/?id=${encodeURIComponent(orderId)}`);
+      // Full-page redirect to the gateway (leaves the app); keep `submitting`
+      // true so the button stays disabled until navigation happens.
+      window.location.assign(checkoutUrl);
       return;
     }
 
-    const { checkoutUrl, error: invoiceError } = await createInvoice(orderId);
-    if (invoiceError || !checkoutUrl) {
+    // MOCK PAYMENT — fallback while the gateway is dormant (no keys yet).
+    const { error: payError } = await markOrderPaid(orderId);
+    if (payError) {
       setSubmitting(false);
       setSubmitError(
-        (invoiceError?.message || "Could not start checkout.") +
+        (payError.message || "Order placed, but payment could not be marked.") +
           " Your order is awaiting payment."
       );
       router.push(`/orders/?id=${encodeURIComponent(orderId)}`);
       return;
     }
-    // Full-page redirect to the gateway (leaves the app); keep `submitting`
-    // true so the button stays disabled until navigation happens.
-    window.location.assign(checkoutUrl);
-  }, [submitting, checkoutOpen, realPaymentsEnabled, selectedSize, style, brief, builder, size, router, isStudioOrder]);
+    router.push(`/orders/?id=${encodeURIComponent(orderId)}`);
+  }, [submitting, selectedSize, style, brief, builder, size, router, isStudioOrder]);
 
   // The gateway adds its processing fee on top at checkout, so the button shows
   // the exact order price either way; "(mock)" only appears while dormant.
+  const payEnabled = paymentsEnabled();
+
   // ── Render ─────────────────────────────────────────────────────────────────
   // The page shell (and crucially the gradient-background divs) must mount on the
   // FIRST render so useGradientBackground can attach its refs and start the
@@ -313,11 +315,6 @@ export default function OrderPlacementPage() {
                   : "This builder has limited availability right now and isn't accepting new orders. You can still message them to line up future work."
               }
             />
-          ) : !checkoutOpen ? (
-            <EmptyNotice
-              title="Checkout temporarily unavailable"
-              body="New orders are temporarily paused. Please check back soon."
-            />
           ) : (
             <div className="glass rounded-3xl p-6 sm:p-8">
               <Header builder={builder} />
@@ -379,7 +376,7 @@ export default function OrderPlacementPage() {
                   >
                     {submitting
                       ? "Processing…"
-                      : `Pay ${formatPrice(priceKopecks)}${realPaymentsEnabled ? "" : " (test)"}`}
+                      : `Pay ${formatPrice(priceKopecks)}${payEnabled ? "" : " (mock)"}`}
                   </button>
                 )}
               </div>

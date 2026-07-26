@@ -31,7 +31,6 @@ import {
   getDeliveryDownloadUrl,
   uploadPreview,
 } from "../../../lib/orders/api";
-import { completeTestPayment, paymentsEnabled } from "../../../lib/payments/api";
 import { generatePreview } from "../../../lib/preview/client";
 import { leaveReview, fetchOrderReview } from "../../../lib/reviews/api";
 import { openDispute, fetchOrderDispute } from "../../../lib/disputes/api";
@@ -549,7 +548,6 @@ function OrderDetail({ orderId, meId, onBack }) {
     ? order.size_label || SIZE_META[order.building_size]?.label || order.building_size
     : "";
   const meta = order ? STATUS_META[order.status] || STATUS_META.pending_payment : null;
-  const testPaymentsEnabled = !paymentsEnabled();
 
   // Wrap each RPC call so the row reloads on success and the error surfaces.
   const runAction = useCallback(
@@ -731,8 +729,6 @@ function OrderDetail({ orderId, meId, onBack }) {
           onDeliver={() => setDeliverOpen(true)}
           onConfirm={() => setConfirmOpen(true)}
           onCancel={() => runAction(() => cancelOrder(order.id))}
-          onCompleteTestPayment={() => runAction(() => completeTestPayment(order.id))}
-          testPaymentsEnabled={testPaymentsEnabled}
           onDispute={() => setDisputeOpen(true)}
           onOpenChat={openChat}
         />
@@ -980,8 +976,6 @@ function ActionButtons({
   onDeliver,
   onConfirm,
   onCancel,
-  onCompleteTestPayment,
-  testPaymentsEnabled,
   onDispute,
   onOpenChat,
 }) {
@@ -1019,13 +1013,6 @@ function ActionButtons({
     }
   }
   if (isBuyer && order.status === "pending_payment") {
-    if (testPaymentsEnabled) {
-      buttons.push(
-        <Primary key="test-payment" onClick={onCompleteTestPayment} disabled={busy}>
-          Complete test payment
-        </Primary>
-      );
-    }
     buttons.push(
       <Secondary key="cancel" onClick={onCancel} disabled={busy}>
         Cancel order
