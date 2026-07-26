@@ -2362,33 +2362,54 @@ body {
 }
 
 .studio-assignment-backdrop {
-  animation: studioBackdropIn 0.24s ease-out both;
+  animation: studioBackdropIn 0.38s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
 .studio-assignment-dialog {
-  animation: studioDialogIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: studioDialogIn 0.56s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: center 42%;
+  will-change: opacity, transform;
+}
+
+.studio-order-row {
+  animation: studioOrderIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--order-index, 0) * 45ms);
+  transition:
+    border-color 0.26s ease,
+    background-color 0.26s ease;
 }
 
 .studio-builder-option {
-  animation: studioBuilderIn 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
-  animation-delay: calc(var(--builder-index, 0) * 45ms + 80ms);
+  animation: studioBuilderIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--builder-index, 0) * 28ms + 150ms);
   transition:
-    transform 0.24s ease,
-    border-color 0.24s ease,
-    background-color 0.24s ease,
-    opacity 0.24s ease;
+    border-color 0.26s ease,
+    background-color 0.26s ease,
+    opacity 0.26s ease;
 }
 
-.studio-builder-option:hover {
-  transform: translateY(-2px);
+.studio-pressable {
+  transition:
+    transform 0.16s cubic-bezier(0.2, 0.75, 0.25, 1),
+    background-color 0.22s ease,
+    border-color 0.22s ease,
+    color 0.22s ease,
+    opacity 0.22s ease;
+  transform: translateY(0) scale(1);
+  transform-origin: center;
+}
+
+.studio-pressable:active:not(:disabled) {
+  transform: translateY(1px) scale(0.975);
+  transition-duration: 70ms;
 }
 
 .studio-confirm-layer {
-  animation: studioBackdropIn 0.2s ease-out both;
+  animation: studioBackdropIn 0.28s ease-out both;
 }
 
 .studio-confirm-card {
-  animation: studioConfirmIn 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: studioConfirmIn 0.44s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .studio-builder-list {
@@ -2411,12 +2432,17 @@ body {
 }
 
 @keyframes studioDialogIn {
-  from { opacity: 0; transform: translateY(28px) scale(0.975); }
+  from { opacity: 0; transform: translateY(22px) scale(0.988); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+@keyframes studioOrderIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 @keyframes studioBuilderIn {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
@@ -2477,11 +2503,13 @@ body {
   .studio-portfolio-card,
   .studio-stat-card,
   .studio-network-menu,
+  .studio-order-row,
   .studio-assignment-backdrop,
   .studio-assignment-dialog,
   .studio-builder-option,
   .studio-confirm-layer,
-  .studio-confirm-card {
+  .studio-confirm-card,
+  .studio-pressable {
     animation: none;
     transition: none;
   }
