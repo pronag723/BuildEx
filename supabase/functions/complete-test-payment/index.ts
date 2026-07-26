@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
 
   const { data: order, error: orderErr } = await asUser
     .from("orders")
-    .select("id, buyer_id, status")
+    .select("id, buyer_id, status, price_kopecks")
     .eq("id", orderId)
     .maybeSingle();
   if (orderErr) return json({ error: "Could not load the order" }, 500);
@@ -53,8 +53,15 @@ Deno.serve(async (req) => {
   }
 
   const asService = createClient(supabaseUrl, serviceKey);
-  const { error: paymentErr } = await asService.rpc("mark_order_paid", {
+  // Use the same trusted settlement RPC as the NOWPayments webhook. Besides
+  // updating the status, it creates the paid ledger row and notifies the
+  // assigned builder or studio moderator that the order is ready to begin.
+  const { error: paymentErr } = await asService.rpc("mark_order_paid_internal", {
     p_order: orderId,
+    p_invoice: `test-${orderId}`,
+    p_amount_cents: Number(order.price_kopecks),
+    p_method: "test",
+    p_raw: { price_currency: "usd", test_mode: true },
   });
   if (paymentErr) {
     console.error("test payment failed:", paymentErr);
