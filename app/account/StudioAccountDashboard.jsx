@@ -68,7 +68,6 @@ import {
   PORTFOLIO_ACCEPTED_MIME,
   PORTFOLIO_MAX_FILE_MB,
   PORTFOLIO_MAX_IMAGES,
-  PROJECT_TYPES,
 } from "../../lib/onboarding/constants";
 import {
   RatesEditor,
@@ -81,12 +80,21 @@ const INPUT =
   "studio-control w-full px-4 py-3 rounded-2xl bg-black/25 border border-white/10 text-sm outline-none transition-all hover:border-white/20 focus:border-[#4ade80]/60 focus:ring-4 focus:ring-[#4ade80]/10";
 
 const TOOL_LABELS = Object.fromEntries(BUILDER_TOOLS.map(({ key, label }) => [key, label]));
-const PROJECT_TYPE_LABELS = Object.fromEntries(
-  PROJECT_TYPES.map(({ key, label }) => [key, label])
-);
 const AVAILABILITY_COPY = Object.fromEntries(
   AVAILABILITY_STATES.map(({ key, label, short }) => [key, { label, short }])
 );
+const TEAM_AVAILABILITY_OPTIONS = [
+  { value: "all", label: "All availability" },
+  { value: "available", label: "Available" },
+  { value: "limited", label: "Limited capacity" },
+  { value: "busy", label: "Not taking work" },
+];
+const TEAM_SORT_OPTIONS = [
+  { value: "name", label: "Sort: Name" },
+  { value: "availability", label: "Sort: Availability" },
+  { value: "active-work", label: "Sort: Active work" },
+  { value: "completed", label: "Sort: Completed" },
+];
 
 function readableProfileValue(value, labels = {}) {
   if (!value) return "";
@@ -95,6 +103,148 @@ function readableProfileValue(value, labels = {}) {
     String(value)
       .replace(/[_-]+/g, " ")
       .replace(/\b\w/g, (letter) => letter.toUpperCase())
+  );
+}
+
+function TeamFilterMenu({ label, value, options, onChange, icon: MenuIcon }) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef(null);
+  const triggerRef = useRef(null);
+  const optionRefs = useRef([]);
+  const selected = options.find((option) => option.value === value) || options[0];
+  const selectedIndex = Math.max(
+    options.findIndex((option) => option.value === selected.value),
+    0
+  );
+  const menuId = `team-filter-${label.toLowerCase().replace(/\s+/g, "-")}`;
+
+  function openAndFocus(index) {
+    setOpen(true);
+    requestAnimationFrame(() => optionRefs.current[index]?.focus());
+  }
+
+  function handleTriggerKeyDown(event) {
+    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    if (event.key === "Home") openAndFocus(0);
+    else if (event.key === "End") openAndFocus(options.length - 1);
+    else if (event.key === "ArrowUp") {
+      openAndFocus(selectedIndex > 0 ? selectedIndex - 1 : options.length - 1);
+    } else {
+      openAndFocus(selectedIndex < options.length - 1 ? selectedIndex + 1 : 0);
+    }
+  }
+
+  function handleOptionKeyDown(event, index) {
+    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    if (event.key === "Home") optionRefs.current[0]?.focus();
+    else if (event.key === "End") optionRefs.current[options.length - 1]?.focus();
+    else if (event.key === "ArrowUp") {
+      optionRefs.current[index > 0 ? index - 1 : options.length - 1]?.focus();
+    } else {
+      optionRefs.current[index < options.length - 1 ? index + 1 : 0]?.focus();
+    }
+  }
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    function closeOnOutsidePress(event) {
+      if (!containerRef.current?.contains(event.target)) setOpen(false);
+    }
+
+    function closeOnEscape(event) {
+      if (event.key !== "Escape") return;
+      setOpen(false);
+      triggerRef.current?.focus();
+    }
+
+    document.addEventListener("pointerdown", closeOnOutsidePress);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsidePress);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [open]);
+
+  return (
+    <div
+      ref={containerRef}
+      className="team-filter-menu relative"
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
+      }}
+    >
+      <button
+        ref={triggerRef}
+        type="button"
+        aria-label={label}
+        aria-haspopup="listbox"
+        aria-controls={menuId}
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
+        onKeyDown={handleTriggerKeyDown}
+        className={`team-filter-trigger flex w-full items-center gap-2.5 rounded-2xl border bg-black/25 px-3.5 py-2.5 text-left text-sm font-medium outline-none ${
+          open
+            ? "border-[#4ade80]/55 bg-[#4ade80]/[0.055] text-white shadow-[0_0_0_4px_rgba(74,222,128,0.08)]"
+            : "border-white/10 text-gray-200 hover:border-white/20"
+        }`}
+      >
+        {MenuIcon && <MenuIcon size={15} aria-hidden="true" className="shrink-0 text-gray-500" />}
+        <span className="min-w-0 flex-1 truncate">{selected.label}</span>
+        <ChevronDown
+          size={15}
+          aria-hidden="true"
+          className={`shrink-0 text-gray-500 transition-transform duration-300 ${
+            open ? "rotate-180 text-[#4ade80]" : ""
+          }`}
+        />
+      </button>
+      <div
+        id={menuId}
+        role="listbox"
+        aria-label={label}
+        data-open={open ? "true" : "false"}
+        className="team-filter-options absolute left-0 right-0 top-[calc(100%+8px)] z-30 overflow-hidden rounded-2xl border border-white/10 bg-[#171a18]/95 p-1.5 shadow-[0_18px_45px_rgba(0,0,0,0.42)] backdrop-blur-xl"
+      >
+        {options.map((option, index) => {
+          const active = option.value === value;
+          return (
+            <button
+              ref={(element) => {
+                optionRefs.current[index] = element;
+              }}
+              key={option.value}
+              type="button"
+              role="option"
+              aria-selected={active}
+              tabIndex={open ? 0 : -1}
+              onKeyDown={(event) => handleOptionKeyDown(event, index)}
+              onClick={() => {
+                onChange(option.value);
+                setOpen(false);
+                triggerRef.current?.focus();
+              }}
+              className={`team-filter-option flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm ${
+                active
+                  ? "bg-[#4ade80]/12 font-semibold text-[#86efac]"
+                  : "text-gray-300 hover:bg-white/[0.055] hover:text-white"
+              }`}
+            >
+              <span className="flex-1">{option.label}</span>
+              <Check
+                size={14}
+                aria-hidden="true"
+                className={`text-[#4ade80] transition-all duration-200 ${
+                  active ? "scale-100 opacity-100" : "scale-75 opacity-0"
+                }`}
+              />
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -1601,35 +1751,19 @@ export function StudioModeratorDashboard({ section = "profile" }) {
                 className={`${INPUT} py-2.5 pl-10`}
               />
             </label>
-            <label className="relative">
-              <span className="sr-only">Filter by availability</span>
-              <SlidersHorizontal size={15} aria-hidden="true" className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
-              <select
-                value={memberAvailabilityFilter}
-                onChange={(event) => setMemberAvailabilityFilter(event.target.value)}
-                className={`${INPUT} appearance-none py-2.5 pl-10 pr-9`}
-              >
-                <option value="all">All availability</option>
-                <option value="available">Available</option>
-                <option value="limited">Limited capacity</option>
-                <option value="busy">Not taking work</option>
-              </select>
-              <ChevronDown size={15} aria-hidden="true" className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
-            </label>
-            <label className="relative">
-              <span className="sr-only">Sort team members</span>
-              <select
-                value={memberSort}
-                onChange={(event) => setMemberSort(event.target.value)}
-                className={`${INPUT} appearance-none py-2.5 pr-9`}
-              >
-                <option value="name">Sort: Name</option>
-                <option value="availability">Sort: Availability</option>
-                <option value="active-work">Sort: Active work</option>
-                <option value="completed">Sort: Completed</option>
-              </select>
-              <ChevronDown size={15} aria-hidden="true" className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
-            </label>
+            <TeamFilterMenu
+              label="Filter by availability"
+              value={memberAvailabilityFilter}
+              options={TEAM_AVAILABILITY_OPTIONS}
+              onChange={setMemberAvailabilityFilter}
+              icon={SlidersHorizontal}
+            />
+            <TeamFilterMenu
+              label="Sort team members"
+              value={memberSort}
+              options={TEAM_SORT_OPTIONS}
+              onChange={setMemberSort}
+            />
           </div>
           <p className="mt-3 text-xs text-gray-500" aria-live="polite">
             Showing {teamMembers.length} of {members.filter((member) => member.status === "active").length} builders
@@ -1650,7 +1784,6 @@ export function StudioModeratorDashboard({ section = "profile" }) {
               };
               const tools = member.profile.tools || [];
               const specialties = member.profile.specialties || [];
-              const projectTypes = member.profile.project_types || [];
 
               return (
                 <article key={member.id} className="team-member-card overflow-hidden rounded-3xl border border-white/10 bg-black/[0.12] p-5 sm:p-6">
@@ -1685,7 +1818,7 @@ export function StudioModeratorDashboard({ section = "profile" }) {
                     ))}
                   </div>
 
-                  <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+                  <div className="mt-5 grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(240px,0.75fr)]">
                     <div className="min-w-0 space-y-4">
                       {tools.length > 0 && (
                         <div>
@@ -1711,25 +1844,18 @@ export function StudioModeratorDashboard({ section = "profile" }) {
                           </div>
                         </div>
                       )}
-                      <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-gray-400">
-                        <span>
-                          <strong className="font-semibold text-gray-200">Project interests:</strong>{" "}
-                          {projectTypes.length
-                            ? projectTypes.map((type) => readableProfileValue(type, PROJECT_TYPE_LABELS)).join(", ")
-                            : "Not specified"}
-                        </span>
-                        <span><strong className="font-semibold text-gray-200">Portfolio:</strong> {member.builder?.portfolio?.length || 0} images</span>
-                        <span>
-                          <strong className="font-semibold text-gray-200">Typical response:</strong>{" "}
-                          {member.profile.response_time_hours ? `within ${member.profile.response_time_hours}h` : "Not specified"}
-                        </span>
-                      </div>
-                      {member.builder?.bio && (
-                        <p className="max-w-3xl text-sm leading-relaxed text-gray-400 line-clamp-2">{member.builder.bio}</p>
-                      )}
                     </div>
+                    <div className="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">
+                        About
+                      </p>
+                      <p className="mt-2 text-sm leading-relaxed text-gray-300">
+                        {member.builder?.bio || "This builder has not added an introduction yet."}
+                      </p>
+                    </div>
+                  </div>
 
-                    <div className="flex flex-wrap gap-2 lg:justify-end">
+                  <footer className="mt-4 flex flex-wrap gap-2 border-t border-white/[0.06] pt-4 sm:justify-end">
                       <Link
                         href={`/chats?to=${encodeURIComponent(member.builder?.username || "")}`}
                         className="team-action-button group inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#4ade80]/30 bg-[#4ade80]/10 px-4 py-2.5 text-sm font-bold text-[#86efac] shadow-[0_8px_24px_rgba(74,222,128,0.08)] hover:border-[#4ade80]/60 hover:bg-[#4ade80] hover:text-black hover:shadow-[0_12px_28px_rgba(74,222,128,0.2)]"
@@ -1745,8 +1871,7 @@ export function StudioModeratorDashboard({ section = "profile" }) {
                         <UserMinus size={17} aria-hidden="true" className="transition-transform duration-300 group-hover:-translate-x-0.5" />
                         Remove
                       </button>
-                    </div>
-                  </div>
+                  </footer>
                 </article>
               );
             })}

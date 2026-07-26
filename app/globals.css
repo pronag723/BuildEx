@@ -179,6 +179,44 @@ button.carousel-arrow:active {
   box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.2);
 }
 
+.team-filter-trigger,
+.team-filter-option {
+  transition:
+    color 220ms ease,
+    background-color 220ms ease,
+    border-color 220ms ease,
+    box-shadow 260ms ease,
+    transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.team-filter-trigger:hover {
+  transform: translateY(-1px);
+}
+
+.team-filter-options {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-8px) scale(0.98);
+  transform-origin: top center;
+  transition:
+    opacity 180ms ease,
+    visibility 0s linear 180ms,
+    transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.team-filter-options[data-open="true"] {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+  transition-delay: 0s;
+}
+
+.team-filter-option:hover {
+  transform: translateX(2px);
+}
+
 .team-member-card {
   transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1), border-color 260ms ease, background-color 260ms ease, box-shadow 320ms ease;
 }
@@ -193,11 +231,16 @@ button.carousel-arrow:active {
 @media (prefers-reduced-motion: reduce) {
   .carousel-progress-indicator,
   .team-action-button,
+  .team-filter-trigger,
+  .team-filter-option,
+  .team-filter-options,
   .team-member-card {
     transition-duration: 1ms;
   }
 
   .team-action-button:hover:not(:disabled),
+  .team-filter-trigger:hover,
+  .team-filter-option:hover,
   .team-member-card:hover {
     transform: none;
   }
