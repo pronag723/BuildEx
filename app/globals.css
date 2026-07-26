@@ -2375,26 +2375,46 @@ body {
   animation: studioOrderIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
   animation-delay: calc(var(--order-index, 0) * 45ms);
   transition:
-    border-color 0.26s ease,
-    background-color 0.26s ease;
+    border-color 0.3s cubic-bezier(0.2, 0.75, 0.25, 1),
+    background-color 0.3s cubic-bezier(0.2, 0.75, 0.25, 1),
+    color 0.3s cubic-bezier(0.2, 0.75, 0.25, 1),
+    box-shadow 0.3s cubic-bezier(0.2, 0.75, 0.25, 1);
 }
 
 .studio-builder-option {
   animation: studioBuilderIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
   animation-delay: calc(var(--builder-index, 0) * 28ms + 150ms);
   transition:
-    border-color 0.26s ease,
-    background-color 0.26s ease,
-    opacity 0.26s ease;
+    border-color 0.3s cubic-bezier(0.2, 0.75, 0.25, 1),
+    background-color 0.3s cubic-bezier(0.2, 0.75, 0.25, 1),
+    color 0.3s cubic-bezier(0.2, 0.75, 0.25, 1),
+    opacity 0.3s cubic-bezier(0.2, 0.75, 0.25, 1),
+    box-shadow 0.3s cubic-bezier(0.2, 0.75, 0.25, 1);
+}
+
+:where(.studio-order-row, .studio-builder-option, .studio-assignment-dialog)
+  :where(button, a, [class*="rounded"], svg) {
+  transition-property:
+    color,
+    background-color,
+    border-color,
+    border-radius,
+    box-shadow,
+    opacity,
+    transform;
+  transition-duration: 0.28s;
+  transition-timing-function: cubic-bezier(0.2, 0.75, 0.25, 1);
 }
 
 .studio-pressable {
   transition:
     transform 0.16s cubic-bezier(0.2, 0.75, 0.25, 1),
-    background-color 0.22s ease,
-    border-color 0.22s ease,
-    color 0.22s ease,
-    opacity 0.22s ease;
+    background-color 0.28s cubic-bezier(0.2, 0.75, 0.25, 1),
+    border-color 0.28s cubic-bezier(0.2, 0.75, 0.25, 1),
+    border-radius 0.28s cubic-bezier(0.2, 0.75, 0.25, 1),
+    box-shadow 0.28s cubic-bezier(0.2, 0.75, 0.25, 1),
+    color 0.28s cubic-bezier(0.2, 0.75, 0.25, 1),
+    opacity 0.28s cubic-bezier(0.2, 0.75, 0.25, 1);
   transform: translateY(0) scale(1);
   transform-origin: center;
 }
@@ -2511,6 +2531,11 @@ body {
   .studio-confirm-card,
   .studio-pressable {
     animation: none;
+    transition: none;
+  }
+
+  :where(.studio-order-row, .studio-builder-option, .studio-assignment-dialog)
+    :where(button, a, [class*="rounded"], svg) {
     transition: none;
   }
 }
