@@ -20,7 +20,7 @@ import { createInvoice, getMinimumInvoiceAmount } from "../_shared/nowpayments.t
 // Emergency checkout pause. Flip to false and redeploy this function to allow
 // invoice creation again. This protects the payment endpoint from direct calls
 // while the client-side order form is paused.
-const CHECKOUT_PAUSED = false;
+const CHECKOUT_PAUSED = true;
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {

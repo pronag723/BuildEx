@@ -19,7 +19,7 @@ import { STYLES } from "../../../lib/onboarding/constants";
 import { formatPrice } from "../../../lib/pricing";
 import { Icon } from "../../../lib/icons";
 import { placeOrder, placeStudioOrder } from "../../../lib/orders/api";
-import { checkoutAvailable, createInvoice } from "../../../lib/payments/api";
+import { checkoutAvailable, completeTestPayment, createInvoice, paymentsEnabled } from "../../../lib/payments/api";
 import CatalogNavbar from "../../builders/components/CatalogNavbar";
 import CatalogMobileMenu from "../../builders/components/CatalogMobileMenu";
 import { useGradientBackground } from "../../../lib/ui/useGradientBackground";
@@ -128,6 +128,7 @@ export default function OrderPlacementPage() {
   const isLimited = availabilityStatus === "limited";
   const ordersBlocked = isStudioOrder ? !builder?.has_capacity : isBusy || isLimited;
   const checkoutOpen = checkoutAvailable();
+  const realPaymentsEnabled = paymentsEnabled();
   // builder.id isn't in the public mapping; resolve via builder_profiles ownership
   // by comparing username against the authenticated profile (cheap path: navbar
   // already has it; fallback to a Supabase lookup avoided to keep this page lean).
@@ -216,8 +217,21 @@ export default function OrderPlacementPage() {
       return;
     }
 
-    // The payment-webhook flips the order to 'paid' server-side; client code
-    // never falls back to mock payment if checkout is unavailable.
+    if (!realPaymentsEnabled) {
+      const { error: mockPaymentError } = await completeTestPayment(orderId);
+      if (mockPaymentError) {
+        setSubmitting(false);
+        setSubmitError(
+          (mockPaymentError.message || "Could not complete the test payment.") +
+            " Your order is awaiting payment."
+        );
+        router.push(`/orders/?id=${encodeURIComponent(orderId)}`);
+        return;
+      }
+      router.push(`/orders/?id=${encodeURIComponent(orderId)}`);
+      return;
+    }
+
     const { checkoutUrl, error: invoiceError } = await createInvoice(orderId);
     if (invoiceError || !checkoutUrl) {
       setSubmitting(false);
@@ -231,7 +245,7 @@ export default function OrderPlacementPage() {
     // Full-page redirect to the gateway (leaves the app); keep `submitting`
     // true so the button stays disabled until navigation happens.
     window.location.assign(checkoutUrl);
-  }, [submitting, checkoutOpen, selectedSize, style, brief, builder, size, router, isStudioOrder]);
+  }, [submitting, checkoutOpen, realPaymentsEnabled, selectedSize, style, brief, builder, size, router, isStudioOrder]);
 
   // The gateway adds its processing fee on top at checkout, so the button shows
   // the exact order price either way; "(mock)" only appears while dormant.
@@ -365,7 +379,7 @@ export default function OrderPlacementPage() {
                   >
                     {submitting
                       ? "Processing…"
-                      : `Pay ${formatPrice(priceKopecks)}`}
+                      : `Pay ${formatPrice(priceKopecks)}${realPaymentsEnabled ? "" : " (test)"}`}
                   </button>
                 )}
               </div>
