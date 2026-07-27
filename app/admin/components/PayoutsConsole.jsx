@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import {
   approveWithdrawal,
   listPayouts,
@@ -107,16 +108,18 @@ export default function PayoutsConsole() {
               p.builder?.username ||
               "Provider";
             return (
-              <div key={p.id} className="glass rounded-2xl p-4 flex items-center gap-3 flex-wrap transition-all duration-200 hover:border-emerald-400/25">
+              <div key={p.id} className="glass rounded-3xl p-5 sm:p-6 flex items-center gap-5 flex-wrap transition-all duration-200 hover:border-emerald-400/25">
                 <div className="flex-1 min-w-[230px]">
-                  <p className="text-sm font-semibold">{name}</p>
+                  <p className="text-[10px] uppercase tracking-widest text-gray-500">Requester</p>
+                  {p.builder?.username ? <Link href={`/chats?to=${encodeURIComponent(p.builder.username)}`} className="mt-1 inline-flex items-center gap-1 text-base font-bold text-white hover:text-emerald-300 transition-colors">{name} <span className="text-emerald-300">@{p.builder.username}</span><Icon name="chat" size={14} /></Link> : <p className="mt-1 text-base font-bold">{name}</p>}
                   {p.builder?.username && <p className="text-[11px] text-gray-500">@{p.builder.username} · requested {new Date(p.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>}
-                  <p className="text-[11px] text-gray-500">
+                  <p className="mt-3 text-[10px] uppercase tracking-widest text-gray-500">Payout wallet</p>
+                  <p className="text-sm text-gray-400">
                     {p.payout_method === "usdt_erc20" ? "USDT ERC-20" : "USDT TRC-20"}
                     {" · "}<code>{short(p.destination)}</code>
                   </p>
                   <div className="flex items-start gap-2 mt-1">
-                    <code className="min-w-0 flex-1 text-[11px] text-gray-300 break-all select-all">
+                    <code className="min-w-0 flex-1 text-xs text-gray-300 break-all select-all">
                       {p.destination || "No destination recorded"}
                     </code>
                     {p.destination && (
@@ -146,7 +149,7 @@ export default function PayoutsConsole() {
                   {p.admin_note && <p className="text-[11px] text-gray-400 mt-1">{p.admin_note}</p>}
                   {p.rejection_reason && <p className="text-[11px] text-red-300 mt-1">{p.rejection_reason}</p>}
                 </div>
-                <span className="font-bold text-[#4ade80]">{formatPrice(p.amount_cents)}</span>
+                <div className="min-w-[130px] text-right"><p className="text-[10px] uppercase tracking-widest text-gray-500">Requested amount</p><span className="mt-1 block text-2xl font-extrabold text-[#4ade80]">{formatPrice(p.amount_cents)}</span></div>
                 <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold border ${meta[1]}`}>
                   {meta[0]}
                 </span>
