@@ -108,18 +108,29 @@ export default function PayoutsConsole() {
               p.builder?.username ||
               "Provider";
             return (
-              <div key={p.id} className="glass rounded-3xl p-5 sm:p-6 flex items-center gap-5 flex-wrap transition-all duration-200 hover:border-emerald-400/25">
-                <div className="flex-1 min-w-[230px]">
-                  <p className="text-[10px] uppercase tracking-widest text-gray-500">Requester</p>
-                  {p.builder?.username ? <Link href={`/chats?to=${encodeURIComponent(p.builder.username)}`} className="mt-1 inline-flex items-center gap-1 text-base font-bold text-white hover:text-emerald-300 transition-colors">{name} <span className="text-emerald-300">@{p.builder.username}</span><Icon name="chat" size={14} /></Link> : <p className="mt-1 text-base font-bold">{name}</p>}
+              <article key={p.id} className="rounded-[26px] border border-emerald-400/45 bg-[#1d201f]/95 px-6 py-5 sm:px-7 sm:py-6 transition-all duration-200 hover:border-emerald-400/70 hover:shadow-[0_16px_50px_rgba(16,185,129,0.08)]">
+                <div className="flex items-center justify-between gap-4 pb-5 border-b border-white/[0.07]">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <p className="text-xs font-medium uppercase tracking-[0.18em] text-gray-400">Payout #{String(p.id).slice(0, 8)}</p>
+                    <span className={`px-3 py-1.5 rounded-full text-[11px] uppercase tracking-wider font-bold border ${meta[1]}`}>{meta[0]}</span>
+                  </div>
+                  <p className="text-xs text-gray-500">Requested {new Date(p.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>
+                </div>
+                <div className="grid gap-6 py-6 md:grid-cols-2 xl:grid-cols-[1.15fr_1.7fr_.8fr_auto] xl:items-center">
+                <div className="min-w-0">
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-gray-500">Requester</p>
+                  {p.builder?.username ? <Link href={`/chats?to=${encodeURIComponent(p.builder.username)}`} className="mt-2 inline-flex items-center gap-2 text-lg font-bold text-white hover:text-emerald-300 transition-colors">{name} <span className="text-emerald-300">@{p.builder.username}</span><Icon name="chat" size={17} /></Link> : <p className="mt-2 text-lg font-bold">{name}</p>}
                   {p.builder?.username && <p className="text-[11px] text-gray-500">@{p.builder.username} · requested {new Date(p.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>}
-                  <p className="mt-3 text-[10px] uppercase tracking-widest text-gray-500">Payout wallet</p>
-                  <p className="text-sm text-gray-400">
+                  <p className="mt-2 text-sm text-gray-500">Click the username to message</p>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-gray-500">Payout wallet</p>
+                  <p className="mt-2 text-base font-semibold text-gray-200">
                     {p.payout_method === "usdt_erc20" ? "USDT ERC-20" : "USDT TRC-20"}
                     {" · "}<code>{short(p.destination)}</code>
                   </p>
                   <div className="flex items-start gap-2 mt-1">
-                    <code className="min-w-0 flex-1 text-xs text-gray-300 break-all select-all">
+                    <code className="min-w-0 flex-1 text-sm leading-relaxed text-gray-300 break-all select-all">
                       {p.destination || "No destination recorded"}
                     </code>
                     {p.destination && (
@@ -149,11 +160,8 @@ export default function PayoutsConsole() {
                   {p.admin_note && <p className="text-[11px] text-gray-400 mt-1">{p.admin_note}</p>}
                   {p.rejection_reason && <p className="text-[11px] text-red-300 mt-1">{p.rejection_reason}</p>}
                 </div>
-                <div className="min-w-[130px] text-right"><p className="text-[10px] uppercase tracking-widest text-gray-500">Requested amount</p><span className="mt-1 block text-2xl font-extrabold text-[#4ade80]">{formatPrice(p.amount_cents)}</span></div>
-                <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold border ${meta[1]}`}>
-                  {meta[0]}
-                </span>
-                {p.builder_id && <button type="button" onClick={() => showHistory(p)} className="px-3 py-1.5 rounded-full text-[11px] font-semibold border border-white/15 text-gray-300 hover:border-emerald-400/40 hover:text-emerald-300 transition-all">Order history</button>}
+                <div className="min-w-[140px]"><p className="text-[11px] uppercase tracking-[0.18em] text-gray-500">Requested amount</p><span className="mt-2 block text-3xl font-extrabold text-[#4ade80]">{formatPrice(p.amount_cents)}</span>{p.fee_amount_cents != null && <p className="mt-2 text-sm text-gray-400">Net {formatPrice(p.net_amount_cents ?? p.amount_cents)}</p>}</div>
+                {p.builder_id && <button type="button" onClick={() => showHistory(p)} className="min-h-11 px-5 py-2.5 rounded-xl text-sm font-semibold border border-emerald-400/40 bg-emerald-400/[0.08] text-emerald-300 hover:bg-emerald-400/15 transition-all">View history →</button>}
 
                 {p.status === "requested" && (
                   <>
@@ -173,7 +181,7 @@ export default function PayoutsConsole() {
                         }
                         act(() => approveWithdrawal(p.id, cents), "Withdrawal approved.");
                       }}
-                      className="px-3 py-1.5 rounded-full text-[11px] font-semibold bg-[#4ade80] text-black"
+                      className="min-h-11 px-5 py-2.5 rounded-xl text-sm font-bold bg-[#4ade80] text-black"
                     >
                       Approve
                     </button>
@@ -192,7 +200,7 @@ export default function PayoutsConsole() {
                           );
                         }
                       }}
-                      className="px-3 py-1.5 rounded-full text-[11px] border border-red-400/30 text-red-300"
+                      className="min-h-11 px-5 py-2.5 rounded-xl text-sm border border-red-400/30 text-red-300"
                     >
                       Reject
                     </button>
@@ -219,7 +227,7 @@ export default function PayoutsConsole() {
                           "Withdrawal marked as sent.",
                         );
                       }}
-                      className="px-3 py-1.5 rounded-full text-[11px] font-semibold bg-[#4ade80] text-black"
+                      className="min-h-11 px-5 py-2.5 rounded-xl text-sm font-bold bg-[#4ade80] text-black"
                     >
                       Mark sent
                     </button>
@@ -242,13 +250,18 @@ export default function PayoutsConsole() {
                           "Withdrawal marked as failed and funds released.",
                         );
                       }}
-                      className="px-3 py-1.5 rounded-full text-[11px] border border-red-400/30 text-red-300"
+                      className="min-h-11 px-5 py-2.5 rounded-xl text-sm border border-red-400/30 text-red-300"
                     >
                       Mark failed
                     </button>
                   </>
                 )}
-              </div>
+                </div>
+                <div className="flex items-center justify-between gap-4 pt-4 border-t border-white/[0.07]">
+                  <p className="text-xs text-gray-500">Manual payout request</p>
+                  <p className="text-xs text-gray-500">Wallet details and actions</p>
+                </div>
+              </article>
             );
           })}
         </div>
