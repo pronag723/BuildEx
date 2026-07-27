@@ -311,45 +311,84 @@ function OrderModerationCard({ order, onResolved }) {
   const sizeLabel =
     order.size_label || SIZE_META[order.building_size]?.label || order.building_size;
   const isOpenDispute = order.status === "disputed" && order.dispute_status === "open";
+  const statusLabel = STATUS_LABEL[order.status] || order.status;
+  const statusTone =
+    order.status === "disputed"
+      ? "border-red-400/30 bg-red-400/10 text-red-300"
+      : order.status === "completed"
+        ? "border-[#4ade80]/30 bg-[#4ade80]/10 text-[#4ade80]"
+        : order.status === "cancelled"
+          ? "border-white/10 bg-white/[0.04] text-gray-400"
+          : "border-sky-400/30 bg-sky-400/10 text-sky-300";
+  const buyerName = order.buyer_display_name || order.buyer_username || "Buyer";
+  const builderName =
+    order.builder_display_name || order.builder_username || "Unassigned";
 
   return (
-    <div className="glass rounded-3xl p-5 sm:p-6 space-y-4">
-      <div className="flex items-start justify-between gap-3 flex-wrap">
-        <div className="min-w-0">
-          <p className="text-[11px] text-gray-500 uppercase tracking-widest">
-            {sizeLabel} · <span className="capitalize">{order.style}</span> ·{" "}
-            <span className="text-gray-400">{STATUS_LABEL[order.status] || order.status}</span>
-          </p>
-          <p className="text-sm text-gray-300 mt-0.5">
-            <strong className="text-gray-100">
-              {order.buyer_display_name || order.buyer_username || "Buyer"}
-            </strong>{" "}
-            vs{" "}
-            <strong className="text-gray-100">
-              {order.builder_display_name || order.builder_username || "Builder"}
-            </strong>
-          </p>
-          <p className="text-[11px] text-gray-500 mt-0.5">
-            #{String(order.order_id).slice(0, 8)} · Created {formatDate(order.created_at)}
-            {order.dispute_opened_at && ` · disputed ${formatDate(order.dispute_opened_at)}`}
+    <article
+      className={`overflow-hidden rounded-[26px] border bg-[#1d201f]/90 transition-all duration-200 ${
+        expanded
+          ? "border-[#4ade80]/45 shadow-[0_18px_55px_rgba(74,222,128,0.07)]"
+          : "border-white/[0.11] hover:border-white/20"
+      }`}
+    >
+      <div className="px-5 py-5 sm:px-6">
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <p className="truncate text-[12px] font-semibold uppercase tracking-[0.18em] text-gray-400">
+              Order #{String(order.order_id).slice(0, 8)}
+            </p>
+            <span
+              className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] ${statusTone}`}
+            >
+              {statusLabel}
+            </span>
+          </div>
+          <p className="inline-flex items-center gap-1.5 text-[11px] text-gray-500">
+            <Icon name="calendar" size={13} />
+            Placed {formatDate(order.created_at)}
           </p>
         </div>
-        <div className="text-right flex-shrink-0">
-          <p className="font-bold text-[#4ade80] text-sm">
-            {formatPrice(order.price_kopecks)}
-          </p>
+
+        <div className="mt-5 grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-[1.1fr_1.1fr_.9fr_.9fr_1.8fr] lg:items-end">
+          <OrderSummaryStat label="Client nickname" value={buyerName} />
+          <OrderSummaryStat label="Build style" value={order.style || "—"} capitalize />
+          <OrderSummaryStat label="Project size" value={sizeLabel || "—"} />
+          <OrderSummaryStat
+            label="Order value"
+            value={formatPrice(order.price_kopecks)}
+            accent
+          />
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
-            className="text-[11px] font-semibold text-[#4ade80] hover:underline"
+            aria-expanded={expanded}
+            className="group flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.025] px-5 text-sm font-semibold text-gray-100 transition-all hover:border-[#4ade80]/45 hover:bg-[#4ade80]/[0.07] hover:text-[#4ade80]"
           >
-            {expanded ? "Hide details" : "Open case"}
+            {expanded ? "Close case" : "Open case"}
+            <span
+              aria-hidden="true"
+              className={`text-base transition-transform ${expanded ? "-rotate-90" : "group-hover:translate-x-0.5"}`}
+            >
+              →
+            </span>
           </button>
+        </div>
+
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.07] pt-3 text-[11px] text-gray-500">
+          <p>
+            Assigned to <strong className="font-medium text-gray-300">{builderName}</strong>
+          </p>
+          {order.dispute_opened_at && (
+            <p className="text-red-300/75">
+              Disputed {formatDate(order.dispute_opened_at)}
+            </p>
+          )}
         </div>
       </div>
 
       {order.dispute_reason && (
-        <div className="p-3 rounded-2xl bg-red-400/[0.07] border border-red-400/20">
+        <div className="mx-5 mb-5 rounded-2xl border border-red-400/20 bg-red-400/[0.07] p-3 sm:mx-6">
           <span className="text-[10px] text-red-300/80 uppercase tracking-widest block mb-1">
             Buyer's reason
           </span>
@@ -359,14 +398,36 @@ function OrderModerationCard({ order, onResolved }) {
         </div>
       )}
 
-      {expanded && <CaseDetails order={order} onResolved={onResolved} isOpenDispute={isOpenDispute} />}
+      {expanded && (
+        <div className="border-t border-white/[0.07] bg-black/[0.12] px-5 py-5 sm:px-6">
+          <CaseDetails order={order} onResolved={onResolved} isOpenDispute={isOpenDispute} />
+        </div>
+      )}
+    </article>
+  );
+}
+
+function OrderSummaryStat({ label, value, accent = false, capitalize = false }) {
+  return (
+    <div className="min-w-0">
+      <p className="text-[9px] font-medium uppercase tracking-[0.2em] text-gray-500">
+        {label}
+      </p>
+      <p
+        className={`mt-2 truncate text-base font-semibold ${
+          accent ? "text-[#4ade80]" : "text-gray-100"
+        } ${capitalize ? "capitalize" : ""}`}
+        title={String(value)}
+      >
+        {value}
+      </p>
     </div>
   );
 }
 
 function CaseDetails({ order, onResolved, isOpenDispute }) {
   return (
-    <div className="space-y-4 pt-2 border-t border-white/[0.06]">
+    <div className="space-y-4">
       {/* Fee split — moderators see the full breakdown. */}
       <dl className="grid grid-cols-3 gap-2 text-center">
         <FeeStat label="Buyer paid" value={formatPrice(order.price_kopecks)} />

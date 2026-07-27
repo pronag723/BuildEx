@@ -108,29 +108,28 @@ export default function PayoutsConsole() {
               p.builder?.username ||
               "Provider";
             return (
-              <article key={p.id} className="rounded-[26px] border border-emerald-400/45 bg-[#1d201f]/95 px-6 py-5 sm:px-7 sm:py-6 transition-all duration-200 hover:border-emerald-400/70 hover:shadow-[0_16px_50px_rgba(16,185,129,0.08)]">
-                <div className="flex items-center justify-between gap-4 pb-5 border-b border-white/[0.07]">
+              <article key={p.id} className="overflow-hidden rounded-[24px] border border-emerald-400/30 bg-[#1b1f1d]/95 transition-all duration-200 hover:border-emerald-400/55 hover:shadow-[0_14px_45px_rgba(16,185,129,0.07)]">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.07] px-5 py-3.5 sm:px-6">
                   <div className="flex items-center gap-3 flex-wrap">
                     <p className="text-xs font-medium uppercase tracking-[0.18em] text-gray-400">Payout #{String(p.id).slice(0, 8)}</p>
-                    <span className={`px-3 py-1.5 rounded-full text-[11px] uppercase tracking-wider font-bold border ${meta[1]}`}>{meta[0]}</span>
+                    <span className={`rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${meta[1]}`}>{meta[0]}</span>
                   </div>
-                  <p className="text-xs text-gray-500">Requested {new Date(p.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>
+                  <p className="inline-flex items-center gap-1.5 text-[11px] text-gray-500"><Icon name="calendar" size={13} /> Requested {new Date(p.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>
                 </div>
-                <div className="grid gap-6 py-6 md:grid-cols-2 xl:grid-cols-[1.15fr_1.7fr_.8fr_auto] xl:items-center">
+                <div className="grid gap-5 px-5 py-4 sm:px-6 md:grid-cols-2 xl:grid-cols-[1fr_1.5fr_.65fr_auto] xl:items-center">
                 <div className="min-w-0">
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-gray-500">Requester</p>
-                  {p.builder?.username ? <Link href={`/chats?to=${encodeURIComponent(p.builder.username)}`} className="mt-2 inline-flex items-center gap-2 text-lg font-bold text-white hover:text-emerald-300 transition-colors">{name} <span className="text-emerald-300">@{p.builder.username}</span><Icon name="chat" size={17} /></Link> : <p className="mt-2 text-lg font-bold">{name}</p>}
-                  {p.builder?.username && <p className="text-[11px] text-gray-500">@{p.builder.username} · requested {new Date(p.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>}
-                  <p className="mt-2 text-sm text-gray-500">Click the username to message</p>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500">Requester</p>
+                  {p.builder?.username ? <Link href={`/chats?to=${encodeURIComponent(p.builder.username)}`} className="mt-1.5 inline-flex max-w-full items-center gap-1.5 truncate text-base font-bold text-white transition-colors hover:text-emerald-300"><span className="truncate">{name}</span> <span className="text-emerald-300">@{p.builder.username}</span><Icon name="chat" size={15} /></Link> : <p className="mt-1.5 truncate text-base font-bold">{name}</p>}
+                  <p className="mt-1 text-[11px] text-gray-500">{p.builder?.username ? "Open direct message" : "Studio payout request"}</p>
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-gray-500">Payout wallet</p>
-                  <p className="mt-2 text-base font-semibold text-gray-200">
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500">Payout wallet</p>
+                  <p className="mt-1.5 truncate text-sm font-semibold text-gray-200">
                     {p.payout_method === "usdt_erc20" ? "USDT ERC-20" : "USDT TRC-20"}
                     {" · "}<code>{short(p.destination)}</code>
                   </p>
-                  <div className="flex items-start gap-2 mt-1">
-                    <code className="min-w-0 flex-1 text-sm leading-relaxed text-gray-300 break-all select-all">
+                  <div className="mt-1 flex items-center gap-2">
+                    <code className="min-w-0 flex-1 truncate text-xs text-gray-400 select-all" title={p.destination || ""}>
                       {p.destination || "No destination recorded"}
                     </code>
                     {p.destination && (
@@ -141,7 +140,7 @@ export default function PayoutsConsole() {
                           setCopiedId(p.id);
                           window.setTimeout(() => setCopiedId(null), 1500);
                         }}
-                        className="shrink-0 px-2 py-1 rounded-md border border-white/15 text-[10px] text-gray-300 hover:text-white"
+                        className="shrink-0 rounded-md border border-white/15 px-2 py-1 text-[10px] text-gray-300 transition-colors hover:border-emerald-400/40 hover:text-white"
                       >
                         {copiedId === p.id ? "Copied" : "Copy"}
                       </button>
@@ -160,10 +159,11 @@ export default function PayoutsConsole() {
                   {p.admin_note && <p className="text-[11px] text-gray-400 mt-1">{p.admin_note}</p>}
                   {p.rejection_reason && <p className="text-[11px] text-red-300 mt-1">{p.rejection_reason}</p>}
                 </div>
-                <div className="min-w-[140px]"><p className="text-[11px] uppercase tracking-[0.18em] text-gray-500">Requested amount</p><span className="mt-2 block text-3xl font-extrabold text-[#4ade80]">{formatPrice(p.amount_cents)}</span>{p.fee_amount_cents != null && <p className="mt-2 text-sm text-gray-400">Net {formatPrice(p.net_amount_cents ?? p.amount_cents)}</p>}</div>
-                {p.builder_id && <button type="button" onClick={() => showHistory(p)} className="min-h-11 px-5 py-2.5 rounded-xl text-sm font-semibold border border-emerald-400/40 bg-emerald-400/[0.08] text-emerald-300 hover:bg-emerald-400/15 transition-all">View history →</button>}
+                <div className="min-w-[120px] md:text-right"><p className="text-[10px] uppercase tracking-[0.18em] text-gray-500">Requested amount</p><span className="mt-1 block text-2xl font-extrabold text-[#4ade80]">{formatPrice(p.amount_cents)}</span>{p.fee_amount_cents != null && <p className="mt-0.5 text-xs text-gray-400">Net {formatPrice(p.net_amount_cents ?? p.amount_cents)}</p>}</div>
+                <div className="flex min-w-[126px] flex-col gap-2">
+                  {p.builder_id && <button type="button" onClick={() => showHistory(p)} className="min-h-10 rounded-xl border border-emerald-400/30 bg-emerald-400/[0.06] px-4 py-2 text-xs font-semibold text-emerald-300 transition-all hover:border-emerald-400/50 hover:bg-emerald-400/[0.12]">View history →</button>}
 
-                {p.status === "requested" && (
+                  {p.status === "requested" && (
                   <>
                     <button
                       type="button"
@@ -181,7 +181,7 @@ export default function PayoutsConsole() {
                         }
                         act(() => approveWithdrawal(p.id, cents), "Withdrawal approved.");
                       }}
-                      className="min-h-11 px-5 py-2.5 rounded-xl text-sm font-bold bg-[#4ade80] text-black"
+                      className="min-h-10 rounded-xl bg-[#4ade80] px-4 py-2 text-xs font-bold text-black"
                     >
                       Approve
                     </button>
@@ -200,14 +200,14 @@ export default function PayoutsConsole() {
                           );
                         }
                       }}
-                      className="min-h-11 px-5 py-2.5 rounded-xl text-sm border border-red-400/30 text-red-300"
+                      className="min-h-10 rounded-xl border border-red-400/30 px-4 py-2 text-xs text-red-300"
                     >
                       Reject
                     </button>
                   </>
                 )}
 
-                {p.status === "approved" && (
+                  {p.status === "approved" && (
                   <>
                     <button
                       type="button"
@@ -227,7 +227,7 @@ export default function PayoutsConsole() {
                           "Withdrawal marked as sent.",
                         );
                       }}
-                      className="min-h-11 px-5 py-2.5 rounded-xl text-sm font-bold bg-[#4ade80] text-black"
+                      className="min-h-10 rounded-xl bg-[#4ade80] px-4 py-2 text-xs font-bold text-black"
                     >
                       Mark sent
                     </button>
@@ -250,16 +250,17 @@ export default function PayoutsConsole() {
                           "Withdrawal marked as failed and funds released.",
                         );
                       }}
-                      className="min-h-11 px-5 py-2.5 rounded-xl text-sm border border-red-400/30 text-red-300"
+                      className="min-h-10 rounded-xl border border-red-400/30 px-4 py-2 text-xs text-red-300"
                     >
                       Mark failed
                     </button>
                   </>
                 )}
                 </div>
-                <div className="flex items-center justify-between gap-4 pt-4 border-t border-white/[0.07]">
-                  <p className="text-xs text-gray-500">Manual payout request</p>
-                  <p className="text-xs text-gray-500">Wallet details and actions</p>
+                </div>
+                <div className="flex items-center justify-between gap-4 border-t border-white/[0.07] bg-black/[0.1] px-5 py-2.5 sm:px-6">
+                  <p className="text-[11px] text-gray-500">Manual payout request</p>
+                  <p className="text-[11px] text-gray-500">Wallet details and actions</p>
                 </div>
               </article>
             );
