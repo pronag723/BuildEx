@@ -8,6 +8,7 @@ import {
   markWithdrawalSent,
   rejectWithdrawal,
 } from "../../../lib/payouts/api";
+import { getAdminUserOrders } from "../../../lib/admin/api";
 import { formatPrice } from "../../../lib/pricing";
 import { Icon } from "../../../lib/icons";
 
@@ -40,6 +41,8 @@ export default function PayoutsConsole() {
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
+  const [history, setHistory] = useState(null);
+  const [historyError, setHistoryError] = useState(null);
 
   const reload = useCallback(async () => {
     const { payouts: rows, error: loadError } = await listPayouts();
@@ -63,6 +66,14 @@ export default function PayoutsConsole() {
     }
     setNotice(success);
     await reload();
+  }
+
+  async function showHistory(payout) {
+    setHistory({ name: payout.builder?.display_name || payout.builder?.username || "Builder", orders: null });
+    setHistoryError(null);
+    const { orders, error: loadError } = await getAdminUserOrders(payout.builder_id);
+    if (loadError) setHistoryError(loadError.message || "Could not load order history.");
+    setHistory((current) => (current ? { ...current, orders } : current));
   }
 
   return (
@@ -96,9 +107,10 @@ export default function PayoutsConsole() {
               p.builder?.username ||
               "Provider";
             return (
-              <div key={p.id} className="glass rounded-2xl p-4 flex items-center gap-3 flex-wrap">
+              <div key={p.id} className="glass rounded-2xl p-4 flex items-center gap-3 flex-wrap transition-all duration-200 hover:border-emerald-400/25">
                 <div className="flex-1 min-w-[230px]">
                   <p className="text-sm font-semibold">{name}</p>
+                  {p.builder?.username && <p className="text-[11px] text-gray-500">@{p.builder.username} · requested {new Date(p.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>}
                   <p className="text-[11px] text-gray-500">
                     {p.payout_method === "usdt_erc20" ? "USDT ERC-20" : "USDT TRC-20"}
                     {" · "}<code>{short(p.destination)}</code>
@@ -138,6 +150,7 @@ export default function PayoutsConsole() {
                 <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold border ${meta[1]}`}>
                   {meta[0]}
                 </span>
+                {p.builder_id && <button type="button" onClick={() => showHistory(p)} className="px-3 py-1.5 rounded-full text-[11px] font-semibold border border-white/15 text-gray-300 hover:border-emerald-400/40 hover:text-emerald-300 transition-all">Order history</button>}
 
                 {p.status === "requested" && (
                   <>
@@ -235,6 +248,28 @@ export default function PayoutsConsole() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {history && (
+        <div className="fixed inset-0 z-50 p-4 flex items-end sm:items-center justify-center bg-black/65 backdrop-blur-sm" onClick={() => setHistory(null)}>
+          <section className="glass w-full max-w-2xl max-h-[80vh] overflow-hidden rounded-3xl p-5 sm:p-6" onClick={(event) => event.stopPropagation()}>
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div><p className="text-[11px] uppercase tracking-widest text-emerald-300">Payout review</p><h2 className="text-lg font-bold">{history.name}&apos;s order history</h2></div>
+              <button type="button" onClick={() => setHistory(null)} className="text-sm text-gray-400 hover:text-white">Close</button>
+            </div>
+            {historyError && <p className="text-sm text-red-400 mb-3">{historyError}</p>}
+            {history.orders === null ? <p className="py-10 text-center text-sm text-gray-500">Loading history…</p> : history.orders.length === 0 ? <p className="py-10 text-center text-sm text-gray-500">No orders found for this builder.</p> : (
+              <div className="bx-scroll max-h-[55vh] overflow-y-auto space-y-2 pr-1">
+                {history.orders.map((order) => (
+                  <div key={order.order_id} className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 flex justify-between gap-3">
+                    <div><p className="text-sm font-semibold">#{String(order.order_id).slice(0, 8)} <span className="font-normal text-gray-400">· {order.size_label || order.building_size}</span></p><p className="text-[11px] text-gray-500">Client: {order.buyer_display_name || order.buyer_username || "Unknown"} · {new Date(order.created_at).toLocaleDateString()}</p></div>
+                    <div className="text-right"><p className="text-sm font-bold text-emerald-300">{formatPrice(order.builder_earnings_kopecks)}</p><p className="text-[11px] text-gray-500 capitalize">{order.status.replaceAll("_", " ")}</p></div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
         </div>
       )}
     </div>

@@ -213,22 +213,29 @@ function AdminRoot() {
 }
 
 function ModeratorConsole() {
-  const [tab, setTab] = useState("open_disputes");
+  const [tab, setTab] = useState("all");
+  const [query, setQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [orders, setOrders] = useState(null); // null = loading
   const [error, setError] = useState(null);
 
   const reload = useCallback(() => {
     setOrders(null);
     setError(null);
-    listAdminOrders(tab).then(({ orders: rows, error: e }) => {
+    listAdminOrders(tab, searchQuery).then(({ orders: rows, error: e }) => {
       if (e) setError(e.message || "Failed to load orders");
       setOrders(rows || []);
     });
-  }, [tab]);
+  }, [tab, searchQuery]);
 
   useEffect(() => {
     reload();
   }, [reload]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setSearchQuery(query), 250);
+    return () => window.clearTimeout(timeout);
+  }, [query]);
 
   return (
     <div className="space-y-6">
@@ -262,6 +269,18 @@ function ModeratorConsole() {
         ))}
       </div>
 
+      <label className="glass rounded-2xl px-4 py-3 flex items-center gap-2 border border-white/10 focus-within:border-[#4ade80]/50 transition-colors">
+        <Icon name="search" size={16} className="text-gray-500" />
+        <input
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Search order ID, client, builder, style, or status"
+          className="w-full bg-transparent outline-none text-sm text-gray-100 placeholder:text-gray-600"
+          aria-label="Search orders"
+        />
+        {query && <button type="button" onClick={() => setQuery("")} className="text-xs text-gray-500 hover:text-white">Clear</button>}
+      </label>
+
       {error && <p className="text-sm text-red-400">{error}</p>}
 
       {orders === null ? (
@@ -273,7 +292,7 @@ function ModeratorConsole() {
               <Icon name="party" size={16} className="text-[#4ade80]" /> No open disputes.
             </span>
           ) : (
-            "No orders to show here."
+            searchQuery ? "No orders match that search." : "No orders to show here."
           )}
         </div>
       ) : (
@@ -311,7 +330,7 @@ function OrderModerationCard({ order, onResolved }) {
             </strong>
           </p>
           <p className="text-[11px] text-gray-500 mt-0.5">
-            Created {formatDate(order.created_at)}
+            #{String(order.order_id).slice(0, 8)} · Created {formatDate(order.created_at)}
             {order.dispute_opened_at && ` · disputed ${formatDate(order.dispute_opened_at)}`}
           </p>
         </div>
