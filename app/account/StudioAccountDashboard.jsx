@@ -2595,7 +2595,7 @@ function OrderAssignmentDialog({
                 <strong className="text-gray-100">
                   @{confirmingMember.builder?.username || "builder"}
                 </strong>
-                ? They’ll be notified immediately and marked busy.
+                ? They’ll be notified immediately. Their availability will remain unchanged.
               </p>
               <div className="mt-5 grid grid-cols-2 gap-2.5">
                 <button
@@ -2856,11 +2856,6 @@ export function StudioEmployeeDashboard({ builderProfile, section = "profile", o
   }, [builderProfile?.availability_status]);
 
   const total = earnings.reduce((sum, row) => sum + Number(row.amount_kopecks || 0), 0);
-  const active = orders.find(
-    (order) =>
-      order.assigned_builder_id === user?.id &&
-      ["paid", "in_progress", "delivered", "disputed"].includes(order.status)
-  );
   const assignedOrders = useMemo(
     () =>
       orders.filter(
@@ -2925,7 +2920,6 @@ export function StudioEmployeeDashboard({ builderProfile, section = "profile", o
               type="button"
               role="radio"
               aria-checked={employeeStatus === key}
-              disabled={Boolean(active)}
               onClick={async () => {
                 if (key === employeeStatus) return;
                 setError(null);
@@ -2938,7 +2932,7 @@ export function StudioEmployeeDashboard({ builderProfile, section = "profile", o
               }}
               className={`relative z-10 flex items-center justify-center gap-2 py-2.5 px-2 rounded-full text-xs sm:text-sm font-semibold transition-colors ${
                 employeeStatus === key ? "text-white" : "text-gray-400 hover:text-gray-200"
-              } disabled:cursor-not-allowed disabled:opacity-40`}
+              }`}
             >
               <span
                 className="w-2 h-2 rounded-full flex-shrink-0"
@@ -2948,7 +2942,6 @@ export function StudioEmployeeDashboard({ builderProfile, section = "profile", o
             </button>
           ))}
         </div>
-        {active && <p className="mt-4 text-xs text-gray-500">Status is controlled by your active order.</p>}
       </Card>}
       {section === "orders" && (
         <EmployeeOrdersCard
