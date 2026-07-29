@@ -121,7 +121,7 @@ export async function getAvailableDepositCurrencies(): Promise<Set<string>> {
 
 export async function getMinimumInvoiceAmount(
   payCurrency: string,
-  outcomeCurrency = "usdtbsc",
+  outcomeCurrency = payCurrency,
   fiatEquivalent = "usd",
 ): Promise<MinAmountResult> {
   const apiKey = env("NOWPAYMENTS_API_KEY");

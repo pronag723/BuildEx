@@ -5,8 +5,7 @@ import {
 
 export const PAYMENT_RAILS = [
   { code: "usdtbsc", displayName: "USDT on BSC (BEP-20)", recommended: true },
-  { code: "usdtmatic", displayName: "USDT on Polygon", recommended: false },
-  { code: "usdtsol", displayName: "USDT on Solana", recommended: false },
+  { code: "usdttrc20", displayName: "USDT on TRON (TRC-20)", recommended: false },
 ] as const;
 
 export type PaymentRailCode = typeof PAYMENT_RAILS[number]["code"];

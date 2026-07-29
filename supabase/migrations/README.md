@@ -56,6 +56,8 @@ migrations are idempotent (safe to re-run during development).
 | 0066 | `0066_rejoin_availability_and_employee_removal_confirmation.sql` | **Studio rejoin and removal safety.** Rejoined employees start available instead of inheriting removal's busy fallback; its confirmation wording is superseded by 0067. |
 | 0067 | `0067_fix_employee_availability_lock_and_remove_confirmation.sql` | **Employee availability repair.** Releases legacy closed-order assignment locks, limits availability locking to real active orders, and requires `REMOVE` confirmation before removal. |
 | 0068 | `0068_restore_delivery_preview_chat_action.sql` | **Chat 3D preview fix.** Restores the `has_preview` delivery-event metadata lost in the managed-studio lifecycle rewrite so future chat delivery cards expose the inline viewer. |
+| 0072 | `0072_low_fee_stablecoin_payments.sql` | **Low-fee custody checkout and payouts.** Lowers both order floors to $5, adds payment reconciliation metadata, and switches builder withdrawals to batched USDT-BSC with no separate builder fee. |
+| 0073 | `0073_trc20_bsc_checkout_policy.sql` | **Two-rail custody correction.** Restricts buyer checkout to same-asset USDT-BSC and USDT-TRC20 custody balances while retaining BSC-only payouts and enforcing a 9% managed-studio commission floor. |
 
 ## Field mapping (matches the app code)
 

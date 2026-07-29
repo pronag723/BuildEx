@@ -13,13 +13,13 @@ test("checkout policy keeps the $5 floor and only low-fee USDT rails", async () 
   ]);
   assert.match(pricing, /MIN_ORDER_CENTS\s*=\s*500/);
   assert.match(rails, /code:\s*"usdtbsc".*recommended:\s*true/);
-  assert.match(rails, /code:\s*"usdtmatic"/);
-  assert.match(rails, /code:\s*"usdtsol"/);
-  assert.doesNotMatch(rails, /usdttrc20|usdterc20/);
+  assert.match(rails, /code:\s*"usdttrc20"/);
+  assert.doesNotMatch(rails, /usdtmatic|usdtsol|usdterc20/);
   assert.match(invoice, /isPaymentRailCode\(payCurrency\)/);
   assert.match(invoice, /MIN_CENTS\s*=\s*500/);
   assert.doesNotMatch(provider, /is_fee_paid_by_user:\s*true/);
   assert.match(provider, /is_fee_paid_by_user:\s*"false"/);
+  assert.match(provider, /outcomeCurrency\s*=\s*payCurrency/);
 });
 
 test("payment options and invoice both perform live eligibility checks", async () => {
@@ -66,4 +66,15 @@ test("signed provider events retain reconciliation metadata without releasing pa
   assert.match(migration, /provider_payment_id text/);
   assert.match(migration, /actual_received_currency text/);
   assert.match(migration, /Signed payment rail does not match the requested rail/);
+});
+
+test("managed studio commission cannot undercut the Master fee floor", async () => {
+  const [migration, consoleUi] = await Promise.all([
+    read("supabase/migrations/0073_trc20_bsc_checkout_policy.sql"),
+    read("app/admin/components/StudiosConsole.jsx"),
+  ]);
+  assert.match(migration, /platform_commission_bps between 900 and 10000/);
+  assert.match(migration, /p_platform_commission_bps not between 900 and 10000/);
+  assert.match(consoleUi, /bps < 900/);
+  assert.match(consoleUi, /min="9"/);
 });

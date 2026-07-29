@@ -6,9 +6,11 @@ remain denominated in integer USD cents.
 ## Production policy
 
 - Marketplace minimum: **$5.00** for independent builders and studios.
-- Checkout: `usdtbsc`, `usdtmatic`, and `usdtsol`.
+- Checkout: `usdtbsc` and `usdttrc20`.
 - A network is shown only when NOWPayments reports the service healthy, the
   currency enabled, and its live USD minimum no greater than the order total.
+- Each rail is checked and settled as the same asset (`USDTBSC -> USDTBSC` and
+  `USDTTRC20 -> USDTTRC20`), avoiding automatic conversion on each small order.
 - BSC is recommended by default. A forged or stale client selection is checked
   again by `create-invoice`.
 - Buyer-paid fees and fixed-rate invoices are disabled. BuildEx absorbs provider
@@ -26,6 +28,7 @@ Apply every migration in `supabase/migrations` in numeric order, including:
 
 ```text
 0072_low_fee_stablecoin_payments.sql
+0073_trc20_bsc_checkout_policy.sql
 ```
 
 Migration 0072:
@@ -42,20 +45,29 @@ Legacy TRC20/ERC20 payout preferences are cleared so users must explicitly save
 a BSC address. Unsent legacy requests are failed and released back to available
 balance; historical and already-processing payout rows are retained.
 
+Migration 0073:
+
+- restricts checkout reconciliation to USDT-BSC and USDT-TRC20;
+- preserves BSC-only builder/studio withdrawal destinations;
+- enforces a 9% minimum managed-studio BuildEx commission.
+
 ## NOWPayments account
 
 1. Keep the merchant account and API key active.
 2. Enable Custody and Mass Payouts.
-3. Enable `USDTBSC`, `USDTMATIC`, and `USDTSOL` for deposits.
-4. Configure the primary custody/payout balance as USDT-BSC.
-5. Enable account 2FA and allowlist the fixed public IP of the payout relay.
-6. Configure the IPN callback:
+3. Enable `USDTBSC` and `USDTTRC20` for deposits.
+4. Keep separate USDT-BSC and USDT-TRC20 custody balances. Payments settle into
+   the matching balance without per-order conversion.
+5. Use USDT-BSC as the payout asset. Convert pooled TRC20 custody funds to BSC
+   only when the BSC reserve cannot cover the next approved weekly batch.
+6. Enable account 2FA and allowlist the fixed public IP of the payout relay.
+7. Configure the IPN callback:
    `https://YOUR_PROJECT_REF.supabase.co/functions/v1/payment-webhook`
-7. Store the IPN secret separately from the API key.
+8. Store the IPN secret separately from the API key.
 
-Other accepted USDT rails may require provider-side conversion into the
-USDT-BSC custody balance. Confirm that account feature and conversion pricing
-with NOWPayments before enabling Polygon or Solana in production.
+Do not enable Polygon, Solana, ERC-20, or arbitrary cryptocurrencies for the
+initial $5 checkout. They add conversion, fragmentation, or unpredictable
+minimums without improving the two-rail policy.
 
 ## Secrets
 
@@ -124,14 +136,15 @@ from entering a second batch.
 - Create one $5 independent-builder order and one $5 studio order.
 - Confirm every offered rail has a live minimum no greater than the order.
 - Verify forged currency codes are rejected.
-- Exercise BSC, Polygon, and Solana signed webhook events: replay, invalid
+- Exercise BSC and TRC20 signed webhook events: replay, invalid
   signature, wrong USD amount, partial payment, expiry, finished, and
   overpayment.
 - Confirm rank/studio commission snapshots and builder earnings do not change
   when provider fees are absorbed.
 - Test BSC address validation, $20 aggregation, duplicate batch attempts, 2FA,
   failure restoration, and reconciliation.
-- Finally run one real $5 USDT-BSC checkout and one real $20 USDT-BSC payout.
+- Finally run one real $5 USDT-TRC20 checkout, one real $5 USDT-BSC checkout,
+  and one real $20 USDT-BSC payout.
 
 Do not enable production payments until Custody/Mass Payouts are active and the
 two real transactions succeed. Provider/service costs must remain below the 9%
