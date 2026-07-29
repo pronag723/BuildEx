@@ -8,6 +8,7 @@ import {
   markOnboardingComplete,
   saveClientProfile,
 } from "../../../lib/onboarding/api";
+import { navigateAfterOnboarding } from "../../../lib/onboarding/completion";
 import { STEPS } from "../../../lib/onboarding/state";
 import { Icon } from "../../../lib/icons";
 import {
@@ -17,7 +18,6 @@ import {
   DISPLAY_NAME_MIN,
   SERVER_TYPES,
 } from "../../../lib/onboarding/constants";
-import { withBase } from "../../home/utils";
 import OnboardingShell from "../components/OnboardingShell";
 import OnboardingGate from "../components/OnboardingGate";
 import OnboardingFooter from "../components/OnboardingFooter";
@@ -37,7 +37,7 @@ export default function ClientProfilePage() {
 
 function ClientProfileStep({ state }) {
   const router = useRouter();
-  const { user, refresh, updateProfile } = useAuth();
+  const { user, updateProfile } = useAuth();
   const p = state.profile || {};
 
   const [displayName, setDisplayName] = useState(p.display_name || "");
@@ -116,8 +116,7 @@ function ClientProfileStep({ state }) {
       interests,
       preferred_server_type: serverType ?? null,
     });
-    refresh?.();
-    router.replace(STEPS.complete);
+    navigateAfterOnboarding({ router, updateProfile });
   }
 
   return (

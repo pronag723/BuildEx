@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 import { getSupabaseClient } from "../../../../lib/supabase/client";
 import { useAuth } from "../../../../lib/auth/AuthContext";
 import { markOnboardingComplete } from "../../../../lib/onboarding/api";
+import { navigateAfterOnboarding } from "../../../../lib/onboarding/completion";
 import { completePendingEmployeeRegistration, finalizeStudioCode } from "../../../../lib/studios/api";
 import { STEPS } from "../../../../lib/onboarding/state";
-import { withBase } from "../../../home/utils";
 import OnboardingShell from "../../components/OnboardingShell";
 import OnboardingGate from "../../components/OnboardingGate";
 import OnboardingFooter from "../../components/OnboardingFooter";
@@ -25,7 +25,7 @@ export default function BuilderPortfolioPage() {
 
 function BuilderPortfolioStep({ state }) {
   const router = useRouter();
-  const { user, refresh } = useAuth();
+  const { user, updateProfile } = useAuth();
 
   const [count, setCount] = useState(state.portfolioCount || 0);
   const [error, setError] = useState(null);
@@ -51,12 +51,7 @@ function BuilderPortfolioStep({ state }) {
     // Legacy referral codes remain best-effort; managed employee codes are
     // finalized transactionally above after all standard builder details exist.
     if (!isPendingEmployee) await finalizeStudioCode();
-    setSaving(false);
-    // Navigation must not wait for the global auth refresh: a slow profile
-    // read can otherwise leave the Finish button spinning even though the
-    // completion write already succeeded.
-    refresh?.();
-    router.replace(STEPS.complete);
+    navigateAfterOnboarding({ router, updateProfile });
   }
 
   return (

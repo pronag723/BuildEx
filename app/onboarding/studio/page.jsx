@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../../lib/auth/AuthContext";
+import { navigateAfterOnboarding } from "../../../lib/onboarding/completion";
 import {
   completeStudioRegistration,
   validateModeratorCode,
@@ -36,7 +37,7 @@ export default function StudioOnboardingPage() {
 
 function StudioOnboarding() {
   const router = useRouter();
-  const { user, refresh } = useAuth();
+  const { user, updateProfile } = useAuth();
   const [step, setStep] = useState("code");
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
@@ -92,8 +93,7 @@ function StudioOnboarding() {
       setError(result.error.message || "Couldn't create the studio.");
       return;
     }
-    refresh?.();
-    router.replace(STEPS.complete);
+    navigateAfterOnboarding({ router, updateProfile });
   }
 
   const titles = {

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../../../../lib/auth/AuthContext";
+import { navigateAfterOnboarding } from "../../../../../lib/onboarding/completion";
 import { completePendingEmployeeRegistration } from "../../../../../lib/studios/api";
 import { STEPS } from "../../../../../lib/onboarding/state";
 import OnboardingShell from "../../../components/OnboardingShell";
@@ -21,7 +22,7 @@ export default function StudioEmployeeCompletePage() {
 
 function StudioEmployeeComplete() {
   const router = useRouter();
-  const { refresh } = useAuth();
+  const { updateProfile } = useAuth();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
@@ -34,11 +35,7 @@ function StudioEmployeeComplete() {
       setError(result.error.message || "Couldn't join the studio. Try again.");
       return;
     }
-    // Do not await the global profile fetch. It may be slow, but the server
-    // transaction has already completed and the user should never be left on
-    // a spinning Finish button.
-    router.replace(STEPS.complete);
-    refresh?.();
+    navigateAfterOnboarding({ router, updateProfile });
   }
 
   return (
