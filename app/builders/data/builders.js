@@ -71,8 +71,8 @@ const WORKFLOW_BY_RANK = {
 const TOOLS_BY_RANK = {
   rookie:   ["WorldEdit", "VoxelSniper", "Litematica"],
   advanced: ["WorldEdit", "VoxelSniper", "Arceon", "Litematica"],
-  expert:   ["WorldEdit", "Arceon", "Goblin Tools", "VoxelSniper", "Litematica", "Blender"],
-  master:   ["WorldEdit", "Arceon", "Goblin Tools", "Chunky", "BlockBench", "Litematica", "Blender", "Photoshop"],
+  expert:   ["WorldEdit", "Arceon", "VoxelSniper", "Litematica"],
+  master:   ["WorldEdit", "Arceon", "Chunky", "BlockBench", "Litematica", "Photoshop"],
 };
 
 // ─── Derive portfolio items per builder from existing offer data ────────────

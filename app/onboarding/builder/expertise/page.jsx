@@ -11,6 +11,7 @@ import {
   BUILDER_TOOLS,
   PROJECT_TYPES,
   RESPONSE_TIMES,
+  sanitizeBuilderTools,
 } from "../../../../lib/onboarding/constants";
 import { withBase } from "../../../home/utils";
 import OnboardingShell from "../../components/OnboardingShell";
@@ -39,7 +40,7 @@ function BuilderExpertiseStep({ state }) {
   const { user, refresh } = useAuth();
   const bp = state.builderProfile || {};
 
-  const [tools, setTools] = useState(Array.isArray(bp.tools) ? bp.tools : []);
+  const [tools, setTools] = useState(sanitizeBuilderTools(bp.tools));
   const [projectTypes, setProjectTypes] = useState(
     Array.isArray(bp.project_types) ? bp.project_types : []
   );

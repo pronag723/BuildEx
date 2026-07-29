@@ -29,6 +29,7 @@ import {
   RESPONSE_TIMES,
   SERVER_TYPES,
   STYLES,
+  sanitizeBuilderTools,
 } from "../../lib/onboarding/constants";
 import { RANKS } from "../builders/data/builders";
 import {
@@ -1128,14 +1129,14 @@ function ExpertiseSection({ builderProfile, onSaved }) {
     return (RESPONSE_TIMES.find((r) => r.hours >= hours) || RESPONSE_TIMES.at(-1))?.key || null;
   }
 
-  const [tools, setTools] = useState(builderProfile?.tools || []);
+  const [tools, setTools] = useState(sanitizeBuilderTools(builderProfile?.tools));
   const [projectTypes, setProjectTypes] = useState(builderProfile?.project_types || []);
   const [responseKey, setResponseKey] = useState(pickResponse(builderProfile?.response_time_hours));
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
 
   function startEdit() {
-    setTools(builderProfile?.tools || []);
+    setTools(sanitizeBuilderTools(builderProfile?.tools));
     setProjectTypes(builderProfile?.project_types || []);
     setResponseKey(pickResponse(builderProfile?.response_time_hours));
     setError(null);
