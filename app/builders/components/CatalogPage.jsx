@@ -16,7 +16,6 @@ import CatalogNavbar from "./CatalogNavbar";
 import CatalogMobileMenu from "./CatalogMobileMenu";
 import CatalogSearch from "./CatalogSearch";
 import CatalogSort from "./CatalogSort";
-import CatalogFilters from "./CatalogFilters";
 import FiltersMobileModal from "./FiltersMobileModal";
 import BuilderGrid from "./BuilderGrid";
 import PaginationControls from "./PaginationControls";
@@ -501,15 +500,10 @@ export default function CatalogPage() {
         {/* ── Catalog body ─────────────────────────────────────────────────── */}
         <section className="pb-24">
           <div className="max-w-7xl mx-auto px-6">
-            <div className="flex gap-7 items-start">
-
-              {/* ── Desktop sidebar ─────────────────────────────────────── */}
-              <aside className="hidden lg:block w-72 xl:w-80 flex-shrink-0 sticky top-28 max-h-[calc(100vh-8rem)] overflow-y-auto catalog-sidebar">
-                <CatalogFilters {...filterProps} />
-              </aside>
+            <div>
 
               {/* ── Main content ─────────────────────────────────────────── */}
-              <div className="flex-1 min-w-0">
+              <div className="min-w-0">
 
                 {/* Toolbar — relative + z-40 so the sort dropdown panel
                     paints above the offer grid below (the .reveal class
@@ -523,8 +517,14 @@ export default function CatalogPage() {
                     <button
                       type="button"
                       onClick={() => setMobileFiltersOpen(true)}
-                      className="lg:hidden glass rounded-2xl px-4 py-2.5 text-sm font-medium flex items-center gap-2 hover:border-white/30 transition-all relative flex-shrink-0"
+                      className={`glass rounded-2xl px-4 py-2.5 text-sm font-medium flex items-center gap-2 transition-all duration-300 relative flex-shrink-0 ${
+                        activeFilterCount > 0
+                          ? "border-[#4ade80]/40 bg-[#4ade80]/10 text-[#4ade80] shadow-[0_0_24px_rgba(74,222,128,0.08)]"
+                          : "hover:border-white/30 hover:bg-white/[0.07]"
+                      }`}
                       aria-label="Open filters"
+                      aria-expanded={mobileFiltersOpen}
+                      aria-controls="catalog-filter-drawer"
                     >
                       <svg
                         className="w-4 h-4"
@@ -613,6 +613,7 @@ export default function CatalogPage() {
       <FiltersMobileModal
         open={mobileFiltersOpen}
         onClose={() => setMobileFiltersOpen(false)}
+        resultCount={filteredBuilders.length}
         {...filterProps}
       />
 
