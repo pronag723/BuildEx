@@ -74,7 +74,7 @@ function sortDeep(v: unknown): unknown {
 export interface CreateInvoiceInput {
   amount: string; // fiat amount as a string, e.g. "25.00"
   currency: string; // e.g. "USD"
-  payCurrency?: string; // e.g. "usdttrc20"
+  payCurrency?: string; // e.g. "usdtbsc"
   orderId: string; // our orders.id — echoed back in the IPN as order_id
   callbackUrl: string; // payment-webhook function URL (ipn_callback_url)
   returnUrl: string; // where the buyer lands after paying (our /orders page)
@@ -91,17 +91,45 @@ export interface MinAmountResult {
   raw: unknown;
 }
 
+export async function getAvailableDepositCurrencies(): Promise<Set<string>> {
+  const apiKey = env("NOWPAYMENTS_API_KEY");
+  const [statusResponse, currenciesResponse] = await Promise.all([
+    fetch(`${API_BASE}/status`),
+    fetch(`${API_BASE}/merchant/coins`, {
+      headers: { "x-api-key": apiKey },
+    }),
+  ]);
+  const status = await statusResponse.json().catch(() => null);
+  if (!statusResponse.ok || status?.message !== "OK") {
+    throw new Error(`NOWPayments is temporarily unavailable (${statusResponse.status})`);
+  }
+  const raw = await currenciesResponse.json().catch(() => null);
+  if (!currenciesResponse.ok) {
+    throw new Error(
+      `NOWPayments currencies failed (${currenciesResponse.status}): ${JSON.stringify(raw)}`,
+    );
+  }
+  const currencies = Array.isArray(raw)
+    ? raw
+    : Array.isArray(raw?.selectedCurrencies)
+    ? raw.selectedCurrencies
+    : Array.isArray(raw?.currencies)
+    ? raw.currencies
+    : [];
+  return new Set(currencies.map((value: unknown) => String(value).toLowerCase()));
+}
+
 export async function getMinimumInvoiceAmount(
   payCurrency: string,
+  outcomeCurrency = "usdtbsc",
   fiatEquivalent = "usd",
 ): Promise<MinAmountResult> {
   const apiKey = env("NOWPAYMENTS_API_KEY");
   const params = new URLSearchParams({
-    // NOWPayments requires the fiat pay-in/source currency explicitly.
-    currency_from: fiatEquivalent.toLowerCase(),
-    currency_to: payCurrency.toLowerCase(),
+    currency_from: payCurrency.toLowerCase(),
+    currency_to: outcomeCurrency.toLowerCase(),
     fiat_equivalent: fiatEquivalent.toLowerCase(),
-    is_fee_paid_by_user: "true",
+    is_fee_paid_by_user: "false",
   });
 
   const res = await fetch(`${API_BASE}/min-amount?${params.toString()}`, {
@@ -133,12 +161,9 @@ export async function getMinimumInvoiceAmount(
 /**
  * Create a hosted NOWPayments invoice for the EXACT order price.
  *
- * `is_fee_paid_by_user: true` asks NOWPayments to add its processing fee on top
- * for the buyer (the equivalent of "client pays the commission"), so the operator
- * receives the full order price and the builder / studio / BuildEx split (computed
- * in place_order) stays exact. Where the gateway can't pass a fee on a given rail,
- * the small (~0.5%) residue simply comes out of BuildEx's platform margin — the
- * builder/studio cut is never affected either way.
+ * Buyer-paid fees and fixed-rate mode are intentionally disabled. Provider fees
+ * come out of BuildEx's snapshotted platform commission; builder/studio earnings
+ * remain unchanged.
  */
 export async function createInvoice(
   input: CreateInvoiceInput,
@@ -159,7 +184,6 @@ export async function createInvoice(
     // invoices show the buyer the live crypto equivalent at checkout time — fine
     // for USDT (already pegged) and normal for all other coins. Our USD price is
     // recorded in the DB and in the payments row regardless.
-    is_fee_paid_by_user: true, // fee on top of the buyer — keeps our split exact
   };
 
   const res = await fetch(`${API_BASE}/invoice`, {
@@ -195,6 +219,10 @@ export interface WebhookVerdict {
   method: "crypto" | "card" | null;
   amountCents: number | null;
   invoiceId: string | null;
+  requestedCurrency: string | null;
+  actualCurrency: string | null;
+  cryptoAmount: string | null;
+  providerFee: string | null;
 }
 
 /**
@@ -218,6 +246,10 @@ export async function verifyWebhook(
     method: null,
     amountCents: null,
     invoiceId: null,
+    requestedCurrency: null,
+    actualCurrency: null,
+    cryptoAmount: null,
+    providerFee: null,
   };
 
   if (!signature) return invalid;
@@ -272,7 +304,25 @@ export async function verifyWebhook(
     isPaid,
     method,
     amountCents: Number.isFinite(amountCents as number) ? amountCents : null,
-    invoiceId: payload.payment_id != null ? String(payload.payment_id) : null,
+    invoiceId: payload.invoice_id != null ? String(payload.invoice_id) : null,
+    requestedCurrency: payload.pay_currency != null
+      ? String(payload.pay_currency).toLowerCase()
+      : null,
+    actualCurrency: payload.outcome_currency != null
+      ? String(payload.outcome_currency).toLowerCase()
+      : payload.pay_currency != null
+      ? String(payload.pay_currency).toLowerCase()
+      : null,
+    cryptoAmount: payload.actually_paid != null
+      ? String(payload.actually_paid)
+      : payload.pay_amount != null
+      ? String(payload.pay_amount)
+      : null,
+    providerFee: payload.fee != null
+      ? String(payload.fee)
+      : payload.network_fee != null
+      ? String(payload.network_fee)
+      : null,
   };
 }
 
@@ -298,7 +348,7 @@ export async function verifyWebhook(
 export interface PayoutWithdrawal {
   address: string; // builder's USDT wallet
   amount: string; // amount in `currency`, as a string e.g. "18.20"
-  currency?: string; // payout currency; defaults to USDT TRC-20 ("usdttrc20")
+  currency?: string; // payout currency; defaults to USDT BSC ("usdtbsc")
 }
 
 export interface CreatePayoutResult {
@@ -347,7 +397,7 @@ export async function createPayout(
       : undefined,
     withdrawals: withdrawals.map((w) => ({
       address: w.address,
-      currency: (w.currency ?? "usdttrc20").toLowerCase(),
+      currency: (w.currency ?? "usdtbsc").toLowerCase(),
       amount: Number(w.amount),
     })),
   };

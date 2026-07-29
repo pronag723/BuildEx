@@ -159,7 +159,8 @@ const server = http.createServer(async (req, res) => {
       }
       if (state.idempotency[key]) return json(res, 200, state.idempotency[key].response);
       for (const item of withdrawals) {
-        if (!item.address || !["usdttrc20", "usdterc20"].includes(item.currency) ||
+        if (!/^0x[0-9a-fA-F]{40}$/.test(String(item.address || "")) ||
+            item.currency !== "usdtbsc" ||
             !Number.isFinite(item.amount) || item.amount <= 0) {
           return json(res, 400, { error: "Invalid withdrawal entry" });
         }

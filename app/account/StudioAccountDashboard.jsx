@@ -260,19 +260,11 @@ function TeamFilterMenu({ label, value, options, onChange, icon: MenuIcon }) {
 
 const PAYOUT_NETWORKS = [
   {
-    value: "usdt_trc20",
+    value: "usdt_bsc",
     label: "USDT",
-    network: "TRON",
-    badge: "TRC-20",
-    hint: "Low network fees",
-    prefix: "T",
-  },
-  {
-    value: "usdt_erc20",
-    label: "USDT",
-    network: "Ethereum",
-    badge: "ERC-20",
-    hint: "Ethereum network",
+    network: "BNB Smart Chain",
+    badge: "BEP-20",
+    hint: "Low-fee weekly payouts",
     prefix: "0x",
   },
 ];
@@ -282,24 +274,14 @@ function getWalletValidation(method, address) {
   if (!value) {
     return { valid: false, empty: true, message: "Enter the receiving wallet address." };
   }
-  if (method === "usdt_trc20") {
-    const valid = /^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(value);
-    return {
-      valid,
-      empty: false,
-      message: valid
-        ? "Valid TRON address format"
-        : "TRC-20 addresses must begin with T and contain 34 characters.",
-    };
-  }
-  if (method === "usdt_erc20") {
+  if (method === "usdt_bsc") {
     const valid = /^0x[0-9a-fA-F]{40}$/.test(value);
     return {
       valid,
       empty: false,
       message: valid
-        ? "Valid Ethereum address format"
-        : "ERC-20 addresses must begin with 0x followed by 40 hexadecimal characters.",
+        ? "Valid BSC/BEP-20 address format"
+        : "BSC addresses must begin with 0x followed by 40 hexadecimal characters.",
     };
   }
   return { valid: false, empty: false, message: "Choose a supported payout network." };
@@ -740,7 +722,7 @@ export function StudioModeratorDashboard({ section = "profile" }) {
   const [rates, setRates] = useState(() => mergeRates(null));
   const [employeePct, setEmployeePct] = useState("");
   const [accepting, setAccepting] = useState(false);
-  const [payoutMethod, setPayoutMethod] = useState("usdt_trc20");
+  const [payoutMethod, setPayoutMethod] = useState("usdt_bsc");
   const [payoutDetails, setPayoutDetails] = useState("");
   const [newCode, setNewCode] = useState("");
   const [codeLimit, setCodeLimit] = useState(1);
@@ -817,7 +799,7 @@ export function StudioModeratorDashboard({ section = "profile" }) {
         row.employee_commission_bps == null ? "" : String(row.employee_commission_bps / 100)
       );
       setAccepting(row.accepting_orders);
-      setPayoutMethod(row.payout_method || "usdt_trc20");
+      setPayoutMethod(row.payout_method || "usdt_bsc");
       setPayoutDetails(row.payout_details || "");
 
       const settled = await Promise.allSettled([
@@ -998,7 +980,7 @@ export function StudioModeratorDashboard({ section = "profile" }) {
     () =>
       Boolean(
         studio &&
-          (payoutMethod !== (studio.payout_method || "usdt_trc20") ||
+          (payoutMethod !== (studio.payout_method || "usdt_bsc") ||
             payoutDetails.trim() !== (studio.payout_details || ""))
       ),
     [payoutDetails, payoutMethod, studio]
@@ -2242,7 +2224,8 @@ export function StudioModeratorDashboard({ section = "profile" }) {
         <div className="mt-6 pt-6 border-t border-white/[0.08]">
           <h3 className="font-bold text-lg">Withdraw funds</h3>
           <p className="text-xs text-gray-500 mt-1 mb-4">
-            Minimum $20.00. Network or exchange fees may reduce the amount received.
+            Minimum $20.00. Approved requests join the weekly USDT-BSC batch;
+            BuildEx absorbs the payout network fee.
           </p>
         <div className="flex flex-col sm:flex-row gap-3 max-w-xl">
           <label className="relative flex-1">

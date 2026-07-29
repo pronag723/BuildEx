@@ -15,7 +15,11 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
-import { createInvoice, getMinimumInvoiceAmount } from "../_shared/nowpayments.ts";
+import { createInvoice } from "../_shared/nowpayments.ts";
+import {
+  getPaymentRailOptions,
+  isPaymentRailCode,
+} from "../_shared/paymentRails.ts";
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -39,15 +43,20 @@ Deno.serve(async (req) => {
 
   let orderId: string | undefined;
   let returnUrl: string | undefined;
+  let payCurrency: string | undefined;
   try {
     const parsed = await req.json();
     orderId = parsed?.orderId;
     returnUrl = parsed?.returnUrl;
+    payCurrency = String(parsed?.payCurrency || "").toLowerCase();
   } catch {
     return json({ error: "Invalid request body" }, 400);
   }
   if (!orderId) {
     return json({ error: "orderId is required" }, 400);
+  }
+  if (!isPaymentRailCode(payCurrency)) {
+    return json({ error: "Unsupported payment currency" }, 422);
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -86,11 +95,7 @@ Deno.serve(async (req) => {
     return json({ error: "Order is not awaiting payment" }, 409);
   }
 
-  // BuildEx standardizes buyer checkout on USDT TRC-20. The marketplace floor
-  // is $20, but NOWPayments still publishes a live per-rail minimum, so we
-  // check both here.
-  const PAY_CURRENCY = "usdttrc20";
-  const MIN_CENTS = 2000;
+  const MIN_CENTS = 500;
   if (Number(order.price_kopecks) < MIN_CENTS) {
     return json(
       { error: `Order total is below the $${MIN_CENTS / 100} minimum required by the payment gateway.` },
@@ -100,12 +105,14 @@ Deno.serve(async (req) => {
 
   const amount = (Number(order.price_kopecks) / 100).toFixed(2);
   try {
-    const minQuote = await getMinimumInvoiceAmount(PAY_CURRENCY, "usd");
-    if (minQuote.amount != null && Number(amount) + 0.000001 < minQuote.amount) {
+    const options = await getPaymentRailOptions(Number(order.price_kopecks));
+    const selected = options.find((option) => option.code === payCurrency);
+    if (!selected?.available) {
       return json(
         {
-          error:
-            `Order total is below the current NOWPayments minimum for ${PAY_CURRENCY.toUpperCase()} checkout ($${minQuote.amount.toFixed(2)}). Raise the price or wait for network conditions to improve.`,
+          error: selected?.liveMinimumUsd != null
+            ? `Order total is below the current ${selected.displayName} minimum ($${selected.liveMinimumUsd.toFixed(2)}). Choose another network or try again later.`
+            : "The selected stablecoin network is temporarily unavailable. Choose another network or try again later.",
         },
         422,
       );
@@ -128,7 +135,7 @@ Deno.serve(async (req) => {
     invoice = await createInvoice({
       amount,
       currency: "USD",
-      payCurrency: PAY_CURRENCY,
+      payCurrency,
       orderId: order.id,
       callbackUrl,
       returnUrl: safeReturn,
@@ -152,11 +159,19 @@ Deno.serve(async (req) => {
     p_order: order.id,
     p_invoice: invoice.invoiceId,
     p_amount_cents: Number(order.price_kopecks),
+    p_requested_currency: payCurrency,
   });
   if (recErr) {
-    // Non-fatal: the webhook can still reconcile by order_id. Log and proceed.
     console.error("record_pending_payment failed:", recErr);
+    return json(
+      { error: "Checkout could not be recorded safely. Please try again." },
+      500,
+    );
   }
 
-  return json({ checkoutUrl: invoice.checkoutUrl, invoiceId: invoice.invoiceId });
+  return json({
+    checkoutUrl: invoice.checkoutUrl,
+    invoiceId: invoice.invoiceId,
+    payCurrency,
+  });
 });

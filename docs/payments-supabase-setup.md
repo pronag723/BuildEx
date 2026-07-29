@@ -1,222 +1,139 @@
-# BuildEx payments and builder withdrawals: exact production setup
+# BuildEx crypto payments and custody payouts
 
-This guide configures buyer checkout, builder balances, and manual admin-settled
-USDT withdrawals. BuildEx no longer requires a relay VM for payouts.
+BuildEx accepts crypto only. Prices, commissions, escrow, and provider balances
+remain denominated in integer USD cents.
 
-## Payment minimum and builder prices
+## Production policy
 
-BuildEx now pins buyer checkout to `USDTTRC20` (`usdttrc20`) because it is the
-best low-cost fit for small USD-denominated orders. The marketplace floor for
-builder prices is `$10`, enforced in the rate editor and inside the `place_order`
-database function.
+- Marketplace minimum: **$5.00** for independent builders and studios.
+- Checkout: `usdtbsc`, `usdtmatic`, and `usdtsol`.
+- A network is shown only when NOWPayments reports the service healthy, the
+  currency enabled, and its live USD minimum no greater than the order total.
+- BSC is recommended by default. A forged or stale client selection is checked
+  again by `create-invoice`.
+- Buyer-paid fees and fixed-rate invoices are disabled. BuildEx absorbs provider
+  processing costs inside its 9–18% commission.
+- Withdrawals: **USDT-BSC only**, minimum **$20.00**, sent in weekly custody mass
+  payout batches. The displayed withdrawal amount is the amount sent; BuildEx
+  absorbs the batch network cost.
 
-NOWPayments still documents the exact minimum as dynamic. The `create-invoice`
-Edge Function therefore calls `GET /v1/min-amount` for `usdttrc20` in USD before
-creating checkout. BuildEx uses a conservative `$20` marketplace floor; if the
-live provider minimum rises above `$20`, checkout
-rejects the order until the builder raises the price.
+Provider minimums are always authoritative. The $5 marketplace floor does not
+promise that a $5 rail will be available at every moment.
 
-## 1. Apply the Supabase SQL
+## Database
 
-1. Sign in at `https://supabase.com/dashboard`.
-2. Click the BuildEx project.
-3. In the left sidebar click **SQL Editor**.
-4. Click **New query**.
-5. Open each file below locally, copy the complete file, paste it into the query,
-   and click **Run**. Run them in this exact order:
-   1. `supabase/migrations/0031_payments.sql`
-   2. `supabase/migrations/0033_payouts.sql`
-   3. `supabase/migrations/0034_payment_reconciliation_and_fiat_payouts.sql`
-   4. `supabase/migrations/0035_builder_withdrawals.sql`
-   5. `supabase/migrations/0036_manual_payout_settlement.sql`
-   6. `supabase/migrations/0037_payment_webhook_fail_closed.sql`
-   7. `supabase/migrations/0038_enforce_payment_floor_on_orders.sql`
-   8. `supabase/migrations/0039_lower_payment_floor_to_10_and_pin_usdttrc20.sql`
-   9. `supabase/migrations/0040_raise_payment_floor_to_20.sql`
-8. If the project already has `0031` to `0038`, run only
-   `0039_lower_payment_floor_to_10_and_pin_usdttrc20.sql` and
-   `0040_raise_payment_floor_to_20.sql`.
-9. Create a final new query and run:
+Apply every migration in `supabase/migrations` in numeric order, including:
 
-```sql
-select to_regclass('public.payments') as payments,
-       to_regclass('public.payouts') as payouts;
-
-select routine_name
-from information_schema.routines
-where routine_schema = 'public'
-  and routine_name in (
-    'get_my_payout_summary',
-    'request_withdrawal',
-    'admin_approve_withdrawal',
-    'admin_reject_withdrawal',
-    'admin_mark_withdrawal_sent',
-    'admin_mark_withdrawal_failed'
-  )
-order by routine_name;
+```text
+0072_low_fee_stablecoin_payments.sql
 ```
 
-Both tables and all six routines must be returned.
+Migration 0072:
 
-## 2. Configure incoming payments in NOWPayments
+- lowers both placement-function floors to $5;
+- adds requested/received currency, crypto amount, provider fee, payment ID, and
+  provider status fields to `payments`;
+- restricts saved payout destinations to `usdt_bsc` and validates
+  `^0x[0-9a-fA-F]{40}$`;
+- keeps the $20 withdrawal minimum and atomic balance reservation;
+- forces approved withdrawals to have zero builder fee deduction.
 
-Dashboard labels occasionally move. If a named item is absent, use the dashboard
-search before continuing.
+Legacy TRC20/ERC20 payout preferences are cleared so users must explicitly save
+a BSC address. Unsent legacy requests are failed and released back to available
+balance; historical and already-processing payout rows are retained.
 
-1. Sign in to NOWPayments with an email/password account.
-2. Open **Settings -> API keys** and click **Generate new key**. Copy the API key.
-3. Open **Settings -> Payment settings -> IPN settings**.
-4. Enable IPN and copy the IPN secret.
-5. Set the callback URL to:
+## NOWPayments account
+
+1. Keep the merchant account and API key active.
+2. Enable Custody and Mass Payouts.
+3. Enable `USDTBSC`, `USDTMATIC`, and `USDTSOL` for deposits.
+4. Configure the primary custody/payout balance as USDT-BSC.
+5. Enable account 2FA and allowlist the fixed public IP of the payout relay.
+6. Configure the IPN callback:
    `https://YOUR_PROJECT_REF.supabase.co/functions/v1/payment-webhook`
-6. Open **Settings -> Coins settings**.
-7. Enable **USDT (TRC-20)**. Its API currency code is `usdttrc20`.
-8. BuildEx buyer checkout is pinned to `usdttrc20`. Keep this coin enabled or
-   checkout will fail.
-9. Enable **USDT (ERC-20)** only if you intend to support its higher network fees
-   for manual withdrawals. Its API currency code is `usdterc20`.
-10. Open **Custody** and complete activation only if you want to send withdrawals
-   from the NOWPayments dashboard itself.
-11. Keep enough balance on whichever network you will actually use for manual
-    withdrawals.
+7. Store the IPN secret separately from the API key.
 
-Important:
+Other accepted USDT rails may require provider-side conversion into the
+USDT-BSC custody balance. Confirm that account feature and conversion pricing
+with NOWPayments before enabling Polygon or Solana in production.
 
-- BuildEx uses NOWPayments automatically only for buyer checkout.
-- Builder payouts are manual now. No payout API, relay IP, or provider 2FA flow
-  is required by the app.
+## Secrets
 
-## 3. Add Supabase Edge Function secrets
-
-1. In Supabase open **Edge Functions**.
-2. Click **Secrets**.
-3. Add:
-
-| Name | Value |
-|---|---|
-| `NOWPAYMENTS_API_KEY` | API key from section 2 |
-| `NOWPAYMENTS_IPN_SECRET` | IPN secret from section 2 |
-
-4. Do not add `PAYOUT_RELAY_URL` or `PAYOUT_RELAY_SHARED_SECRET`. Manual payout
-   mode does not use them.
-
-Deploy from the repository root:
+Set incoming payment secrets in Supabase:
 
 ```powershell
-npx supabase login
-npx supabase link --project-ref YOUR_PROJECT_REF
-npx supabase functions deploy create-invoice
-npx supabase functions deploy payment-webhook --no-verify-jwt
+npx supabase secrets set NOWPAYMENTS_API_KEY=...
+npx supabase secrets set NOWPAYMENTS_IPN_SECRET=...
 ```
 
-In Supabase **Edge Functions**, verify at least these two exist:
+Set relay connection secrets in Supabase:
 
-- `create-invoice`
-- `payment-webhook`
+```powershell
+npx supabase secrets set PAYOUT_RELAY_URL=https://YOUR_FIXED_IP_RELAY
+npx supabase secrets set PAYOUT_RELAY_SHARED_SECRET=...
+```
 
-`payment-webhook` must have JWT verification off.
+The relay alone holds `NOWPAYMENTS_API_KEY`, `NOWPAYMENTS_EMAIL`, and
+`NOWPAYMENTS_PASSWORD`. Use `services/payout-relay/.env.example` and the bundled
+service definition when installing it.
 
-## 4. Configure GitHub Pages
+## Deploy Edge Functions
 
-1. Open the GitHub repository.
-2. Click **Settings -> Secrets and variables -> Actions**.
-3. Under **Repository secrets**, add:
-   - `NEXT_PUBLIC_SUPABASE_URL` =
-     `https://YOUR_PROJECT_REF.supabase.co`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` = the Supabase publishable/anon key from
-     **Supabase -> Project Settings -> API**
-4. Under **Variables**, add `NEXT_PUBLIC_PAYMENTS_ENABLED` with value `true`.
-5. In GitHub click **Actions -> Deploy to GitHub Pages -> Run workflow**.
-6. Select branch `main`, click **Run workflow**, and wait for both build and
-   deploy jobs to turn green.
-7. Only after a successful real checkout test, run migration
-   `0032_revoke_mock_payment.sql`.
+```powershell
+npx supabase functions deploy payment-options
+npx supabase functions deploy create-invoice
+npx supabase functions deploy payment-webhook --no-verify-jwt
+npx supabase functions deploy create-payout
+npx supabase functions deploy verify-payout
+npx supabase functions deploy reconcile-payout
+```
 
-## 5. How to operate manual withdrawals
+`payment-webhook` is the only payment function with gateway JWT verification
+disabled. It authenticates NOWPayments with the IPN HMAC signature.
 
-### Builder side
+After deployment, build with:
 
-1. Sign in as a builder.
-2. Open **Account -> Payouts**.
-3. In the payout method section click **Edit**.
-4. Choose **USDT TRC-20** for the cheapest network in most cases. Choose
-   **USDT ERC-20** only if you intend to pay higher Ethereum network fees.
-5. Paste the destination address.
-6. Click **Save**.
-7. In **Withdraw funds**, type the amount in USD.
-8. Click **Request withdrawal**.
+```text
+NEXT_PUBLIC_PAYMENTS_ENABLED=true
+```
 
-Rules enforced by BuildEx:
+Do not revoke the mock payment RPC until the real checkout acceptance test has
+passed. Production builds must not expose a service-role key or provider secret.
 
-- minimum withdrawal is `$20.00`
-- request cannot exceed available balance
-- requested funds move from **Available** to **Pending** immediately
+## Weekly payout operation
 
-### Admin side
+1. Builders and studios accumulate completed-order earnings in the USD-cent
+   ledger.
+2. A withdrawal request immediately reserves the requested balance.
+3. Admin approves valid BSC requests. The fee deduction is always zero.
+4. Once per week, click **Send approved weekly batch** in the admin payout
+   console.
+5. Enter the NOWPayments 2FA code to authorize the custody mass payout.
+6. Use **Reconcile processing batches** until the provider reports a terminal
+   status.
+7. Successful rows become `sent`. Failed/rejected/expired/cancelled batches
+   become `failed`; those amounts are excluded from reservations and therefore
+   return to the available balance.
 
-1. Sign in as an admin.
-2. Open **Admin -> Payouts**.
-3. Review the builder wallet and network carefully.
-4. If the wallet is acceptable, click **Approve**.
-5. In the prompt, enter the fee in USD that you will deduct from the requested
-   amount. Example: enter `1.00` for a one-dollar TRC-20 fee.
-6. After approval, send the payout manually from your wallet, exchange, or the
-   NOWPayments dashboard.
-7. Return to **Admin -> Payouts**.
-8. Click **Mark sent**.
-9. Paste the transaction hash, exchange payout ID, or leave it blank.
-10. Add an optional private note.
-11. Confirm.
+The relay derives an idempotency key from the sorted payout IDs. Database state
+transitions only approved rows to processing, preventing the same withdrawal
+from entering a second batch.
 
-If the payout was not sent successfully:
+## Required pre-production tests
 
-1. Click **Mark failed**.
-2. Enter the reason shown to the builder.
-3. Add an optional private note.
-4. Confirm.
+- Create one $5 independent-builder order and one $5 studio order.
+- Confirm every offered rail has a live minimum no greater than the order.
+- Verify forged currency codes are rejected.
+- Exercise BSC, Polygon, and Solana signed webhook events: replay, invalid
+  signature, wrong USD amount, partial payment, expiry, finished, and
+  overpayment.
+- Confirm rank/studio commission snapshots and builder earnings do not change
+  when provider fees are absorbed.
+- Test BSC address validation, $20 aggregation, duplicate batch attempts, 2FA,
+  failure restoration, and reconciliation.
+- Finally run one real $5 USDT-BSC checkout and one real $20 USDT-BSC payout.
 
-Effect of failure:
-
-- the withdrawal changes to `failed`
-- the builder's balance is released back into **Available**
-
-## 6. Test the complete flow
-
-1. Use a builder account and complete a real paid order.
-2. Open **Account -> Payouts**. The builder earnings must appear under
-   **Available**.
-3. Save a test wallet on the correct network.
-4. Request exactly `$20.00`.
-5. Confirm **Available** drops by `$20.00` and **Pending** rises by `$20.00`.
-6. Sign in as admin and open **Admin -> Payouts**.
-7. Click **Approve** and enter the fee in USD.
-8. Confirm the row becomes **Approved**.
-9. Send the payout manually outside BuildEx.
-10. Click **Mark sent** and enter the real payout reference or TXID.
-11. Confirm the request becomes **Sent**, **Pending** drops, and **Lifetime paid**
-    increases.
-12. Test **Reject** and **Mark failed** as well. Both must release funds back to
-    **Available**.
-
-## 7. EUR SEPA status
-
-BuildEx still shows EUR SEPA as unavailable.
-
-Do not enable it just because NOWPayments offers merchant off-ramp screens.
-BuildEx does not yet support marketplace beneficiary bank payouts through the app.
-
-## Troubleshooting and rollback
-
-- Builder cannot request a withdrawal: check that a valid `USDT TRC-20` or
-  `USDT ERC-20` address is saved in **Account -> Payouts**.
-- Buyer checkout rejects a `$20+` order: NOWPayments' live `usdttrc20` minimum
-  may be temporarily above the marketplace floor. Check the `create-invoice`
-  function logs.
-- Amount is blocked: confirm it is at least `$20.00` for withdrawals and not
-  above **Available**.
-- Admin cannot approve: fee must be a non-negative amount lower than the gross
-  withdrawal amount.
-- Admin marked the wrong request as sent: correct it directly in Supabase before
-  sending another payout for the same balance.
-- To pause all withdrawals without losing balances, simply stop approving them.
-  Builders can still request and cancel withdrawals safely.
+Do not enable production payments until Custody/Mass Payouts are active and the
+two real transactions succeed. Provider/service costs must remain below the 9%
+Master commission for ordinary successful orders; pause affected rails during
+abnormal network-fee spikes.

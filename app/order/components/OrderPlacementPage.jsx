@@ -19,7 +19,11 @@ import { STYLES } from "../../../lib/onboarding/constants";
 import { formatPrice } from "../../../lib/pricing";
 import { Icon } from "../../../lib/icons";
 import { placeOrder, placeStudioOrder, markOrderPaid } from "../../../lib/orders/api";
-import { paymentsEnabled, createInvoice } from "../../../lib/payments/api";
+import {
+  paymentsEnabled,
+  createInvoice,
+  getPaymentOptions,
+} from "../../../lib/payments/api";
 import CatalogNavbar from "../../builders/components/CatalogNavbar";
 import CatalogMobileMenu from "../../builders/components/CatalogMobileMenu";
 import { useGradientBackground } from "../../../lib/ui/useGradientBackground";
@@ -138,6 +142,10 @@ export default function OrderPlacementPage() {
   const [brief, setBrief] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+  const [paymentOptions, setPaymentOptions] = useState([]);
+  const [selectedPayCurrency, setSelectedPayCurrency] = useState("");
+  const [paymentOptionsLoading, setPaymentOptionsLoading] = useState(false);
+  const [paymentOptionsError, setPaymentOptionsError] = useState(null);
 
   // Sizes the builder offers (built-ins + any custom tiers), with their cent
   // price. Disabled tiers are still shown but greyed and unselectable so buyers
@@ -163,6 +171,27 @@ export default function OrderPlacementPage() {
 
   const selectedSize = sizeOptions.find((s) => s.key === size) || null;
   const priceKopecks = selectedSize?.price || 0;
+  const payEnabled = paymentsEnabled();
+
+  useEffect(() => {
+    if (!payEnabled || step !== "review" || priceKopecks < 500) return;
+    let cancelled = false;
+    setPaymentOptionsLoading(true);
+    setPaymentOptionsError(null);
+    getPaymentOptions(priceKopecks).then(({ options, message, error }) => {
+      if (cancelled) return;
+      setPaymentOptions(options);
+      setSelectedPayCurrency((current) => {
+        if (options.some((option) => option.code === current)) return current;
+        return options.find((option) => option.recommended)?.code || options[0]?.code || "";
+      });
+      setPaymentOptionsError(error?.message || message || null);
+      setPaymentOptionsLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [payEnabled, step, priceKopecks]);
 
   // ── Step navigation guards ─────────────────────────────────────────────────
   const canAdvance =
@@ -217,7 +246,10 @@ export default function OrderPlacementPage() {
     // URL. We deliberately do NOT call markOrderPaid here — only a verified
     // webhook may mark a real order paid.
     if (paymentsEnabled()) {
-      const { checkoutUrl, error: invoiceError } = await createInvoice(orderId);
+      const { checkoutUrl, error: invoiceError } = await createInvoice(
+        orderId,
+        selectedPayCurrency,
+      );
       if (invoiceError || !checkoutUrl) {
         setSubmitting(false);
         setSubmitError(
@@ -245,12 +277,13 @@ export default function OrderPlacementPage() {
       return;
     }
     router.push(`/orders/?id=${encodeURIComponent(orderId)}`);
-  }, [submitting, selectedSize, style, brief, builder, size, router, isStudioOrder]);
+  }, [
+    submitting, selectedSize, style, brief, builder, size, router,
+    isStudioOrder, selectedPayCurrency,
+  ]);
 
-  // The gateway adds its processing fee on top at checkout, so the button shows
-  // the exact order price either way; "(mock)" only appears while dormant.
-  const payEnabled = paymentsEnabled();
-
+  // BuildEx absorbs gateway processing costs; "(mock)" only appears while the
+  // real payment flow is dormant.
   // ── Render ─────────────────────────────────────────────────────────────────
   // The page shell (and crucially the gradient-background divs) must mount on the
   // FIRST render so useGradientBackground can attach its refs and start the
@@ -341,6 +374,11 @@ export default function OrderPlacementPage() {
                   style={style}
                   brief={brief}
                   priceKopecks={priceKopecks}
+                  paymentOptions={paymentOptions}
+                  selectedPayCurrency={selectedPayCurrency}
+                  onSelectPayCurrency={setSelectedPayCurrency}
+                  paymentOptionsLoading={paymentOptionsLoading}
+                  paymentOptionsError={paymentOptionsError}
                 />
               )}
 
@@ -371,7 +409,10 @@ export default function OrderPlacementPage() {
                   <button
                     type="button"
                     onClick={onPay}
-                    disabled={submitting}
+                    disabled={
+                      submitting ||
+                      (payEnabled && (paymentOptionsLoading || !selectedPayCurrency))
+                    }
                     className="px-6 py-2.5 rounded-full text-sm font-bold bg-[#4ade80] text-black green-glow hover:bg-[#22c55e] transition-all disabled:opacity-50 disabled:cursor-wait"
                   >
                     {submitting
@@ -519,7 +560,19 @@ function BriefStep({ value, onChange }) {
 }
 
 // ─── Step 4: review ─────────────────────────────────────────────────────────
-function ReviewStep({ builder, sizeLabel, sizeArea, style, brief, priceKopecks }) {
+function ReviewStep({
+  builder,
+  sizeLabel,
+  sizeArea,
+  style,
+  brief,
+  priceKopecks,
+  paymentOptions,
+  selectedPayCurrency,
+  onSelectPayCurrency,
+  paymentOptionsLoading,
+  paymentOptionsError,
+}) {
   return (
     <div className="space-y-4">
       <h2 className="font-bold text-base">Review your order</h2>
@@ -550,6 +603,53 @@ function ReviewStep({ builder, sizeLabel, sizeArea, style, brief, priceKopecks }
           {formatPrice(priceKopecks)}
         </span>
       </div>
+
+      {paymentsEnabled() && (
+        <div className="space-y-2">
+          <p className="text-[11px] text-gray-500 uppercase tracking-widest">
+            Payment network
+          </p>
+          {paymentOptionsLoading ? (
+            <p className="text-xs text-gray-400">Checking live network minimums…</p>
+          ) : paymentOptions.length ? (
+            <div className="grid gap-2">
+              {paymentOptions.map((option) => (
+                <button
+                  key={option.code}
+                  type="button"
+                  onClick={() => onSelectPayCurrency(option.code)}
+                  className={`rounded-2xl border p-3 text-left transition-all ${
+                    selectedPayCurrency === option.code
+                      ? "border-[#4ade80] bg-[#4ade80]/10"
+                      : "border-white/10 hover:border-[#4ade80]/40"
+                  }`}
+                >
+                  <span className="flex items-center justify-between gap-3">
+                    <span className="text-sm font-semibold">{option.displayName}</span>
+                    {option.recommended && (
+                      <span className="text-[10px] uppercase tracking-wider text-[#4ade80]">
+                        Recommended
+                      </span>
+                    )}
+                  </span>
+                  <span className="mt-1 block text-[11px] text-gray-500">
+                    Live minimum ${Number(option.liveMinimumUsd).toFixed(2)}
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-amber-300">
+              {paymentOptionsError ||
+                "Stablecoin checkout is temporarily unavailable for this order total."}
+            </p>
+          )}
+          <p className="text-[11px] text-gray-500">
+            BuildEx absorbs the provider fee. You pay the displayed order total;
+            your wallet may separately charge its own network fee.
+          </p>
+        </div>
+      )}
 
       <p className="text-xs text-gray-500 leading-relaxed flex gap-2">
         <Icon name="lock" size={14} className="mt-0.5 flex-shrink-0" />

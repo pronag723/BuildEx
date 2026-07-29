@@ -587,57 +587,27 @@ function AboutSection({ profile, builderProfile, isBuilder, onSaved }) {
 // ─── Payout (builders) ───────────────────────────────────────────────────────
 const PAYOUT_NETWORKS = [
   {
-    key: "usdt_trc20",
-    label: "TRC-20",
-    badge: "USDT · TRC-20",
-    hint: "Tron network · lower fees · address starts with T",
-    placeholder: "T… (34 characters)",
-    regex: /^T[A-HJ-NP-Za-km-z1-9]{33}$/,
-    formatError: "Invalid TRC-20 address — must start with T and be exactly 34 characters.",
-  },
-  {
-    key: "usdt_erc20",
-    label: "ERC-20",
-    badge: "USDT · ERC-20",
-    hint: "Ethereum network · higher fees · address starts with 0x",
+    key: "usdt_bsc",
+    label: "BSC / BEP-20",
+    badge: "USDT · BSC",
+    hint: "BNB Smart Chain · low fees · address starts with 0x",
     placeholder: "0x… (42 characters)",
     regex: /^0x[0-9a-fA-F]{40}$/i,
-    formatError: "Invalid ERC-20 address — must start with 0x and be exactly 42 characters.",
+    formatError: "Invalid BSC address — use 0x followed by 40 hexadecimal characters.",
   },
 ];
 
-const PAYOUT_METHODS = [
-  ...PAYOUT_NETWORKS,
-  {
-    key: "sepa_eur",
-    label: "EUR SEPA",
-    badge: "EUR SEPA bank transfer",
-    hint: "Unavailable until NOWPayments approves marketplace-beneficiary payouts for BuildEx.",
-    disabled: true,
-  },
-];
+const PAYOUT_METHODS = [...PAYOUT_NETWORKS];
 
 async function verifyWalletOnChain(networkKey, address) {
   try {
-    if (networkKey === "usdt_trc20") {
-      const r = await fetch(
-        `https://apilist.tronscan.org/api/account?address=${encodeURIComponent(address)}`,
-        { headers: { Accept: "application/json" } },
-      );
-      if (!r.ok) return { state: "error", msg: "Couldn't reach Tron network to verify." };
-      const data = await r.json();
-      if (!data?.address || data.address !== address) {
-        return { state: "warn", msg: "Address not found on-chain yet — confirm it's yours before saving." };
-      }
-      return { state: "ok", msg: null };
-    }
-    if (networkKey === "usdt_erc20") {
-      const r = await fetch("https://cloudflare-eth.com", {
+    if (networkKey === "usdt_bsc") {
+      const r = await fetch("https://bsc-dataseed.binance.org", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ jsonrpc: "2.0", method: "eth_getBalance", params: [address, "latest"], id: 1 }),
       });
-      if (!r.ok) return { state: "error", msg: "Couldn't reach Ethereum network to verify." };
+      if (!r.ok) return { state: "error", msg: "Couldn't reach BSC to verify." };
       const data = await r.json();
       if (data?.error || !("result" in data)) return { state: "error", msg: "Couldn't verify this address." };
       if (parseInt(data.result, 16) === 0) {
@@ -662,8 +632,7 @@ function PayoutSection({ builderProfile, onSaved }) {
   const [saving, setSaving] = useState(false);
 
   function resolveNetwork(method) {
-    if (method === "usdt_trc20" || method === "usdt_erc20" || method === "sepa_eur") return method;
-    if (method === "crypto") return "usdt_trc20"; // legacy
+    if (method === "usdt_bsc") return method;
     return null;
   }
 
@@ -685,7 +654,6 @@ function PayoutSection({ builderProfile, onSaved }) {
 
   function validateFormat(net, addr) {
     if (!addr) return null;
-    if (net === "sepa_eur") return "EUR SEPA withdrawals are not enabled yet.";
     const meta = PAYOUT_NETWORKS.find((n) => n.key === net);
     return meta && !meta.regex.test(addr) ? meta.formatError : null;
   }
@@ -699,7 +667,6 @@ function PayoutSection({ builderProfile, onSaved }) {
   async function onAddressBlur() {
     const trimmed = address.trim();
     if (!trimmed || addrError || !network) return;
-    if (network === "sepa_eur") return;
     setVerify({ state: "checking", msg: null });
     const result = await verifyWalletOnChain(network, trimmed);
     setVerify(result);
@@ -873,7 +840,7 @@ function BuilderPayoutsDashboard({ builderProfile, onSaved }) {
   const available = Number(summary?.available_cents) || 0;
   const minimum = Number(summary?.minimum_cents) || 2000;
   const hasDestination =
-    ["usdt_trc20", "usdt_erc20"].includes(builderProfile?.payout_method) &&
+    builderProfile?.payout_method === "usdt_bsc" &&
     !!builderProfile?.payout_details;
   const canWithdraw =
     hasDestination && amountCents >= minimum && amountCents <= available && !busy;
@@ -943,8 +910,8 @@ function BuilderPayoutsDashboard({ builderProfile, onSaved }) {
       <section className="reveal glass rounded-3xl p-6 lg:p-8">
         <h2 className="font-bold text-xl">Withdraw funds</h2>
         <p className="text-xs text-gray-500 mt-1 mb-5">
-          Minimum {formatPrice(minimum)}. Admin-set wallet or exchange fees are
-          deducted from the requested amount, so the amount received may be lower.
+          Minimum {formatPrice(minimum)}. Approved requests are included in the
+          weekly USDT-BSC batch; BuildEx absorbs the payout network fee.
         </p>
         <div className="flex gap-3 flex-wrap">
           <div className="relative flex-1 min-w-[220px]">
@@ -996,7 +963,7 @@ function BuilderPayoutsDashboard({ builderProfile, onSaved }) {
                 <div key={p.id} className="rounded-2xl border border-white/10 p-4 flex items-center gap-3 flex-wrap">
                   <div className="flex-1 min-w-[180px]">
                     <p className="text-sm font-semibold">
-                      {p.payout_method === "usdt_erc20" ? "USDT · ERC-20" : "USDT · TRC-20"}
+                      USDT · BSC/BEP-20
                     </p>
                     <p className="text-[11px] text-gray-500">
                       {new Date(p.created_at).toLocaleString()}

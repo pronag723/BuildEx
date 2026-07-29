@@ -41,23 +41,36 @@ Deno.serve(async (req) => {
     return new Response("invalid signature", { status: 400 });
   }
 
-  // Verified but not the terminal paid state (e.g. 'waiting', 'confirming',
-  // 'partially_paid', 'expired') — acknowledge so the gateway stops retrying;
-  // nothing to do yet.
-  if (!verdict.isPaid || !verdict.orderId) {
+  // Every signed state is retained for reconciliation. Only `finished` with the
+  // exact USD order amount reaches the release path below.
+  if (!verdict.orderId) {
     return new Response("ok", { status: 200 });
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const asService = createClient(supabaseUrl, serviceKey);
+  const raw = JSON.parse(rawBody);
+
+  const { error: eventError } = await asService.rpc("record_payment_event", {
+    p_order: verdict.orderId,
+    p_provider_status: verdict.status,
+    p_raw: raw,
+  });
+  if (eventError) {
+    console.error("record_payment_event failed:", eventError);
+    return new Response("retry", { status: 500 });
+  }
+  if (!verdict.isPaid) {
+    return new Response("ok", { status: 200 });
+  }
 
   const { error } = await asService.rpc("mark_order_paid_internal", {
     p_order: verdict.orderId,
     p_invoice: verdict.invoiceId,
     p_amount_cents: verdict.amountCents,
     p_method: verdict.method,
-    p_raw: JSON.parse(rawBody),
+    p_raw: raw,
   });
 
   if (error) {

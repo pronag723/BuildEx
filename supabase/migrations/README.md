@@ -25,6 +25,7 @@ migrations are idempotent (safe to re-run during development).
 | 0069 | `0069_admin_order_search_and_payout_history.sql` | Makes the moderator order feed searchable and default to all orders, and adds an admin-only builder order-history RPC for payout review. |
 | 0070 | `0070_fix_admin_orders_for_studio_providers.sql` | Ensures moderator search and history include orders placed with studios, whose provider is stored separately from `orders.builder_id`. |
 | 0071 | `0071_manual_studio_builder_availability.sql` | **Manual studio builder availability.** Stops assignments and releases from changing or locking employee availability, permits overlapping active assignments, and repairs statuses previously marked busy by an order. |
+| 0072 | `0072_low_fee_stablecoin_payments.sql` | **Low-fee stablecoins.** Lowers independent and studio orders to $5, records multi-network payment reconciliation data, restricts withdrawals to USDT-BSC, and makes BuildEx absorb payout fees. |
 | 0037 | `0037_payment_webhook_fail_closed.sql` | **Payment integrity fix.** Requires a verified NOWPayments settlement callback to include a valid USD amount matching the order before the order can be marked paid. |
 | 0038 | `0038_enforce_payment_floor_on_orders.sql` | **Order integrity fix.** Enforces the same $20 marketplace floor inside `place_order`, preventing direct RPC calls from bypassing the rate-editor validation. |
 | 0039 | `0039_lower_payment_floor_to_10_and_pin_usdttrc20.sql` | **Pricing + checkout update.** Lowers the marketplace order floor to $10 inside `place_order` and aligns production checkout around `USDTTRC20`, with the Edge Function enforcing NOWPayments' live `min-amount` response before invoice creation. |
@@ -78,7 +79,7 @@ migrations are idempotent (safe to re-run during development).
 | Availability | `builder_profiles.availability_status` / `is_available` | Display + filter flag. |
 | Tools | `builder_profiles.tools` | `text[]` of tool keys (WorldEdit, VoxelSniper, ...). |
 | Rates | `builder_profiles.rates` | `jsonb` — per-scale `{ blocks, from, to }` pricing tiers the builder sets themselves. |
-| Payout method | `builder_profiles.payout_method` | `usdt_trc20`, `usdt_erc20`, or disabled `sepa_eur`. |
+| Payout method | `builder_profiles.payout_method` | `usdt_bsc` (USDT on BSC/BEP-20). |
 | Payout details | `builder_profiles.payout_details` | USDT wallet address. Bank/card details are not stored. |
 | Portfolio image | `portfolio_images.url` | Public URL in `portfolios` bucket. |
 | Portfolio order | `portfolio_images.position` | Lower position = shown first. |

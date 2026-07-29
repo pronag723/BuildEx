@@ -9,6 +9,9 @@ project_id = "buildex"
 [functions.create-invoice]
 verify_jwt = true
 
+[functions.payment-options]
+verify_jwt = true
+
 # The function validates the Authorization token with auth.getUser() itself.
 # Keep gateway verification off because this project uses asymmetric ES256 keys
 # and the gateway can lag behind Auth's key set during key rotation.

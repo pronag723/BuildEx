@@ -111,11 +111,11 @@ The platform was designed with a dark glass aesthetic inspired by modern gaming 
 
 ### Order System
 - Buyer fills in project requirements and proceeds to checkout
-- NOWPayments hosted checkout created by a Supabase Edge Function
+- Live-minimum USDT-BSC, USDT-Polygon, or USDT-Solana checkout created by a Supabase Edge Function
 - A signature-verified NOWPayments webhook marks the order paid
 - Builder delivers schematic files via order thread
 - Buyer approves: earnings become available in the builder balance
-- Builder requests a partial USDT withdrawal; an admin reviews and sends it manually
+- Builder requests a partial USDT-BSC withdrawal; approved requests are sent in a weekly custody batch
 - If buyer declines delivery: enters revision cycle
 - Dispute flow: funds held while manual review takes place
 - One review per completed order (unlocked only after completion)
@@ -492,7 +492,11 @@ Per-order message thread.
 
 | Endpoint | Method | Auth | Description |
 |---|---|---|---|
+| `payment-options` Edge Function | POST | Buyer | Return eligible live USDT rails |
 | `create-invoice` Edge Function | POST | Buyer | Create NOWPayments invoice |
+| `create-payout` Edge Function | POST | Admin | Create an idempotent custody payout batch |
+| `verify-payout` Edge Function | POST | Admin | Confirm a payout batch with 2FA |
+| `reconcile-payout` Edge Function | POST | Admin | Record terminal payout state |
 | `/api/orders/[id]/accept` | POST | Builder | Accept order, capture funds |
 | `/api/orders/[id]/complete` | POST | Buyer | Approve delivery, credit builder balance |
 | `/api/orders/[id]/messages` | GET/POST | Participant | Read/send messages |
@@ -506,36 +510,31 @@ Per-order message thread.
 
 ### Commission Calculation
 
-Commission is **added on top** of the builder's quoted price. The builder always receives exactly what they quoted. The platform fee is paid by the buyer.
+Commission is snapshotted when the order is placed and deducted from the listed
+order price. Provider fees come from BuildEx's share, never from the builder's
+snapshotted net earnings.
 
 ```
-Builder quotes: $200
-Builder rank:   Architect (8% fee)
-Buyer pays:     $200 + $16 = $216
-Builder gets:   $200
-BuildEx earns:  $16
+Listed price:        $200
+Builder rank:        Master (9% commission)
+Buyer pays:          $200
+Builder earns:       $182
+BuildEx gross share: $18 (before provider costs)
 ```
 
 Commission rates:
 
 | Rank | Commission | Requirement |
 |---|---|---|
-| Newcomer | 20% | New account |
-| Builder | 15% | 5+ projects, rating 4.0+ |
-| Craftsman | 12% | 20+ projects, rating 4.5+, 3mo+ |
-| Architect | 8% | 50+ projects, rating 4.7+, no disputes |
-| Master Builder | 5% | 100+ projects, rating 4.9+, invite/review |
+| Rookie | 18% | Starting rank |
+| Advanced | 15% | 5+ completed orders and rating above 4.0 |
+| Expert | 12% | 12+ completed orders and rating above 4.5 |
+| Master | 9% | 22+ completed orders and rating above 4.8 |
 
 ### Rank Calculation
 
-Rank is recalculated nightly by a cron job. Criteria checked in order:
-1. Projects completed count
-2. Average rating threshold
-3. Account age (for Craftsman+)
-4. Zero active disputes (for Architect+)
-5. Manual review approval (for Master Builder)
-
-Rank can decrease if a builder goes inactive for 60+ days or receives a serious dispute.
+Rank is recomputed from completed-order and review metrics by the authoritative
+database functions.
 
 ---
 
@@ -594,8 +593,9 @@ Discord and Google OAuth are the two supported login providers. Both go through 
 
 ## Payments and Escrow
 
-BuildEx uses **NOWPayments hosted invoices** for incoming payments and a
-**manual admin payout ledger** for builder withdrawals.
+BuildEx uses **NOWPayments hosted stablecoin invoices** for incoming payments and
+weekly **USDT-BSC custody mass payouts** for builder withdrawals. The marketplace
+floor is $5; live provider minimums decide which networks can be offered.
 
 **Full payment lifecycle:**
 
@@ -614,14 +614,15 @@ BuildEx uses **NOWPayments hosted invoices** for incoming payments and a
       ↓
 7. Admin reviews the destination and approves the request
       ↓
-8. Admin sends the crypto payout manually from NOWPayments or another wallet
+8. Admin creates the weekly custody mass-payout batch and confirms it with 2FA
       ↓
-9. Admin records the settlement reference or marks the payout failed
+9. BuildEx reconciles the provider result; failures restore available balance
 ```
 
 Disputes resolved in the builder's favor credit earnings; refunds do not. Requested
 funds are reserved immediately and return to available balance on cancellation,
-rejection, or manual payout failure. See
+rejection, or provider payout failure. BuildEx absorbs processing and batch
+network fees inside its commission. See
 [`docs/payments-supabase-setup.md`](docs/payments-supabase-setup.md) for production setup.
 
 ---
@@ -632,13 +633,12 @@ Ranks are displayed as badges throughout the platform — on profile pages, offe
 
 | Rank | Badge Color | Icon | Commission |
 |---|---|---|---|
-| Newcomer | Gray `#94a3b8` | ⬜ | 20% |
-| Builder | Blue `#60a5fa` | 🟦 | 15% |
-| Craftsman | Purple `#a78bfa` | 🟣 | 12% |
-| Architect | Orange `#fb923c` | 🟠 | 8% |
-| Master Builder | Green `#4ade80` | 🏆 | 5% |
+| Rookie | Gray `#94a3b8` | ⬜ | 18% |
+| Advanced | Blue `#60a5fa` | 🟦 | 15% |
+| Expert | Purple `#a78bfa` | 🟣 | 12% |
+| Master | Green `#4ade80` | 🏆 | 9% |
 
-Master Builder badge has an additional CSS pulse animation (`badgePulse` keyframe) to distinguish it from other ranks.
+The Master badge has an additional CSS pulse animation (`badgePulse` keyframe).
 
 ---
 
@@ -648,7 +648,7 @@ Master Builder badge has an additional CSS pulse animation (`badgePulse` keyfram
 
 - Node.js 18+
 - A Supabase project (free tier works)
-- A NOWPayments account for buyer checkout and optional manual withdrawals
+- A NOWPayments account with Custody and Mass Payouts enabled
 - Discord application for OAuth (free)
 
 ### Installation
@@ -750,7 +750,7 @@ NEXT_PUBLIC_BASE_PATH=
 - [ ] Server-side PaymentIntent with manual capture
 - [ ] Order acceptance and fund capture
 - [ ] Delivery and approval flow
-- [x] Admin-reviewed manual crypto payouts
+- [x] Admin-reviewed weekly USDT-BSC custody batches
 - [ ] Webhook handler for async events
 
 ### Phase 7 — Trust and Retention

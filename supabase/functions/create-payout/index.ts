@@ -85,6 +85,12 @@ Deno.serve(async (req) => {
   if (!rows || rows.length === 0) {
     return json({ error: "No approved withdrawals to send" }, 409);
   }
+  if (rows.length !== new Set(payoutIds).size) {
+    return json(
+      { error: "One or more withdrawals are no longer approved; reload before batching." },
+      409,
+    );
+  }
 
   // Every selected row must have a destination wallet (enqueue parks wallet-less
   // payouts as 'blocked', so a 'pending' row should always have one — guard anyway).
@@ -95,20 +101,39 @@ Deno.serve(async (req) => {
       422,
     );
   }
+  const invalidRail = rows.some((r) =>
+    (r.currency || "usdtbsc") !== "usdtbsc" ||
+    !/^0x[0-9a-fA-F]{40}$/.test(String(r.destination))
+  );
+  if (invalidRail) {
+    return json({ error: "Every withdrawal must use a valid USDT-BSC address." }, 422);
+  }
 
   const withdrawals = rows.map((r) => ({
     address: String(r.destination),
     amount: Number((Number(r.net_amount_cents ?? r.amount_cents) / 100).toFixed(2)),
-    currency: r.currency || "usdttrc20",
+    currency: r.currency || "usdtbsc",
   }));
+  const claimId = await payoutIdempotencyKey(rows.map((r) => r.id));
+  const { error: claimError } = await asService.rpc("claim_payout_batch", {
+    p_payouts: rows.map((r) => r.id),
+    p_claim_id: claimId,
+  });
+  if (claimError) {
+    return json(
+      { error: "One or more withdrawals were already claimed by another batch." },
+      409,
+    );
+  }
 
   let batch;
   try {
     batch = await relayRequest("POST", "/payouts", {
-      idempotencyKey: await payoutIdempotencyKey(rows.map((r) => r.id)),
+      idempotencyKey: claimId,
       withdrawals,
     });
   } catch (e) {
+    await asService.rpc("release_payout_claim", { p_claim_id: claimId });
     const msg = e instanceof Error ? e.message : String(e);
     console.error("createPayout failed:", msg);
     return json({ error: `Payout provider error: ${msg}` }, 502);
@@ -116,18 +141,19 @@ Deno.serve(async (req) => {
 
   const batchId = batch.id != null ? String(batch.id) : null;
   if (!batchId) {
+    await asService.rpc("release_payout_claim", { p_claim_id: claimId });
     return json({ error: "Provider did not return a batch id" }, 502);
   }
 
   const sentIds = rows.map((r) => r.id);
-  const { error: markErr } = await asService.rpc("mark_payouts_processing", {
-    p_payouts: sentIds,
+  const { error: markErr } = await asService.rpc("finalize_payout_claim", {
+    p_claim_id: claimId,
     p_batch_id: batchId,
   });
   if (markErr) {
     // The batch exists at the gateway but we couldn't record it — surface loudly
     // so the operator reconciles (the batch id is returned regardless).
-    console.error("mark_payouts_processing failed:", markErr);
+    console.error("finalize_payout_claim failed:", markErr);
   }
 
   return json({ batchId, status: batch.status, count: sentIds.length });

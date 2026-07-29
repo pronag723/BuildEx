@@ -4,10 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   approveWithdrawal,
+  createPayoutBatch,
   listPayouts,
   markWithdrawalFailed,
   markWithdrawalSent,
+  reconcilePayoutBatch,
   rejectWithdrawal,
+  verifyPayoutBatch,
 } from "../../../lib/payouts/api";
 import { getAdminUserOrders } from "../../../lib/admin/api";
 import { formatPrice } from "../../../lib/pricing";
@@ -77,6 +80,77 @@ export default function PayoutsConsole() {
     setHistory((current) => (current ? { ...current, orders } : current));
   }
 
+  async function sendWeeklyBatch() {
+    const approved = (payouts || []).filter((payout) => payout.status === "approved");
+    if (!approved.length) return;
+    setBusy(true);
+    setError(null);
+    const { data, error: createError } = await createPayoutBatch(
+      approved.map((payout) => payout.id),
+    );
+    if (createError || !data?.batchId) {
+      setBusy(false);
+      setError(createError?.message || "Could not create the payout batch.");
+      return;
+    }
+    const code = window.prompt(
+      `NOWPayments batch ${data.batchId} created for ${approved.length} withdrawal(s). Enter the 2FA code:`,
+    );
+    if (code === null) {
+      setBusy(false);
+      setNotice(`Batch ${data.batchId} is awaiting 2FA verification.`);
+      await reload();
+      return;
+    }
+    const { error: verifyError } = await verifyPayoutBatch(data.batchId, code.trim());
+    setBusy(false);
+    if (verifyError) {
+      setError(verifyError.message || "2FA verification failed.");
+    } else {
+      setNotice(`Weekly batch ${data.batchId} verified and processing.`);
+    }
+    await reload();
+  }
+
+  async function reconcileProcessing() {
+    const batchIds = [...new Set(
+      (payouts || [])
+        .filter((payout) => payout.status === "processing" && payout.provider_batch_id)
+        .map((payout) => payout.provider_batch_id),
+    )];
+    if (!batchIds.length) return;
+    setBusy(true);
+    const results = await Promise.all(batchIds.map(reconcilePayoutBatch));
+    setBusy(false);
+    const failed = results.find((result) => result.error);
+    setError(failed?.error?.message || null);
+    if (!failed) setNotice("Payout batch statuses reconciled.");
+    await reload();
+  }
+
+  async function verifyProcessingBatch() {
+    const batchIds = [...new Set(
+      (payouts || [])
+        .filter((payout) => payout.status === "processing" && payout.provider_batch_id)
+        .map((payout) => payout.provider_batch_id),
+    )];
+    if (!batchIds.length) return;
+    const batchId = window.prompt(
+      "NOWPayments batch ID to verify:",
+      batchIds[0],
+    );
+    if (!batchId) return;
+    const code = window.prompt("Enter the NOWPayments 2FA code:");
+    if (!code) return;
+    setBusy(true);
+    setError(null);
+    const { error: verifyError } = await verifyPayoutBatch(batchId.trim(), code.trim());
+    setBusy(false);
+    if (verifyError) setError(verifyError.message || "2FA verification failed.");
+    else setNotice(`Batch ${batchId.trim()} verified and processing.`);
+    await reload();
+  }
+
   return (
     <div className="space-y-6">
       <header>
@@ -85,9 +159,36 @@ export default function PayoutsConsole() {
         </div>
         <h1 className="text-2xl font-extrabold">Builder withdrawals</h1>
         <p className="text-sm text-gray-500 mt-1">
-          Review requests, confirm the fee you will deduct, then record the manual payout after you send it.
+          Review requests, then send approved USDT-BSC withdrawals in the weekly custody batch.
         </p>
       </header>
+
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          disabled={busy || !(payouts || []).some((payout) => payout.status === "approved")}
+          onClick={sendWeeklyBatch}
+          className="rounded-xl bg-[#4ade80] px-4 py-2 text-xs font-bold text-black disabled:opacity-40"
+        >
+          Send approved weekly batch
+        </button>
+        <button
+          type="button"
+          disabled={busy || !(payouts || []).some((payout) => payout.status === "processing")}
+          onClick={verifyProcessingBatch}
+          className="rounded-xl border border-[#4ade80]/30 px-4 py-2 text-xs font-semibold text-[#4ade80] disabled:opacity-40"
+        >
+          Verify batch with 2FA
+        </button>
+        <button
+          type="button"
+          disabled={busy || !(payouts || []).some((payout) => payout.status === "processing")}
+          onClick={reconcileProcessing}
+          className="rounded-xl border border-white/15 px-4 py-2 text-xs font-semibold text-gray-300 disabled:opacity-40"
+        >
+          Reconcile processing batches
+        </button>
+      </div>
 
       {error && <p className="text-sm text-red-400">{error}</p>}
       {notice && <p className="text-sm text-emerald-300">{notice}</p>}
@@ -125,7 +226,7 @@ export default function PayoutsConsole() {
                 <div className="min-w-0">
                   <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500">Payout wallet</p>
                   <p className="mt-1.5 truncate text-sm font-semibold text-gray-200">
-                    {p.payout_method === "usdt_erc20" ? "USDT ERC-20" : "USDT TRC-20"}
+                    USDT BSC/BEP-20
                     {" · "}<code>{short(p.destination)}</code>
                   </p>
                   <div className="mt-1 flex items-center gap-2">
@@ -168,19 +269,12 @@ export default function PayoutsConsole() {
                     <button
                       type="button"
                       disabled={busy}
-                      onClick={() => {
-                        const fee = window.prompt(
-                          "Fee to deduct from this withdrawal (USD):",
-                          p.payout_method === "usdt_erc20" ? "5.00" : "1.00",
-                        );
-                        if (fee === null) return;
-                        const cents = Math.round(Number(fee) * 100);
-                        if (!Number.isFinite(cents) || cents < 0 || cents >= p.amount_cents) {
-                          setError("Enter a valid fee lower than the withdrawal amount.");
-                          return;
-                        }
-                        act(() => approveWithdrawal(p.id, cents), "Withdrawal approved.");
-                      }}
+                      onClick={() =>
+                        act(
+                          () => approveWithdrawal(p.id, 0),
+                          "Withdrawal approved for the next weekly batch.",
+                        )
+                      }
                       className="min-h-10 rounded-xl bg-[#4ade80] px-4 py-2 text-xs font-bold text-black"
                     >
                       Approve
@@ -259,7 +353,7 @@ export default function PayoutsConsole() {
                 </div>
                 </div>
                 <div className="flex items-center justify-between gap-4 border-t border-white/[0.07] bg-black/[0.1] px-5 py-2.5 sm:px-6">
-                  <p className="text-[11px] text-gray-500">Manual payout request</p>
+                  <p className="text-[11px] text-gray-500">BuildEx covers network fees</p>
                   <p className="text-[11px] text-gray-500">Wallet details and actions</p>
                 </div>
               </article>
