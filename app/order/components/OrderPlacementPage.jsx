@@ -618,28 +618,29 @@ function ReviewStep({
                   key={option.code}
                   type="button"
                   onClick={() => onSelectPayCurrency(option.code)}
-                  className={`rounded-2xl border p-3 text-left transition-all ${
+                  aria-pressed={selectedPayCurrency === option.code}
+                  className={`rounded-xl border px-2.5 py-2 text-left transition-all ${
                     selectedPayCurrency === option.code
                       ? "border-[#4ade80] bg-[#4ade80]/10 shadow-[0_0_0_1px_rgba(74,222,128,0.12)]"
                       : "border-white/10 bg-black/15 hover:border-[#4ade80]/40 hover:bg-white/[0.03]"
                   }`}
                 >
-                  <span className="flex items-center gap-3">
+                  <span className="flex items-center gap-2.5">
                     <CoinLogo option={option} />
                     <span className="min-w-0 flex-1">
                       <span className="flex items-center justify-between gap-2">
-                        <span className="truncate text-sm font-semibold">{option.displayName}</span>
+                        <span className="truncate text-[13px] font-semibold">{option.displayName}</span>
                         {option.recommended && (
-                          <span className="shrink-0 text-[9px] uppercase tracking-wider text-[#4ade80]">Popular</span>
+                          <span className="shrink-0 rounded-full bg-[#4ade80]/10 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wider text-[#4ade80]">Popular</span>
                         )}
                       </span>
-                      <span className="mt-0.5 block truncate text-[11px] text-gray-500">
+                      <span className="mt-0.5 block truncate text-[10px] text-gray-500">
                         {option.symbol} · {option.network}
                       </span>
+                      <span className="mt-1 block text-[9px] text-gray-500">
+                        Min. ${Number(option.liveMinimumUsd).toFixed(2)}
+                      </span>
                     </span>
-                  </span>
-                  <span className="mt-2 block text-[10px] text-gray-500">
-                    Available now · Minimum ${Number(option.liveMinimumUsd).toFixed(2)}
                   </span>
                 </button>
               ))}
@@ -673,15 +674,43 @@ function CoinLogo({ option }) {
   const mark = String(option.symbol || option.code || "?").slice(0, 3);
   const icon = option.logo || option.symbol?.toLowerCase();
   return (
-    <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-white/10 text-[11px] font-extrabold text-white">
-      {!failed && icon ? (
-        <img
-          src={`https://assets.coincap.io/assets/icons/${icon}@2x.png`}
-          alt=""
-          className="h-full w-full object-cover"
-          onError={() => setFailed(true)}
-        />
-      ) : mark}
+    <span className="relative grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 text-[10px] font-extrabold text-white">
+      <span className="grid h-full w-full place-items-center overflow-hidden rounded-full">
+        {!failed && icon ? (
+          <img
+            src={`https://assets.coincap.io/assets/icons/${icon}@2x.png`}
+            alt=""
+            className="h-full w-full object-cover"
+            onError={() => setFailed(true)}
+          />
+        ) : mark}
+      </span>
+      <NetworkBadge code={option.code} network={option.network} />
+    </span>
+  );
+}
+
+function NetworkBadge({ code, network }) {
+  if (!String(code).startsWith("usdt")) return null;
+  const isBnb = String(code).includes("bsc");
+  return (
+    <span
+      className={`absolute -bottom-1 -right-1 grid h-4 w-4 place-items-center rounded-full border border-[#171b18] shadow-sm ${
+        isBnb ? "bg-[#f3ba2f]" : "bg-[#ef0027]"
+      }`}
+      title={network}
+      aria-label={`USDT network: ${network}`}
+    >
+      {isBnb ? (
+        <svg viewBox="0 0 24 24" aria-hidden="true" className="h-2.5 w-2.5 fill-[#1b1b1b]">
+          <path d="m12 3 3 3-3 3-3-3 3-3Zm-6 6 3 3-3 3-3-3 3-3Zm12 0 3 3-3 3-3-3 3-3Zm-6 6 3 3-3 3-3-3 3-3Z" />
+        </svg>
+      ) : (
+        <svg viewBox="0 0 24 24" aria-hidden="true" className="h-3 w-3 fill-none stroke-white stroke-[2.25]" strokeLinejoin="round">
+          <path d="M12 3 3.8 7.6 12 21 20.2 7.6 12 3Z" />
+          <path d="M3.8 7.6 12 11.8l8.2-4.2M12 11.8V21" />
+        </svg>
+      )}
     </span>
   );
 }
