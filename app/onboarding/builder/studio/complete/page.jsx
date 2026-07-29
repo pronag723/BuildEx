@@ -3,7 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../../../../lib/auth/AuthContext";
-import { navigateAfterOnboarding } from "../../../../../lib/onboarding/completion";
+import {
+  navigateAfterOnboarding,
+  runOnboardingCompletion,
+} from "../../../../../lib/onboarding/completion";
 import { completePendingEmployeeRegistration } from "../../../../../lib/studios/api";
 import { STEPS } from "../../../../../lib/onboarding/state";
 import OnboardingShell from "../../../components/OnboardingShell";
@@ -29,7 +32,9 @@ function StudioEmployeeComplete() {
   async function finish() {
     setSaving(true);
     setError(null);
-    const result = await completePendingEmployeeRegistration();
+    const result = await runOnboardingCompletion(() =>
+      completePendingEmployeeRegistration()
+    );
     if (result.error) {
       setSaving(false);
       setError(result.error.message || "Couldn't join the studio. Try again.");

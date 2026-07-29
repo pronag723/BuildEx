@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 import { getSupabaseClient } from "../../../../lib/supabase/client";
 import { useAuth } from "../../../../lib/auth/AuthContext";
 import { markOnboardingComplete } from "../../../../lib/onboarding/api";
-import { navigateAfterOnboarding } from "../../../../lib/onboarding/completion";
+import {
+  navigateAfterOnboarding,
+  runOnboardingCompletion,
+} from "../../../../lib/onboarding/completion";
 import { completePendingEmployeeRegistration, finalizeStudioCode } from "../../../../lib/studios/api";
 import { STEPS } from "../../../../lib/onboarding/state";
 import OnboardingShell from "../../components/OnboardingShell";
@@ -40,9 +43,11 @@ function BuilderPortfolioStep({ state }) {
     if (!supabase || !user?.id) return;
     setError(null);
     setSaving(true);
-    const { error: doneErr } = isPendingEmployee
-      ? (await completePendingEmployeeRegistration()).error
-      : (await markOnboardingComplete(supabase, user.id)).error;
+    const { error: doneErr } = await runOnboardingCompletion(() =>
+      isPendingEmployee
+        ? completePendingEmployeeRegistration()
+        : markOnboardingComplete(supabase, user.id)
+    );
     if (doneErr) {
       setSaving(false);
       setError(doneErr.message || "Couldn't finalize. Try again.");

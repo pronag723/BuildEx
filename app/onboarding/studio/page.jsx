@@ -3,7 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../../lib/auth/AuthContext";
-import { navigateAfterOnboarding } from "../../../lib/onboarding/completion";
+import {
+  navigateAfterOnboarding,
+  runOnboardingCompletion,
+} from "../../../lib/onboarding/completion";
 import {
   completeStudioRegistration,
   validateModeratorCode,
@@ -80,14 +83,16 @@ function StudioOnboarding() {
     if (portfolioCount < 1) return;
     setBusy(true);
     setError(null);
-    const result = await completeStudioRegistration({
-      code: code.trim(),
-      name: name.trim(),
-      username: username.trim().toLowerCase(),
-      avatarUrl,
-      about: about.trim() || null,
-      rates: normalizeRates(rates),
-    });
+    const result = await runOnboardingCompletion(() =>
+      completeStudioRegistration({
+        code: code.trim(),
+        name: name.trim(),
+        username: username.trim().toLowerCase(),
+        avatarUrl,
+        about: about.trim() || null,
+        rates: normalizeRates(rates),
+      })
+    );
     setBusy(false);
     if (result.error) {
       setError(result.error.message || "Couldn't create the studio.");

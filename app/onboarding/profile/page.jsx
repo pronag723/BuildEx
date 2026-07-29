@@ -8,7 +8,10 @@ import {
   markOnboardingComplete,
   saveClientProfile,
 } from "../../../lib/onboarding/api";
-import { navigateAfterOnboarding } from "../../../lib/onboarding/completion";
+import {
+  navigateAfterOnboarding,
+  runOnboardingCompletion,
+} from "../../../lib/onboarding/completion";
 import { STEPS } from "../../../lib/onboarding/state";
 import { Icon } from "../../../lib/icons";
 import {
@@ -99,7 +102,9 @@ function ClientProfileStep({ state }) {
       }
       return;
     }
-    const { error: doneErr } = await markOnboardingComplete(supabase, user.id);
+    const { error: doneErr } = await runOnboardingCompletion(() =>
+      markOnboardingComplete(supabase, user.id)
+    );
     setSaving(false);
     if (doneErr) {
       setError(doneErr.message || "Couldn't finalize onboarding. Try again.");
