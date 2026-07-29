@@ -673,10 +673,13 @@ function CoinLogo({ option }) {
   const [failed, setFailed] = useState(false);
   const mark = String(option.symbol || option.code || "?").slice(0, 3);
   const icon = option.logo || option.symbol?.toLowerCase();
+  const isGram = option.code === "ton";
   return (
     <span className="relative grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 text-[10px] font-extrabold text-white">
       <span className="grid h-full w-full place-items-center overflow-hidden rounded-full">
-        {!failed && icon ? (
+        {isGram ? (
+          <GramLogo />
+        ) : !failed && icon ? (
           <img
             src={`https://assets.coincap.io/assets/icons/${icon}@2x.png`}
             alt=""
@@ -687,6 +690,16 @@ function CoinLogo({ option }) {
       </span>
       <NetworkBadge code={option.code} network={option.network} />
     </span>
+  );
+}
+
+function GramLogo() {
+  return (
+    <svg viewBox="0 0 40 40" aria-hidden="true" className="h-full w-full">
+      <rect width="40" height="40" rx="20" fill="#2387e5" />
+      <path d="m20 7 12.5 13L20 33 7.5 20 20 7Z" fill="#4db8ff" />
+      <path d="m20 12.2 2.15 5.65 5.95.26-4.63 3.75 1.58 5.74L20 24.27l-5.05 3.33 1.58-5.74-4.63-3.75 5.95-.26L20 12.2Z" fill="white" />
+    </svg>
   );
 }
 

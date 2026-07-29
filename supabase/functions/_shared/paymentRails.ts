@@ -12,7 +12,9 @@ export const PAYMENT_RAILS = [
   { code: "btc", symbol: "BTC", displayName: "Bitcoin", network: "Bitcoin", logo: "btc", recommended: false },
   { code: "eth", symbol: "ETH", displayName: "Ethereum", network: "Ethereum", logo: "eth", recommended: false },
   { code: "sol", symbol: "SOL", displayName: "Solana", network: "Solana", logo: "sol", recommended: false },
-  { code: "ton", symbol: "TON", displayName: "Toncoin", network: "TON", logo: "ton", recommended: false },
+  // NOWPayments still uses `ton` for this rail, but the asset itself is now
+  // branded Gram (GRAM); TON is the name of the underlying blockchain.
+  { code: "ton", symbol: "GRAM", displayName: "Gram", network: "TON Blockchain", logo: "gram", recommended: false },
   { code: "trx", symbol: "TRX", displayName: "TRON", network: "TRON", logo: "trx", recommended: false },
   { code: "xrp", symbol: "XRP", displayName: "XRP", network: "XRP Ledger", logo: "xrp", recommended: false },
   { code: "ltc", symbol: "LTC", displayName: "Litecoin", network: "Litecoin", logo: "ltc", recommended: false },
