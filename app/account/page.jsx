@@ -258,6 +258,10 @@ const BASE_ACCOUNT_SECTIONS = [
   { key: "danger", label: "Account", short: "Account" },
 ];
 
+const CLIENT_ACCOUNT_SECTIONS = BASE_ACCOUNT_SECTIONS.filter(
+  ({ key }) => key !== "invitations"
+);
+
 const STUDIO_ACCOUNT_SECTIONS = [
   { key: "profile", label: "Storefront", short: "Profile" },
   { key: "team", label: "Team", short: "Team" },
@@ -282,7 +286,7 @@ function SectionTabs({ section, setSection, isBuilder, isStudio = false, isEmplo
         { key: "payouts", label: "Payouts", short: "Payouts" },
         ...BASE_ACCOUNT_SECTIONS.slice(1),
       ]
-      : BASE_ACCOUNT_SECTIONS;
+      : CLIENT_ACCOUNT_SECTIONS;
   const idx = Math.max(0, sections.findIndex((s) => s.key === section));
   return (
     <div
@@ -2380,6 +2384,18 @@ function AccountPageInner() {
     return () => obs.disconnect();
   }, [profile, builderProfile, section]);
 
+  const role = profile?.role;
+  const isStudio = role === "studio";
+  const isEmployee = builderProfile?.profile_type === "studio_employee";
+  const isBuilder = role === "builder" || role === "both" || isEmployee;
+  const isClient = role === "client" || role === "both";
+
+  useEffect(() => {
+    if (profile && section === "invitations" && !isBuilder) {
+      selectSection("profile");
+    }
+  }, [profile, section, isBuilder, selectSection]);
+
   // Render the spinner only when we have NOTHING to show. As soon as either
   // the cached profile from AuthContext or a fresh fetch lands, paint the
   // page — that gives us a near-instant reload on the cached path. Builder
@@ -2416,12 +2432,6 @@ function AccountPageInner() {
       </main>
     );
   }
-
-  const role = profile.role;
-  const isStudio = role === "studio";
-  const isEmployee = builderProfile?.profile_type === "studio_employee";
-  const isBuilder = role === "builder" || role === "both" || isEmployee;
-  const isClient = role === "client" || role === "both";
 
   return (
     <div className={`builder-profile-root ${isLight ? "light" : ""} catalog-root min-h-screen flex flex-col`}>
