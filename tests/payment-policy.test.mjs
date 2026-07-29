@@ -4,7 +4,7 @@ import test from "node:test";
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
 
-test("checkout policy keeps the $5 floor and only low-fee USDT rails", async () => {
+test("checkout policy keeps the $5 floor and a curated popular-currency catalog", async () => {
   const [pricing, rails, invoice, provider] = await Promise.all([
     read("lib/pricing.js"),
     read("supabase/functions/_shared/paymentRails.ts"),
@@ -14,7 +14,9 @@ test("checkout policy keeps the $5 floor and only low-fee USDT rails", async () 
   assert.match(pricing, /MIN_ORDER_CENTS\s*=\s*500/);
   assert.match(rails, /code:\s*"usdtbsc".*recommended:\s*true/);
   assert.match(rails, /code:\s*"usdttrc20"/);
-  assert.doesNotMatch(rails, /usdtmatic|usdtsol|usdterc20/);
+  assert.match(rails, /code:\s*"btc"/);
+  assert.match(rails, /code:\s*"eth"/);
+  assert.match(rails, /code:\s*"sol"/);
   assert.match(invoice, /isPaymentRailCode\(payCurrency\)/);
   assert.match(invoice, /MIN_CENTS\s*=\s*500/);
   assert.doesNotMatch(provider, /is_fee_paid_by_user:\s*true/);

@@ -607,12 +607,12 @@ function ReviewStep({
       {paymentsEnabled() && (
         <div className="space-y-2">
           <p className="text-[11px] text-gray-500 uppercase tracking-widest">
-            Payment network
+            Choose a currency
           </p>
           {paymentOptionsLoading ? (
             <p className="text-xs text-gray-400">Checking live network minimums…</p>
           ) : paymentOptions.length ? (
-            <div className="grid gap-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {paymentOptions.map((option) => (
                 <button
                   key={option.code}
@@ -620,20 +620,26 @@ function ReviewStep({
                   onClick={() => onSelectPayCurrency(option.code)}
                   className={`rounded-2xl border p-3 text-left transition-all ${
                     selectedPayCurrency === option.code
-                      ? "border-[#4ade80] bg-[#4ade80]/10"
-                      : "border-white/10 hover:border-[#4ade80]/40"
+                      ? "border-[#4ade80] bg-[#4ade80]/10 shadow-[0_0_0_1px_rgba(74,222,128,0.12)]"
+                      : "border-white/10 bg-black/15 hover:border-[#4ade80]/40 hover:bg-white/[0.03]"
                   }`}
                 >
-                  <span className="flex items-center justify-between gap-3">
-                    <span className="text-sm font-semibold">{option.displayName}</span>
-                    {option.recommended && (
-                      <span className="text-[10px] uppercase tracking-wider text-[#4ade80]">
-                        Recommended
+                  <span className="flex items-center gap-3">
+                    <CoinLogo option={option} />
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center justify-between gap-2">
+                        <span className="truncate text-sm font-semibold">{option.displayName}</span>
+                        {option.recommended && (
+                          <span className="shrink-0 text-[9px] uppercase tracking-wider text-[#4ade80]">Popular</span>
+                        )}
                       </span>
-                    )}
+                      <span className="mt-0.5 block truncate text-[11px] text-gray-500">
+                        {option.symbol} · {option.network}
+                      </span>
+                    </span>
                   </span>
-                  <span className="mt-1 block text-[11px] text-gray-500">
-                    Live minimum ${Number(option.liveMinimumUsd).toFixed(2)}
+                  <span className="mt-2 block text-[10px] text-gray-500">
+                    Available now · Minimum ${Number(option.liveMinimumUsd).toFixed(2)}
                   </span>
                 </button>
               ))}
@@ -641,7 +647,7 @@ function ReviewStep({
           ) : (
             <p className="text-xs text-amber-300">
               {paymentOptionsError ||
-                "Stablecoin checkout is temporarily unavailable for this order total."}
+                "No payment currency is currently available for this order total."}
             </p>
           )}
           <p className="text-[11px] text-gray-500">
@@ -659,6 +665,24 @@ function ReviewStep({
         </span>
       </p>
     </div>
+  );
+}
+
+function CoinLogo({ option }) {
+  const [failed, setFailed] = useState(false);
+  const mark = String(option.symbol || option.code || "?").slice(0, 3);
+  const icon = option.logo || option.symbol?.toLowerCase();
+  return (
+    <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-white/10 text-[11px] font-extrabold text-white">
+      {!failed && icon ? (
+        <img
+          src={`https://assets.coincap.io/assets/icons/${icon}@2x.png`}
+          alt=""
+          className="h-full w-full object-cover"
+          onError={() => setFailed(true)}
+        />
+      ) : mark}
+    </span>
   );
 }
 

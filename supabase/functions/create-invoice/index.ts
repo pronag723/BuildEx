@@ -112,7 +112,7 @@ Deno.serve(async (req) => {
         {
           error: selected?.liveMinimumUsd != null
             ? `Order total is below the current ${selected.displayName} minimum ($${selected.liveMinimumUsd.toFixed(2)}). Choose another network or try again later.`
-            : "The selected stablecoin network is temporarily unavailable. Choose another network or try again later.",
+            : "The selected payment currency is temporarily unavailable. Choose another currency or try again later.",
         },
         422,
       );

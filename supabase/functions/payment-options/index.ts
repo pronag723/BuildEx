@@ -41,12 +41,12 @@ Deno.serve(async (req) => {
       unavailable: available.length === 0,
       message: available.length
         ? null
-        : "Stablecoin checkout is temporarily unavailable for this order total. Please try again later.",
+        : "No payment currency is currently available for this order total. Please try again later.",
     });
   } catch (error) {
     console.error("Payment options lookup failed:", error);
     return json(
-      { error: "Stablecoin checkout is temporarily unavailable. Please try again later." },
+      { error: "Payment currencies are temporarily unavailable. Please try again later." },
       503,
     );
   }

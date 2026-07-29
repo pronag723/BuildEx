@@ -6,13 +6,13 @@ remain denominated in integer USD cents.
 ## Production policy
 
 - Marketplace minimum: **$5.00** for independent builders and studios.
-- Checkout: `usdtbsc` and `usdttrc20`.
-- A network is shown only when NOWPayments reports the service healthy, the
-  currency enabled, and its live USD minimum no greater than the order total.
-- Each rail is checked and settled as the same asset (`USDTBSC -> USDTBSC` and
-  `USDTTRC20 -> USDTTRC20`), avoiding automatic conversion on each small order.
-- BSC is recommended by default. A forged or stale client selection is checked
-  again by `create-invoice`.
+- Checkout catalog: USDT (TRC-20/BEP-20), USDC, BTC, ETH, SOL, TON, TRX, XRP,
+  LTC, DOGE, ADA, and BCH.
+- A currency is shown only when NOWPayments reports the service healthy, it is
+  enabled in the merchant account, and its live USD minimum is no greater than
+  the order total.
+- Each payment is checked and settled as the selected asset. A forged or stale
+  client selection is checked again by `create-invoice`.
 - Buyer-paid fees and fixed-rate invoices are disabled. BuildEx absorbs provider
   processing costs inside its 9–18% commission.
 - Withdrawals: **USDT-BSC only**, minimum **$20.00**, sent in weekly custody mass
@@ -29,6 +29,7 @@ Apply every migration in `supabase/migrations` in numeric order, including:
 ```text
 0072_low_fee_stablecoin_payments.sql
 0073_trc20_bsc_checkout_policy.sql
+0074_popular_checkout_currencies.sql
 ```
 
 Migration 0072:
@@ -51,23 +52,28 @@ Migration 0073:
 - preserves BSC-only builder/studio withdrawal destinations;
 - enforces a 9% minimum managed-studio BuildEx commission.
 
+Migration 0074 expands the signed checkout/payment-record allowlist to the
+popular currency catalog. The provider still decides what is live and eligible
+for each individual order.
+
 ## NOWPayments account
 
 1. Keep the merchant account and API key active.
 2. Enable Custody and Mass Payouts.
-3. Enable `USDTBSC` and `USDTTRC20` for deposits.
-4. Keep separate USDT-BSC and USDT-TRC20 custody balances. Payments settle into
-   the matching balance without per-order conversion.
-5. Use USDT-BSC as the payout asset. Convert pooled TRC20 custody funds to BSC
-   only when the BSC reserve cannot cover the next approved weekly batch.
+3. In Coin settings, enable the catalog currencies you want to accept:
+   `USDTBSC`, `USDTTRC20`, `USDC`, `BTC`, `ETH`, `SOL`, `TON`, `TRX`, `XRP`,
+   `LTC`, `DOGE`, `ADA`, and `BCH`. Disabled currencies never appear to buyers.
+4. Keep an appropriate settlement/custody plan for every enabled currency.
+5. Use USDT-BSC as the payout asset and maintain enough BSC custody for approved
+   weekly builder withdrawals.
 6. Enable account 2FA and allowlist the fixed public IP of the payout relay.
 7. Configure the IPN callback:
    `https://YOUR_PROJECT_REF.supabase.co/functions/v1/payment-webhook`
 8. Store the IPN secret separately from the API key.
 
-Do not enable Polygon, Solana, ERC-20, or arbitrary cryptocurrencies for the
-initial $5 checkout. They add conversion, fragmentation, or unpredictable
-minimums without improving the two-rail policy.
+Do not add arbitrary currencies outside the catalog without updating both the
+Edge Function allowlist and the payment-record migration. The provider's live
+minimum is authoritative and can temporarily hide a currency on smaller orders.
 
 ## Secrets
 
