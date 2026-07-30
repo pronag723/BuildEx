@@ -42,18 +42,20 @@ Deno.serve(async (req) => {
   }
 
   let orderId: string | undefined;
+  let readyBuildPurchaseId: string | undefined;
   let returnUrl: string | undefined;
   let payCurrency: string | undefined;
   try {
     const parsed = await req.json();
     orderId = parsed?.orderId;
+    readyBuildPurchaseId = parsed?.readyBuildPurchaseId;
     returnUrl = parsed?.returnUrl;
     payCurrency = String(parsed?.payCurrency || "").toLowerCase();
   } catch {
     return json({ error: "Invalid request body" }, 400);
   }
-  if (!orderId) {
-    return json({ error: "orderId is required" }, 400);
+  if ((!orderId && !readyBuildPurchaseId) || (orderId && readyBuildPurchaseId)) {
+    return json({ error: "Provide exactly one checkout subject" }, 400);
   }
   if (!isPaymentRailCode(payCurrency)) {
     return json({ error: "Unsupported payment currency" }, 422);
@@ -75,30 +77,29 @@ Deno.serve(async (req) => {
     return json({ error: "Invalid session" }, 401);
   }
 
-  const { data: order, error: orderErr } = await asUser
-    .from("orders")
-    .select("id, buyer_id, status, price_kopecks")
-    .eq("id", orderId)
-    .maybeSingle();
+  const isReadyBuild = !!readyBuildPurchaseId;
+  const { data: order, error: orderErr } = isReadyBuild
+    ? await asUser.from("ready_build_purchases").select("id, buyer_id, status, price_kopecks").eq("id", readyBuildPurchaseId).maybeSingle()
+    : await asUser.from("orders").select("id, buyer_id, status, price_kopecks").eq("id", orderId).maybeSingle();
 
   if (orderErr) {
-    return json({ error: "Could not load the order" }, 500);
+    return json({ error: "Could not load the checkout" }, 500);
   }
   if (!order) {
     // Either it doesn't exist or the caller isn't a party — same answer.
-    return json({ error: "Order not found" }, 404);
+    return json({ error: "Checkout not found" }, 404);
   }
   if (order.buyer_id !== userData.user.id) {
-    return json({ error: "Only the buyer can pay for this order" }, 403);
+    return json({ error: "Only the buyer can pay for this checkout" }, 403);
   }
   if (order.status !== "pending_payment") {
-    return json({ error: "Order is not awaiting payment" }, 409);
+    return json({ error: "This checkout is no longer awaiting payment" }, 409);
   }
 
   const MIN_CENTS = 500;
   if (Number(order.price_kopecks) < MIN_CENTS) {
     return json(
-      { error: `Order total is below the $${MIN_CENTS / 100} minimum required by the payment gateway.` },
+      { error: `Checkout total is below the $${MIN_CENTS / 100} minimum required by the payment gateway.` },
       422,
     );
   }
@@ -136,7 +137,7 @@ Deno.serve(async (req) => {
       amount,
       currency: "USD",
       payCurrency,
-      orderId: order.id,
+      orderId: isReadyBuild ? `rb:${order.id}` : order.id,
       callbackUrl,
       returnUrl: safeReturn,
     });
@@ -155,12 +156,9 @@ Deno.serve(async (req) => {
   // Record the pending payment with the service role (bypasses RLS; only this
   // trusted function can write to payments).
   const asService = createClient(supabaseUrl, serviceKey);
-  const { error: recErr } = await asService.rpc("record_pending_payment", {
-    p_order: order.id,
-    p_invoice: invoice.invoiceId,
-    p_amount_cents: Number(order.price_kopecks),
-    p_requested_currency: payCurrency,
-  });
+  const { error: recErr } = isReadyBuild
+    ? await asService.rpc("record_ready_build_payment", { p_purchase: order.id, p_invoice: invoice.invoiceId, p_amount: Number(order.price_kopecks), p_currency: payCurrency })
+    : await asService.rpc("record_pending_payment", { p_order: order.id, p_invoice: invoice.invoiceId, p_amount_cents: Number(order.price_kopecks), p_requested_currency: payCurrency });
   if (recErr) {
     console.error("record_pending_payment failed:", recErr);
     return json(

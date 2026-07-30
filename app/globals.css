@@ -4,6 +4,21 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Shared marketplace form controls. Kept small so they inherit the site's glass UI. */
+.field {
+  width: 100%;
+  padding: .72rem .9rem;
+  border-radius: .8rem;
+  color: #fff;
+  background: rgba(0,0,0,.22);
+  border: 1px solid rgba(255,255,255,.12);
+  outline: none;
+}
+.field:focus { border-color: rgba(74,222,128,.65); box-shadow: 0 0 0 3px rgba(74,222,128,.12); }
+.pill-button { padding: .55rem .9rem; border-radius: 9999px; font-size: .75rem; font-weight: 700; color: #4ade80; background: rgba(74,222,128,.1); border: 1px solid rgba(74,222,128,.25); transition: background .2s, transform .2s; }
+.pill-button:hover { background: rgba(74,222,128,.18); transform: translateY(-1px); }
+@media (prefers-reduced-motion: reduce) { .offer-card *, .account-section-indicator, .catalog-chip { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+
 /* =============================================
    BUILDEX - Lighter Dark + Side Gradients + Light Hover Glow
    ============================================= */

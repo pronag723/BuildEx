@@ -72,6 +72,7 @@ import {
   listMyStudioInvitations,
   respondToStudioBuilderInvitation,
 } from "../../lib/studios/api";
+import { ReadyBuildsSection, ReadyBuildPurchasesSection } from "./ReadyBuildsSection";
 
 // #rrggbb → rgba(), used for the availability slider's tinted highlight.
 function hexToRgba(hex, alpha = 1) {
@@ -284,10 +285,12 @@ function SectionTabs({ section, setSection, isBuilder, isStudio = false, isEmplo
       : isBuilder
       ? [
         BASE_ACCOUNT_SECTIONS[0],
+        { key: "ready-builds", label: "Ready-made builds", short: "Builds" },
+        { key: "purchases", label: "Purchases", short: "Buys" },
         { key: "payouts", label: "Payouts", short: "Payouts" },
         ...BASE_ACCOUNT_SECTIONS.slice(1),
       ]
-      : CLIENT_ACCOUNT_SECTIONS;
+      : [...CLIENT_ACCOUNT_SECTIONS.slice(0, 1), { key: "purchases", label: "Purchases", short: "Buys" }, ...CLIENT_ACCOUNT_SECTIONS.slice(1)];
   const idx = Math.max(0, sections.findIndex((s) => s.key === section));
   return (
     <div
@@ -2576,6 +2579,14 @@ function AccountPageInner() {
 
           {section === "payouts" && isBuilder && (
             <BuilderPayoutsDashboard builderProfile={builderProfile} onSaved={refresh} />
+          )}
+
+          {section === "ready-builds" && isBuilder && !isEmployee && (
+            <ReadyBuildsSection />
+          )}
+
+          {section === "purchases" && (
+            <ReadyBuildPurchasesSection />
           )}
 
           {section === "danger" && (

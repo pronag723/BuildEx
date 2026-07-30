@@ -52,6 +52,27 @@ Deno.serve(async (req) => {
   const asService = createClient(supabaseUrl, serviceKey);
   const raw = JSON.parse(rawBody);
 
+  // Ready-build invoices are namespaced so they can share the provider webhook
+  // without ever being mistaken for a commission order UUID.
+  const readyBuildPurchaseId = String(verdict.orderId).startsWith("rb:")
+    ? String(verdict.orderId).slice(3)
+    : null;
+
+  if (readyBuildPurchaseId) {
+    if (!verdict.isPaid) return new Response("ok", { status: 200 });
+    const { error } = await asService.rpc("mark_ready_build_purchase_paid_internal", {
+      p_purchase: readyBuildPurchaseId,
+      p_invoice: verdict.invoiceId,
+      p_amount: verdict.amountCents,
+      p_raw: raw,
+    });
+    if (error) {
+      console.error("mark_ready_build_purchase_paid_internal failed:", error);
+      return new Response("retry", { status: 500 });
+    }
+    return new Response("ok", { status: 200 });
+  }
+
   const { error: eventError } = await asService.rpc("record_payment_event", {
     p_order: verdict.orderId,
     p_provider_status: verdict.status,

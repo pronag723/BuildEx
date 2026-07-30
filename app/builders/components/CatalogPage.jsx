@@ -18,8 +18,10 @@ import CatalogSearch from "./CatalogSearch";
 import CatalogSort from "./CatalogSort";
 import FiltersMobileModal from "./FiltersMobileModal";
 import BuilderGrid from "./BuilderGrid";
+import ReadyBuildGrid from "./ReadyBuildGrid";
 import PaginationControls from "./PaginationControls";
 import SiteFooter from "../../home/components/SiteFooter";
+import { listReadyBuilds } from "../../../lib/readyBuilds/api";
 
 // ─── URL param helpers ────────────────────────────────────────────────────────
 
@@ -66,6 +68,14 @@ export default function CatalogPage() {
     : "all";
   const favoritesOnly = params.get("fav") === "1";
   const sort = params.get("sort") || DEFAULT_SORT;
+  // Defer the URL-derived mode until after hydration. The catalog is statically
+  // exported, so the server has no search string while the client does; deriving
+  // this during the first render caused a hydration mismatch for shared ready
+  // build links.
+  const [mode, setMode] = useState("custom");
+  useEffect(() => {
+    setMode(params.get("mode") === "ready" ? "ready" : "custom");
+  }, [params]);
 
   // Seed for the default "Recommended" (randomised) order. A fresh visit rolls
   // a new seed; returning from a builder profile reuses it so the order doesn't
@@ -82,6 +92,8 @@ export default function CatalogPage() {
   // ── Live builder feed (replaces the old static demo array) ──────────────────
   const [builders, setBuilders] = useState([]);
   const [buildersLoading, setBuildersLoading] = useState(true);
+  const [readyBuilds, setReadyBuilds] = useState([]);
+  const [readyBuildsLoading, setReadyBuildsLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -94,6 +106,14 @@ export default function CatalogPage() {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    listReadyBuilds().then(({ listings }) => {
+      if (!cancelled) { setReadyBuilds(listings || []); setReadyBuildsLoading(false); }
+    });
+    return () => { cancelled = true; };
   }, []);
 
   // ── Local UI state ──────────────────────────────────────────────────────────
@@ -377,6 +397,10 @@ export default function CatalogPage() {
     () => filteredBuilders.slice(0, pageCount * ITEMS_PER_PAGE),
     [filteredBuilders, pageCount]
   );
+  const visibleReadyBuilds = useMemo(() => readyBuilds.filter((build) => {
+    const haystack = `${build.title} ${build.description} ${build.style} ${build.builder?.display_name || ""}`.toLowerCase();
+    return (!query || haystack.includes(query.toLowerCase())) && (!selectedStyles.length || selectedStyles.includes(build.style));
+  }), [readyBuilds, query, selectedStyles]);
 
   // Key for triggering card re-animation when filters change
   const animKey = useMemo(
@@ -461,19 +485,24 @@ export default function CatalogPage() {
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-[#4ade80]" />
                 </span>
                 <span>
-                  <span className="text-[#4ade80] font-semibold">{builders.length}</span> active providers
+                  <span className="text-[#4ade80] font-semibold">{mode === "ready" ? readyBuilds.length : builders.length}</span> {mode === "ready" ? "ready-to-download worlds" : "active providers"}
                 </span>
               </div>
 
               <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight leading-tight mb-3">
-                Hire Elite{" "}
-                <span className="text-[#4ade80]">Minecraft</span> Builders
+                {mode === "ready" ? <>Discover <span className="text-[#4ade80]">Ready-Made</span> Builds</> : <>Hire Elite <span className="text-[#4ade80]">Minecraft</span> Builders</>}
               </h1>
-              <p className="text-gray-400 text-base sm:text-lg max-w-xl">
+              <p className={`text-gray-400 text-base sm:text-lg max-w-xl ${mode === "ready" ? "hidden" : ""}`}>
                 Browse talented creators, view their portfolios, and commission
                 custom builds — rates negotiated per project, escrow-protected.
               </p>
+              {mode === "ready" && <p className="text-gray-400 text-base sm:text-lg max-w-xl">Browse finished Minecraft worlds from independent builders. Preview every build in 3D, then download it instantly after payment.</p>}
             </div>
+
+            <div className="mt-7 inline-grid grid-cols-2 p-1 glass rounded-full reveal" role="tablist" aria-label="Browse mode">
+              {[{ key: "custom", label: "Custom builds" }, { key: "ready", label: "Ready-made builds" }].map((item) => <button key={item.key} role="tab" aria-selected={mode === item.key} onClick={() => updateURL({ mode: item.key === "ready" ? "ready" : null })} className={`rounded-full px-4 sm:px-6 py-2.5 text-sm font-semibold transition-all duration-500 ${mode === item.key ? "bg-[#4ade80] text-black shadow-[0_0_18px_rgba(74,222,128,.3)]" : "text-gray-400 hover:text-white"}`}>{item.label}</button>)}
+            </div>
+            <div className="mt-4 max-w-3xl glass rounded-2xl px-5 py-4 border border-[#4ade80]/15 reveal"><p className="text-sm leading-relaxed text-gray-300">{mode === "ready" ? <><span className="font-semibold text-[#4ade80]">Ready-made builds</span> are finished, fixed-price worlds. Explore photos and a live 3D preview before you buy; paid files are kept in your Purchases library.</> : <><span className="font-semibold text-[#4ade80]">Custom builds</span> connect you with independent builders and studios for a build made specifically for your project.</>}</p></div>
 
             {/* Quick-filter style chips */}
             <div className="flex flex-wrap gap-2 mt-8 reveal">
@@ -552,9 +581,9 @@ export default function CatalogPage() {
                 <div className="flex items-center justify-between mb-6 reveal">
                   <p className="text-sm text-gray-400">
                     <span className="text-white font-semibold">
-                      {filteredBuilders.length}
+                      {mode === "ready" ? visibleReadyBuilds.length : filteredBuilders.length}
                     </span>{" "}
-                    {filteredBuilders.length === 1 ? "provider" : "providers"} found
+                    {mode === "ready" ? (visibleReadyBuilds.length === 1 ? "build" : "builds") : (filteredBuilders.length === 1 ? "provider" : "providers")} found
                     {query && (
                       <span className="ml-2">
                         for{" "}
@@ -583,7 +612,9 @@ export default function CatalogPage() {
                 </div>
 
                 {/* Builder grid (spinner until the live feed resolves) */}
-                {buildersLoading ? (
+                {mode === "ready" ? readyBuildsLoading ? (
+                  <div className="flex flex-col items-center justify-center py-24 text-center"><div className="w-10 h-10 rounded-full border-2 border-[#4ade80] border-t-transparent animate-spin mb-4" /><p className="text-gray-400 text-sm">Loading ready-made builds…</p></div>
+                ) : <ReadyBuildGrid listings={visibleReadyBuilds} /> : buildersLoading ? (
                   <div className="flex flex-col items-center justify-center py-24 text-center">
                     <div className="w-10 h-10 rounded-full border-2 border-[#4ade80] border-t-transparent animate-spin mb-4" />
                     <p className="text-gray-400 text-sm">Loading builders…</p>

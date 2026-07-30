@@ -1,0 +1,2 @@
+import ReadyBuildCard from "./ReadyBuildCard";
+export default function ReadyBuildGrid({ listings }) { if (!listings.length) return <div className="glass rounded-3xl p-12 text-center"><p className="font-semibold">No ready-made builds yet</p><p className="text-sm text-gray-500 mt-2">Check back soon for downloadable worlds.</p></div>; return <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">{listings.map((listing,i)=><ReadyBuildCard key={listing.id} listing={listing} animationDelay={i*65}/>)}</div>; }
