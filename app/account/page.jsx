@@ -55,7 +55,7 @@ import {
   validateRates,
 } from "../onboarding/components/RatesFields";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { listMyOrders } from "../../lib/orders/api";
 import { formatPrice, SIZE_META } from "../../lib/pricing";
 import {
@@ -72,7 +72,7 @@ import {
   listMyStudioInvitations,
   respondToStudioBuilderInvitation,
 } from "../../lib/studios/api";
-import { ReadyBuildsSection, ReadyBuildPurchasesSection } from "./ReadyBuildsSection";
+import { ReadyBuildsSection } from "./ReadyBuildsSection";
 
 // #rrggbb → rgba(), used for the availability slider's tinted highlight.
 function hexToRgba(hex, alpha = 1) {
@@ -286,7 +286,6 @@ function SectionTabs({ section, setSection, isBuilder, isStudio = false, isEmplo
       ? [
         BASE_ACCOUNT_SECTIONS[0],
         { key: "ready-builds", label: "Ready-made builds", short: "Builds" },
-        { key: "purchases", label: "Purchases", short: "Buys" },
         { key: "payouts", label: "Payouts", short: "Payouts" },
         ...BASE_ACCOUNT_SECTIONS.slice(1),
       ]
@@ -2230,6 +2229,7 @@ export default function AccountPage() {
 function AccountPageInner() {
   useRequireAuth();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const {
     status,
     user,
@@ -2251,8 +2251,14 @@ function AccountPageInner() {
     const url = new URL(window.location.href);
     if (nextSection === "profile") url.searchParams.delete("section");
     else url.searchParams.set("section", nextSection);
-    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
-  }, []);
+    // Keep Next's app router in sync. Mutating history directly can leave the
+    // route cache stale after the ready-builds section has mounted.
+    router.replace(`${url.pathname}${url.search}${url.hash}`, { scroll: false });
+  }, [router]);
+
+  useEffect(() => {
+    setSection(searchParams.get("section") || "profile");
+  }, [searchParams]);
   // AuthContext owns the profile row (hydrated from localStorage on mount,
   // refreshed from Supabase in the background). The page reads it directly
   // from there instead of re-fetching, which was the source of the duplicate
@@ -2583,10 +2589,6 @@ function AccountPageInner() {
 
           {section === "ready-builds" && isBuilder && !isEmployee && (
             <ReadyBuildsSection />
-          )}
-
-          {section === "purchases" && (
-            <ReadyBuildPurchasesSection />
           )}
 
           {section === "danger" && (

@@ -1,31 +1,199 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { PreviewViewer } from "../orders/components/WorldPreview";
+import { useScrollLock } from "../../lib/useScrollLock";
 import { formatPrice } from "../../lib/pricing";
 import { generatePreview } from "../../lib/preview/client";
-import { MAX_WORLD_BYTES, createReadyBuild, getReadyBuildDownloadUrl, listMyReadyBuildPurchases, listMyReadyBuilds, saveReadyBuild, uploadReadyBuildImage, uploadReadyBuildVersion } from "../../lib/readyBuilds/api";
+import {
+  MAX_WORLD_BYTES,
+  createReadyBuild,
+  getReadyBuildDownloadUrl,
+  getReadyBuildPreviewUrl,
+  listMyReadyBuildPurchases,
+  listMyReadyBuilds,
+  saveReadyBuild,
+  uploadReadyBuildImage,
+  uploadReadyBuildVersion,
+} from "../../lib/readyBuilds/api";
 
-const initial = { title: "", description: "", style: "fantasy", price: "" };
+const EMPTY_FORM = { title: "", description: "", style: "fantasy", price: "" };
+const STYLES = ["fantasy", "medieval", "sci-fi", "modern", "organic", "pvp"];
+
+function BuildEditor({ listing, onClose, onSaved }) {
+  const isEditing = Boolean(listing);
+  const [form, setForm] = useState(() => listing ? {
+    title: listing.title,
+    description: listing.description,
+    style: listing.style,
+    price: (Number(listing.price_kopecks) / 100).toFixed(2),
+  } : EMPTY_FORM);
+  const [photos, setPhotos] = useState([]);
+  const [world, setWorld] = useState(null);
+  const [preview, setPreview] = useState(null);
+  const [message, setMessage] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const photoRef = useRef(null);
+  const worldRef = useRef(null);
+  useScrollLock(true);
+
+  const loadExistingPreview = useCallback(
+    () => getReadyBuildPreviewUrl(listing?.version?.preview_path),
+    [listing?.version?.preview_path]
+  );
+
+  const chooseWorld = (file) => {
+    setWorld(file || null);
+    setPreview(null);
+    setMessage(null);
+  };
+
+  const generate3dPreview = async () => {
+    if (!world) {
+      setMessage("Choose a world ZIP before generating its 3D preview.");
+      return;
+    }
+    if (world.size > MAX_WORLD_BYTES) {
+      setMessage("World files must be 200 MB or smaller.");
+      return;
+    }
+    setBusy(true);
+    setMessage("Preparing your interactive 3D preview…");
+    try {
+      const result = await generatePreview(world);
+      setPreview(result);
+      setMessage("3D preview ready — drag to rotate and scroll to zoom.");
+    } catch (error) {
+      setMessage(error?.message || "We couldn't create a preview from that ZIP.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const save = async (event) => {
+    event.preventDefault();
+    const priceCents = Math.round(Number(form.price) * 100);
+    if (!Number.isFinite(priceCents) || priceCents < 2000) {
+      setMessage("The minimum listing price is $20.00.");
+      return;
+    }
+    if (!isEditing && (!world || !photos.length)) {
+      setMessage("Add at least one image and a world ZIP to publish a build.");
+      return;
+    }
+    if (world && world.size > MAX_WORLD_BYTES) {
+      setMessage("World files must be 200 MB or smaller.");
+      return;
+    }
+    setBusy(true);
+    setMessage(isEditing ? "Saving your build…" : "Publishing your build…");
+    try {
+      let listingId = listing?.id;
+      if (!listingId) {
+        const created = await createReadyBuild({ ...form, priceCents });
+        if (created.error || !created.listingId) throw created.error || new Error("Couldn't create the listing.");
+        listingId = created.listingId;
+      }
+      for (let index = 0; index < photos.length; index += 1) {
+        const result = await uploadReadyBuildImage(listingId, photos[index], (listing?.media?.length || 0) + index);
+        if (result.error) throw result.error;
+      }
+      if (world) {
+        const generated = preview || await generatePreview(world);
+        const version = await uploadReadyBuildVersion(listingId, world, generated.bytes, generated.meta);
+        if (version.error) throw version.error;
+      }
+      const published = await saveReadyBuild({
+        id: listingId,
+        title: form.title,
+        description: form.description,
+        style: form.style,
+        priceCents,
+        active: isEditing ? listing.is_active : true,
+      });
+      if (published.error) throw published.error;
+      onSaved(isEditing ? "Build updated." : "Build published — it is now available in the marketplace.");
+      onClose();
+    } catch (error) {
+      setMessage(error?.message || "Saving failed. Check the files and try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const previewSource = preview?.bytes
+    ? { bytes: preview.bytes }
+    : listing?.version?.preview_path ? { loadPreview: loadExistingPreview } : null;
+
+  return (
+    <div className="fixed inset-0 z-[210] overflow-y-auto bg-[#050806]/85 backdrop-blur-md p-3 sm:p-6" role="dialog" aria-modal="true" aria-label={isEditing ? "Edit ready-made build" : "Add a ready-made build"} onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+      <div className="relative mx-auto my-2 w-full max-w-6xl overflow-hidden rounded-[2rem] border border-[#4ade80]/20 bg-[#101512] shadow-[0_30px_100px_rgba(0,0,0,.65)]">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-44 bg-[radial-gradient(ellipse_at_top,rgba(74,222,128,.18),transparent_70%)]" />
+        <div className="relative flex items-start justify-between gap-4 border-b border-white/10 px-5 py-5 sm:px-8">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[.18em] text-[#4ade80]">Ready-made builds</p>
+            <h2 className="mt-1 text-2xl font-bold">{isEditing ? "Refine your listing" : "Place a finished build"}</h2>
+            <p className="mt-1 text-sm text-gray-400">Give buyers a confident look at the world before they purchase it.</p>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-full border border-white/15 px-4 py-2 text-sm text-gray-300 transition hover:bg-white/10">Close</button>
+        </div>
+
+        <form onSubmit={save} className="grid gap-6 p-5 sm:grid-cols-[minmax(0,1fr)_minmax(320px,.9fr)] sm:p-8">
+          <div className="space-y-5">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="block sm:col-span-2"><span className="text-xs font-medium text-gray-400">Build name</span><input required minLength="3" maxLength="100" value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} placeholder="e.g. Emerald Citadel" className="field mt-1.5" /></label>
+              <label className="block"><span className="text-xs font-medium text-gray-400">Style</span><select value={form.style} onChange={(event) => setForm({ ...form, style: event.target.value })} className="field mt-1.5">{STYLES.map((style) => <option key={style} value={style}>{style}</option>)}</select></label>
+              <label className="block"><span className="text-xs font-medium text-gray-400">Price (USD)</span><div className="relative mt-1.5"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span><input required type="number" min="20" step="0.01" value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} className="field pl-7" /><span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-500">MIN $20</span></div></label>
+            </div>
+            <label className="block"><span className="text-xs font-medium text-gray-400">Tell buyers what is included</span><textarea required minLength="10" maxLength="4000" rows="5" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} placeholder="Describe the build, dimensions, included interiors, and anything buyers should know." className="field mt-1.5 resize-y" /></label>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="rounded-2xl border border-dashed border-white/20 bg-white/[.025] p-4">
+                <p className="text-sm font-semibold">Showcase images</p><p className="mt-1 text-xs text-gray-500">Use clear screenshots that show the exterior and key rooms.</p>
+                <input ref={photoRef} hidden type="file" accept="image/*" multiple onChange={(event) => setPhotos(Array.from(event.target.files || []))} />
+                <button type="button" onClick={() => photoRef.current?.click()} className="mt-4 w-full rounded-xl border border-white/15 px-3 py-2.5 text-sm font-semibold text-gray-200 transition hover:border-[#4ade80]/50 hover:bg-[#4ade80]/10">{photos.length ? `${photos.length} new image${photos.length === 1 ? "" : "s"} selected` : "Upload images"}</button>
+                {(photos.length || listing?.media?.length) ? <div className="mt-3 flex gap-2 overflow-hidden">{[...photos].slice(0, 4).map((file) => <img key={file.name + file.size} src={URL.createObjectURL(file)} alt="Selected build" className="h-12 w-12 rounded-lg object-cover" />)}{!photos.length && listing?.media?.slice(0, 4).map((image) => <img key={image.id} src={image.url} alt={image.alt || "Build"} className="h-12 w-12 rounded-lg object-cover" />)}</div> : null}
+              </div>
+              <div className="rounded-2xl border border-dashed border-[#4ade80]/35 bg-[#4ade80]/[.04] p-4">
+                <p className="text-sm font-semibold">World file & 3D preview</p><p className="mt-1 text-xs text-gray-500">Upload a ZIP up to 200 MB. We generate a rotatable voxel preview.</p>
+                <input ref={worldRef} hidden type="file" accept=".zip,application/zip" onChange={(event) => chooseWorld(event.target.files?.[0])} />
+                <div className="mt-4 flex gap-2"><button type="button" onClick={() => worldRef.current?.click()} className="flex-1 rounded-xl border border-white/15 px-3 py-2.5 text-sm font-semibold text-gray-200 transition hover:border-[#4ade80]/50">{world ? "Change ZIP" : isEditing ? "Replace ZIP" : "Upload ZIP"}</button><button type="button" disabled={!world || busy} onClick={generate3dPreview} className="rounded-xl bg-[#4ade80] px-3 py-2.5 text-sm font-bold text-black disabled:opacity-40">Preview</button></div>
+                <p className="mt-2 truncate text-[11px] text-gray-500">{world ? `${world.name} · ${(world.size / 1024 / 1024).toFixed(1)} MB` : listing?.version ? "Current version has a 3D preview" : "No world file selected"}</p>
+              </div>
+            </div>
+            {message && <p className={`rounded-xl px-3 py-2 text-sm ${message.includes("failed") || message.includes("must") || message.includes("Choose") ? "bg-red-500/10 text-red-300" : "bg-[#4ade80]/10 text-[#9af5bd]"}`}>{message}</p>}
+            <div className="flex flex-wrap items-center gap-3"><button disabled={busy} className="rounded-full bg-[#4ade80] px-6 py-3 text-sm font-bold text-black transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50">{busy ? "Working…" : isEditing ? "Save changes" : "Publish build"}</button><span className="text-xs text-gray-500">{isEditing ? "New files create a new downloadable version." : "Images, a world ZIP, and a $20 minimum are required."}</span></div>
+          </div>
+          <aside className="rounded-2xl border border-white/10 bg-black/20 p-4 sm:p-5"><div className="mb-3 flex items-center justify-between"><div><p className="text-sm font-bold">3D buyer preview</p><p className="text-[11px] text-gray-500">Drag to rotate · scroll to zoom</p></div><span className="rounded-full bg-[#4ade80]/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#4ade80]">Interactive</span></div>{previewSource ? <PreviewViewer source={previewSource} className="h-[330px] w-full" /> : <div className="flex h-[330px] flex-col items-center justify-center rounded-2xl border border-dashed border-white/15 bg-white/[.02] px-8 text-center"><div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#4ade80]/10 text-xl text-[#4ade80]">◇</div><p className="text-sm font-semibold">Preview your world here</p><p className="mt-1 text-xs leading-relaxed text-gray-500">Upload a world ZIP, then choose Preview to inspect the same interactive view buyers receive.</p></div>}</aside>
+        </form>
+      </div>
+    </div>
+  );
+}
 
 export function ReadyBuildsSection() {
-  const [listings, setListings] = useState([]); const [form, setForm] = useState(initial); const [photos, setPhotos] = useState([]); const [world, setWorld] = useState(null); const [busy, setBusy] = useState(false); const [message, setMessage] = useState(null); const photoRef = useRef(null); const worldRef = useRef(null);
-  const load = () => listMyReadyBuilds().then(({ listings: rows }) => setListings(rows));
-  useEffect(load, []);
-  const publish = async (e) => { e.preventDefault(); if (!world || !photos.length) { setMessage("Add at least one photo and a world file."); return; } if (world.size > MAX_WORLD_BYTES) { setMessage("World files must be 200 MB or smaller."); return; }
-    setBusy(true); setMessage("Generating your 3D preview…");
-    try { const { bytes, meta } = await generatePreview(world); const cents = Math.round(Number(form.price) * 100); if (!Number.isFinite(cents) || cents < 2000) throw new Error("The minimum listing price is $20.");
-      const { listingId, error } = await createReadyBuild({ title: form.title, description: form.description, style: form.style, priceCents: cents }); if (error || !listingId) throw error || new Error("Couldn't create the listing.");
-      for (let i=0; i<photos.length; i++) { const result=await uploadReadyBuildImage(listingId, photos[i], i); if (result.error) throw result.error; }
-      const version=await uploadReadyBuildVersion(listingId, world, bytes, meta); if (version.error) throw version.error;
-      const published=await saveReadyBuild({ id: listingId, title: form.title, description: form.description, style: form.style, priceCents: cents, active: true }); if (published.error) throw published.error;
-      setForm(initial); setPhotos([]); setWorld(null); setMessage("Build published — buyers can now preview it in 3D."); load();
-    } catch (err) { setMessage(err?.message || "Publishing failed. Check that the ZIP contains a Minecraft world."); } finally { setBusy(false); }
+  const [listings, setListings] = useState([]);
+  const [editing, setEditing] = useState(undefined);
+  const [message, setMessage] = useState(null);
+  const load = useCallback(async () => {
+    const { listings: rows, error } = await listMyReadyBuilds();
+    setListings(rows);
+    if (error) setMessage(error.message);
+  }, []);
+  useEffect(() => { load(); }, [load]);
+  const toggle = async (listing) => {
+    const result = await saveReadyBuild({ id: listing.id, title: listing.title, description: listing.description, style: listing.style, priceCents: listing.price_kopecks, active: !listing.is_active });
+    setMessage(result.error?.message || (listing.is_active ? "Listing removed from sale." : "Listing is live again."));
+    if (!result.error) load();
   };
-  const toggle = async (listing) => { const result = await saveReadyBuild({ id: listing.id, title: listing.title, description: listing.description, style: listing.style, priceCents: listing.price_kopecks, active: !listing.is_active }); setMessage(result.error?.message || (listing.is_active ? "Listing removed from sale." : "Listing is live again.")); if (!result.error) load(); };
-  return <section className="space-y-7"><div className="glass rounded-3xl p-6 sm:p-8"><div className="flex items-start justify-between gap-4"><div><p className="text-xs uppercase tracking-widest text-[#4ade80] font-semibold">Marketplace</p><h2 className="text-xl font-bold mt-1">Publish a ready-made build</h2><p className="text-sm text-gray-400 mt-2 max-w-2xl">Publish a finished world with its photos and an interactive 3D preview. Buyers download the version they paid for immediately after payment.</p></div></div>
-    <form onSubmit={publish} className="grid sm:grid-cols-2 gap-4 mt-6"><label><span className="text-xs text-gray-400">Build name</span><input required minLength="3" maxLength="100" value={form.title} onChange={(e)=>setForm({...form,title:e.target.value})} className="field mt-1" /></label><label><span className="text-xs text-gray-400">Style</span><select value={form.style} onChange={(e)=>setForm({...form,style:e.target.value})} className="field mt-1">{["fantasy","medieval","sci-fi","modern","organic","pvp"].map(x=><option key={x}>{x}</option>)}</select></label><label className="sm:col-span-2"><span className="text-xs text-gray-400">Description</span><textarea required minLength="10" maxLength="4000" rows="4" value={form.description} onChange={(e)=>setForm({...form,description:e.target.value})} className="field mt-1" /></label><label><span className="text-xs text-gray-400">Price (USD)</span><input required type="number" min="20" step="0.01" value={form.price} onChange={(e)=>setForm({...form,price:e.target.value})} className="field mt-1" /></label><div className="flex flex-wrap gap-2 items-end"><input ref={photoRef} hidden type="file" accept="image/*" multiple onChange={(e)=>setPhotos([...e.target.files])}/><button type="button" onClick={()=>photoRef.current?.click()} className="pill-button">{photos.length ? `${photos.length} photo${photos.length===1?"":"s"} selected` : "Add photos"}</button><input ref={worldRef} hidden type="file" accept=".zip,application/zip" onChange={(e)=>setWorld(e.target.files?.[0]||null)}/><button type="button" onClick={()=>worldRef.current?.click()} className="pill-button">{world ? "World selected" : "Upload world ZIP"}</button></div><div className="sm:col-span-2 flex items-center gap-4"><button disabled={busy} className="px-5 py-3 rounded-full bg-[#4ade80] text-black font-bold disabled:opacity-50">{busy ? "Publishing…" : "Generate preview & publish"}</button><span className="text-xs text-gray-500">ZIP only · max 200 MB · preview required</span></div>{message && <p className="sm:col-span-2 text-sm text-gray-300">{message}</p>}</form></div>
-    <div className="glass rounded-3xl p-6"><h2 className="text-lg font-bold">Your listings</h2><div className="mt-4 space-y-3">{listings.length ? listings.map(l => <div key={l.id} className="flex flex-wrap items-center gap-3 p-4 rounded-2xl bg-white/[.03] border border-white/10"><div className="flex-1 min-w-40"><p className="font-semibold">{l.title}</p><p className="text-xs text-gray-500 capitalize">{l.style} · {formatPrice(l.price_kopecks)} · {(l.purchases||[]).filter(p=>p.status==="paid").length} sales</p></div><span className={`text-xs ${l.is_active?"text-[#4ade80]":"text-gray-500"}`}>{l.is_active?"Live":"Unpublished"}</span><Link href={`/build?id=${l.id}`} className="text-xs text-gray-300 hover:text-white">View</Link><button onClick={()=>toggle(l)} className="text-xs text-[#4ade80]">{l.is_active?"Remove from sale":"Publish"}</button></div>) : <p className="text-sm text-gray-500">Your finished worlds will appear here.</p>}</div></div></section>;
+  const completeSave = (notice) => { setMessage(notice); load(); };
+
+  return <section className="space-y-6"><div className="relative overflow-hidden rounded-3xl border border-[#4ade80]/20 bg-[linear-gradient(115deg,rgba(74,222,128,.13),rgba(17,23,19,.75)_50%,rgba(17,23,19,.9))] p-6 sm:p-8"><div className="relative flex flex-col justify-between gap-5 sm:flex-row sm:items-end"><div><p className="text-xs font-semibold uppercase tracking-[.2em] text-[#4ade80]">Builder marketplace</p><h2 className="mt-2 text-2xl font-extrabold">Your finished builds</h2><p className="mt-2 max-w-xl text-sm leading-relaxed text-gray-400">Manage live listings, improve the presentation, and add a new world whenever it&apos;s ready for buyers.</p></div><button type="button" onClick={() => setEditing(null)} className="inline-flex items-center justify-center gap-2 rounded-full bg-[#4ade80] px-5 py-3 text-sm font-bold text-black transition hover:scale-[1.02]"><span className="text-lg leading-none">+</span> Add a build</button></div></div>
+    {message && <p className="rounded-xl border border-white/10 bg-white/[.03] px-4 py-3 text-sm text-gray-300">{message}</p>}
+    <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">{listings.length ? listings.map((listing) => { const cover = listing.media?.[0]; const paidSales = (listing.purchases || []).filter((purchase) => purchase.status === "paid").length; return <article key={listing.id} className="group overflow-hidden rounded-3xl border border-white/10 bg-white/[.035] transition hover:-translate-y-1 hover:border-[#4ade80]/35"><div className="relative aspect-[16/9] bg-black/30">{cover ? <img src={cover.url} alt={cover.alt || listing.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" /> : <div className="flex h-full items-center justify-center text-sm text-gray-600">No images yet</div>}<span className={`absolute right-3 top-3 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${listing.is_active ? "border-[#4ade80]/40 bg-[#102718]/90 text-[#83efa9]" : "border-white/15 bg-black/60 text-gray-300"}`}>{listing.is_active ? "Live" : "Draft"}</span></div><div className="p-5"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="truncate font-bold">{listing.title}</h3><p className="mt-1 text-xs capitalize text-gray-500">{listing.style} · {paidSales} sale{paidSales === 1 ? "" : "s"}</p></div><span className="whitespace-nowrap text-sm font-bold text-[#4ade80]">{formatPrice(listing.price_kopecks)}</span></div><p className="mt-3 line-clamp-2 text-sm leading-relaxed text-gray-400">{listing.description}</p><div className="mt-5 flex items-center gap-3"><button type="button" onClick={() => setEditing(listing)} className="flex-1 rounded-xl border border-white/15 px-3 py-2.5 text-sm font-semibold text-gray-200 transition hover:border-[#4ade80]/50 hover:bg-[#4ade80]/10">Edit build</button><Link href={`/build?id=${listing.id}`} className="rounded-xl px-2 py-2.5 text-xs font-semibold text-gray-400 hover:text-white">View</Link><button type="button" onClick={() => toggle(listing)} className="rounded-xl px-2 py-2.5 text-xs font-semibold text-[#4ade80] hover:bg-[#4ade80]/10">{listing.is_active ? "Unlist" : "Go live"}</button></div></div></article>; }) : <button type="button" onClick={() => setEditing(null)} className="col-span-full rounded-3xl border border-dashed border-[#4ade80]/35 bg-[#4ade80]/[.035] px-6 py-16 text-center transition hover:bg-[#4ade80]/[.07]"><span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#4ade80]/10 text-2xl text-[#4ade80]">+</span><span className="mt-4 block font-bold">Place your first finished build</span><span className="mt-1 block text-sm text-gray-500">Upload imagery, a world ZIP, and create an interactive 3D preview.</span></button>}</div>
+    {editing !== undefined && <BuildEditor listing={editing} onClose={() => setEditing(undefined)} onSaved={completeSave} />}
+  </section>;
 }
 
 export function ReadyBuildPurchasesSection() { const [purchases,setPurchases]=useState([]); const [message,setMessage]=useState(null); useEffect(()=>{listMyReadyBuildPurchases().then(({purchases:rows})=>setPurchases(rows));},[]); const download=async(id)=>{const {url,error}=await getReadyBuildDownloadUrl(id); if(error) setMessage(error.message); else window.location.assign(url);}; return <section className="glass rounded-3xl p-6 sm:p-8"><p className="text-xs uppercase tracking-widest text-[#4ade80] font-semibold">Library</p><h2 className="text-xl font-bold mt-1">Your ready-made purchases</h2><p className="text-sm text-gray-400 mt-2">Downloads stay tied to the exact version you purchased.</p><div className="mt-6 space-y-3">{purchases.length ? purchases.map(p=><div key={p.id} className="flex flex-wrap items-center gap-4 rounded-2xl border border-white/10 p-4"><div className="flex-1"><p className="font-semibold">{p.title_snapshot}</p><p className="text-xs text-gray-500">{p.builder?.display_name || p.builder?.username} · {p.paid_at ? new Date(p.paid_at).toLocaleDateString() : "Awaiting payment"}</p></div><span className="text-sm text-[#4ade80]">{formatPrice(p.price_kopecks)}</span>{p.status==="paid" && <button onClick={()=>download(p.id)} className="pill-button">Download</button>}</div>) : <p className="text-sm text-gray-500">Your ready-made builds will appear here after purchase.</p>}</div>{message&&<p className="text-sm text-red-400 mt-4">{message}</p>}</section>; }

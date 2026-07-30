@@ -45,6 +45,7 @@ import {
 import CatalogNavbar from "../../builders/components/CatalogNavbar";
 import CatalogMobileMenu from "../../builders/components/CatalogMobileMenu";
 import WorldPreview, { PreviewViewer } from "./WorldPreview";
+import { ReadyBuildPurchasesSection } from "../../account/ReadyBuildsSection";
 import { useGradientBackground } from "../../../lib/ui/useGradientBackground";
 
 // ─── Status display tables ──────────────────────────────────────────────────
@@ -391,6 +392,8 @@ function OrdersList({ meId, onOpen }) {
         onOpen={onOpen}
         emptyText={activeTab.emptyText}
       />
+
+      <ReadyBuildPurchasesSection />
     </div>
   );
 }
