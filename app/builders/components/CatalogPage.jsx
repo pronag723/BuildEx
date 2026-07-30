@@ -219,7 +219,7 @@ export default function CatalogPage() {
     );
     els.forEach((el) => obs.observe(el));
     return () => obs.disconnect();
-  }, []);
+  }, [mode]);
 
   // ── Mobile menu / keyboard cleanup ─────────────────────────────────────────
   useEffect(() => {

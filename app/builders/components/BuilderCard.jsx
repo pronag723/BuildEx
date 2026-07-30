@@ -116,7 +116,7 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
           </div>
         ) : (
           <div
-            className="flex h-full w-full transition-transform duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]"
+            className="card-carousel-track flex h-full w-full"
             style={{ transform: `translateX(-${index * 100}%)` }}
           >
             {previews.map((p) => (

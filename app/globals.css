@@ -17,7 +17,7 @@
 .field:focus { border-color: rgba(74,222,128,.65); box-shadow: 0 0 0 3px rgba(74,222,128,.12); }
 .pill-button { padding: .55rem .9rem; border-radius: 9999px; font-size: .75rem; font-weight: 700; color: #4ade80; background: rgba(74,222,128,.1); border: 1px solid rgba(74,222,128,.25); transition: background .2s, transform .2s; }
 .pill-button:hover { background: rgba(74,222,128,.18); transform: translateY(-1px); }
-@media (prefers-reduced-motion: reduce) { .offer-card *, .account-section-indicator, .catalog-chip { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+@media (prefers-reduced-motion: reduce) { .account-section-indicator, .catalog-chip { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
 
 /* =============================================
    BUILDEX - Lighter Dark + Side Gradients + Light Hover Glow
@@ -151,7 +151,7 @@ button:not(:disabled):active {
 /* Carousel arrows are positioned with translateY(-50%). Keep that geometry
    fixed while still allowing other buttons to use the global press feedback. */
 button.carousel-arrow:active {
-  transform: translateY(-50%) !important;
+  transform: translateY(-50%) scale(0.9) !important;
 }
 
 /* The active portfolio marker grows from a dot rather than snapping between
@@ -1482,11 +1482,14 @@ body {
 
 /* ── Offer card ────────────────────────────────────────────────────────────── */
 .offer-card {
-  animation: cardEnter 0.5s cubic-bezier(0.4, 0, 0.2, 1) both;
+  /* `backwards` hides a delayed card before it enters, without retaining the
+     animation's final transform and blocking the hover lift afterwards. */
+  animation: cardEnter 0.5s cubic-bezier(0.4, 0, 0.2, 1) backwards;
   transition:
-    transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-    box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-    border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transform 0.48s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.48s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.36s ease;
+  will-change: transform;
 }
 
 .offer-card:hover {
@@ -1511,6 +1514,20 @@ body {
 
 .offer-card:hover .offer-card-img {
   transform: scale(1.07);
+}
+
+.card-carousel-track {
+  transition: transform 560ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.carousel-arrow {
+  transition:
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 220ms ease,
+    background-color 220ms ease,
+    border-color 220ms ease,
+    box-shadow 260ms ease !important;
 }
 
 /* Hover overlay */
@@ -1549,6 +1566,29 @@ body {
 /* ── Catalog page header ───────────────────────────────────────────────────── */
 .catalog-page-header {
   min-height: 260px;
+}
+
+.catalog-root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+.catalog-root > main {
+  flex: 1 0 auto;
+}
+
+.catalog-root > .site-footer {
+  margin-top: auto;
+}
+
+.site-footer-enter {
+  animation: footerEnter 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes footerEnter {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* Centered catalog introduction with a segmented control that gives both
