@@ -487,7 +487,7 @@ export default function CatalogPage() {
               </p>
               {mode === "ready" && <p className="catalog-header-description reveal text-gray-400 text-base sm:text-lg max-w-xl">Browse finished Minecraft worlds from independent builders. Preview every build in 3D, then download it instantly after payment.</p>}
 
-            <div className="catalog-mode-switch reveal" role="tablist" aria-label="Browse mode">
+            <div className={`catalog-mode-switch ${mode === "ready" ? "is-ready" : "is-custom"} reveal`} role="tablist" aria-label="Browse mode">
               {[{ key: "custom", label: "Custom builds" }, { key: "ready", label: "Ready-made builds" }].map((item) => <button key={item.key} type="button" role="tab" aria-selected={mode === item.key} onClick={() => updateURL({ mode: item.key === "ready" ? "ready" : null })} className={`catalog-mode-switch-option ${mode === item.key ? "is-active" : ""}`}>{item.label}</button>)}
             </div>
             </div>
