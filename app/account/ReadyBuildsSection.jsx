@@ -13,6 +13,7 @@ import {
   getReadyBuildPreviewUrl,
   listMyReadyBuildPurchases,
   listMyReadyBuilds,
+  reorderReadyBuildImages,
   saveReadyBuild,
   uploadReadyBuildImage,
   uploadReadyBuildVersion,
@@ -29,11 +30,12 @@ function BuildEditor({ listing, onClose, onSaved }) {
     style: listing.style,
     price: (Number(listing.price_kopecks) / 100).toFixed(2),
   } : EMPTY_FORM);
-  const [photos, setPhotos] = useState([]);
+  const [photos, setPhotos] = useState(() => (listing?.media || []).map((image) => ({ ...image, key: image.id, kind: "existing" })));
   const [world, setWorld] = useState(null);
   const [preview, setPreview] = useState(null);
   const [message, setMessage] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [styleOpen, setStyleOpen] = useState(false);
   const photoRef = useRef(null);
   const worldRef = useRef(null);
   useScrollLock(true);
@@ -48,6 +50,25 @@ function BuildEditor({ listing, onClose, onSaved }) {
     setPreview(null);
     setMessage(null);
   };
+
+  const addPhotos = (files) => {
+    const additions = Array.from(files || []).map((file) => ({
+      key: `${file.name}-${file.size}-${file.lastModified}-${Math.random()}`,
+      kind: "new",
+      file,
+      alt: file.name,
+      url: URL.createObjectURL(file),
+    }));
+    setPhotos((items) => [...items, ...additions]);
+  };
+
+  const movePhoto = (from, to) => setPhotos((items) => {
+    if (to < 0 || to >= items.length) return items;
+    const next = [...items];
+    const [item] = next.splice(from, 1);
+    next.splice(to, 0, item);
+    return next;
+  });
 
   const generate3dPreview = async () => {
     if (!world) {
@@ -95,9 +116,20 @@ function BuildEditor({ listing, onClose, onSaved }) {
         if (created.error || !created.listingId) throw created.error || new Error("Couldn't create the listing.");
         listingId = created.listingId;
       }
+      const orderedMediaIds = [];
       for (let index = 0; index < photos.length; index += 1) {
-        const result = await uploadReadyBuildImage(listingId, photos[index], (listing?.media?.length || 0) + index);
+        const photo = photos[index];
+        if (photo.kind === "existing") {
+          orderedMediaIds.push(photo.id);
+          continue;
+        }
+        const result = await uploadReadyBuildImage(listingId, photo.file, 10000 + index);
         if (result.error) throw result.error;
+        orderedMediaIds.push(result.id);
+      }
+      if (orderedMediaIds.length) {
+        const reordered = await reorderReadyBuildImages(listingId, orderedMediaIds);
+        if (reordered.error) throw reordered.error;
       }
       if (world) {
         const generated = preview || await generatePreview(world);
@@ -127,8 +159,8 @@ function BuildEditor({ listing, onClose, onSaved }) {
     : listing?.version?.preview_path ? { loadPreview: loadExistingPreview } : null;
 
   return (
-    <div className="fixed inset-0 z-[210] overflow-y-auto bg-[#050806]/85 backdrop-blur-md p-3 sm:p-6" role="dialog" aria-modal="true" aria-label={isEditing ? "Edit ready-made build" : "Add a ready-made build"} onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-      <div className="relative mx-auto my-2 w-full max-w-6xl overflow-hidden rounded-[2rem] border border-[#4ade80]/20 bg-[#101512] shadow-[0_30px_100px_rgba(0,0,0,.65)]">
+    <div className="fixed inset-0 z-[210] overflow-y-auto bg-[#050806]/85 pt-28 pb-8 backdrop-blur-md sm:px-6 sm:pt-32" role="dialog" aria-modal="true" aria-label={isEditing ? "Edit ready-made build" : "Add a ready-made build"} onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+      <div className="relative mx-auto w-[calc(100%_-_1.5rem)] max-w-6xl overflow-hidden rounded-[2rem] border border-[#4ade80]/20 bg-[#101512] shadow-[0_30px_100px_rgba(0,0,0,.65)] sm:w-full">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-44 bg-[radial-gradient(ellipse_at_top,rgba(74,222,128,.18),transparent_70%)]" />
         <div className="relative flex items-start justify-between gap-4 border-b border-white/10 px-5 py-5 sm:px-8">
           <div>
@@ -143,17 +175,17 @@ function BuildEditor({ listing, onClose, onSaved }) {
           <div className="space-y-5">
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="block sm:col-span-2"><span className="text-xs font-medium text-gray-400">Build name</span><input required minLength="3" maxLength="100" value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} placeholder="e.g. Emerald Citadel" className="field mt-1.5" /></label>
-              <label className="block"><span className="text-xs font-medium text-gray-400">Style</span><select value={form.style} onChange={(event) => setForm({ ...form, style: event.target.value })} className="field mt-1.5">{STYLES.map((style) => <option key={style} value={style}>{style}</option>)}</select></label>
-              <label className="block"><span className="text-xs font-medium text-gray-400">Price (USD)</span><div className="relative mt-1.5"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span><input required type="number" min="20" step="0.01" value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} className="field pl-7" /><span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-500">MIN $20</span></div></label>
+              <div className="relative"><span className="text-xs font-medium text-gray-400">Style</span><button type="button" aria-haspopup="listbox" aria-expanded={styleOpen} onClick={() => setStyleOpen((open) => !open)} className="field mt-1.5 flex w-full items-center justify-between text-left capitalize"><span>{form.style}</span><svg viewBox="0 0 20 20" className={`h-4 w-4 text-[#4ade80] transition-transform ${styleOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" strokeWidth="2"><path d="m5 7 5 5 5-5" /></svg></button>{styleOpen && <div role="listbox" className="absolute z-20 mt-2 w-full overflow-hidden rounded-2xl border border-[#4ade80]/30 bg-[#161d18] p-1.5 shadow-[0_18px_45px_rgba(0,0,0,.55)]">{STYLES.map((style) => <button key={style} type="button" role="option" aria-selected={form.style === style} onClick={() => { setForm({ ...form, style }); setStyleOpen(false); }} className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm capitalize transition ${form.style === style ? "bg-[#4ade80]/15 text-[#8df3b2]" : "text-gray-300 hover:bg-white/[.07]"}`}><span>{style}</span>{form.style === style && <span className="text-[#4ade80]">✓</span>}</button>)}</div>}</div>
+              <label className="block"><span className="text-xs font-medium text-gray-400">Price in USD</span><input required inputMode="decimal" type="number" min="20" step="0.01" value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} placeholder="20.00" className="field mt-1.5 text-lg font-semibold tabular-nums" /><span className="mt-1.5 block text-[11px] text-gray-500">Minimum price: $20.00</span></label>
             </div>
             <label className="block"><span className="text-xs font-medium text-gray-400">Tell buyers what is included</span><textarea required minLength="10" maxLength="4000" rows="5" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} placeholder="Describe the build, dimensions, included interiors, and anything buyers should know." className="field mt-1.5 resize-y" /></label>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="rounded-2xl border border-dashed border-white/20 bg-white/[.025] p-4">
                 <p className="text-sm font-semibold">Showcase images</p><p className="mt-1 text-xs text-gray-500">Use clear screenshots that show the exterior and key rooms.</p>
-                <input ref={photoRef} hidden type="file" accept="image/*" multiple onChange={(event) => setPhotos(Array.from(event.target.files || []))} />
-                <button type="button" onClick={() => photoRef.current?.click()} className="mt-4 w-full rounded-xl border border-white/15 px-3 py-2.5 text-sm font-semibold text-gray-200 transition hover:border-[#4ade80]/50 hover:bg-[#4ade80]/10">{photos.length ? `${photos.length} new image${photos.length === 1 ? "" : "s"} selected` : "Upload images"}</button>
-                {(photos.length || listing?.media?.length) ? <div className="mt-3 flex gap-2 overflow-hidden">{[...photos].slice(0, 4).map((file) => <img key={file.name + file.size} src={URL.createObjectURL(file)} alt="Selected build" className="h-12 w-12 rounded-lg object-cover" />)}{!photos.length && listing?.media?.slice(0, 4).map((image) => <img key={image.id} src={image.url} alt={image.alt || "Build"} className="h-12 w-12 rounded-lg object-cover" />)}</div> : null}
+                <input ref={photoRef} hidden type="file" accept="image/*" multiple onChange={(event) => addPhotos(event.target.files)} />
+                <button type="button" onClick={() => photoRef.current?.click()} className="mt-4 w-full rounded-xl border border-white/15 px-3 py-2.5 text-sm font-semibold text-gray-200 transition hover:border-[#4ade80]/50 hover:bg-[#4ade80]/10">Add images</button>
+                {photos.length ? <div className="mt-3 space-y-2"><p className="text-[11px] text-gray-500">Set the first image as the cover. Use the arrows to reorder.</p><div className="flex gap-2 overflow-x-auto pb-1">{photos.map((photo, index) => <div key={photo.key} className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-white/15"><img src={photo.url} alt={photo.alt || "Build"} className="h-full w-full object-cover" />{index === 0 && <span className="absolute left-1 top-1 rounded bg-[#4ade80] px-1 py-0.5 text-[8px] font-bold text-black">COVER</span>}<div className="absolute inset-x-1 bottom-1 flex justify-between"><button type="button" disabled={index === 0} onClick={() => movePhoto(index, index - 1)} aria-label="Move image left" className="h-5 w-5 rounded bg-black/75 text-xs text-white disabled:opacity-30">‹</button><button type="button" disabled={index === photos.length - 1} onClick={() => movePhoto(index, index + 1)} aria-label="Move image right" className="h-5 w-5 rounded bg-black/75 text-xs text-white disabled:opacity-30">›</button></div></div>)}</div></div> : null}
               </div>
               <div className="rounded-2xl border border-dashed border-[#4ade80]/35 bg-[#4ade80]/[.04] p-4">
                 <p className="text-sm font-semibold">World file & 3D preview</p><p className="mt-1 text-xs text-gray-500">Upload a ZIP up to 200 MB. We generate a rotatable voxel preview.</p>
