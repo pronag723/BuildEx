@@ -9,6 +9,7 @@ import { generatePreview } from "../../lib/preview/client";
 import {
   MAX_WORLD_BYTES,
   createReadyBuild,
+  deleteReadyBuildImage,
   getReadyBuildDownloadUrl,
   getReadyBuildPreviewUrl,
   listMyReadyBuildPurchases,
@@ -71,6 +72,27 @@ function BuildEditor({ listing, onClose, onSaved }) {
     next.splice(to, 0, item);
     return next;
   });
+
+  const removePhoto = async (photo) => {
+    if (photo.kind === "existing" && photos.length === 1) {
+      setMessage("Add another image before removing the last one from a listing.");
+      return;
+    }
+    if (photo.kind === "new") {
+      URL.revokeObjectURL(photo.url);
+      setPhotos((items) => items.filter((item) => item.key !== photo.key));
+      return;
+    }
+    setBusy(true);
+    setMessage(null);
+    const { error } = await deleteReadyBuildImage(listing.id, photo);
+    if (error) {
+      setMessage(error.message || "Couldn't delete that image. Please try again.");
+    } else {
+      setPhotos((items) => items.filter((item) => item.key !== photo.key));
+    }
+    setBusy(false);
+  };
 
   const generate3dPreview = async () => {
     if (!world) {
@@ -187,7 +209,7 @@ function BuildEditor({ listing, onClose, onSaved }) {
                 <p className="text-sm font-semibold">Showcase images</p><p className="mt-1 text-xs text-gray-500">Use clear screenshots that show the exterior and key rooms.</p>
                 <input ref={photoRef} hidden type="file" accept="image/*" multiple onChange={(event) => addPhotos(event.target.files)} />
                 <button type="button" onClick={() => photoRef.current?.click()} className="mt-4 w-full rounded-xl border border-white/15 px-3 py-2.5 text-sm font-semibold text-gray-200 transition hover:border-[#4ade80]/50 hover:bg-[#4ade80]/10">Add images</button>
-                {photos.length ? <div className="mt-3 space-y-2"><p className="text-[11px] text-gray-500">Set the first image as the cover. Use the arrows to reorder.</p><div className="flex gap-2 overflow-x-auto pb-1">{photos.map((photo, index) => <div key={photo.key} className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-white/15"><img src={photo.url} alt={photo.alt || "Build"} className="h-full w-full object-cover" />{index === 0 && <span className="absolute left-1 top-1 rounded bg-[#4ade80] px-1 py-0.5 text-[8px] font-bold text-black">COVER</span>}<div className="absolute inset-x-1 bottom-1 flex justify-between"><button type="button" disabled={index === 0} onClick={() => movePhoto(index, index - 1)} aria-label="Move image left" className="h-5 w-5 rounded bg-black/75 text-xs text-white disabled:opacity-30">‹</button><button type="button" disabled={index === photos.length - 1} onClick={() => movePhoto(index, index + 1)} aria-label="Move image right" className="h-5 w-5 rounded bg-black/75 text-xs text-white disabled:opacity-30">›</button></div></div>)}</div></div> : null}
+                {photos.length ? <div className="mt-3 space-y-2"><p className="text-[11px] text-gray-500">Set the first image as the cover. Use the arrows to reorder or remove an image.</p><div className="flex gap-2 overflow-x-auto pb-1">{photos.map((photo, index) => <div key={photo.key} className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-white/15"><img src={photo.url} alt={photo.alt || "Build"} className="h-full w-full object-cover" />{index === 0 && <span className="absolute left-1 top-1 rounded bg-[#4ade80] px-1 py-0.5 text-[8px] font-bold text-black">COVER</span>}<button type="button" disabled={busy} onClick={() => removePhoto(photo)} aria-label="Remove image" className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/80 text-sm font-bold leading-none text-white transition hover:bg-red-500 disabled:opacity-40">×</button><div className="absolute inset-x-1 bottom-1 flex justify-between"><button type="button" disabled={index === 0 || busy} onClick={() => movePhoto(index, index - 1)} aria-label="Move image left" className="h-5 w-5 rounded bg-black/75 text-xs text-white disabled:opacity-30">‹</button><button type="button" disabled={index === photos.length - 1 || busy} onClick={() => movePhoto(index, index + 1)} aria-label="Move image right" className="h-5 w-5 rounded bg-black/75 text-xs text-white disabled:opacity-30">›</button></div></div>)}</div></div> : null}
               </div>
               <div className="rounded-2xl border border-dashed border-[#4ade80]/35 bg-[#4ade80]/[.04] p-4">
                 <p className="text-sm font-semibold">World file & 3D preview</p><p className="mt-1 text-xs text-gray-500">Upload a ZIP up to 200 MB. We generate a rotatable voxel preview.</p>
