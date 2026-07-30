@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 const migration = readFileSync("supabase/migrations/0075_ready_builds_marketplace.sql", "utf8");
 const rlsFix = readFileSync("supabase/migrations/0078_fix_ready_build_purchase_rls.sql", "utf8");
 const mediaFix = readFileSync("supabase/migrations/0079_ready_build_media_rpc.sql", "utf8");
+const reorderFix = readFileSync("supabase/migrations/0080_ready_build_media_reorder_rpc.sql", "utf8");
 const invoice = readFileSync("supabase/functions/create-invoice/index.ts", "utf8");
 const webhook = readFileSync("supabase/functions/payment-webhook/index.ts", "utf8");
 
@@ -39,4 +40,12 @@ test("ready-build image metadata is written through an owner-checked RPC", () =>
   assert.match(mediaFix, /builder_id = auth\.uid\(\)/);
   assert.match(mediaFix, /p_storage_path !~ \('\^' \|\| p_listing::text/);
   assert.match(mediaFix, /grant execute on function public\.attach_ready_build_media\(uuid, text, text, text, int\) to authenticated/);
+});
+
+test("ready-build image reordering is owner-checked outside browser RLS", () => {
+  assert.match(reorderFix, /function public\.reorder_ready_build_media/);
+  assert.match(reorderFix, /set row_security = off/);
+  assert.match(reorderFix, /builder_id = auth\.uid\(\)/);
+  assert.match(reorderFix, /with ordinality/);
+  assert.match(reorderFix, /grant execute on function public\.reorder_ready_build_media\(uuid, uuid\[\]\) to authenticated/);
 });
