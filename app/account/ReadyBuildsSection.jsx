@@ -38,6 +38,8 @@ function BuildEditor({ listing, onClose, onSaved }) {
   const [styleOpen, setStyleOpen] = useState(false);
   const photoRef = useRef(null);
   const worldRef = useRef(null);
+  const numericPrice = Number(form.price);
+  const hasInvalidPrice = form.price !== "" && (!Number.isFinite(numericPrice) || numericPrice < 5);
   useScrollLock(true);
 
   const loadExistingPreview = useCallback(
@@ -95,8 +97,8 @@ function BuildEditor({ listing, onClose, onSaved }) {
   const save = async (event) => {
     event.preventDefault();
     const priceCents = Math.round(Number(form.price) * 100);
-    if (!Number.isFinite(priceCents) || priceCents < 2000) {
-      setMessage("The minimum listing price is $20.00.");
+    if (!Number.isFinite(priceCents) || priceCents < 500) {
+      setMessage("The minimum listing price is $5.00.");
       return;
     }
     if (!isEditing && (!world || !photos.length)) {
@@ -159,7 +161,7 @@ function BuildEditor({ listing, onClose, onSaved }) {
     : listing?.version?.preview_path ? { loadPreview: loadExistingPreview } : null;
 
   return (
-    <div className="fixed inset-0 z-[210] overflow-y-auto bg-[#050806]/85 pt-28 pb-8 backdrop-blur-md sm:px-6 sm:pt-32" role="dialog" aria-modal="true" aria-label={isEditing ? "Edit ready-made build" : "Add a ready-made build"} onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+    <div className="ready-build-editor-overlay fixed inset-0 z-[210] overflow-y-auto bg-[#050806]/85 pt-28 pb-8 backdrop-blur-md sm:px-6 sm:pt-32" role="dialog" aria-modal="true" aria-label={isEditing ? "Edit ready-made build" : "Add a ready-made build"} onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
       <div className="relative mx-auto w-[calc(100%_-_1.5rem)] max-w-6xl overflow-hidden rounded-[2rem] border border-[#4ade80]/20 bg-[#101512] shadow-[0_30px_100px_rgba(0,0,0,.65)] sm:w-full">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-44 bg-[radial-gradient(ellipse_at_top,rgba(74,222,128,.18),transparent_70%)]" />
         <div className="relative flex items-start justify-between gap-4 border-b border-white/10 px-5 py-5 sm:px-8">
@@ -176,7 +178,7 @@ function BuildEditor({ listing, onClose, onSaved }) {
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="block sm:col-span-2"><span className="text-xs font-medium text-gray-400">Build name</span><input required minLength="3" maxLength="100" value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} placeholder="e.g. Emerald Citadel" className="field mt-1.5" /></label>
               <div className="relative"><span className="text-xs font-medium text-gray-400">Style</span><button type="button" aria-haspopup="listbox" aria-expanded={styleOpen} onClick={() => setStyleOpen((open) => !open)} className="field mt-1.5 flex w-full items-center justify-between text-left capitalize"><span>{form.style}</span><svg viewBox="0 0 20 20" className={`h-4 w-4 text-[#4ade80] transition-transform ${styleOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" strokeWidth="2"><path d="m5 7 5 5 5-5" /></svg></button>{styleOpen && <div role="listbox" className="absolute z-20 mt-2 w-full overflow-hidden rounded-2xl border border-[#4ade80]/30 bg-[#161d18] p-1.5 shadow-[0_18px_45px_rgba(0,0,0,.55)]">{STYLES.map((style) => <button key={style} type="button" role="option" aria-selected={form.style === style} onClick={() => { setForm({ ...form, style }); setStyleOpen(false); }} className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm capitalize transition ${form.style === style ? "bg-[#4ade80]/15 text-[#8df3b2]" : "text-gray-300 hover:bg-white/[.07]"}`}><span>{style}</span>{form.style === style && <span className="text-[#4ade80]">✓</span>}</button>)}</div>}</div>
-              <label className="block"><span className="text-xs font-medium text-gray-400">Price in USD</span><input required inputMode="decimal" type="number" min="20" step="0.01" value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} placeholder="20.00" className="field mt-1.5 text-lg font-semibold tabular-nums" /><span className="mt-1.5 block text-[11px] text-gray-500">Minimum price: $20.00</span></label>
+              <label className="block"><span className="text-xs font-medium text-gray-400">Price in USD</span><input required aria-invalid={hasInvalidPrice} inputMode="decimal" type="number" min="0" step="0.01" value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} placeholder="5.00" className={`field mt-1.5 text-lg font-semibold tabular-nums ${hasInvalidPrice ? "ready-build-price-invalid" : ""}`} /><span className={`mt-1.5 block text-[11px] ${hasInvalidPrice ? "font-medium text-red-400" : "text-gray-500"}`}>{hasInvalidPrice ? "Price must be at least $5.00" : "Minimum price: $5.00"}</span></label>
             </div>
             <label className="block"><span className="text-xs font-medium text-gray-400">Tell buyers what is included</span><textarea required minLength="10" maxLength="4000" rows="5" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} placeholder="Describe the build, dimensions, included interiors, and anything buyers should know." className="field mt-1.5 resize-y" /></label>
 
@@ -195,7 +197,7 @@ function BuildEditor({ listing, onClose, onSaved }) {
               </div>
             </div>
             {message && <p className={`rounded-xl px-3 py-2 text-sm ${message.includes("failed") || message.includes("must") || message.includes("Choose") ? "bg-red-500/10 text-red-300" : "bg-[#4ade80]/10 text-[#9af5bd]"}`}>{message}</p>}
-            <div className="flex flex-wrap items-center gap-3"><button disabled={busy} className="rounded-full bg-[#4ade80] px-6 py-3 text-sm font-bold text-black transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50">{busy ? "Working…" : isEditing ? "Save changes" : "Publish build"}</button><span className="text-xs text-gray-500">{isEditing ? "New files create a new downloadable version." : "Images, a world ZIP, and a $20 minimum are required."}</span></div>
+            <div className="flex flex-wrap items-center gap-3"><button disabled={busy} className="rounded-full bg-[#4ade80] px-6 py-3 text-sm font-bold text-black transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50">{busy ? "Working…" : isEditing ? "Save changes" : "Publish build"}</button><span className="text-xs text-gray-500">{isEditing ? "New files create a new downloadable version." : "Images, a world ZIP, and a $5 minimum are required."}</span></div>
           </div>
           <aside className="rounded-2xl border border-white/10 bg-black/20 p-4 sm:p-5"><div className="mb-3 flex items-center justify-between"><div><p className="text-sm font-bold">3D buyer preview</p><p className="text-[11px] text-gray-500">Drag to rotate · scroll to zoom</p></div><span className="rounded-full bg-[#4ade80]/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#4ade80]">Interactive</span></div>{previewSource ? <PreviewViewer source={previewSource} className="h-[330px] w-full" /> : <div className="flex h-[330px] flex-col items-center justify-center rounded-2xl border border-dashed border-white/15 bg-white/[.02] px-8 text-center"><div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#4ade80]/10 text-xl text-[#4ade80]">◇</div><p className="text-sm font-semibold">Preview your world here</p><p className="mt-1 text-xs leading-relaxed text-gray-500">Upload a world ZIP, then choose Preview to inspect the same interactive view buyers receive.</p></div>}</aside>
         </form>

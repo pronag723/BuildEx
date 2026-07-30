@@ -17,6 +17,19 @@
 .field:focus { border-color: rgba(74,222,128,.65); box-shadow: 0 0 0 3px rgba(74,222,128,.12); }
 .pill-button { padding: .55rem .9rem; border-radius: 9999px; font-size: .75rem; font-weight: 700; color: #4ade80; background: rgba(74,222,128,.1); border: 1px solid rgba(74,222,128,.25); transition: background .2s, transform .2s; }
 .pill-button:hover { background: rgba(74,222,128,.18); transform: translateY(-1px); }
+.ready-build-price-invalid,
+.ready-build-price-invalid:focus {
+  border-color: rgba(248, 113, 113, .9) !important;
+  box-shadow: 0 0 0 3px rgba(248, 113, 113, .12) !important;
+}
+.ready-build-editor-overlay {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(74, 222, 128, .45) #0a0e0b;
+}
+.ready-build-editor-overlay::-webkit-scrollbar { width: 10px; }
+.ready-build-editor-overlay::-webkit-scrollbar-track { background: #0a0e0b; }
+.ready-build-editor-overlay::-webkit-scrollbar-thumb { background: rgba(74, 222, 128, .45); border: 2px solid #0a0e0b; border-radius: 999px; }
+.ready-build-editor-overlay::-webkit-scrollbar-thumb:hover { background: rgba(74, 222, 128, .7); }
 @media (prefers-reduced-motion: reduce) { .catalog-chip { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
 
 /* =============================================
