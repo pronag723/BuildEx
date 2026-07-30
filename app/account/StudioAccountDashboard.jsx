@@ -1924,7 +1924,7 @@ export function StudioModeratorDashboard({ section = "profile" }) {
           <div className="relative grid grid-cols-4 items-center rounded-2xl border border-white/10 bg-black/20 p-1" role="group" aria-label="Filter orders by status">
             <span
               aria-hidden="true"
-              className="absolute inset-y-1 left-1 rounded-xl bg-[#4ade80] transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
+              className="absolute inset-y-1 left-1 rounded-xl bg-[#4ade80] transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
               style={{
                 width: "calc((100% - 0.5rem) / 4)",
                 transform: `translateX(${["active", "completed", "cancelled", "all"].indexOf(orderStatusFilter) * 100}%)`,

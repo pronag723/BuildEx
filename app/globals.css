@@ -17,7 +17,7 @@
 .field:focus { border-color: rgba(74,222,128,.65); box-shadow: 0 0 0 3px rgba(74,222,128,.12); }
 .pill-button { padding: .55rem .9rem; border-radius: 9999px; font-size: .75rem; font-weight: 700; color: #4ade80; background: rgba(74,222,128,.1); border: 1px solid rgba(74,222,128,.25); transition: background .2s, transform .2s; }
 .pill-button:hover { background: rgba(74,222,128,.18); transform: translateY(-1px); }
-@media (prefers-reduced-motion: reduce) { .account-section-indicator, .catalog-chip { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+@media (prefers-reduced-motion: reduce) { .catalog-chip { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
 
 /* =============================================
    BUILDEX - Lighter Dark + Side Gradients + Light Hover Glow
