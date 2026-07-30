@@ -477,51 +477,19 @@ export default function CatalogPage() {
         {/* ── Page header ─────────────────────────────────────────────────── */}
         <section className="catalog-page-header pt-32 pb-10">
           <div className="max-w-7xl mx-auto px-6">
-            <div className="reveal">
-              {/* Live badge */}
-              <div className="inline-flex items-center gap-2 glass px-4 py-1.5 rounded-full text-xs mb-5">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#4ade80] opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-[#4ade80]" />
-                </span>
-                <span>
-                  <span className="text-[#4ade80] font-semibold">{mode === "ready" ? readyBuilds.length : builders.length}</span> {mode === "ready" ? "ready-to-download worlds" : "active providers"}
-                </span>
-              </div>
-
-              <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight leading-tight mb-3">
+            <div className="catalog-header-content">
+              <h1 className="catalog-heading reveal text-4xl sm:text-5xl font-extrabold tracking-tight leading-tight mb-3">
                 {mode === "ready" ? <>Discover <span className="text-[#4ade80]">Ready-Made</span> Builds</> : <>Hire Elite <span className="text-[#4ade80]">Minecraft</span> Builders</>}
               </h1>
-              <p className={`text-gray-400 text-base sm:text-lg max-w-xl ${mode === "ready" ? "hidden" : ""}`}>
+              <p className={`catalog-header-description reveal text-gray-400 text-base sm:text-lg max-w-xl ${mode === "ready" ? "hidden" : ""}`}>
                 Browse talented creators, view their portfolios, and commission
                 custom builds — rates negotiated per project, escrow-protected.
               </p>
-              {mode === "ready" && <p className="text-gray-400 text-base sm:text-lg max-w-xl">Browse finished Minecraft worlds from independent builders. Preview every build in 3D, then download it instantly after payment.</p>}
-            </div>
+              {mode === "ready" && <p className="catalog-header-description reveal text-gray-400 text-base sm:text-lg max-w-xl">Browse finished Minecraft worlds from independent builders. Preview every build in 3D, then download it instantly after payment.</p>}
 
-            <div className="mt-7 inline-grid grid-cols-2 p-1 glass rounded-full reveal" role="tablist" aria-label="Browse mode">
-              {[{ key: "custom", label: "Custom builds" }, { key: "ready", label: "Ready-made builds" }].map((item) => <button key={item.key} role="tab" aria-selected={mode === item.key} onClick={() => updateURL({ mode: item.key === "ready" ? "ready" : null })} className={`rounded-full px-4 sm:px-6 py-2.5 text-sm font-semibold transition-all duration-500 ${mode === item.key ? "bg-[#4ade80] text-black shadow-[0_0_18px_rgba(74,222,128,.3)]" : "text-gray-400 hover:text-white"}`}>{item.label}</button>)}
+            <div className="catalog-mode-switch reveal" role="tablist" aria-label="Browse mode">
+              {[{ key: "custom", label: "Custom builds" }, { key: "ready", label: "Ready-made builds" }].map((item) => <button key={item.key} type="button" role="tab" aria-selected={mode === item.key} onClick={() => updateURL({ mode: item.key === "ready" ? "ready" : null })} className={`catalog-mode-switch-option ${mode === item.key ? "is-active" : ""}`}>{item.label}</button>)}
             </div>
-            <div className="mt-4 max-w-3xl glass rounded-2xl px-5 py-4 border border-[#4ade80]/15 reveal"><p className="text-sm leading-relaxed text-gray-300">{mode === "ready" ? <><span className="font-semibold text-[#4ade80]">Ready-made builds</span> are finished, fixed-price worlds. Explore photos and a live 3D preview before you buy; paid files are kept in your Purchases library.</> : <><span className="font-semibold text-[#4ade80]">Custom builds</span> connect you with independent builders and studios for a build made specifically for your project.</>}</p></div>
-
-            {/* Quick-filter style chips */}
-            <div className="flex flex-wrap gap-2 mt-8 reveal">
-              {["fantasy", "medieval", "sci-fi", "modern", "organic", "pvp"].map(
-                (s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => handleStyleToggle(s)}
-                    className={`catalog-chip px-4 py-1.5 rounded-full text-xs font-medium border transition-all duration-200 capitalize ${
-                      selectedStyles.includes(s)
-                        ? "bg-[#4ade80]/15 border-[#4ade80]/50 text-[#4ade80]"
-                        : "glass border-white/10 text-gray-400 hover:border-white/30 hover:text-white"
-                    }`}
-                  >
-                    {s}
-                  </button>
-                )
-              )}
             </div>
           </div>
         </section>
