@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { formatPrice } from "../../../lib/pricing";
+import Avatar from "../../../lib/ui/Avatar";
+import { RANKS } from "../data/builders";
 
 function Chevron({ className = "w-5 h-5" }) {
   return <svg className={className} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M7 7l3 3-3 3" /></svg>;
@@ -18,6 +20,10 @@ export default function ReadyBuildCard({ listing, animationDelay = 0 }) {
   const [infoHover, setInfoHover] = useState(false);
   const touchStartX = useRef(null);
   const count = media.length;
+  const builder = listing.builder || {};
+  const builderRankRow = Array.isArray(builder.builder) ? builder.builder[0] : builder.builder;
+  const rank = RANKS[builderRankRow?.rank] || RANKS.rookie;
+  const builderName = builder.display_name || builder.username || "BuildEx builder";
 
   const changeSlide = (event, direction) => {
     event.preventDefault();
@@ -76,8 +82,6 @@ export default function ReadyBuildCard({ listing, animationDelay = 0 }) {
         </div>
 
         <span className="absolute left-3 top-3 z-10 rounded-full border border-white/15 bg-black/60 px-3 py-1 text-xs capitalize text-white/80 backdrop-blur-md">{listing.style}</span>
-        <span className="absolute right-3 top-3 z-10 rounded-full border border-[#4ade80]/35 bg-black/60 px-3 py-1 text-sm font-extrabold text-[#4ade80] backdrop-blur-md">{formatPrice(listing.price_kopecks)}</span>
-
         {count > 1 && <>
           <button type="button" aria-label="Previous image" onClick={(event) => changeSlide(event, -1)} className="carousel-arrow absolute left-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-[#4ade80]/50 bg-[#4ade80]/25 text-white backdrop-blur-md hover:border-[#4ade80] hover:bg-[#4ade80] hover:text-black"><Chevron className="h-5 w-5 rotate-180" /></button>
           <button type="button" aria-label="Next image" onClick={(event) => changeSlide(event, 1)} className="carousel-arrow absolute right-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-[#4ade80]/50 bg-[#4ade80]/25 text-white backdrop-blur-md hover:border-[#4ade80] hover:bg-[#4ade80] hover:text-black"><Chevron /></button>
@@ -87,13 +91,26 @@ export default function ReadyBuildCard({ listing, animationDelay = 0 }) {
         </>}
       </div>
 
-      <div className="flex flex-1 flex-col gap-3 p-5" onMouseEnter={() => setInfoHover(true)} onMouseLeave={() => setInfoHover(false)}>
+      <div className="flex flex-1 flex-col gap-4 p-5" onMouseEnter={() => setInfoHover(true)} onMouseLeave={() => setInfoHover(false)}>
         <div>
           <h2 className="truncate text-lg font-bold">{listing.title}</h2>
           <p className="mt-1 min-h-10 line-clamp-2 text-sm leading-relaxed text-gray-400">{listing.description}</p>
         </div>
+        <div className="flex min-w-0 items-center gap-2.5">
+          <Avatar src={builder.avatar_url} name={builderName} className="h-8 w-8 flex-shrink-0 rounded-full text-xs" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs font-semibold text-gray-200">{builderName}</p>
+            {builder.username && <p className="truncate text-[10px] text-gray-500">@{builder.username}</p>}
+          </div>
+          <span className={`flex-shrink-0 rounded-full border px-2 py-1 text-[10px] font-semibold ${rank.bgClass} ${rank.textClass} ${rank.borderClass}`}>
+            {rank.label}
+          </span>
+        </div>
         <div className="mt-auto flex items-center justify-between gap-3 border-t border-white/[0.08] pt-3">
-          <div><p className="text-[10px] uppercase tracking-wide text-gray-500">Instant download</p><p className="text-xs text-gray-300">3D preview included</p></div>
+          <div>
+            <p className="text-xl font-extrabold leading-none text-[#4ade80]">{formatPrice(listing.price_kopecks)}</p>
+            <p className="mt-1 text-[10px] uppercase tracking-wide text-gray-500">Instant download</p>
+          </div>
           <span className="offer-card-view-btn inline-flex items-center gap-1.5 rounded-full border border-[#4ade80]/30 bg-[#4ade80]/12 px-4 py-2 text-xs font-semibold text-[#4ade80] transition-all group-hover:border-[#4ade80] group-hover:bg-[#4ade80] group-hover:text-black group-hover:shadow-[0_0_18px_rgba(74,222,128,0.45)]">View Build <Arrow className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" /></span>
         </div>
       </div>

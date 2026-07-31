@@ -12,6 +12,8 @@ const deletion = readFileSync("supabase/migrations/0085_delete_ready_builds.sql"
 const invoice = readFileSync("supabase/functions/create-invoice/index.ts", "utf8");
 const webhook = readFileSync("supabase/functions/payment-webhook/index.ts", "utf8");
 const readyBuildApi = readFileSync("lib/readyBuilds/api.js", "utf8");
+const readyBuildCard = readFileSync("app/builders/components/ReadyBuildCard.jsx", "utf8");
+const readyBuildDetail = readFileSync("app/build/components/ReadyBuildDetailPage.jsx", "utf8");
 
 test("ready-build purchases snapshot a version and only paid buyers can download", () => {
   assert.match(migration, /version_id uuid not null/);
@@ -80,4 +82,19 @@ test("only owners can delete unsold ready builds and stored assets are removed f
   assert.match(deleteApi, /prepare_ready_build_delete/);
   assert.match(deleteApi, /storage\.from\(bucket\)\.remove\(paths\)/);
   assert.match(deleteApi, /rpc\("delete_ready_build"/);
+});
+
+test("ready-build cards surface creator rank and keep price in the footer", () => {
+  assert.match(readyBuildCard, /builderName/);
+  assert.match(readyBuildCard, /rank\.label/);
+  assert.match(readyBuildCard, /formatPrice\(listing\.price_kopecks\)/);
+  assert.doesNotMatch(readyBuildCard, /3D preview included/);
+});
+
+test("ready-build detail reveals the complete profile-style layout", () => {
+  assert.match(readyBuildDetail, /IntersectionObserver/);
+  assert.match(readyBuildDetail, /Build gallery/);
+  assert.match(readyBuildDetail, /About this build/);
+  assert.match(readyBuildDetail, /View builder profile/);
+  assert.match(readyBuildDetail, /Buy & download/);
 });
