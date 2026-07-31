@@ -58,6 +58,7 @@ migrations are idempotent (safe to re-run during development).
 | 0068 | `0068_restore_delivery_preview_chat_action.sql` | **Chat 3D preview fix.** Restores the `has_preview` delivery-event metadata lost in the managed-studio lifecycle rewrite so future chat delivery cards expose the inline viewer. |
 | 0075 | `0075_ready_builds_marketplace.sql` | **Ready-made builds marketplace.** Adds independent-builder listings, public media/3D previews, immutable world versions, immediate paid downloads, and a separate purchase/payment/payout ledger. |
 | 0081 | `0081_fix_ready_build_publish_rls.sql` | **Ready-made build publishing fix.** Pins the listing and version RPCs to a privileged owner and disables internal RLS evaluation after they verify the authenticated builder, so builders can publish their finished builds. |
+| 0082 | `0082_fix_ready_build_storage_upload_rls.sql` | **Ready-made upload fix.** Runs the Storage ownership helper with a privileged read and recreates the owner-only Storage policies, allowing builders to upload listing images, worlds, and previews. |
 | 0072 | `0072_low_fee_stablecoin_payments.sql` | **Low-fee custody checkout and payouts.** Lowers both order floors to $5, adds payment reconciliation metadata, and switches builder withdrawals to batched USDT-BSC with no separate builder fee. |
 | 0073 | `0073_trc20_bsc_checkout_policy.sql` | **Two-rail custody correction.** Restricts buyer checkout to same-asset USDT-BSC and USDT-TRC20 custody balances while retaining BSC-only payouts and enforcing a 9% managed-studio commission floor. |
 
