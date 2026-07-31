@@ -14,6 +14,7 @@ const webhook = readFileSync("supabase/functions/payment-webhook/index.ts", "utf
 const readyBuildApi = readFileSync("lib/readyBuilds/api.js", "utf8");
 const readyBuildCard = readFileSync("app/builders/components/ReadyBuildCard.jsx", "utf8");
 const readyBuildDetail = readFileSync("app/build/components/ReadyBuildDetailPage.jsx", "utf8");
+const readyBuildCheckout = readFileSync("app/build/checkout/components/ReadyBuildCheckoutPage.jsx", "utf8");
 
 test("ready-build purchases snapshot a version and only paid buyers can download", () => {
   assert.match(migration, /version_id uuid not null/);
@@ -96,5 +97,17 @@ test("ready-build detail reveals the complete profile-style layout", () => {
   assert.match(readyBuildDetail, /Build gallery/);
   assert.match(readyBuildDetail, /About this build/);
   assert.match(readyBuildDetail, /View builder profile/);
-  assert.match(readyBuildDetail, /Buy & download/);
+  assert.match(readyBuildDetail, /Message builder/);
+  assert.match(readyBuildDetail, /build\/checkout/);
+  assert.match(readyBuildDetail, /createPortal/);
+  assert.match(readyBuildDetail, /useGradientBackground/);
+  assert.doesNotMatch(readyBuildDetail, /getPaymentOptions/);
+});
+
+test("ready-build checkout owns payment selection and purchase creation", () => {
+  assert.match(readyBuildCheckout, /Choose a network/);
+  assert.match(readyBuildCheckout, /getPaymentOptions/);
+  assert.match(readyBuildCheckout, /createReadyBuildPurchase/);
+  assert.match(readyBuildCheckout, /createReadyBuildInvoice/);
+  assert.match(readyBuildCheckout, /Complete your purchase/);
 });
