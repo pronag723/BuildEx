@@ -8,6 +8,7 @@ const mediaFix = readFileSync("supabase/migrations/0079_ready_build_media_rpc.sq
 const reorderFix = readFileSync("supabase/migrations/0080_ready_build_media_reorder_rpc.sql", "utf8");
 const ownerReadFix = readFileSync("supabase/migrations/0083_ready_build_owner_asset_reads.sql", "utf8");
 const zipValidationFix = readFileSync("supabase/migrations/0084_fix_ready_build_zip_validation.sql", "utf8");
+const deletion = readFileSync("supabase/migrations/0085_delete_ready_builds.sql", "utf8");
 const invoice = readFileSync("supabase/functions/create-invoice/index.ts", "utf8");
 const webhook = readFileSync("supabase/functions/payment-webhook/index.ts", "utf8");
 const readyBuildApi = readFileSync("lib/readyBuilds/api.js", "utf8");
@@ -68,4 +69,15 @@ test("builders can read their own ready-build storage objects", () => {
 test("ready-build ZIP validation avoids escaped regular expressions", () => {
   assert.match(zipValidationFix, /lower\(right\(btrim\(p_file_name\), 4\)\) <> '\.zip'/);
   assert.doesNotMatch(zipValidationFix, /p_file_name !~\*/);
+});
+
+test("only owners can delete unsold ready builds and stored assets are removed first", () => {
+  assert.match(deletion, /builder_id = auth\.uid\(\)/);
+  assert.match(deletion, /Builds with purchase history cannot be deleted/);
+  assert.match(deletion, /set is_active = false/);
+  assert.match(deletion, /grant execute on function public\.delete_ready_build\(uuid\) to authenticated/);
+  const deleteApi = readyBuildApi.match(/export async function deleteReadyBuild[\s\S]*?\n}/)?.[0] || "";
+  assert.match(deleteApi, /prepare_ready_build_delete/);
+  assert.match(deleteApi, /storage\.from\(bucket\)\.remove\(paths\)/);
+  assert.match(deleteApi, /rpc\("delete_ready_build"/);
 });
