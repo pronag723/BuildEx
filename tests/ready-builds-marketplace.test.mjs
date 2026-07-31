@@ -8,6 +8,7 @@ const mediaFix = readFileSync("supabase/migrations/0079_ready_build_media_rpc.sq
 const reorderFix = readFileSync("supabase/migrations/0080_ready_build_media_reorder_rpc.sql", "utf8");
 const invoice = readFileSync("supabase/functions/create-invoice/index.ts", "utf8");
 const webhook = readFileSync("supabase/functions/payment-webhook/index.ts", "utf8");
+const readyBuildApi = readFileSync("lib/readyBuilds/api.js", "utf8");
 
 test("ready-build purchases snapshot a version and only paid buyers can download", () => {
   assert.match(migration, /version_id uuid not null/);
@@ -48,4 +49,11 @@ test("ready-build image reordering is owner-checked outside browser RLS", () => 
   assert.match(reorderFix, /builder_id = auth\.uid\(\)/);
   assert.match(reorderFix, /with ordinality/);
   assert.match(reorderFix, /grant execute on function public\.reorder_ready_build_media\(uuid, uuid\[\]\) to authenticated/);
+});
+
+test("ready-build version uploads use insert-only storage writes", () => {
+  const uploadVersion = readyBuildApi.match(/export async function uploadReadyBuildVersion[\s\S]*?\n}/)?.[0] || "";
+  assert.match(uploadVersion, /from\(PREVIEW_BUCKET\)\.upload/);
+  assert.match(uploadVersion, /from\(WORLD_BUCKET\)\.upload/);
+  assert.doesNotMatch(uploadVersion, /upsert:\s*true/);
 });
