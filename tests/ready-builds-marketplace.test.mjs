@@ -105,7 +105,9 @@ test("ready-build detail reveals the complete profile-style layout", () => {
 });
 
 test("ready-build checkout owns payment selection and purchase creation", () => {
-  assert.match(readyBuildCheckout, /Choose a network/);
+  assert.match(readyBuildCheckout, /Choose a currency/);
+  assert.match(readyBuildCheckout, /liveMinimumUsd/);
+  assert.match(readyBuildCheckout, /CoinLogo/);
   assert.match(readyBuildCheckout, /getPaymentOptions/);
   assert.match(readyBuildCheckout, /createReadyBuildPurchase/);
   assert.match(readyBuildCheckout, /createReadyBuildInvoice/);
