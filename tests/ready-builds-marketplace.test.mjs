@@ -6,6 +6,8 @@ const migration = readFileSync("supabase/migrations/0075_ready_builds_marketplac
 const rlsFix = readFileSync("supabase/migrations/0078_fix_ready_build_purchase_rls.sql", "utf8");
 const mediaFix = readFileSync("supabase/migrations/0079_ready_build_media_rpc.sql", "utf8");
 const reorderFix = readFileSync("supabase/migrations/0080_ready_build_media_reorder_rpc.sql", "utf8");
+const ownerReadFix = readFileSync("supabase/migrations/0083_ready_build_owner_asset_reads.sql", "utf8");
+const zipValidationFix = readFileSync("supabase/migrations/0084_fix_ready_build_zip_validation.sql", "utf8");
 const invoice = readFileSync("supabase/functions/create-invoice/index.ts", "utf8");
 const webhook = readFileSync("supabase/functions/payment-webhook/index.ts", "utf8");
 const readyBuildApi = readFileSync("lib/readyBuilds/api.js", "utf8");
@@ -56,4 +58,14 @@ test("ready-build version uploads use insert-only storage writes", () => {
   assert.match(uploadVersion, /from\(PREVIEW_BUCKET\)\.upload/);
   assert.match(uploadVersion, /from\(WORLD_BUCKET\)\.upload/);
   assert.doesNotMatch(uploadVersion, /upsert:\s*true/);
+});
+
+test("builders can read their own ready-build storage objects", () => {
+  assert.match(ownerReadFix, /for select to authenticated/);
+  assert.match(ownerReadFix, /public\.can_manage_ready_build/);
+});
+
+test("ready-build ZIP validation avoids escaped regular expressions", () => {
+  assert.match(zipValidationFix, /lower\(right\(btrim\(p_file_name\), 4\)\) <> '\.zip'/);
+  assert.doesNotMatch(zipValidationFix, /p_file_name !~\*/);
 });

@@ -59,6 +59,8 @@ migrations are idempotent (safe to re-run during development).
 | 0075 | `0075_ready_builds_marketplace.sql` | **Ready-made builds marketplace.** Adds independent-builder listings, public media/3D previews, immutable world versions, immediate paid downloads, and a separate purchase/payment/payout ledger. |
 | 0081 | `0081_fix_ready_build_publish_rls.sql` | **Ready-made build publishing fix.** Pins the listing and version RPCs to a privileged owner and disables internal RLS evaluation after they verify the authenticated builder, so builders can publish their finished builds. |
 | 0082 | `0082_fix_ready_build_storage_upload_rls.sql` | **Ready-made upload fix.** Runs the Storage ownership helper with a privileged read and recreates the owner-only Storage policies, allowing builders to upload listing images, worlds, and previews. |
+| 0083 | `0083_ready_build_owner_asset_reads.sql` | **Ready-made asset access.** Lets authenticated builders read files belonging to their own listings, completing the Storage permissions required by legacy upsert uploads. |
+| 0084 | `0084_fix_ready_build_zip_validation.sql` | **Ready-made ZIP validation fix.** Replaces the fragile escaped regex with a normalized `.zip` suffix check so valid world archives are accepted consistently. |
 | 0072 | `0072_low_fee_stablecoin_payments.sql` | **Low-fee custody checkout and payouts.** Lowers both order floors to $5, adds payment reconciliation metadata, and switches builder withdrawals to batched USDT-BSC with no separate builder fee. |
 | 0073 | `0073_trc20_bsc_checkout_policy.sql` | **Two-rail custody correction.** Restricts buyer checkout to same-asset USDT-BSC and USDT-TRC20 custody balances while retaining BSC-only payouts and enforcing a 9% managed-studio commission floor. |
 
