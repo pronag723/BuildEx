@@ -62,6 +62,7 @@ migrations are idempotent (safe to re-run during development).
 | 0083 | `0083_ready_build_owner_asset_reads.sql` | **Ready-made asset access.** Lets authenticated builders read files belonging to their own listings, completing the Storage permissions required by legacy upsert uploads. |
 | 0084 | `0084_fix_ready_build_zip_validation.sql` | **Ready-made ZIP validation fix.** Replaces the fragile escaped regex with a normalized `.zip` suffix check so valid world archives are accepted consistently. |
 | 0086 | `0086_restore_ready_build_delete_rpcs.sql` | **Ready-made deletion recovery.** Idempotently restores the owner-checked deletion RPCs and refreshes the PostgREST schema cache. |
+| 0087 | `0087_public_ready_build_preview_reads.sql` | **Ready-made preview access fix.** Lets every visitor mint a signed URL for previews attached to active listings while keeping world files private. |
 | 0072 | `0072_low_fee_stablecoin_payments.sql` | **Low-fee custody checkout and payouts.** Lowers both order floors to $5, adds payment reconciliation metadata, and switches builder withdrawals to batched USDT-BSC with no separate builder fee. |
 | 0073 | `0073_trc20_bsc_checkout_policy.sql` | **Two-rail custody correction.** Restricts buyer checkout to same-asset USDT-BSC and USDT-TRC20 custody balances while retaining BSC-only payouts and enforcing a 9% managed-studio commission floor. |
 

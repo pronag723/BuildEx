@@ -10,6 +10,7 @@ const ownerReadFix = readFileSync("supabase/migrations/0083_ready_build_owner_as
 const zipValidationFix = readFileSync("supabase/migrations/0084_fix_ready_build_zip_validation.sql", "utf8");
 const deletion = readFileSync("supabase/migrations/0085_delete_ready_builds.sql", "utf8");
 const deletionRecovery = readFileSync("supabase/migrations/0086_restore_ready_build_delete_rpcs.sql", "utf8");
+const publicPreviewReads = readFileSync("supabase/migrations/0087_public_ready_build_preview_reads.sql", "utf8");
 const invoice = readFileSync("supabase/functions/create-invoice/index.ts", "utf8");
 const webhook = readFileSync("supabase/functions/payment-webhook/index.ts", "utf8");
 const readyBuildApi = readFileSync("lib/readyBuilds/api.js", "utf8");
@@ -96,11 +97,20 @@ test("ready-build deletion recovery recreates both RPCs and reloads the schema",
   assert.match(deletionRecovery, /notify pgrst, 'reload schema'/);
 });
 
+test("active ready-build previews are readable by owners, other accounts, and guests", () => {
+  assert.match(publicPreviewReads, /can_read_active_ready_build_preview/);
+  assert.match(publicPreviewReads, /l\.is_active = true/);
+  assert.match(publicPreviewReads, /bucket_id = 'ready_build_previews'/);
+  assert.match(publicPreviewReads, /for select to anon, authenticated/);
+  assert.doesNotMatch(publicPreviewReads, /ready_build_worlds/);
+});
+
 test("ready-build detail returns to the URL-selected feed and frames visible voxels", () => {
   assert.match(catalogPage, /setParams\(readParamsFromLocation\(\)\)/);
   assert.match(worldPreview, /getVisibleVoxelFrame/);
   assert.match(worldPreview, /0\.01/);
   assert.match(worldPreview, /0\.99/);
+  assert.doesNotMatch(readyBuildDetail, /build-media-switch-indicator/);
 });
 
 test("long pasted links render with compact labels", () => {

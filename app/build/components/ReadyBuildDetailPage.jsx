@@ -94,7 +94,6 @@ function BuildGallery({ photos, listing, previewLoader }) {
           <p className="mt-1 text-xs text-gray-500">Explore every angle before purchasing.</p>
         </div>
         <div className={`build-media-switch ${mode === "preview" ? "is-preview" : "is-photos"}`} role="tablist" aria-label="Build media">
-          <span className="build-media-switch-indicator" aria-hidden="true" />
           <button type="button" role="tab" aria-selected={mode === "photos"} onClick={() => setMode("photos")} className={`build-media-switch-option ${mode === "photos" ? "is-active" : ""}`}>Photos</button>
           <button type="button" role="tab" aria-selected={mode === "preview"} onClick={() => setMode("preview")} className={`build-media-switch-option ${mode === "preview" ? "is-active" : ""}`}>3D preview</button>
         </div>
