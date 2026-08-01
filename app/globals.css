@@ -1773,10 +1773,8 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .catalog-mode-switch::before,
   .catalog-mode-switch-option.is-active,
   .catalog-mode-switch-option.is-active::after,
-  .build-media-switch::before,
   .build-media-panel {
     animation: none;
     transition-duration: 0.01ms;
