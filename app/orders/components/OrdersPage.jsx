@@ -47,6 +47,7 @@ import CatalogMobileMenu from "../../builders/components/CatalogMobileMenu";
 import WorldPreview, { PreviewViewer } from "./WorldPreview";
 import { ReadyBuildPurchasesSection } from "../../account/ReadyBuildsSection";
 import { useGradientBackground } from "../../../lib/ui/useGradientBackground";
+import SmartText from "../../../lib/ui/SmartText";
 
 // ─── Status display tables ──────────────────────────────────────────────────
 // Re-used by list rows, detail header, and the timeline. Single source of
@@ -1000,7 +1001,7 @@ function BriefBlock({ text }) {
           expanded ? "" : "line-clamp-6"
         }`}
       >
-        {text}
+        <SmartText>{text}</SmartText>
       </p>
       {(overflowing || expanded) && (
         <button

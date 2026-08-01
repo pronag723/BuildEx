@@ -179,7 +179,8 @@ export default function WorldPreview({ orderId, loadPreview, onClose }) {
 // disposer that tears everything down (raf, GPU resources, listeners, canvas).
 function renderModel(THREE, OrbitControls, mount, model) {
   const { positions, colorIdx, palette, bounds } = model;
-  const [sx, sy, sz] = bounds.size;
+  const frame = getVisibleVoxelFrame(positions, model.voxelCount, bounds.size);
+  const [sx, sy, sz] = frame.size;
 
   const width = mount.clientWidth || 640;
   const height = mount.clientHeight || 360;
@@ -187,10 +188,12 @@ function renderModel(THREE, OrbitControls, mount, model) {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x0a0a0f);
 
-  const camera = new THREE.PerspectiveCamera(55, width / height, 0.1, 5000);
-  const maxDim = Math.max(sx, sy, sz, 1);
-  const dist = maxDim * 1.8 + 8;
-  camera.position.set(dist, dist * 0.8, dist);
+  const fov = 55;
+  const radius = Math.max(Math.hypot(sx, sy, sz) / 2, 1);
+  const fitFov = Math.min(fov, THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(fov) / 2) * (width / height))));
+  const dist = radius / Math.sin(THREE.MathUtils.degToRad(fitFov) / 2) * 1.18;
+  const camera = new THREE.PerspectiveCamera(fov, width / height, Math.max(0.1, dist / 1000), Math.max(5000, dist * 12));
+  camera.position.set(dist * 0.8, dist * 0.62, dist * 0.8);
 
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -226,9 +229,7 @@ function renderModel(THREE, OrbitControls, mount, model) {
     new THREE.Color().setRGB(c[0] / 255, c[1] / 255, c[2] / 255, THREE.SRGBColorSpace)
   );
   const dummy = new THREE.Object3D();
-  const cx = sx / 2;
-  const cy = sy / 2;
-  const cz = sz / 2;
+  const [cx, cy, cz] = frame.center;
   for (let i = 0; i < count; i++) {
     dummy.position.set(
       positions[i * 3] - cx,
@@ -280,5 +281,31 @@ function renderModel(THREE, OrbitControls, mount, model) {
     if (renderer.domElement.parentNode === mount) {
       mount.removeChild(renderer.domElement);
     }
+  };
+}
+
+// Coordinate-scoped previews can include a few distant terrain blocks. Their
+// stored region bounds used to push the actual build to the bottom of the
+// canvas and make it microscopic. Fit the camera to the central 98% of visible
+// voxels while still rendering every block, so sparse outliers do not dominate
+// the initial view.
+function getVisibleVoxelFrame(positions, count, fallbackSize) {
+  if (!count) return { center: fallbackSize.map((value) => value / 2), size: fallbackSize };
+  const sampleCount = Math.min(count, 20000);
+  const axes = [[], [], []];
+  for (let sample = 0; sample < sampleCount; sample++) {
+    const index = Math.min(count - 1, Math.floor(sample * count / sampleCount));
+    axes[0].push(positions[index * 3]);
+    axes[1].push(positions[index * 3 + 1]);
+    axes[2].push(positions[index * 3 + 2]);
+  }
+  axes.forEach((axis) => axis.sort((a, b) => a - b));
+  const lowIndex = Math.floor((sampleCount - 1) * 0.01);
+  const highIndex = Math.ceil((sampleCount - 1) * 0.99);
+  const low = axes.map((axis) => axis[lowIndex]);
+  const high = axes.map((axis) => axis[highIndex]);
+  return {
+    center: low.map((value, axis) => (value + high[axis]) / 2),
+    size: low.map((value, axis) => Math.max(1, high[axis] - value + 1)),
   };
 }

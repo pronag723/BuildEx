@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import SmartText from "../../../lib/ui/SmartText";
 import { publicAsset } from "../../home/utils";
 import { formatPrice, SIZE_META } from "../../../lib/pricing";
 import { Icon } from "../../../lib/icons";
@@ -446,7 +447,7 @@ export default function MessageThread({
                             mine ? "text-black" : "text-gray-200"
                           }`}
                         >
-                          {m.body}
+                          <SmartText>{m.body}</SmartText>
                         </p>
                       )}
                       <span
@@ -465,7 +466,7 @@ export default function MessageThread({
                           : "glass rounded-bl-md"
                       }`}
                     >
-                      {m.body}
+                      <SmartText>{m.body}</SmartText>
                       <span
                         className={`block text-[10px] mt-1 text-right ${
                           mine ? "text-black/50" : "text-gray-500"

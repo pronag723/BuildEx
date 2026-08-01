@@ -14,6 +14,7 @@ import { formatPrice } from "../../../lib/pricing";
 import { getReadyBuild, getReadyBuildPreviewUrl } from "../../../lib/readyBuilds/api";
 import Avatar from "../../../lib/ui/Avatar";
 import { useGradientBackground } from "../../../lib/ui/useGradientBackground";
+import SmartText from "../../../lib/ui/SmartText";
 
 function Chevron({ className = "h-4 w-4" }) {
   return (
@@ -297,7 +298,7 @@ export default function ReadyBuildDetailPage({ listingId }) {
 
               <section className="reveal glass rounded-3xl p-6 lg:p-8">
                 <h2 className="mb-4 text-xl font-bold">About this build</h2>
-                <p className="whitespace-pre-wrap leading-relaxed text-gray-400">{listing.description}</p>
+                <p className="whitespace-pre-wrap leading-relaxed text-gray-400"><SmartText>{listing.description}</SmartText></p>
                 <div className="mt-6 grid grid-cols-2 gap-3 border-t border-white/[0.08] pt-6 sm:grid-cols-4">
                   <div className="text-center"><p className="text-xl font-bold capitalize">{listing.style}</p><p className="text-[10px] uppercase tracking-wide text-gray-500">Style</p></div>
                   <div className="text-center"><p className="text-xl font-bold">{photos.length}</p><p className="text-[10px] uppercase tracking-wide text-gray-500">Photos</p></div>

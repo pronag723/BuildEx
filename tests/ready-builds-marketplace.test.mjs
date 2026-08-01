@@ -9,12 +9,16 @@ const reorderFix = readFileSync("supabase/migrations/0080_ready_build_media_reor
 const ownerReadFix = readFileSync("supabase/migrations/0083_ready_build_owner_asset_reads.sql", "utf8");
 const zipValidationFix = readFileSync("supabase/migrations/0084_fix_ready_build_zip_validation.sql", "utf8");
 const deletion = readFileSync("supabase/migrations/0085_delete_ready_builds.sql", "utf8");
+const deletionRecovery = readFileSync("supabase/migrations/0086_restore_ready_build_delete_rpcs.sql", "utf8");
 const invoice = readFileSync("supabase/functions/create-invoice/index.ts", "utf8");
 const webhook = readFileSync("supabase/functions/payment-webhook/index.ts", "utf8");
 const readyBuildApi = readFileSync("lib/readyBuilds/api.js", "utf8");
 const readyBuildCard = readFileSync("app/builders/components/ReadyBuildCard.jsx", "utf8");
 const readyBuildDetail = readFileSync("app/build/components/ReadyBuildDetailPage.jsx", "utf8");
 const readyBuildCheckout = readFileSync("app/build/checkout/components/ReadyBuildCheckoutPage.jsx", "utf8");
+const catalogPage = readFileSync("app/builders/components/CatalogPage.jsx", "utf8");
+const worldPreview = readFileSync("app/orders/components/WorldPreview.jsx", "utf8");
+const smartText = readFileSync("lib/ui/SmartText.jsx", "utf8");
 
 test("ready-build purchases snapshot a version and only paid buyers can download", () => {
   assert.match(migration, /version_id uuid not null/);
@@ -83,6 +87,26 @@ test("only owners can delete unsold ready builds and stored assets are removed f
   assert.match(deleteApi, /prepare_ready_build_delete/);
   assert.match(deleteApi, /storage\.from\(bucket\)\.remove\(paths\)/);
   assert.match(deleteApi, /rpc\("delete_ready_build"/);
+});
+
+test("ready-build deletion recovery recreates both RPCs and reloads the schema", () => {
+  assert.match(deletionRecovery, /function public\.prepare_ready_build_delete/);
+  assert.match(deletionRecovery, /function public\.delete_ready_build/);
+  assert.match(deletionRecovery, /grant execute on function public\.prepare_ready_build_delete\(uuid\) to authenticated/);
+  assert.match(deletionRecovery, /notify pgrst, 'reload schema'/);
+});
+
+test("ready-build detail returns to the URL-selected feed and frames visible voxels", () => {
+  assert.match(catalogPage, /setParams\(readParamsFromLocation\(\)\)/);
+  assert.match(worldPreview, /getVisibleVoxelFrame/);
+  assert.match(worldPreview, /0\.01/);
+  assert.match(worldPreview, /0\.99/);
+});
+
+test("long pasted links render with compact labels", () => {
+  assert.match(smartText, /compactUrlLabel/);
+  assert.match(smartText, /BuildEx ready-made build/);
+  assert.match(smartText, /noopener noreferrer/);
 });
 
 test("ready-build cards surface creator rank and keep price in the footer", () => {

@@ -31,6 +31,7 @@ import { useGradientBackground } from "../../../lib/ui/useGradientBackground";
 import WorldPreview from "../../orders/components/WorldPreview";
 import StudiosConsole from "./StudiosConsole";
 import PayoutsConsole from "./PayoutsConsole";
+import SmartText from "../../../lib/ui/SmartText";
 
 const STATUS_LABEL = {
   pending_payment: "Awaiting payment",
@@ -440,7 +441,7 @@ function CaseDetails({ order, onResolved, isOpenDispute }) {
           Brief
         </span>
         <p className="bx-scroll text-sm text-gray-300 whitespace-pre-wrap break-words leading-relaxed p-3 rounded-2xl bg-black/30 border border-white/10 max-h-48 overflow-y-auto">
-          {order.brief}
+          <SmartText>{order.brief}</SmartText>
         </p>
       </div>
 
@@ -613,7 +614,7 @@ function AdminMessage({ message: m }) {
         ) : isEvent ? (
           <p className="text-[13px] text-gray-400 italic">{m.body || m.meta?.event || "Order update"}</p>
         ) : (
-          <p className="text-[13px] text-gray-200 whitespace-pre-wrap break-words">{m.body}</p>
+          <p className="text-[13px] text-gray-200 whitespace-pre-wrap break-words"><SmartText>{m.body}</SmartText></p>
         )}
       </div>
     </li>

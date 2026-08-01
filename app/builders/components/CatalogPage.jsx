@@ -49,6 +49,10 @@ export default function CatalogPage() {
 
   // Sync state when the user navigates back/forward
   useEffect(() => {
+    // The static server render cannot see the query string. Re-read it after
+    // hydration and after a Next client navigation back from a build detail so
+    // ?mode=ready reliably restores the ready-made feed instead of builders.
+    setParams(readParamsFromLocation());
     const onPop = () => setParams(readParamsFromLocation());
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
