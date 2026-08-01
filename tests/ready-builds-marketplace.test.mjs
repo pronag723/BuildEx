@@ -11,6 +11,7 @@ const zipValidationFix = readFileSync("supabase/migrations/0084_fix_ready_build_
 const deletion = readFileSync("supabase/migrations/0085_delete_ready_builds.sql", "utf8");
 const deletionRecovery = readFileSync("supabase/migrations/0086_restore_ready_build_delete_rpcs.sql", "utf8");
 const publicPreviewReads = readFileSync("supabase/migrations/0087_public_ready_build_preview_reads.sql", "utf8");
+const favoritesMigration = readFileSync("supabase/migrations/0088_ready_build_favorites.sql", "utf8");
 const invoice = readFileSync("supabase/functions/create-invoice/index.ts", "utf8");
 const webhook = readFileSync("supabase/functions/payment-webhook/index.ts", "utf8");
 const readyBuildApi = readFileSync("lib/readyBuilds/api.js", "utf8");
@@ -20,6 +21,7 @@ const readyBuildCheckout = readFileSync("app/build/checkout/components/ReadyBuil
 const catalogPage = readFileSync("app/builders/components/CatalogPage.jsx", "utf8");
 const worldPreview = readFileSync("app/orders/components/WorldPreview.jsx", "utf8");
 const smartText = readFileSync("lib/ui/SmartText.jsx", "utf8");
+const favoritesApi = readFileSync("lib/favorites/api.js", "utf8");
 
 test("ready-build purchases snapshot a version and only paid buyers can download", () => {
   assert.match(migration, /version_id uuid not null/);
@@ -124,6 +126,15 @@ test("ready-build cards surface creator rank and keep price in the footer", () =
   assert.match(readyBuildCard, /rank\.label/);
   assert.match(readyBuildCard, /formatPrice\(listing\.price_kopecks\)/);
   assert.doesNotMatch(readyBuildCard, /3D preview included/);
+});
+
+test("signed-in users can favorite individual ready-made builds", () => {
+  assert.match(favoritesMigration, /ready_build_id uuid/);
+  assert.match(favoritesMigration, /favorites_user_ready_build_unique/);
+  assert.match(favoritesApi, /`ready_build:\$\{row\.ready_build_id\}`/);
+  assert.match(readyBuildCard, /isFavorite\(listing\.id, "ready_build"\)/);
+  assert.match(readyBuildCard, /toggleFavorite\(listing\.id, "ready_build"\)/);
+  assert.match(readyBuildCard, /aria-pressed=\{favorited\}/);
 });
 
 test("ready-build detail reveals the complete profile-style layout", () => {

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 import { formatPrice } from "../../../lib/pricing";
 import Avatar from "../../../lib/ui/Avatar";
+import { useFavorites } from "../../../lib/favorites/FavoritesContext";
 import { RANKS } from "../data/builders";
 
 function Chevron({ className = "w-5 h-5" }) {
@@ -12,6 +13,10 @@ function Chevron({ className = "w-5 h-5" }) {
 
 function Arrow({ className = "w-4 h-4" }) {
   return <svg className={className} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 10h10M11 6l4 4-4 4" /></svg>;
+}
+
+function Heart({ className = "w-4 h-4", filled = false }) {
+  return <svg className={className} viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>;
 }
 
 export default function ReadyBuildCard({ listing, animationDelay = 0 }) {
@@ -24,6 +29,8 @@ export default function ReadyBuildCard({ listing, animationDelay = 0 }) {
   const builderRankRow = Array.isArray(builder.builder) ? builder.builder[0] : builder.builder;
   const rank = RANKS[builderRankRow?.rank] || RANKS.rookie;
   const builderName = builder.display_name || builder.username || "BuildEx builder";
+  const { canFavorite, isFavorite, toggleFavorite } = useFavorites();
+  const favorited = isFavorite(listing.id, "ready_build");
 
   const changeSlide = (event, direction) => {
     event.preventDefault();
@@ -35,6 +42,12 @@ export default function ReadyBuildCard({ listing, animationDelay = 0 }) {
     event.preventDefault();
     event.stopPropagation();
     setIndex(nextIndex);
+  };
+
+  const onToggleFavorite = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    toggleFavorite(listing.id, "ready_build");
   };
 
   const onTouchStart = (event) => {
@@ -82,6 +95,22 @@ export default function ReadyBuildCard({ listing, animationDelay = 0 }) {
         </div>
 
         <span className="absolute left-3 top-3 z-10 rounded-full border border-white/15 bg-black/60 px-3 py-1 text-xs capitalize text-white/80 backdrop-blur-md">{listing.style}</span>
+        {canFavorite && (
+          <button
+            type="button"
+            onClick={onToggleFavorite}
+            aria-pressed={favorited}
+            aria-label={favorited ? "Remove build from favorites" : "Add build to favorites"}
+            title={favorited ? "Remove from favorites" : "Add to favorites"}
+            className={`absolute right-3 top-3 z-20 flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur-md transition-all duration-200 ${
+              favorited
+                ? "border-[#4ade80] bg-[#4ade80] text-black shadow-[0_0_16px_rgba(74,222,128,0.5)]"
+                : "card-fav-btn border-white/15 bg-black/60 text-white hover:border-[#4ade80]/60 hover:text-[#4ade80]"
+            }`}
+          >
+            <Heart filled={favorited} />
+          </button>
+        )}
         {count > 1 && <>
           <button type="button" aria-label="Previous image" onClick={(event) => changeSlide(event, -1)} className="carousel-arrow absolute left-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-[#4ade80]/50 bg-[#4ade80]/25 text-white backdrop-blur-md hover:border-[#4ade80] hover:bg-[#4ade80] hover:text-black"><Chevron className="h-5 w-5 rotate-180" /></button>
           <button type="button" aria-label="Next image" onClick={(event) => changeSlide(event, 1)} className="carousel-arrow absolute right-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-[#4ade80]/50 bg-[#4ade80]/25 text-white backdrop-blur-md hover:border-[#4ade80] hover:bg-[#4ade80] hover:text-black"><Chevron /></button>
