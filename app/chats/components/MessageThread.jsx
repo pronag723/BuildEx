@@ -140,7 +140,7 @@ function OrderEventMessage({ message, onPreview }) {
             <div className="flex items-center gap-2 min-w-0">
               <Icon name="lock" size={16} className="text-[#4ade80]" />
               <span className="font-bold text-sm text-[#4ade80]">
-                Order paid · in escrow
+                Order paid · protected
               </span>
             </div>
             {meta.price_kopecks != null && (
