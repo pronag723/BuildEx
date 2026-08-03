@@ -18,6 +18,7 @@ const readyBuildApi = readFileSync("lib/readyBuilds/api.js", "utf8");
 const readyBuildCard = readFileSync("app/builders/components/ReadyBuildCard.jsx", "utf8");
 const readyBuildDetail = readFileSync("app/build/components/ReadyBuildDetailPage.jsx", "utf8");
 const readyBuildCheckout = readFileSync("app/build/checkout/components/ReadyBuildCheckoutPage.jsx", "utf8");
+const readyBuildEditor = readFileSync("app/account/ReadyBuildsSection.jsx", "utf8");
 const catalogPage = readFileSync("app/builders/components/CatalogPage.jsx", "utf8");
 const worldPreview = readFileSync("app/orders/components/WorldPreview.jsx", "utf8");
 const smartText = readFileSync("lib/ui/SmartText.jsx", "utf8");
@@ -157,4 +158,13 @@ test("ready-build checkout owns payment selection and purchase creation", () => 
   assert.match(readyBuildCheckout, /createReadyBuildPurchase/);
   assert.match(readyBuildCheckout, /createReadyBuildInvoice/);
   assert.match(readyBuildCheckout, /Complete your purchase/);
+});
+
+test("saving ready-build compatibility publishes drafts to the marketplace feed", () => {
+  const editorSave = readyBuildEditor.match(/const save = async[\s\S]*?const previewSource/)?.[0] || "";
+  assert.match(editorSave, /active: true/);
+  assert.doesNotMatch(editorSave, /active: isEditing \? listing\.is_active : true/);
+  assert.match(readyBuildEditor, /Save & publish/);
+  assert.match(readyBuildEditor, /MINECRAFT_EDITIONS/);
+  assert.doesNotMatch(readyBuildEditor, /<select required value=\{form\.minecraftEdition\}/);
 });
