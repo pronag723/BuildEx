@@ -58,7 +58,7 @@ const STATUS_META = {
     badgeClass: "bg-amber-400/15 text-amber-300 border-amber-400/30",
   },
   paid: {
-    label: "Paid · in escrow",
+    label: "Paid · protected",
     badgeClass: "bg-[#4ade80]/15 text-[#4ade80] border-[#4ade80]/30",
   },
   in_progress: {
@@ -1094,6 +1094,8 @@ function ActionButtons({
   onOpenChat,
 }) {
   const buttons = [];
+  const disputeDeadline = order.delivered_at ? new Date(order.delivered_at).getTime() + 7 * 24 * 60 * 60 * 1000 : 0;
+  const withinDisputeWindow = disputeDeadline > Date.now();
 
   if (isBuilder && order.status === "paid") {
     buttons.push(
@@ -1118,7 +1120,7 @@ function ActionButtons({
     );
     // Stage 10: the inverse of confirming — reject the delivery and open a
     // dispute for the team to resolve. Only offered before a dispute exists.
-    if (!hasDispute) {
+    if (!hasDispute && withinDisputeWindow) {
       buttons.push(
         <Secondary key="dispute" onClick={onDispute} disabled={busy}>
           Open a dispute
@@ -1381,7 +1383,7 @@ function ConfirmCompleteModal({ builderName, hasPreview, busy, onClose, onConfir
       <div className="glass rounded-3xl p-6 sm:p-8 max-w-lg w-full">
         <h2 className="font-bold text-lg mb-1">Confirm &amp; release payment?</h2>
         <p className="text-sm text-gray-400 mb-5">
-          This releases the escrowed payment to{" "}
+          This releases the protected payment to{" "}
           <strong className="text-gray-200">{builderName}</strong> and unlocks the
           world file for download. It can&apos;t be undone — so make sure
           you&apos;re happy with the build first.
@@ -1495,7 +1497,7 @@ function DisputeCard({ dispute, isBuyer }) {
 }
 
 // Buyer-side modal: collect a reason and open the dispute. The open_dispute RPC
-// enforces buyer-only / delivered / once server-side.
+// enforces buyer-only / delivered / seven-day deadline / once server-side.
 function DisputeModal({ orderId, onClose, onOpened }) {
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -1527,14 +1529,15 @@ function DisputeModal({ orderId, onClose, onOpened }) {
       <div className="glass rounded-3xl p-6 sm:p-8 max-w-lg w-full">
         <h2 className="font-bold text-lg mb-1">Open a dispute</h2>
         <p className="text-xs text-gray-500 mb-5">
-          Only do this if the delivery doesn't match what you agreed. The funds
-          stay in escrow while our team reviews the order — they'll either
-          release the payment to the builder or refund you.
+          Submit within seven calendar days of delivery only when the build
+          materially differs from the documented order scope. Identify the
+          mismatch and include evidence; protected funds remain on hold while
+          support decides a full builder release or full buyer refund.
         </p>
 
         <label className="block">
           <span className="text-[11px] text-gray-500 uppercase tracking-widest block mb-1.5">
-            What's wrong?
+            Material mismatch and evidence
           </span>
           <textarea
             value={reason}
@@ -1542,7 +1545,7 @@ function DisputeModal({ orderId, onClose, onOpened }) {
             disabled={submitting}
             rows={5}
             maxLength={4000}
-            placeholder="Describe what's missing or doesn't match the brief, with as much detail as you can."
+            placeholder="Identify the exact brief or agreed chat requirement, explain the material mismatch, and reference screenshots, files, preview details, or messages that support it."
             className="w-full px-4 py-3 rounded-2xl bg-black/30 border border-white/10 text-sm text-white placeholder:text-gray-500 focus:border-red-400/60 focus:outline-none focus:ring-2 focus:ring-red-400/20 resize-y"
           />
         </label>
@@ -1561,7 +1564,7 @@ function DisputeModal({ orderId, onClose, onOpened }) {
           <button
             type="button"
             onClick={onSubmit}
-            disabled={submitting || !reason.trim()}
+            disabled={submitting || reason.trim().length < 20}
             className="px-5 py-2.5 rounded-full text-sm font-bold bg-red-500 text-white hover:bg-red-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {submitting ? "Opening…" : "Open dispute"}
@@ -1690,7 +1693,7 @@ function DeliveryCard({ delivery, order, isBuyer, isBuilder, review, onRequestRe
           <p className="text-xs text-gray-400 flex items-start gap-2 leading-relaxed">
             <Icon name="lock" size={14} className="mt-0.5 flex-shrink-0" />
             <span>
-              The download is locked while the file is in escrow. Tap{" "}
+              The download is locked while payment is protected. Tap{" "}
               <strong className="text-[#4ade80]">Confirm &amp; release</strong>{" "}
               below once you're happy with the build — that releases the
               payment and unlocks the file.
