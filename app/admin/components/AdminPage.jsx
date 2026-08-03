@@ -248,7 +248,7 @@ function ModeratorConsole() {
           <h1 className="text-2xl font-extrabold">Order moderation</h1>
           <p className="text-sm text-gray-500 mt-1">
             Review rejected orders end-to-end — chat, delivered file, 3D preview —
-            and resolve disputes by releasing escrow or refunding the buyer.
+            and resolve disputes by releasing protected funds or recording a confirmed buyer refund.
           </p>
         </div>
       </header>
@@ -625,13 +625,14 @@ function ResolveBlock({ orderId, onResolved }) {
   const [busy, setBusy] = useState(false);
   const [errMsg, setErrMsg] = useState(null);
   const [note, setNote] = useState("");
+  const [refundReference, setRefundReference] = useState("");
 
   const resolve = useCallback(
     async (outcome) => {
       if (busy) return;
       setBusy(true);
       setErrMsg(null);
-      const { error } = await resolveDispute({ orderId, outcome, note: note.trim() || null });
+      const { error } = await resolveDispute({ orderId, outcome, note: note.trim() || null, refundReference: outcome === "refund" ? refundReference.trim() : null });
       if (error) {
         setBusy(false);
         setErrMsg(error.message || "Couldn't resolve the dispute.");
@@ -639,7 +640,7 @@ function ResolveBlock({ orderId, onResolved }) {
       }
       onResolved?.();
     },
-    [busy, orderId, note, onResolved]
+    [busy, orderId, note, refundReference, onResolved]
   );
 
   return (
@@ -653,15 +654,19 @@ function ResolveBlock({ orderId, onResolved }) {
         placeholder="Resolution note (optional) — visible to both parties."
         className="w-full px-4 py-3 rounded-2xl bg-black/30 border border-white/10 text-sm text-white placeholder:text-gray-500 focus:border-[#4ade80]/60 focus:outline-none focus:ring-2 focus:ring-[#4ade80]/20 resize-y"
       />
+      <div className="rounded-2xl border border-amber-400/20 bg-amber-400/10 p-3">
+        <p className="text-xs text-amber-100">Before recording a buyer refund, complete and confirm the outbound NOWPayments or authorized manual transfer. A status change does not send funds.</p>
+        <input value={refundReference} onChange={(e) => setRefundReference(e.target.value)} disabled={busy} maxLength={200} placeholder="Confirmed provider / transaction reference" className="mt-3 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-2.5 text-sm text-white placeholder:text-gray-500 focus:border-amber-300/60 focus:outline-none" />
+      </div>
       {errMsg && <p className="text-sm text-red-400">{errMsg}</p>}
       <div className="flex flex-wrap gap-2 justify-end">
         <button
           type="button"
           onClick={() => resolve("refund")}
-          disabled={busy}
+          disabled={busy || !refundReference.trim()}
           className="px-5 py-2.5 rounded-full text-sm font-semibold border border-white/15 text-gray-200 hover:bg-white/5 transition-all disabled:opacity-50 disabled:cursor-wait"
         >
-          {busy ? "Working…" : "Refund buyer"}
+          {busy ? "Working…" : "Record completed refund"}
         </button>
         <button
           type="button"
