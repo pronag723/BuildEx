@@ -96,6 +96,26 @@ Deno.serve(async (req) => {
     return json({ error: "This checkout is no longer awaiting payment" }, 409);
   }
 
+  // A checkout cannot reach the payment provider until the server-recorded,
+  // versioned acceptance exists for this exact order or purchase and currency.
+  const subjectType = isReadyBuild ? "ready_build" : "custom_order";
+  const { data: consent, error: consentErr } = await asUser
+    .from("legal_checkout_acceptances")
+    .select("id, pay_currency, immediate_delivery, final_sale")
+    .eq("subject_type", subjectType)
+    .eq("subject_id", order.id)
+    .eq("user_id", userData.user.id)
+    .maybeSingle();
+  if (consentErr || !consent) {
+    return json({ error: "Accept the current checkout terms before paying" }, 409);
+  }
+  if (consent.pay_currency && consent.pay_currency !== payCurrency) {
+    return json({ error: "Payment currency changed; record checkout acceptance again" }, 409);
+  }
+  if (isReadyBuild && (!consent.immediate_delivery || !consent.final_sale)) {
+    return json({ error: "Immediate-delivery and final-sale consent are required" }, 409);
+  }
+
   const MIN_CENTS = 500;
   if (Number(order.price_kopecks) < MIN_CENTS) {
     return json(
