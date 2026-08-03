@@ -15,6 +15,7 @@ import {
 } from "../../../../lib/readyBuilds/api";
 import Avatar from "../../../../lib/ui/Avatar";
 import { useGradientBackground } from "../../../../lib/ui/useGradientBackground";
+import { recordCheckoutAcceptance } from "../../../../lib/legal/api";
 
 function Chevron({ className = "h-4 w-4" }) {
   return <svg className={className} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M7 7l3 3-3 3" /></svg>;
@@ -107,6 +108,7 @@ export default function ReadyBuildCheckoutPage() {
   const [paymentError, setPaymentError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+  const [acceptedFinalSale, setAcceptedFinalSale] = useState(false);
   const [theme, setTheme] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { gradientRef, edgeGlowRef } = useGradientBackground();
@@ -164,12 +166,24 @@ export default function ReadyBuildCheckoutPage() {
   const builderName = builder.display_name || builder.username || "BuildEx builder";
 
   const pay = async () => {
-    if (!listing || !selectedCurrency || submitting) return;
+    if (!listing || !selectedCurrency || submitting || !acceptedFinalSale) return;
     setSubmitting(true);
     setSubmitError(null);
     const { purchaseId, error: purchaseError } = await createReadyBuildPurchase(listing.id);
     if (purchaseError || !purchaseId) {
       setSubmitError(purchaseError?.message || "Couldn't start your purchase.");
+      setSubmitting(false);
+      return;
+    }
+    const { error: consentError } = await recordCheckoutAcceptance({
+      subjectType: "ready_build",
+      subjectId: purchaseId,
+      payCurrency: selectedCurrency,
+      immediateDelivery: true,
+      finalSale: true
+    });
+    if (consentError) {
+      setSubmitError(consentError.message || "We couldn't record your purchase consent.");
       setSubmitting(false);
       return;
     }
@@ -213,14 +227,16 @@ export default function ReadyBuildCheckoutPage() {
                     {paymentLoading ? <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/15 p-5 text-sm text-gray-400"><div className="h-5 w-5 animate-spin rounded-full border-2 border-[#4ade80] border-t-transparent" />Checking live payment options…</div> : paymentOptions.length ? <div className="grid gap-2 sm:grid-cols-2">{paymentOptions.map((option) => <PaymentOption key={option.code} option={option} selected={selectedCurrency === option.code} onSelect={() => setSelectedCurrency(option.code)} />)}</div> : <p className="rounded-2xl border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-200">{paymentError}</p>}
                   </div>
                   <div className="mt-6 rounded-2xl border border-white/[.08] bg-black/15 p-4 text-xs leading-relaxed text-gray-500"><p className="flex gap-2"><LockIcon /><span>BuildEx creates a protected checkout for the selected network. The displayed build price does not change when you switch payment methods.</span></p></div>
+                  <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-2xl border border-white/10 bg-black/15 p-4 text-xs leading-relaxed text-gray-300"><input type="checkbox" checked={acceptedFinalSale} onChange={(event) => setAcceptedFinalSale(event.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-[#4ade80]" /><span>I request immediate access to this digital build and understand that the purchase becomes final once access is provided. I accept the <Link className="underline hover:text-white" href="/legal/payments/">final-sale policy</Link> and <Link className="underline hover:text-white" href="/legal/ready-build-license/">license</Link>. Mandatory remedies for non-delivery, material defects, misdescription, infringement, or fraud remain available.</span></label>
                   {submitError && <p className="mt-4 rounded-2xl bg-red-500/10 p-4 text-sm text-red-400">{submitError}</p>}
-                  <button type="button" onClick={pay} disabled={submitting || paymentLoading || !selectedCurrency} className="mt-6 w-full rounded-full bg-[#4ade80] py-4 text-base font-bold text-black shadow-[0_0_28px_rgba(74,222,128,.25)] transition-all hover:-translate-y-0.5 hover:bg-[#86efac] disabled:cursor-wait disabled:opacity-45">{submitting ? "Opening secure checkout…" : `Pay ${formatPrice(listing.price_kopecks)}`}</button>
+                  <button type="button" onClick={pay} disabled={submitting || paymentLoading || !selectedCurrency || !acceptedFinalSale} className="mt-6 w-full rounded-full bg-[#4ade80] py-4 text-base font-bold text-black shadow-[0_0_28px_rgba(74,222,128,.25)] transition-all hover:-translate-y-0.5 hover:bg-[#86efac] disabled:cursor-not-allowed disabled:opacity-45">{submitting ? "Opening secure checkout…" : `Pay ${formatPrice(listing.price_kopecks)}`}</button>
                 </section>
 
                 <aside className="glass overflow-hidden rounded-3xl lg:sticky lg:top-28">
                   <div className="aspect-[16/10] bg-black/25">{cover ? <img src={cover.url} alt={cover.alt || listing.title} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-sm text-gray-500">No preview image</div>}</div>
                   <div className="p-5">
                     <p className="text-[10px] uppercase tracking-widest text-[#4ade80]">You’re buying</p><h2 className="mt-1 text-xl font-bold">{listing.title}</h2><div className="mt-3 flex items-center gap-2.5"><Avatar src={builder.avatar_url} name={builderName} className="h-9 w-9 rounded-full text-xs" /><div className="min-w-0"><p className="truncate text-xs font-semibold">{builderName}</p>{builder.username && <p className="truncate text-[10px] text-gray-500">@{builder.username}</p>}</div></div>
+                    <dl className="mt-4 space-y-2 border-t border-white/[.08] pt-4 text-[11px]"><div className="flex justify-between gap-3"><dt className="text-gray-500">Compatibility</dt><dd className="text-right text-gray-300">{listing.minecraft_edition} · {listing.minecraft_version}</dd></div><div className="flex justify-between gap-3"><dt className="text-gray-500">File</dt><dd className="text-right text-gray-300">{listing.file_format} · {listing.version?.world_size_bytes ? `${(listing.version.world_size_bytes / 1024 / 1024).toFixed(1)} MB` : "—"}</dd></div><div className="flex justify-between gap-3"><dt className="text-gray-500">Includes</dt><dd className="text-right text-gray-300">{listing.included_content}</dd></div><div className="flex justify-between gap-3"><dt className="text-gray-500">Dependencies</dt><dd className="text-right text-gray-300">{listing.dependencies}</dd></div><div className="flex justify-between gap-3"><dt className="text-gray-500">Currency / network</dt><dd className="text-right text-gray-300">{paymentOptions.find((option) => option.code === selectedCurrency)?.displayName || selectedCurrency}</dd></div></dl>
                     <div className="mt-5 flex items-center justify-between border-t border-white/[.08] pt-5"><span className="text-sm text-gray-400">Total</span><span className="text-2xl font-extrabold text-[#4ade80]">{formatPrice(listing.price_kopecks)}</span></div>
                     <div className="mt-4 grid grid-cols-2 gap-2 text-[10px] text-gray-500"><span className="flex items-center gap-1.5"><CheckIcon /><span>Instant access</span></span><span className="flex items-center gap-1.5"><CheckIcon /><span>Source world</span></span></div>
                   </div>
