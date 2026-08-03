@@ -28,6 +28,7 @@ import CatalogNavbar from "../../builders/components/CatalogNavbar";
 import CatalogMobileMenu from "../../builders/components/CatalogMobileMenu";
 import { useGradientBackground } from "../../../lib/ui/useGradientBackground";
 import Avatar from "../../../lib/ui/Avatar";
+import { recordCheckoutAcceptance } from "../../../lib/legal/api";
 
 const STEPS = ["size", "style", "brief", "review"];
 
@@ -146,6 +147,7 @@ export default function OrderPlacementPage() {
   const [selectedPayCurrency, setSelectedPayCurrency] = useState("");
   const [paymentOptionsLoading, setPaymentOptionsLoading] = useState(false);
   const [paymentOptionsError, setPaymentOptionsError] = useState(null);
+  const [acceptedOrderTerms, setAcceptedOrderTerms] = useState(false);
 
   // Sizes the builder offers (built-ins + any custom tiers), with their cent
   // price. Disabled tiers are still shown but greyed and unselectable so buyers
@@ -212,7 +214,7 @@ export default function OrderPlacementPage() {
 
   // ── Submit (mock pay) ──────────────────────────────────────────────────────
   const onPay = useCallback(async () => {
-    if (submitting) return;
+    if (submitting || !acceptedOrderTerms) return;
     if (!selectedSize?.enabled || !style || brief.trim().length < 20) return;
     if (!builder?.id) {
       setSubmitError("Builder identity not loaded yet — please retry.");
@@ -237,6 +239,17 @@ export default function OrderPlacementPage() {
     if (placeError || !orderId) {
       setSubmitting(false);
       setSubmitError(placeError?.message || "Could not place the order.");
+      return;
+    }
+
+    const { error: consentError } = await recordCheckoutAcceptance({
+      subjectType: "custom_order",
+      subjectId: orderId,
+      payCurrency: selectedPayCurrency
+    });
+    if (consentError) {
+      setSubmitting(false);
+      setSubmitError((consentError.message || "Could not record your checkout acceptance.") + " Your order is saved and awaiting payment.");
       return;
     }
 
@@ -279,7 +292,7 @@ export default function OrderPlacementPage() {
     router.push(`/orders/?id=${encodeURIComponent(orderId)}`);
   }, [
     submitting, selectedSize, style, brief, builder, size, router,
-    isStudioOrder, selectedPayCurrency,
+    isStudioOrder, selectedPayCurrency, acceptedOrderTerms,
   ]);
 
   // BuildEx absorbs gateway processing costs; "(mock)" only appears while the
@@ -379,6 +392,8 @@ export default function OrderPlacementPage() {
                   onSelectPayCurrency={setSelectedPayCurrency}
                   paymentOptionsLoading={paymentOptionsLoading}
                   paymentOptionsError={paymentOptionsError}
+                  acceptedOrderTerms={acceptedOrderTerms}
+                  onAcceptedOrderTerms={setAcceptedOrderTerms}
                 />
               )}
 
@@ -411,7 +426,8 @@ export default function OrderPlacementPage() {
                     onClick={onPay}
                     disabled={
                       submitting ||
-                      (payEnabled && (paymentOptionsLoading || !selectedPayCurrency))
+                      (payEnabled && (paymentOptionsLoading || !selectedPayCurrency)) ||
+                      !acceptedOrderTerms
                     }
                     className="px-6 py-2.5 rounded-full text-sm font-bold bg-[#4ade80] text-black green-glow hover:bg-[#22c55e] transition-all disabled:opacity-50 disabled:cursor-wait"
                   >
@@ -572,6 +588,8 @@ function ReviewStep({
   onSelectPayCurrency,
   paymentOptionsLoading,
   paymentOptionsError,
+  acceptedOrderTerms,
+  onAcceptedOrderTerms,
 }) {
   return (
     <div className="space-y-4">
@@ -661,10 +679,14 @@ function ReviewStep({
       <p className="text-xs text-gray-500 leading-relaxed flex gap-2">
         <Icon name="lock" size={14} className="mt-0.5 flex-shrink-0" />
         <span>
-          The platform holds your payment in escrow. Funds are only released to
-          the builder once you confirm the delivered work.
+          BuildEx protects the payment until you confirm the delivered work or a
+          dispute is decided. BuildEx is not represented as a licensed escrow service.
         </span>
       </p>
+      <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-white/10 bg-black/20 p-4 text-xs leading-relaxed text-gray-300">
+        <input type="checkbox" checked={acceptedOrderTerms} onChange={(event) => onAcceptedOrderTerms(event.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-[#4ade80]" />
+        <span>I confirm that the size, style, price, and brief above define the order scope. I accept the <a className="underline hover:text-white" href="/legal/payments/">Payment and Dispute Policy</a>, including the seven-day delivery appeal window.</span>
+      </label>
     </div>
   );
 }
