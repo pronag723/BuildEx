@@ -298,6 +298,7 @@ export default function ReadyBuildDetailPage({ listingId }) {
               <section className="reveal glass rounded-3xl p-6 lg:p-8">
                 <h2 className="mb-4 text-xl font-bold">About this build</h2>
                 <p className="whitespace-pre-wrap leading-relaxed text-gray-400"><SmartText>{listing.description}</SmartText></p>
+                <dl className="mt-6 grid gap-3 border-t border-white/[0.08] pt-6 text-sm sm:grid-cols-2"><div><dt className="text-xs uppercase tracking-wider text-gray-500">Compatibility</dt><dd className="mt-1 text-gray-200">{listing.minecraft_edition} · {listing.minecraft_version}</dd></div><div><dt className="text-xs uppercase tracking-wider text-gray-500">File</dt><dd className="mt-1 text-gray-200">{listing.file_format} · {listing.version?.world_size_bytes ? `${(listing.version.world_size_bytes / 1024 / 1024).toFixed(1)} MB` : "Size unavailable"}</dd></div><div><dt className="text-xs uppercase tracking-wider text-gray-500">Included</dt><dd className="mt-1 text-gray-200">{listing.included_content}</dd></div><div><dt className="text-xs uppercase tracking-wider text-gray-500">Dependencies</dt><dd className="mt-1 text-gray-200">{listing.dependencies}</dd></div></dl>
                 <div className="mt-6 grid grid-cols-2 gap-3 border-t border-white/[0.08] pt-6 sm:grid-cols-4">
                   <div className="text-center"><p className="text-xl font-bold capitalize">{listing.style}</p><p className="text-[10px] uppercase tracking-wide text-gray-500">Style</p></div>
                   <div className="text-center"><p className="text-xl font-bold">{photos.length}</p><p className="text-[10px] uppercase tracking-wide text-gray-500">Photos</p></div>
@@ -326,7 +327,7 @@ export default function ReadyBuildDetailPage({ listingId }) {
                 <div className="border-y border-white/[0.08] py-4">
                   <p className="text-[10px] uppercase tracking-widest text-gray-500">Ready-made build</p>
                   <p className="mt-1 text-3xl font-extrabold leading-none text-[#4ade80]">{formatPrice(listing.price_kopecks)}</p>
-                  <p className="mt-2 text-[11px] leading-relaxed text-gray-500">One-time payment. Download access is available immediately after payment.</p>
+                  <p className="mt-2 text-[11px] leading-relaxed text-gray-500">One-time final-sale digital purchase after immediate access. Mandatory remedies remain available. <Link href="/legal/payments/" className="underline">Policy</Link> · <Link href="/legal/ready-build-license/" className="underline">License</Link></p>
                 </div>
                 <button type="button" onClick={openCheckout} className="flex w-full items-center justify-center gap-2 rounded-full bg-[#4ade80] py-4 text-base font-bold text-black shadow-[0_0_28px_rgba(74,222,128,.22)] transition-all hover:-translate-y-0.5 hover:bg-[#86efac] hover:shadow-[0_0_34px_rgba(74,222,128,.38)]">
                   Buy
