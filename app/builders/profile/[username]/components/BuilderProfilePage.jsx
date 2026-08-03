@@ -317,7 +317,7 @@ function ContactSidebar({ builder, onShowSoon, onContact, onOrder }) {
       {/* Trust badges */}
       <div className="pt-3 border-t border-white/[0.06] grid grid-cols-2 gap-2">
         {[
-          { icon: "lock", label: "Escrow Protected" },
+          { icon: "lock", label: "Protected Payment" },
           { icon: "chat", label: "Discuss Anytime" },
           { icon: "files", label: "Source Files" },
           { icon: "sparkles", label: "Custom Quotes" },
