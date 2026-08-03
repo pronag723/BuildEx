@@ -3,7 +3,7 @@ export const dynamic = "force-static";
 const baseUrl = "https://buildex.builders";
 
 export default function sitemap() {
-  return [
+  const pages = [
     {
       url: baseUrl,
       changeFrequency: "weekly",
@@ -25,4 +25,6 @@ export default function sitemap() {
       priority: 0.6
     }
   ];
+  const legal = ["", "terms/", "payments/", "sellers/", "ready-build-license/", "privacy/", "community/", "legal-notice/"];
+  return pages.concat(legal.map((path) => ({ url: `${baseUrl}/legal/${path}`, changeFrequency: "monthly", priority: 0.4 })));
 }
