@@ -46,7 +46,7 @@ function EscrowMock() {
         <span className="fd-node">Buyer</span>
         <span className="fd-line" />
         <span className="fd-node fd-node-active">
-          <Icon name="shield" size={13} /> Escrow
+          <Icon name="shield" size={13} /> Protected
         </span>
         <span className="fd-line" />
         <span className="fd-node">Builder</span>
@@ -138,9 +138,9 @@ const FEATURES = [
   {
     key: "escrow",
     icon: "shield",
-    title: "Escrow-Protected Payments",
+    title: "Protected Payments",
     body: "Your payment is held safely and only released to the builder once you've approved the delivery.",
-    bullets: ["Funds held in escrow", "Released on approval", "Disputes resolved fairly"],
+    bullets: ["Funds protected until completion", "Released on approval", "Disputes reviewed by support"],
     Mock: EscrowMock,
   },
   {
