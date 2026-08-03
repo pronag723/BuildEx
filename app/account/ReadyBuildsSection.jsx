@@ -21,7 +21,10 @@ import {
   uploadReadyBuildVersion,
 } from "../../lib/readyBuilds/api";
 
-const EMPTY_FORM = { title: "", description: "", style: "fantasy", price: "", minecraftEdition: "Java Edition", minecraftVersion: "", fileFormat: "ZIP world", includedContent: "", dependencies: "None" };
+const EMPTY_FORM = { title: "", description: "", style: "fantasy", price: "", minecraftEdition: "Java Edition", minecraftVersion: "" };
+const DEFAULT_FILE_FORMAT = "ZIP world";
+const DEFAULT_INCLUDED_CONTENT = "World files described in the listing";
+const DEFAULT_DEPENDENCIES = "None";
 const STYLES = ["fantasy", "medieval", "sci-fi", "modern", "organic", "pvp"];
 
 function BuildEditor({ listing, onClose, onSaved }) {
@@ -33,9 +36,6 @@ function BuildEditor({ listing, onClose, onSaved }) {
     price: (Number(listing.price_kopecks) / 100).toFixed(2),
     minecraftEdition: listing.minecraft_edition,
     minecraftVersion: listing.minecraft_version,
-    fileFormat: listing.file_format,
-    includedContent: listing.included_content,
-    dependencies: listing.dependencies,
   } : EMPTY_FORM);
   const [photos, setPhotos] = useState(() => (listing?.media || []).map((image) => ({ ...image, key: image.id, kind: "existing" })));
   const [world, setWorld] = useState(null);
@@ -175,9 +175,9 @@ function BuildEditor({ listing, onClose, onSaved }) {
         active: isEditing ? listing.is_active : true,
         minecraftEdition: form.minecraftEdition,
         minecraftVersion: form.minecraftVersion,
-        fileFormat: form.fileFormat,
-        includedContent: form.includedContent,
-        dependencies: form.dependencies,
+        fileFormat: listing?.file_format || DEFAULT_FILE_FORMAT,
+        includedContent: listing?.included_content || DEFAULT_INCLUDED_CONTENT,
+        dependencies: listing?.dependencies || DEFAULT_DEPENDENCIES,
       });
       if (published.error) throw published.error;
       onSaved(isEditing ? "Build updated." : "Build published — it is now available in the marketplace.");
@@ -217,11 +217,7 @@ function BuildEditor({ listing, onClose, onSaved }) {
             <fieldset className="grid gap-4 rounded-2xl border border-white/10 bg-white/[.02] p-4 sm:grid-cols-2">
               <legend className="px-2 text-xs font-semibold uppercase tracking-wider text-[#4ade80]">Required buyer disclosures</legend>
               <label className="block"><span className="text-xs text-gray-400">Minecraft edition</span><select required value={form.minecraftEdition} onChange={(event) => setForm({ ...form, minecraftEdition: event.target.value })} className="field mt-1.5"><option>Java Edition</option><option>Bedrock Edition</option><option>Java &amp; Bedrock</option></select></label>
-              <label className="block"><span className="text-xs text-gray-400">Compatible version(s)</span><input required value={form.minecraftVersion} onChange={(event) => setForm({ ...form, minecraftVersion: event.target.value })} placeholder="e.g. Java 1.21.x" className="field mt-1.5" /></label>
-              <label className="block"><span className="text-xs text-gray-400">File format</span><input required value={form.fileFormat} onChange={(event) => setForm({ ...form, fileFormat: event.target.value })} placeholder="ZIP world / schematic" className="field mt-1.5" /></label>
-              <label className="block"><span className="text-xs text-gray-400">Dependencies</span><input required value={form.dependencies} onChange={(event) => setForm({ ...form, dependencies: event.target.value })} placeholder="None, or list mods/resource packs" className="field mt-1.5" /></label>
-              <label className="block sm:col-span-2"><span className="text-xs text-gray-400">Included content</span><textarea required minLength="3" rows="3" value={form.includedContent} onChange={(event) => setForm({ ...form, includedContent: event.target.value })} placeholder="World, interiors, schematics, resource pack…" className="field mt-1.5 resize-y" /></label>
-              <p className="text-[11px] leading-relaxed text-gray-500 sm:col-span-2">Ready-made builds use the standard BuildEx license and cannot be published without images, a 3D preview, compatibility, contents, and dependency disclosures.</p>
+              <label className="block"><span className="text-xs text-gray-400">Minecraft version</span><input required value={form.minecraftVersion} onChange={(event) => setForm({ ...form, minecraftVersion: event.target.value })} placeholder="e.g. 1.21.x" className="field mt-1.5" /></label>
             </fieldset>
 
             <div className="grid gap-4 sm:grid-cols-2">
