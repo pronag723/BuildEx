@@ -7,6 +7,7 @@ import { resolvePostLoginPath, sanitizeRedirect } from "../../../lib/auth/redire
 import { friendlyAuthError } from "../../../lib/auth/errors";
 import { withBase } from "../../home/utils";
 import OAuthButton from "./OAuthButton";
+import { stageAccountAcceptance } from "../../../lib/legal/api";
 
 export default function AuthCard() {
   const router = useRouter();
@@ -15,6 +16,7 @@ export default function AuthCard() {
   const [pending, setPending] = useState(null);
   const [error, setError] = useState(null);
   const [redirectTarget, setRedirectTarget] = useState("/");
+  const [acceptedLegal, setAcceptedLegal] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -53,9 +55,10 @@ export default function AuthCard() {
   }, [status, profile, profileLoaded, redirectTarget, router]);
 
   async function handleSignIn(provider) {
-    if (pending) return;
+    if (pending || !acceptedLegal) return;
     setError(null);
     setPending(provider);
+    stageAccountAcceptance();
 
     const fn = provider === "discord" ? signInWithDiscord : signInWithGoogle;
     const { error: signInError } = await fn({ redirect: redirectTarget });
@@ -98,12 +101,17 @@ export default function AuthCard() {
           </div>
         )}
 
+        <label className="mb-5 flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-4 text-left text-xs leading-5 text-gray-300">
+          <input type="checkbox" checked={acceptedLegal} onChange={(event) => setAcceptedLegal(event.target.checked)} className="mt-1 h-4 w-4 accent-violet-500" />
+          <span>I am at least 13 and have any consent required by local law. I actively accept the <a href={withBase("/legal/terms/")} className="underline hover:text-white">Terms of Use</a> and acknowledge the <a href={withBase("/legal/privacy/")} className="underline hover:text-white">Privacy Policy</a>.</span>
+        </label>
+
         <div className="flex flex-col gap-3">
           <OAuthButton
             provider="discord"
             onClick={() => handleSignIn("discord")}
             loading={pending === "discord"}
-            disabled={!configured || (pending && pending !== "discord")}
+            disabled={!configured || !acceptedLegal || (pending && pending !== "discord")}
           >
             Continue with Discord
           </OAuthButton>
@@ -111,7 +119,7 @@ export default function AuthCard() {
             provider="google"
             onClick={() => handleSignIn("google")}
             loading={pending === "google"}
-            disabled={!configured || (pending && pending !== "google")}
+            disabled={!configured || !acceptedLegal || (pending && pending !== "google")}
           >
             Continue with Google
           </OAuthButton>
@@ -128,17 +136,7 @@ export default function AuthCard() {
         </div>
       </div>
 
-      <p className="mt-6 text-center text-xs text-gray-500 px-4">
-        By continuing you agree to BuildEx&apos;s{" "}
-        <a href={withBase("/")} className="underline hover:text-gray-300">
-          Terms
-        </a>{" "}
-        and{" "}
-        <a href={withBase("/")} className="underline hover:text-gray-300">
-          Privacy Policy
-        </a>
-        .
-      </p>
+      <p className="mt-6 text-center text-xs text-gray-500 px-4">Your acceptance is recorded with the applicable policy versions when your account is created.</p>
     </div>
   );
 }
