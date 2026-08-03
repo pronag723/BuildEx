@@ -148,6 +148,7 @@ test("ready-build detail reveals the complete profile-style layout", () => {
   assert.match(readyBuildDetail, /createPortal/);
   assert.match(readyBuildDetail, /useGradientBackground/);
   assert.doesNotMatch(readyBuildDetail, /getPaymentOptions/);
+  assert.doesNotMatch(readyBuildDetail, />Included<|>Dependencies</);
 });
 
 test("ready-build checkout owns payment selection and purchase creation", () => {
