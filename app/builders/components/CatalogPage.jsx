@@ -487,7 +487,7 @@ export default function CatalogPage() {
               </h1>
               <p className={`catalog-header-description reveal text-gray-400 text-base sm:text-lg max-w-xl ${mode === "ready" ? "hidden" : ""}`}>
                 Browse talented creators, view their portfolios, and commission
-                custom builds — rates negotiated per project, escrow-protected.
+                custom builds — rates negotiated per project, with protected payments.
               </p>
               {mode === "ready" && <p className="catalog-header-description reveal text-gray-400 text-base sm:text-lg max-w-xl">Browse finished Minecraft worlds from independent builders. Preview every build in 3D, then download it instantly after payment.</p>}
 
