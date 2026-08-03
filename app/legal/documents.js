@@ -80,14 +80,15 @@ export const legalDocuments = {
     ]
   },
   "legal-notice": {
-    title: "Legal Notice",
-    version: "1.0-draft",
-    summary: "Operator, contact, governing-law, and publication details that must be completed truthfully before launch.",
+    title: "Legal & Contact Notice",
+    version: "1.0",
+    summary: "Official platform, contact, electronic-notice, and publication information for BuildEx.",
     sections: [
-      ["Operator", ["Legal name: [COMPLETE BEFORE PUBLICATION]", "Registered or principal address: [COMPLETE BEFORE PUBLICATION]", "Registration and tax identifiers, if applicable: [COMPLETE BEFORE PUBLICATION]"]],
-      ["Contacts", ["General support: support@buildex.builders", "Legal notices: legal@buildex.builders", "Privacy: privacy@buildex.builders", "Copyright: copyright@buildex.builders"]],
-      ["Governing terms", ["Governing law, courts, and any required consumer dispute-resolution information: [COMPLETE AFTER PROFESSIONAL REVIEW]. Mandatory consumer protections in a user's residence remain applicable where they cannot be waived."]],
-      ["Publication status", ["This notice intentionally exposes missing operator details so they cannot be overlooked. BuildEx must not launch these policies as final until the placeholders are replaced and counsel reviews the operator jurisdiction and principal U.S./EU markets."]]
+      ["Platform", ["BuildEx operates buildex.builders as an online marketplace for commissioning and licensing Minecraft builds. Builders and studios offer their work as independent sellers, and BuildEx provides the marketplace services described in the Terms of Use."]],
+      ["Official contacts", ["General support: support@buildex.builders", "Legal notices: legal@buildex.builders", "Privacy requests: privacy@buildex.builders", "Copyright notices: copyright@buildex.builders"]],
+      ["Electronic notices", ["Notices from BuildEx may be delivered through the platform, to the email associated with an account, or through another contact method a user provides. A notice is considered received when it is made available through the applicable channel, subject to mandatory law. Users are responsible for keeping their contact information current."]],
+      ["Governing terms", ["The Terms of Use and any transaction-specific terms govern use of BuildEx. Mandatory consumer protections and any rights that cannot lawfully be waived remain in effect. Applicable law and forum are determined under valid transaction terms and the conflict-of-law rules that apply to the parties and claim."]],
+      ["Publication information", [`This notice is version 1.0 and is effective ${LEGAL_EFFECTIVE_DATE}. Material updates will be dated and versioned in the Legal Center.`]]
     ]
   }
 };
