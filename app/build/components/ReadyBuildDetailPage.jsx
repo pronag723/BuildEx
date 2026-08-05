@@ -164,8 +164,8 @@ function BuildGallery({ photos, listing, previewLoader }) {
     {previewExpanded && typeof document !== "undefined" && createPortal(
       <div className="fixed inset-0 z-[400] flex items-center justify-center bg-black/90 p-3 backdrop-blur-xl sm:p-6" role="dialog" aria-modal="true" aria-label="Large 3D preview" onClick={() => setPreviewExpanded(false)}>
         <button type="button" onClick={() => setPreviewExpanded(false)} className="absolute right-4 top-4 z-20 flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-black/60 text-2xl text-white transition hover:border-[#4ade80]/60 hover:text-[#4ade80]" aria-label="Close large 3D preview">×</button>
-        <div className="h-full w-full max-w-[1600px] pt-14" onClick={(event) => event.stopPropagation()}>
-          <PreviewViewer source={{ loadPreview: previewLoader }} className="h-full min-h-[320px] w-full" />
+        <div className="w-full max-w-[1800px]" onClick={(event) => event.stopPropagation()}>
+          <PreviewViewer source={{ loadPreview: previewLoader }} className="h-[calc(100dvh-1.5rem)] min-h-[320px] w-full" />
         </div>
       </div>,
       document.body,

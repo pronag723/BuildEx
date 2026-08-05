@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import CatalogNavbar from "../../../components/CatalogNavbar";
 import CatalogMobileMenu from "../../../components/CatalogMobileMenu";
 import SiteFooter from "../../../../home/components/SiteFooter";
@@ -17,6 +18,7 @@ import { formatPrice, ratesToTiers, SIZE_META } from "../../../../../lib/pricing
 import { Icon } from "../../../../../lib/icons";
 import { useFavorites } from "../../../../../lib/favorites/FavoritesContext";
 import StudioOfficialBadge from "../../../components/StudioOfficialBadge";
+import { useScrollLock } from "../../../../../lib/useScrollLock";
 import {
   fetchStudioReviews,
   getOrCreateStudioConversation,
@@ -81,6 +83,13 @@ function IconChevron({ className = "w-4 h-4" }) {
     </svg>
   );
 }
+function IconExpand({ className = "w-4 h-4" }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5" />
+    </svg>
+  );
+}
 function IconChat({ className = "w-5 h-5" }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -102,18 +111,38 @@ function IconQuote({ className = "w-5 h-5" }) {
 // ─── Portfolio carousel ──────────────────────────────────────────────────────
 function PortfolioCarousel({ items }) {
   const [index, setIndex] = useState(0);
+  const [lightboxIndex, setLightboxIndex] = useState(null);
   const count = items.length;
 
   const go = (dir) => setIndex((i) => (i + dir + count) % count);
+  const goLightbox = useCallback((dir) => {
+    setLightboxIndex((current) => (current + dir + count) % count);
+  }, [count]);
+
+  useScrollLock(lightboxIndex != null);
+
+  useEffect(() => {
+    if (lightboxIndex == null) return undefined;
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") setLightboxIndex(null);
+      if (event.key === "ArrowLeft" && count > 1) goLightbox(-1);
+      if (event.key === "ArrowRight" && count > 1) goLightbox(1);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [lightboxIndex, count, goLightbox]);
+
+  const lightboxImage = lightboxIndex == null ? null : items[lightboxIndex];
 
   return (
+    <>
     <div className="group/media relative rounded-3xl overflow-hidden glass">
       <div
         className="flex transition-transform duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]"
         style={{ transform: `translateX(-${index * 100}%)` }}
       >
-        {items.map((item) => (
-          <div key={item.id} className="relative w-full flex-shrink-0 aspect-[16/9] overflow-hidden">
+        {items.map((item, itemIndex) => (
+          <button key={item.id} type="button" onClick={() => setLightboxIndex(itemIndex)} className="group/photo relative w-full flex-shrink-0 aspect-[16/9] cursor-zoom-in overflow-hidden text-left" aria-label={`Open ${item.title || "portfolio image"} full screen`}>
             <img
               src={publicAsset(item.thumbnail)}
               alt={item.title}
@@ -122,13 +151,14 @@ function PortfolioCarousel({ items }) {
               decoding="async"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+            <span className="absolute right-4 top-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/55 px-3 py-2 text-xs font-semibold text-white opacity-0 backdrop-blur-md transition-all group-hover/photo:opacity-100 group-focus-visible/photo:opacity-100"><IconExpand />View full screen</span>
 
             {item.featured && (
               <div className="absolute bottom-4 left-4 px-3 py-1 rounded-full text-xs bg-[#4ade80]/20 text-[#4ade80] backdrop-blur-sm border border-[#4ade80]/30 font-semibold flex items-center gap-1">
                 <IconStar className="w-3 h-3" /> Featured
               </div>
             )}
-          </div>
+          </button>
         ))}
       </div>
 
@@ -168,6 +198,21 @@ function PortfolioCarousel({ items }) {
         </>
       )}
     </div>
+    {lightboxImage && typeof document !== "undefined" && createPortal(
+      <div className="fixed inset-0 z-[400] flex items-center justify-center bg-black/90 p-3 backdrop-blur-xl sm:p-8" role="dialog" aria-modal="true" aria-label="Full-screen portfolio photo" onClick={() => setLightboxIndex(null)}>
+        <button type="button" onClick={() => setLightboxIndex(null)} className="absolute right-4 top-4 z-20 flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-black/60 text-2xl text-white transition hover:border-[#4ade80]/60 hover:text-[#4ade80]" aria-label="Close full-screen photo">×</button>
+        <div className="relative flex h-full w-full items-center justify-center" onClick={(event) => event.stopPropagation()}>
+          <img src={publicAsset(lightboxImage.thumbnail)} alt={lightboxImage.title || "Portfolio image"} className="max-h-full max-w-full rounded-2xl object-contain shadow-2xl" />
+          {count > 1 && <>
+            <button type="button" onClick={() => goLightbox(-1)} className="absolute left-1 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-[#4ade80]/45 bg-black/65 text-white backdrop-blur-md transition hover:bg-[#4ade80] hover:text-black sm:left-4" aria-label="Previous full-screen photo"><IconChevron className="h-6 w-6 rotate-180" /></button>
+            <button type="button" onClick={() => goLightbox(1)} className="absolute right-1 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-[#4ade80]/45 bg-black/65 text-white backdrop-blur-md transition hover:bg-[#4ade80] hover:text-black sm:right-4" aria-label="Next full-screen photo"><IconChevron className="h-6 w-6" /></button>
+          </>}
+          <span className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full border border-white/10 bg-black/60 px-3 py-1.5 text-xs text-white/70 backdrop-blur-md">{lightboxIndex + 1} / {count}</span>
+        </div>
+      </div>,
+      document.body,
+    )}
+    </>
   );
 }
 

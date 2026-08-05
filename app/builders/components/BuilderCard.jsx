@@ -1,14 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
-import { createPortal } from "react-dom";
 import { RANKS } from "../data/builders";
 import { publicAsset, withBase } from "../../home/utils";
 import { formatPrice } from "../../../lib/pricing";
 import { useFavorites } from "../../../lib/favorites/FavoritesContext";
 import StudioOfficialBadge from "./StudioOfficialBadge";
-import { useScrollLock } from "../../../lib/useScrollLock";
 
 function StarIcon({ className = "w-3.5 h-3.5" }) {
   return (
@@ -51,14 +49,6 @@ function HeartIcon({ className = "w-4 h-4", filled = false }) {
   );
 }
 
-function ExpandIcon({ className = "w-4 h-4" }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5" />
-    </svg>
-  );
-}
-
 export default function BuilderCard({ builder, animationDelay = 0 }) {
   const isStudio = builder.provider_type === "studio";
   const rank = isStudio ? null : (RANKS[builder.rank] || RANKS.rookie);
@@ -66,30 +56,8 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
   const count = previews.length;
 
   const [index, setIndex] = useState(0);
-  const [lightbox, setLightbox] = useState(null);
   const [infoHover, setInfoHover] = useState(false);
   const touchStartX = useRef(null);
-  const touchDidSwipe = useRef(false);
-
-  useScrollLock(lightbox != null);
-
-  const goLightbox = useCallback((direction) => {
-    setLightbox((current) => {
-      if (!current || current.kind !== "portfolio" || count < 2) return current;
-      return { ...current, index: (current.index + direction + count) % count };
-    });
-  }, [count]);
-
-  useEffect(() => {
-    if (!lightbox) return undefined;
-    const onKeyDown = (event) => {
-      if (event.key === "Escape") setLightbox(null);
-      if (event.key === "ArrowLeft") goLightbox(-1);
-      if (event.key === "ArrowRight") goLightbox(1);
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [lightbox, goLightbox]);
 
   const { canFavorite, isFavorite, toggleFavorite } = useFavorites();
   const favorited = isFavorite(builder.id, isStudio ? "studio" : "builder");
@@ -116,7 +84,6 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
 
   const onTouchStart = (event) => {
     touchStartX.current = event.touches[0]?.clientX ?? null;
-    touchDidSwipe.current = false;
   };
 
   const onTouchEnd = (event) => {
@@ -124,34 +91,10 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
     const endX = event.changedTouches[0]?.clientX;
     touchStartX.current = null;
     if (startX == null || endX == null || Math.abs(endX - startX) < 36 || count < 2) return;
-    touchDidSwipe.current = true;
     setIndex((current) => (endX < startX ? (current + 1) % count : (current - 1 + count) % count));
   };
 
-  const openPortfolioImage = (event, imageIndex) => {
-    event.preventDefault();
-    event.stopPropagation();
-    if (touchDidSwipe.current) {
-      touchDidSwipe.current = false;
-      return;
-    }
-    setLightbox({ kind: "portfolio", index: imageIndex });
-  };
-
-  const openAvatar = (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    setLightbox({ kind: "avatar", index: 0 });
-  };
-
-  const lightboxImage = lightbox?.kind === "avatar"
-    ? { url: builder.avatar, alt: `${builder.display_name} profile photo` }
-    : lightbox?.kind === "portfolio"
-      ? { url: publicAsset(previews[lightbox.index]?.thumbnail), alt: previews[lightbox.index]?.title }
-      : null;
-
   return (
-    <>
     <Link
       href={
         isStudio
@@ -176,14 +119,8 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
             className="card-carousel-track flex h-full w-full"
             style={{ transform: `translateX(-${index * 100}%)` }}
           >
-            {previews.map((p, imageIndex) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={(event) => openPortfolioImage(event, imageIndex)}
-                className="group/photo relative h-full w-full flex-shrink-0 cursor-zoom-in overflow-hidden text-left"
-                aria-label={`Open ${p.title || "portfolio image"} full screen`}
-              >
+            {previews.map((p) => (
+              <div key={p.id} className="relative h-full w-full flex-shrink-0 overflow-hidden">
                 <img
                   src={publicAsset(p.thumbnail)}
                   alt={p.title}
@@ -193,10 +130,7 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
                   loading="lazy"
                   decoding="async"
                 />
-                <span className="absolute right-4 bottom-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/55 px-3 py-2 text-xs font-semibold text-white opacity-0 backdrop-blur-md transition-all group-hover/photo:opacity-100 group-focus-visible/photo:opacity-100">
-                  <ExpandIcon /> View full screen
-                </span>
-              </button>
+              </div>
             ))}
           </div>
         )}
@@ -312,16 +246,13 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
         {/* Header */}
         <div className="flex items-start gap-3">
           {builder.avatar ? (
-            <button type="button" onClick={openAvatar} className="group/avatar relative w-11 h-11 flex-shrink-0 cursor-zoom-in rounded-full" aria-label={`Open ${builder.display_name} profile photo full screen`}>
-              <img
-                src={builder.avatar}
-                alt={builder.display_name}
-                className="w-full h-full rounded-full object-cover ring-2 ring-[#4ade80]/25"
-                loading="lazy"
-                decoding="async"
-              />
-              <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/45 text-white opacity-0 transition-opacity group-hover/avatar:opacity-100 group-focus-visible/avatar:opacity-100"><ExpandIcon className="h-4 w-4" /></span>
-            </button>
+            <img
+              src={builder.avatar}
+              alt={builder.display_name}
+              className="w-11 h-11 rounded-full object-cover ring-2 ring-[#4ade80]/25 flex-shrink-0"
+              loading="lazy"
+              decoding="async"
+            />
           ) : (
             <div className="w-11 h-11 rounded-full bg-[#4ade80]/15 border border-[#4ade80]/30 ring-2 ring-[#4ade80]/25 flex-shrink-0 flex items-center justify-center text-[#4ade80] font-bold">
               {(builder.display_name || "B").charAt(0).toUpperCase()}
@@ -414,20 +345,5 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
         </div>
       </div>
     </Link>
-    {lightboxImage && typeof document !== "undefined" && createPortal(
-      <div className="fixed inset-0 z-[400] flex items-center justify-center bg-black/90 p-3 backdrop-blur-xl sm:p-8" role="dialog" aria-modal="true" aria-label="Full-screen builder photo" onClick={() => setLightbox(null)}>
-        <button type="button" onClick={() => setLightbox(null)} className="absolute right-4 top-4 z-20 flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-black/60 text-2xl text-white transition hover:border-[#4ade80]/60 hover:text-[#4ade80]" aria-label="Close full-screen photo">×</button>
-        <div className="relative flex h-full w-full items-center justify-center" onClick={(event) => event.stopPropagation()}>
-          <img src={lightboxImage.url} alt={lightboxImage.alt || builder.display_name} className="max-h-full max-w-full rounded-2xl object-contain shadow-2xl" />
-          {lightbox?.kind === "portfolio" && count > 1 && <>
-            <button type="button" onClick={() => goLightbox(-1)} className="absolute left-1 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-[#4ade80]/45 bg-black/65 text-white backdrop-blur-md transition hover:bg-[#4ade80] hover:text-black sm:left-4" aria-label="Previous full-screen photo"><ChevronIcon className="h-6 w-6 rotate-180" /></button>
-            <button type="button" onClick={() => goLightbox(1)} className="absolute right-1 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-[#4ade80]/45 bg-black/65 text-white backdrop-blur-md transition hover:bg-[#4ade80] hover:text-black sm:right-4" aria-label="Next full-screen photo"><ChevronIcon className="h-6 w-6" /></button>
-          </>}
-          {lightbox?.kind === "portfolio" && <span className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full border border-white/10 bg-black/60 px-3 py-1.5 text-xs text-white/70 backdrop-blur-md">{lightbox.index + 1} / {count}</span>}
-        </div>
-      </div>,
-      document.body,
-    )}
-    </>
   );
 }
