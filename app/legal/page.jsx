@@ -94,7 +94,7 @@ export default function LegalIndexPage() {
             <h2 className="text-lg font-bold text-white">Need help with a policy?</h2>
             <p className="mt-2 text-sm leading-6 text-gray-400">Contact the BuildEx legal team and include the document name in your message.</p>
           </div>
-          <a href="mailto:legal@buildex.builders" className="inline-flex shrink-0 items-center justify-center rounded-xl bg-[#4ade80] px-5 py-3 text-sm font-bold text-[#07120a] transition hover:bg-[#86efac]">legal@buildex.builders</a>
+          <a href="mailto:mcbuildex@gmail.com" className="inline-flex shrink-0 items-center justify-center rounded-xl bg-[#4ade80] px-5 py-3 text-sm font-bold text-[#07120a] transition hover:bg-[#86efac]">mcbuildex@gmail.com</a>
         </section>
       </div>
     </main>
