@@ -48,6 +48,7 @@ import WorldPreview, { PreviewViewer } from "./WorldPreview";
 import { ReadyBuildPurchasesSection } from "../../account/ReadyBuildsSection";
 import { useGradientBackground } from "../../../lib/ui/useGradientBackground";
 import SmartText from "../../../lib/ui/SmartText";
+import PreviewAreaControls, { COORD_PROMPT_CODES, FATAL_WORLD_CODES } from "./PreviewAreaControls";
 
 // ─── Status display tables ──────────────────────────────────────────────────
 // Re-used by list rows, detail header, and the timeline. Single source of
@@ -1741,16 +1742,14 @@ const MAX_DELIVERY_BYTES = 200 * 1024 * 1024; // matches the bucket's file_size_
 
 // PreviewError codes that mean the upload simply isn't a readable Minecraft
 // world (wrong format/folder, or truly empty). These are fatal — re-pick a file.
-const FATAL_WORLD_CODES = new Set(["parse_failed", "no_regions", "empty"]);
 // Codes that mean "we couldn't auto-locate the build" — recoverable by entering
 // the build coordinates and regenerating.
-const COORD_PROMPT_CODES = new Set(["needs_coords", "too_large"]);
 
 // Coordinate + capture-area form, shared by the auto-detect-failed prompt and
 // the post-success "Adjust area" panel. The radius is pre-filled from the
 // order size and shown read-only; the builder can opt in to a slider to widen
 // or narrow the captured cube before (re)generating.
-function CoordForm({
+function LegacyCoordForm({
   coords,
   setCoords,
   radius,
@@ -2088,7 +2087,7 @@ function DeliverModal({ orderId, buildingSize, onClose, onDelivered }) {
             (infinite / terrain worlds). The builder reads X/Y/Z off F3, and the
             capture radius is pre-filled from the order size. */}
         {showCoords && (
-          <CoordForm
+          <PreviewAreaControls
             coords={coords}
             setCoords={setCoords}
             radius={radius}
@@ -2161,7 +2160,7 @@ function DeliverModal({ orderId, buildingSize, onClose, onDelivered }) {
               Drag to rotate, scroll to zoom. This is the render the buyer reviews.
             </p>
             {adjustOpen && (
-              <CoordForm
+              <PreviewAreaControls
                 coords={coords}
                 setCoords={setCoords}
                 radius={radius}

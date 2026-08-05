@@ -70,13 +70,14 @@ test("signed provider events retain reconciliation metadata without releasing pa
   assert.match(migration, /Signed payment rail does not match the requested rail/);
 });
 
-test("managed studio commission cannot undercut the Master fee floor", async () => {
+test("managed studio commission accepts the complete zero-to-one-hundred range", async () => {
   const [migration, consoleUi] = await Promise.all([
-    read("supabase/migrations/0073_trc20_bsc_checkout_policy.sql"),
+    read("supabase/migrations/0090_studio_ready_builds_and_lifecycle.sql"),
     read("app/admin/components/StudiosConsole.jsx"),
   ]);
-  assert.match(migration, /platform_commission_bps between 900 and 10000/);
-  assert.match(migration, /p_platform_commission_bps not between 900 and 10000/);
-  assert.match(consoleUi, /bps < 900/);
-  assert.match(consoleUi, /min="9"/);
+  assert.match(migration, /platform_commission_bps between 0 and 10000/);
+  assert.match(migration, /p_platform_commission_bps not between 0 and 10000/);
+  assert.match(consoleUi, /bps < 0/);
+  assert.match(consoleUi, /min="0"/);
+  assert.match(consoleUi, /step="0\.01"/);
 });

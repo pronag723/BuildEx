@@ -71,6 +71,7 @@ import {
 import {
   listMyStudioInvitations,
   respondToStudioBuilderInvitation,
+  getMyStudioDeleteEligibility,
 } from "../../lib/studios/api";
 import { ReadyBuildsSection } from "./ReadyBuildsSection";
 
@@ -266,6 +267,7 @@ const CLIENT_ACCOUNT_SECTIONS = BASE_ACCOUNT_SECTIONS.filter(
 
 const STUDIO_ACCOUNT_SECTIONS = [
   { key: "profile", label: "Storefront", short: "Profile" },
+  { key: "ready-builds", label: "Ready-made builds", short: "Builds" },
   { key: "team", label: "Team", short: "Team" },
   { key: "orders", label: "Orders", short: "Orders" },
   { key: "payouts", label: "Payouts", short: "Payouts" },
@@ -1666,11 +1668,19 @@ function AccountActionsSection() {
   const [confirmText, setConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState(null);
+  const [deleteEligibility, setDeleteEligibility] = useState(null);
 
   const canDelete = confirmText.trim().toUpperCase() === "DELETE";
   const isStudioAccount = profile?.role === "studio";
+  const studioDeleteBlocked = Boolean(isStudioAccount && deleteEligibility && !deleteEligibility.can_delete);
+
+  useEffect(() => {
+    if (!isStudioAccount) return;
+    getMyStudioDeleteEligibility().then(({ eligibility }) => setDeleteEligibility(eligibility));
+  }, [isStudioAccount]);
 
   function openConfirm() {
+    if (studioDeleteBlocked) return;
     setConfirmText("");
     setError(null);
     setConfirmOpen(true);
@@ -1751,7 +1761,9 @@ function AccountActionsSection() {
             </h3>
             <p className="text-xs text-gray-400 mt-1 max-w-md leading-relaxed">
               {isStudioAccount
-                ? "Permanently remove your login and release the suspended studio for administrative recovery."
+                ? studioDeleteBlocked
+                  ? `Resolve ${deleteEligibility.blocking_order_count} outstanding studio order${deleteEligibility.blocking_order_count === 1 ? "" : "s"} before deleting the studio.`
+                  : "Permanently remove your login, privatize the team as rookie independent builders, and suspend the studio."
                 : "Permanently remove your account and everything tied to it — profile, availability, portfolio and rates."}{" "}
               This can&apos;t be undone.
             </p>
@@ -1759,7 +1771,9 @@ function AccountActionsSection() {
           <button
             type="button"
             onClick={openConfirm}
-            className="flex-shrink-0 py-2.5 px-5 text-sm font-semibold rounded-full bg-red-500/15 text-red-200 border border-red-400/40 hover:bg-red-500/25 hover:border-red-400/60 transition-all"
+            disabled={studioDeleteBlocked}
+            title={studioDeleteBlocked ? "Complete all outstanding studio orders before deleting the studio" : undefined}
+            className="flex-shrink-0 py-2.5 px-5 text-sm font-semibold rounded-full bg-red-500/15 text-red-200 border border-red-400/40 hover:bg-red-500/25 hover:border-red-400/60 transition-all disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/[0.03] disabled:text-gray-600"
           >
             Delete account
           </button>
@@ -1791,7 +1805,7 @@ function AccountActionsSection() {
             </h3>
             <p className="text-sm text-gray-400 leading-relaxed mb-5">
               {isStudioAccount
-                ? "This permanently deletes your BuildEx login. The studio is suspended, stops accepting orders, and can only be recovered by an administrator."
+                ? "This permanently deletes your BuildEx login, suspends the studio, and returns every member to a private rookie independent profile."
                 : "This permanently deletes your BuildEx account and all associated data — profile, availability, portfolio images and rates."}{" "}
               <strong className="text-red-200">This action cannot be undone.</strong>
             </p>
@@ -2507,6 +2521,8 @@ function AccountPageInner() {
                 <div className="space-y-8">
                   <AccountActionsSection />
                 </div>
+              ) : section === "ready-builds" ? (
+                <ReadyBuildsSection ownerType="studio" />
               ) : (
                 <StudioModeratorDashboard section={section} />
               )}

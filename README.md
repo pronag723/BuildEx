@@ -569,6 +569,13 @@ Discord and Google OAuth are the two supported login providers. Both go through 
    ```
    (OAuth providers now redirect users directly to `/onboarding`; there is no longer an intermediate `/auth/callback` page.)
 4. Copy your Project URL and `anon` public key into `.env.local` (see `.env.example`).
+   For production OAuth branding, enable a Supabase custom domain such as
+   `auth.buildex.builders`, keep the original project callback registered during
+   rollout, and add `https://auth.buildex.builders/auth/v1/callback` to both the
+   Google and Discord OAuth applications. Set each provider's public app name
+   and logo to **BuildEx**, verify the Google OAuth brand, then use the custom
+   domain as `NEXT_PUBLIC_SUPABASE_URL`. This replaces the raw project hostname
+   shown in the provider account chooser.
 5. Create the `profiles` table per the schema above. Minimum SQL to get login working:
    ```sql
    create table profiles (
@@ -682,7 +689,7 @@ Create `.env.local` in the project root:
 
 ```env
 # Supabase
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://auth.buildex.builders
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 
 # Base path when deploying under a sub-path (e.g. GitHub Pages /BuildEx).

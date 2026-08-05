@@ -159,9 +159,9 @@ function ManagedStudioRow({ studio, onChanged }) {
     setBusy(true);
     setError(null);
     const bps = Math.round(Number(fee) * 100);
-    if (!Number.isFinite(bps) || bps < 900 || bps > 10000) {
+    if (!Number.isFinite(bps) || bps < 0 || bps > 10000) {
       setBusy(false);
-      setError("BuildEx fee must be between 9% and 100%.");
+      setError("BuildEx fee must be between 0% and 100%.");
       return;
     }
     const result = await configureManagedStudio({
@@ -201,14 +201,14 @@ function ManagedStudioRow({ studio, onChanged }) {
           <span className="text-xs text-gray-400 block mb-1">BuildEx fee %</span>
           <input
             type="number"
-            min="9"
+            min="0"
             max="100"
             step="0.01"
             value={fee}
             onChange={(event) => setFee(event.target.value)}
             className={INPUT}
           />
-          <span className="mt-1 block text-[11px] text-gray-500">Minimum 9%</span>
+          <span className="mt-1 block text-[11px] text-gray-500">0% to 100%</span>
         </label>
         <label className="w-36">
           <span className="text-xs text-gray-400 block mb-1">Status</span>

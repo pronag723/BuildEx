@@ -15,6 +15,7 @@ import { getReadyBuild, getReadyBuildPreviewUrl } from "../../../lib/readyBuilds
 import Avatar from "../../../lib/ui/Avatar";
 import { useGradientBackground } from "../../../lib/ui/useGradientBackground";
 import SmartText from "../../../lib/ui/SmartText";
+import { getOrCreateStudioConversation } from "../../../lib/studios/api";
 
 function Chevron({ className = "h-4 w-4" }) {
   return (
@@ -222,7 +223,8 @@ export default function ReadyBuildDetailPage({ listingId }) {
   const builderRankRow = Array.isArray(builder.builder) ? builder.builder[0] : builder.builder;
   const rank = RANKS[builderRankRow?.rank] || RANKS.rookie;
   const builderName = builder.display_name || builder.username || "BuildEx builder";
-  const builderHref = builder.username ? `/builders/profile/?u=${encodeURIComponent(builder.username)}` : null;
+  const isStudio = listing?.seller_type === "studio";
+  const builderHref = builder.username ? (isStudio ? `/studios?s=${encodeURIComponent(builder.username)}` : `/builders/profile/?u=${encodeURIComponent(builder.username)}`) : null;
 
   const openCheckout = useCallback(() => {
     if (!listing?.id) return;
@@ -232,9 +234,17 @@ export default function ReadyBuildDetailPage({ listingId }) {
 
   const contactBuilder = useCallback(() => {
     if (!builder.username) return;
+    if (isStudio && listing?.studio_id) {
+      const target = `/studios?s=${encodeURIComponent(builder.username)}`;
+      gate(async () => {
+        const { conversationId } = await getOrCreateStudioConversation(listing.studio_id);
+        if (conversationId) router.push(`/chats?c=${encodeURIComponent(conversationId)}`);
+      }, { redirectTo: target });
+      return;
+    }
     const target = `/chats?to=${encodeURIComponent(builder.username)}`;
     gate(() => router.push(target), { redirectTo: target });
-  }, [gate, router, builder.username]);
+  }, [gate, router, builder.username, isStudio, listing?.studio_id]);
 
   if (loading) {
     return <main className="flex min-h-screen items-center justify-center"><div className="h-10 w-10 animate-spin rounded-full border-2 border-[#4ade80] border-t-transparent" /></main>;
@@ -284,7 +294,7 @@ export default function ReadyBuildDetailPage({ listingId }) {
                 <p className="mb-3 text-sm text-gray-500">Ready-made build by {builderName}</p>
                 <div className="mb-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-gray-400 sm:justify-start">
                   {builderHref ? <Link href={builderHref} className="font-semibold text-gray-200 transition-colors hover:text-[#4ade80]">@{builder.username}</Link> : <span className="font-semibold text-gray-200">{builderName}</span>}
-                  <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${rank.bgClass} ${rank.textClass} ${rank.borderClass}`}>{rank.label} Builder</span>
+                  <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${isStudio ? "border-[#4ade80]/30 bg-[#4ade80]/10 text-[#86efac]" : `${rank.bgClass} ${rank.textClass} ${rank.borderClass}`}`}>{isStudio ? "Official studio" : `${rank.label} Builder`}</span>
                   <span className="inline-flex items-center gap-1.5"><DownloadIcon />Instant download</span>
                 </div>
               </div>
@@ -311,9 +321,9 @@ export default function ReadyBuildDetailPage({ listingId }) {
                 <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex min-w-0 items-center gap-4">
                     <Avatar src={builder.avatar_url} name={builderName} className="h-14 w-14 flex-shrink-0 rounded-2xl text-lg ring-2 ring-[#4ade80]/25" />
-                    <div className="min-w-0"><p className="text-[10px] uppercase tracking-widest text-gray-500">Created by</p><p className="truncate text-lg font-bold">{builderName}</p><p className={`text-xs font-semibold ${rank.textClass}`}>{rank.label} Builder</p></div>
+                    <div className="min-w-0"><p className="text-[10px] uppercase tracking-widest text-gray-500">Created by</p><p className="truncate text-lg font-bold">{builderName}</p><p className={`text-xs font-semibold ${isStudio ? "text-[#86efac]" : rank.textClass}`}>{isStudio ? "BuildEx studio" : `${rank.label} Builder`}</p></div>
                   </div>
-                  {builderHref && <Link href={builderHref} className="inline-flex items-center justify-center gap-2 rounded-full border border-white/15 bg-white/5 px-5 py-3 text-sm font-semibold text-gray-200 transition-all hover:border-[#4ade80]/50 hover:text-[#4ade80]">View builder profile<Chevron /></Link>}
+                  {builderHref && <Link href={builderHref} className="inline-flex items-center justify-center gap-2 rounded-full border border-white/15 bg-white/5 px-5 py-3 text-sm font-semibold text-gray-200 transition-all hover:border-[#4ade80]/50 hover:text-[#4ade80]">View {isStudio ? "studio" : "builder"} profile<Chevron /></Link>}
                 </div>
               </section>
             </div>
@@ -322,7 +332,7 @@ export default function ReadyBuildDetailPage({ listingId }) {
               <div className="builder-sidebar-sticky glass space-y-5 rounded-3xl p-6">
                 <div className="flex items-center gap-3">
                   <Avatar src={builder.avatar_url} name={builderName} className="h-14 w-14 flex-shrink-0 rounded-full text-xl ring-2 ring-[#4ade80]/30" />
-                  <div className="min-w-0"><p className="truncate font-bold">{builderName}</p><p className={`text-xs font-semibold ${rank.textClass}`}>{rank.label} Builder</p></div>
+                  <div className="min-w-0"><p className="truncate font-bold">{builderName}</p><p className={`text-xs font-semibold ${isStudio ? "text-[#86efac]" : rank.textClass}`}>{isStudio ? "BuildEx studio" : `${rank.label} Builder`}</p></div>
                 </div>
                 <div className="border-y border-white/[0.08] py-4">
                   <p className="text-[10px] uppercase tracking-widest text-gray-500">Ready-made build</p>
@@ -332,7 +342,7 @@ export default function ReadyBuildDetailPage({ listingId }) {
                 <button type="button" onClick={openCheckout} className="flex w-full items-center justify-center gap-2 rounded-full bg-[#4ade80] py-4 text-base font-bold text-black shadow-[0_0_28px_rgba(74,222,128,.22)] transition-all hover:-translate-y-0.5 hover:bg-[#86efac] hover:shadow-[0_0_34px_rgba(74,222,128,.38)]">
                   Buy
                 </button>
-                {builder.username && <button type="button" onClick={contactBuilder} className="flex w-full items-center justify-center gap-2 rounded-full border border-white/15 bg-white/5 py-3.5 text-sm font-semibold text-gray-200 transition-all hover:border-[#4ade80]/50 hover:bg-[#4ade80]/10 hover:text-[#4ade80]"><MessageIcon />Message builder</button>}
+                {builder.username && <button type="button" onClick={contactBuilder} className="flex w-full items-center justify-center gap-2 rounded-full border border-white/15 bg-white/5 py-3.5 text-sm font-semibold text-gray-200 transition-all hover:border-[#4ade80]/50 hover:bg-[#4ade80]/10 hover:text-[#4ade80]"><MessageIcon />Message {isStudio ? "studio" : "builder"}</button>}
                 <div className="grid grid-cols-2 gap-x-3 gap-y-3 border-t border-white/10 pt-5 text-[11px] text-gray-400">
                   {["Instant access", "Secure payment", "Source world", "Preview before buying"].map((label) => <p key={label} className="flex items-center gap-1.5"><span className="text-[#4ade80]"><CheckIcon /></span>{label}</p>)}
                 </div>

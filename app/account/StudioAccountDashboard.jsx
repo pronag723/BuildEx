@@ -40,6 +40,8 @@ import {
   deleteStudioPortfolioImage,
   fetchMyStudio,
   getStudioBalance,
+  getMyStudioLeaveEligibility,
+  leaveMyStudio,
   listEmployeeCodes,
   listMyEmployeeEarnings,
   listStudioEmployeeEarnings,
@@ -2820,14 +2822,19 @@ export function StudioEmployeeDashboard({ builderProfile, section = "profile", o
   const [orders, setOrders] = useState([]);
   const [assignmentFilter, setAssignmentFilter] = useState("active");
   const [error, setError] = useState(null);
+  const [leaveEligibility, setLeaveEligibility] = useState(null);
+  const [leaveOpen, setLeaveOpen] = useState(false);
+  const [leaving, setLeaving] = useState(false);
 
   const load = useCallback(async () => {
-    const [earningResult, orderResult] = await Promise.all([
+    const [earningResult, orderResult, leaveResult] = await Promise.all([
       listMyEmployeeEarnings(),
       listMyOrders(),
+      getMyStudioLeaveEligibility(),
     ]);
     setEarnings(earningResult.earnings || []);
     setOrders(orderResult.orders || []);
+    if (!leaveResult.error) setLeaveEligibility(leaveResult.eligibility);
   }, []);
 
   useEffect(() => {
@@ -2925,6 +2932,16 @@ export function StudioEmployeeDashboard({ builderProfile, section = "profile", o
             </button>
           ))}
         </div>
+      </Card>}
+      {section === "profile" && <Card title="Studio membership" description="Return to independent building once you have no outstanding studio work.">
+        <div className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-black/10 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div><p className="text-sm font-semibold">Leave this studio</p><p className="mt-1 text-xs leading-relaxed text-gray-500">Your identity, portfolio, expertise, rates, reviews, and rank are preserved. Your independent profile starts private until you make yourself available.</p></div>
+          <div className="group relative flex-shrink-0">
+            <button type="button" disabled={!leaveEligibility?.can_leave || leaving} onClick={() => setLeaveOpen(true)} aria-describedby={!leaveEligibility?.can_leave ? "leave-studio-help" : undefined} className="rounded-full border border-red-400/35 bg-red-500/10 px-5 py-2.5 text-sm font-semibold text-red-200 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/[0.03] disabled:text-gray-600">Leave studio</button>
+            {!leaveEligibility?.can_leave && <div id="leave-studio-help" role="tooltip" className="pointer-events-none absolute bottom-[calc(100%+.65rem)] right-0 z-20 w-64 translate-y-1 rounded-xl border border-amber-400/20 bg-[#171b18] px-3 py-2 text-xs leading-relaxed text-amber-100 opacity-0 shadow-2xl transition group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100">Complete or resolve your assigned build before leaving the studio.</div>}
+          </div>
+        </div>
+        {leaveOpen && <div className="fixed inset-0 z-[230] flex items-center justify-center bg-black/75 p-4 backdrop-blur-md" role="dialog" aria-modal="true"><div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#171b18] p-6 shadow-2xl"><h3 className="text-xl font-bold">Leave the studio?</h3><p className="mt-3 text-sm leading-relaxed text-gray-400">You will become an independent builder and remain hidden from the marketplace until you change your availability.</p><div className="mt-6 flex justify-end gap-2"><button type="button" disabled={leaving} onClick={() => setLeaveOpen(false)} className="rounded-full border border-white/15 px-4 py-2 text-sm">Cancel</button><button type="button" disabled={leaving} onClick={async () => { setLeaving(true); setError(null); const result = await leaveMyStudio(); if (result.error) { setError(result.error.message); setLeaving(false); setLeaveOpen(false); return; } window.location.assign(withBase("/account")); }} className="rounded-full bg-red-500 px-5 py-2 text-sm font-bold text-white disabled:opacity-50">{leaving ? "Leaving…" : "Leave studio"}</button></div></div></div>}
       </Card>}
       {section === "orders" && (
         <EmployeeOrdersCard

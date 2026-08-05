@@ -29,6 +29,7 @@ export default function ReadyBuildCard({ listing, animationDelay = 0 }) {
   const builderRankRow = Array.isArray(builder.builder) ? builder.builder[0] : builder.builder;
   const rank = RANKS[builderRankRow?.rank] || RANKS.rookie;
   const builderName = builder.display_name || builder.username || "BuildEx builder";
+  const isStudio = listing.seller_type === "studio";
   const { canFavorite, isFavorite, toggleFavorite } = useFavorites();
   const favorited = isFavorite(listing.id, "ready_build");
 
@@ -131,8 +132,8 @@ export default function ReadyBuildCard({ listing, animationDelay = 0 }) {
             <p className="truncate text-xs font-semibold text-gray-200">{builderName}</p>
             {builder.username && <p className="truncate text-[10px] text-gray-500">@{builder.username}</p>}
           </div>
-          <span className={`flex-shrink-0 rounded-full border px-2 py-1 text-[10px] font-semibold ${rank.bgClass} ${rank.textClass} ${rank.borderClass}`}>
-            {rank.label}
+          <span className={`flex-shrink-0 rounded-full border px-2 py-1 text-[10px] font-semibold ${isStudio ? "border-[#4ade80]/30 bg-[#4ade80]/10 text-[#86efac]" : `${rank.bgClass} ${rank.textClass} ${rank.borderClass}`}`}>
+            {isStudio ? "Studio" : rank.label}
           </span>
         </div>
         <div className="mt-auto flex items-center justify-between gap-3 border-t border-white/[0.08] pt-3">

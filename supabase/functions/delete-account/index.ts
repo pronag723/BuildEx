@@ -33,6 +33,48 @@ async function deleteAccountWithAdmin(
   admin: ReturnType<typeof createClient>,
   userId: string,
 ) {
+  const { data: studio, error: studioError } = await admin
+    .from("studios")
+    .select("id")
+    .eq("moderator_id", userId)
+    .maybeSingle();
+  if (studioError) throw new Error(`Could not load studio: ${studioError.message}`);
+  if (studio?.id) {
+    const { count, error: orderError } = await admin
+      .from("orders")
+      .select("id", { count: "exact", head: true })
+      .eq("studio_id", studio.id)
+      .in("status", ["pending_payment", "paid", "in_progress", "delivered", "disputed"]);
+    if (orderError) throw new Error(`Could not check studio orders: ${orderError.message}`);
+    if ((count || 0) > 0) throw new Error("Complete all outstanding studio orders before deleting the studio");
+
+    const { data: memberships, error: memberError } = await admin
+      .from("studio_memberships")
+      .select("builder_id")
+      .eq("studio_id", studio.id)
+      .eq("status", "active");
+    if (memberError) throw new Error(`Could not load studio members: ${memberError.message}`);
+    const builderIds = (memberships || []).map((row) => row.builder_id);
+    if (builderIds.length) {
+      const { error: profileError } = await admin.from("builder_profiles").update({
+        profile_type: "independent",
+        studio_id: null,
+        studio_promo_bps: null,
+        studio_promo_ends_at: null,
+        rank: "rookie",
+        availability_status: "busy",
+        is_available: false,
+      }).in("id", builderIds);
+      if (profileError) throw new Error(`Could not privatize studio members: ${profileError.message}`);
+      const { error: membershipError } = await admin.from("studio_memberships").update({
+        status: "removed",
+        removed_at: new Date().toISOString(),
+        availability_status: "busy",
+        busy_source: null,
+      }).eq("studio_id", studio.id).eq("status", "active");
+      if (membershipError) throw new Error(`Could not close studio memberships: ${membershipError.message}`);
+    }
+  }
   const operations = [
     admin
       .from("studios")
@@ -77,6 +119,18 @@ Deno.serve(async (req) => {
   });
   try {
     const userId = userData.user.id;
+    const { data: deletionEligibility, error: eligibilityError } = await asUser.rpc(
+      "get_my_studio_delete_eligibility",
+    );
+    if (eligibilityError && eligibilityError.code !== "PGRST202") {
+      throw new Error(`Could not verify studio deletion: ${eligibilityError.message}`);
+    }
+    if (deletionEligibility?.is_studio && !deletionEligibility?.can_delete) {
+      return json({
+        error: "Complete all outstanding studio orders before deleting the studio",
+        blockingOrderCount: deletionEligibility.blocking_order_count,
+      }, 409);
+    }
     const { data: orders, error: ordersError } = await admin
       .from("orders")
       .select("id")

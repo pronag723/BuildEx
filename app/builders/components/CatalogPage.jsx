@@ -22,6 +22,10 @@ import ReadyBuildGrid from "./ReadyBuildGrid";
 import PaginationControls from "./PaginationControls";
 import SiteFooter from "../../home/components/SiteFooter";
 import { listReadyBuilds } from "../../../lib/readyBuilds/api";
+import { useAuth } from "../../../lib/auth/AuthContext";
+import { getSupabaseClient } from "../../../lib/supabase/client";
+import { buildLoginUrl } from "../../../lib/auth/redirects";
+import { withBase } from "../../home/utils";
 
 // ─── URL param helpers ────────────────────────────────────────────────────────
 
@@ -42,6 +46,7 @@ function readParamsFromLocation() {
 // ─── Main client page ─────────────────────────────────────────────────────────
 
 export default function CatalogPage() {
+  const { status, user, profile } = useAuth();
   // URL search params held as local state. Synced to history via replaceState.
   // We avoid `useSearchParams()` because it forces a Suspense boundary that
   // currently hangs the page in Next 16 + React 19 with `output: "export"`.
@@ -251,6 +256,30 @@ export default function CatalogPage() {
     setToastMsg(msg);
     clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToastMsg(null), 3000);
+  }
+
+  async function openReadyBuildPublisher() {
+    if (status !== "authenticated" || !user?.id) {
+      window.location.assign(withBase(buildLoginUrl("/builders?mode=ready")));
+      return;
+    }
+    if (profile?.role === "studio") {
+      window.location.assign(withBase("/account?section=ready-builds"));
+      return;
+    }
+    const supabase = getSupabaseClient();
+    const { data: builderProfile } = await supabase
+      .from("builder_profiles")
+      .select("profile_type")
+      .eq("id", user.id)
+      .maybeSingle();
+    if ((profile?.role === "builder" || profile?.role === "both") && builderProfile?.profile_type === "independent") {
+      window.location.assign(withBase("/account?section=ready-builds"));
+      return;
+    }
+    showToast(builderProfile?.profile_type === "studio_employee"
+      ? "Studio employees cannot publish ready-made builds; ask the studio moderator."
+      : "Ready-made builds can be published by independent builders and studio moderators.");
   }
 
   // ── URL update helper (writes to history + updates local state) ────────────
@@ -489,7 +518,7 @@ export default function CatalogPage() {
                 Browse talented creators, view their portfolios, and commission
                 custom builds — rates negotiated per project, with protected payments.
               </p>
-              {mode === "ready" && <p className="catalog-header-description reveal text-gray-400 text-base sm:text-lg max-w-xl">Browse finished Minecraft worlds from independent builders. Preview every build in 3D, then download it instantly after payment.</p>}
+              {mode === "ready" && <><p className="catalog-header-description reveal text-gray-400 text-base sm:text-lg max-w-xl">Browse finished Minecraft worlds from independent builders and studios. Preview every build in 3D, then download it instantly after payment.</p><button type="button" onClick={openReadyBuildPublisher} className="reveal mt-5 inline-flex items-center gap-2 rounded-full border border-[#4ade80]/35 bg-[#4ade80]/10 px-5 py-3 text-sm font-bold text-[#86efac] transition hover:-translate-y-0.5 hover:border-[#4ade80]/60 hover:bg-[#4ade80]/20"><span className="text-lg leading-none">+</span> Have a build? Upload it</button></>}
 
             <div className={`catalog-mode-switch ${mode === "ready" ? "is-ready" : "is-custom"} reveal`} role="tablist" aria-label="Browse mode">
               {[{ key: "custom", label: "Custom builds" }, { key: "ready", label: "Ready-made builds" }].map((item) => <button key={item.key} type="button" role="tab" aria-selected={mode === item.key} onClick={() => updateURL({ mode: item.key === "ready" ? "ready" : null })} className={`catalog-mode-switch-option ${mode === item.key ? "is-active" : ""}`}>{item.label}</button>)}

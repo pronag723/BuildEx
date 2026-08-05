@@ -12,6 +12,7 @@ const deletion = readFileSync("supabase/migrations/0085_delete_ready_builds.sql"
 const deletionRecovery = readFileSync("supabase/migrations/0086_restore_ready_build_delete_rpcs.sql", "utf8");
 const publicPreviewReads = readFileSync("supabase/migrations/0087_public_ready_build_preview_reads.sql", "utf8");
 const favoritesMigration = readFileSync("supabase/migrations/0088_ready_build_favorites.sql", "utf8");
+const studioReadyBuilds = readFileSync("supabase/migrations/0090_studio_ready_builds_and_lifecycle.sql", "utf8");
 const invoice = readFileSync("supabase/functions/create-invoice/index.ts", "utf8");
 const webhook = readFileSync("supabase/functions/payment-webhook/index.ts", "utf8");
 const readyBuildApi = readFileSync("lib/readyBuilds/api.js", "utf8");
@@ -23,6 +24,8 @@ const catalogPage = readFileSync("app/builders/components/CatalogPage.jsx", "utf
 const worldPreview = readFileSync("app/orders/components/WorldPreview.jsx", "utf8");
 const smartText = readFileSync("lib/ui/SmartText.jsx", "utf8");
 const favoritesApi = readFileSync("lib/favorites/api.js", "utf8");
+const accountPage = readFileSync("app/account/page.jsx", "utf8");
+const studioDashboard = readFileSync("app/account/StudioAccountDashboard.jsx", "utf8");
 
 test("ready-build purchases snapshot a version and only paid buyers can download", () => {
   assert.match(migration, /version_id uuid not null/);
@@ -37,9 +40,11 @@ test("ready-build payment callbacks are namespaced and amount-checked", () => {
   assert.match(migration, /p_amount <> v\.price_kopecks/);
 });
 
-test("studios are rejected from ready-build publishing in the database", () => {
-  assert.match(migration, /Only independent builders can publish ready-made builds/);
-  assert.match(migration, /coalesce\(b\.profile_type, 'independent'\) = 'independent'/);
+test("ready builds support exactly one builder or studio seller", () => {
+  assert.match(studioReadyBuilds, /ready_builds_exactly_one_seller/);
+  assert.match(studioReadyBuilds, /p_owner_type = 'studio'/);
+  assert.match(studioReadyBuilds, /platform_commission_bps into v_bps/);
+  assert.match(studioReadyBuilds, /seller_earnings_kopecks/);
 });
 
 test("ready-build purchase creation bypasses RLS only inside the guarded RPC", () => {
@@ -142,13 +147,39 @@ test("ready-build detail reveals the complete profile-style layout", () => {
   assert.match(readyBuildDetail, /IntersectionObserver/);
   assert.match(readyBuildDetail, /Build gallery/);
   assert.match(readyBuildDetail, /About this build/);
-  assert.match(readyBuildDetail, /View builder profile/);
-  assert.match(readyBuildDetail, /Message builder/);
+  assert.match(readyBuildDetail, /View \{isStudio \? "studio" : "builder"\} profile/);
+  assert.match(readyBuildDetail, /Message \{isStudio \? "studio" : "builder"\}/);
   assert.match(readyBuildDetail, /build\/checkout/);
   assert.match(readyBuildDetail, /createPortal/);
   assert.match(readyBuildDetail, /useGradientBackground/);
   assert.doesNotMatch(readyBuildDetail, /getPaymentOptions/);
   assert.doesNotMatch(readyBuildDetail, />Included<|>Dependencies</);
+});
+
+test("studio lifecycle guards departures, deletion, and ready-build cleanup", () => {
+  assert.match(studioReadyBuilds, /get_my_studio_leave_eligibility/);
+  assert.match(studioReadyBuilds, /Complete your outstanding studio build before leaving/);
+  assert.match(studioReadyBuilds, /ready_build_asset_cleanup_jobs/);
+  assert.match(studioReadyBuilds, /seller_earnings_kopecks::bigint/);
+  assert.match(studioReadyBuilds, /Complete all outstanding studio orders before deleting the studio/);
+  assert.match(studioReadyBuilds, /rank='rookie'/);
+});
+
+test("ready-build editor reuses coordinate-scoped preview recovery", () => {
+  assert.match(readyBuildEditor, /PreviewAreaControls/);
+  assert.match(readyBuildEditor, /COORD_PROMPT_CODES/);
+  assert.match(readyBuildEditor, /center, radius/);
+  assert.match(readyBuildEditor, /Generate and review the 3D preview/);
+});
+
+test("feed publishing CTA and account controls are role-aware", () => {
+  assert.match(catalogPage, /Have a build\? Upload it/);
+  assert.match(catalogPage, /profile\?\.role === "studio"/);
+  assert.match(catalogPage, /profile_type === "independent"/);
+  assert.match(accountPage, /ReadyBuildsSection ownerType="studio"/);
+  assert.match(accountPage, /getMyStudioDeleteEligibility/);
+  assert.match(studioDashboard, /getMyStudioLeaveEligibility/);
+  assert.match(studioDashboard, /role="tooltip"/);
 });
 
 test("ready-build checkout owns payment selection and purchase creation", () => {

@@ -5,6 +5,7 @@
 | `create-invoice` | user JWT | Creates a NOWPayments buyer checkout. |
 | `payment-options` | user JWT | Returns live eligible USDT networks and minimums. |
 | `delete-account` | user JWT | Removes a user's Storage files through the Storage API, then permanently deletes their auth account. |
+| `cleanup-ready-build-assets` | user JWT validated in-function | Removes unsold ready-build assets queued transactionally when a builder joins a studio. |
 | `payment-webhook` | NOWPayments HMAC; JWT off | Reconciles finished buyer payments. |
 
 Incoming payment provider code is in `_shared/nowpayments.ts`.
@@ -22,4 +23,5 @@ Deploy account deletion after linking the project:
 
 ```powershell
 npx supabase functions deploy delete-account
+npx supabase functions deploy cleanup-ready-build-assets --no-verify-jwt
 ```

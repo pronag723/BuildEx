@@ -835,9 +835,11 @@ export default function BuilderProfilePage({ builder }) {
               {/* About */}
               <section className="reveal glass rounded-3xl p-6 lg:p-8">
                 <h2 className="font-bold text-xl mb-4">About</h2>
-                {builder.bio && (
-                  <p className="text-gray-400 leading-relaxed mb-6">{builder.bio}</p>
-                )}
+                {(builder.about || builder.bio) ? (
+                  <p className="text-gray-400 leading-relaxed mb-6">{builder.about || builder.bio}</p>
+                ) : isStudio ? (
+                  <p className="text-gray-500 text-sm italic mb-6">This studio has not added an About description yet.</p>
+                ) : null}
 
                 {!isStudio && <div>
                   <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2">Tools used</p>

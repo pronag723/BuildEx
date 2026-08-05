@@ -6,6 +6,7 @@ import { PreviewViewer } from "../orders/components/WorldPreview";
 import { useScrollLock } from "../../lib/useScrollLock";
 import { formatPrice } from "../../lib/pricing";
 import { generatePreview } from "../../lib/preview/client";
+import PreviewAreaControls, { COORD_PROMPT_CODES, FATAL_WORLD_CODES } from "../orders/components/PreviewAreaControls";
 import {
   MAX_WORLD_BYTES,
   createReadyBuild,
@@ -32,7 +33,7 @@ const MINECRAFT_EDITIONS = [
   { value: "Java & Bedrock", label: "Java & Bedrock", detail: "Includes both editions" },
 ];
 
-function BuildEditor({ listing, onClose, onSaved }) {
+function BuildEditor({ listing, ownerType, onClose, onSaved }) {
   const isEditing = Boolean(listing);
   const [form, setForm] = useState(() => listing ? {
     title: listing.title,
@@ -45,6 +46,12 @@ function BuildEditor({ listing, onClose, onSaved }) {
   const [photos, setPhotos] = useState(() => (listing?.media || []).map((image) => ({ ...image, key: image.id, kind: "existing" })));
   const [world, setWorld] = useState(null);
   const [preview, setPreview] = useState(null);
+  const [previewState, setPreviewState] = useState("idle");
+  const [progress, setProgress] = useState(0);
+  const [coords, setCoords] = useState({ x: "", y: "", z: "" });
+  const [radius, setRadius] = useState(96);
+  const [editRadius, setEditRadius] = useState(false);
+  const [adjustOpen, setAdjustOpen] = useState(false);
   const [message, setMessage] = useState(null);
   const [busy, setBusy] = useState(false);
   const [styleOpen, setStyleOpen] = useState(false);
@@ -65,6 +72,9 @@ function BuildEditor({ listing, onClose, onSaved }) {
   const chooseWorld = (file) => {
     setWorld(file || null);
     setPreview(null);
+    setPreviewState("idle");
+    setCoords({ x: "", y: "", z: "" });
+    setAdjustOpen(false);
     setMessage(null);
   };
 
@@ -108,7 +118,7 @@ function BuildEditor({ listing, onClose, onSaved }) {
     setBusy(false);
   };
 
-  const generate3dPreview = async () => {
+  const generate3dPreview = async (center = null) => {
     if (!world) {
       setMessage("Choose a world ZIP before generating its 3D preview.");
       return;
@@ -118,16 +128,39 @@ function BuildEditor({ listing, onClose, onSaved }) {
       return;
     }
     setBusy(true);
+    setPreviewState("generating");
+    setProgress(0);
     setMessage("Preparing your interactive 3D preview…");
     try {
-      const result = await generatePreview(world);
+      const result = await generatePreview(world, setProgress, center ? { center, radius } : {});
       setPreview(result);
+      setPreviewState("ready");
+      setAdjustOpen(false);
       setMessage("3D preview ready — drag to rotate and scroll to zoom.");
     } catch (error) {
-      setMessage(error?.message || "We couldn't create a preview from that ZIP.");
+      if (error?.name === "PreviewError" && COORD_PROMPT_CODES.has(error.code)) {
+        setPreviewState("needs_coords");
+        setMessage(error.message || "Enter the approximate build coordinates to continue.");
+      } else {
+        setPreviewState("error");
+        setMessage(error?.name === "PreviewError" && FATAL_WORLD_CODES.has(error.code)
+          ? `${error.message} Upload the ZIP containing level.dat and the region folder.`
+          : "We couldn't create a preview from that ZIP.");
+      }
     } finally {
       setBusy(false);
     }
+  };
+
+  const generateWithCoords = () => {
+    const x = Number(coords.x);
+    const z = Number(coords.z);
+    const y = coords.y === "" ? null : Number(coords.y);
+    if (!Number.isFinite(x) || !Number.isFinite(z) || (y !== null && !Number.isFinite(y))) {
+      setMessage("Enter valid X and Z coordinates; Y is optional.");
+      return;
+    }
+    generate3dPreview({ x, z, ...(y === null ? {} : { y }) });
   };
 
   const save = async (event) => {
@@ -149,12 +182,16 @@ function BuildEditor({ listing, onClose, onSaved }) {
       setMessage("World files must be 200 MB or smaller.");
       return;
     }
+    if (world && !preview) {
+      setMessage("Generate and review the 3D preview before publishing this world.");
+      return;
+    }
     setBusy(true);
     setMessage(isEditing ? "Saving your build…" : "Publishing your build…");
     try {
       let listingId = listing?.id;
       if (!listingId) {
-        const created = await createReadyBuild({ ...form, priceCents });
+        const created = await createReadyBuild({ ...form, priceCents, ownerType });
         if (created.error || !created.listingId) throw created.error || new Error("Couldn't create the listing.");
         listingId = created.listingId;
       }
@@ -174,8 +211,7 @@ function BuildEditor({ listing, onClose, onSaved }) {
         if (reordered.error) throw reordered.error;
       }
       if (world) {
-        const generated = preview || await generatePreview(world);
-        const version = await uploadReadyBuildVersion(listingId, world, generated.bytes, generated.meta);
+        const version = await uploadReadyBuildVersion(listingId, world, preview.bytes, preview.meta);
         if (version.error) throw version.error;
       }
       const published = await saveReadyBuild({
@@ -254,30 +290,32 @@ function BuildEditor({ listing, onClose, onSaved }) {
               <div className="rounded-2xl border border-dashed border-[#4ade80]/35 bg-[#4ade80]/[.04] p-4">
                 <p className="text-sm font-semibold">World file & 3D preview</p><p className="mt-1 text-xs text-gray-500">Upload a ZIP up to 200 MB. We generate a rotatable voxel preview.</p>
                 <input ref={worldRef} hidden type="file" accept=".zip,application/zip" onChange={(event) => chooseWorld(event.target.files?.[0])} />
-                <div className="mt-4 flex gap-2"><button type="button" onClick={() => worldRef.current?.click()} className="flex-1 rounded-xl border border-white/15 px-3 py-2.5 text-sm font-semibold text-gray-200 transition hover:border-[#4ade80]/50">{world ? "Change ZIP" : isEditing ? "Replace ZIP" : "Upload ZIP"}</button><button type="button" disabled={!world || busy} onClick={generate3dPreview} className="rounded-xl bg-[#4ade80] px-3 py-2.5 text-sm font-bold text-black disabled:opacity-40">Preview</button></div>
+                <div className="mt-4 flex gap-2"><button type="button" onClick={() => worldRef.current?.click()} className="flex-1 rounded-xl border border-white/15 px-3 py-2.5 text-sm font-semibold text-gray-200 transition hover:border-[#4ade80]/50">{world ? "Change ZIP" : isEditing ? "Replace ZIP" : "Upload ZIP"}</button><button type="button" disabled={!world || busy} onClick={() => generate3dPreview()} className="rounded-xl bg-[#4ade80] px-3 py-2.5 text-sm font-bold text-black disabled:opacity-40">Preview</button></div>
                 <p className="mt-2 truncate text-[11px] text-gray-500">{world ? `${world.name} · ${(world.size / 1024 / 1024).toFixed(1)} MB` : listing?.version ? "Current version has a 3D preview" : "No world file selected"}</p>
+                {previewState === "generating" && <div className="mt-3"><div className="h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full bg-[#4ade80] transition-all" style={{ width: `${Math.round(progress * 100)}%` }} /></div><p className="mt-1 text-[11px] text-gray-500">Generating preview… {Math.round(progress * 100)}%</p></div>}
+                {previewState === "needs_coords" && <PreviewAreaControls coords={coords} setCoords={setCoords} radius={radius} setRadius={setRadius} baseRadius={96} buildingSize="selected area" editRadius={editRadius} setEditRadius={setEditRadius} busy={busy} generating={previewState === "generating"} onGenerate={generateWithCoords} tone="warn" intro={<p className="mb-2 text-[11px] leading-relaxed text-amber-200/90">We couldn&apos;t isolate the build automatically. Enter approximate coordinates from F3 and we&apos;ll render only that area.</p>} />}
               </div>
             </div>
             {message && <p className={`rounded-xl px-3 py-2 text-sm ${message.includes("failed") || message.includes("must") || message.includes("Choose") || message.includes("Enter") ? "bg-red-500/10 text-red-300" : "bg-[#4ade80]/10 text-[#9af5bd]"}`}>{message}</p>}
             <div className="flex flex-wrap items-center gap-3"><button disabled={busy} className="rounded-full bg-[#4ade80] px-6 py-3 text-sm font-bold text-black shadow-[0_8px_28px_rgba(74,222,128,.2)] transition hover:-translate-y-0.5 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50">{busy ? "Working…" : isEditing && !listing.is_active ? "Save & publish" : isEditing ? "Save changes" : "Publish build"}</button><span className="text-xs text-gray-500">{isEditing ? "Saving publishes the latest version to the marketplace feed." : "Images, a world ZIP, and a $5 minimum are required."}</span></div>
           </div>
-          <aside className="rounded-2xl border border-white/10 bg-black/20 p-4 sm:p-5"><div className="mb-3 flex items-center justify-between"><div><p className="text-sm font-bold">3D buyer preview</p><p className="text-[11px] text-gray-500">Drag to rotate · scroll to zoom</p></div><span className="rounded-full bg-[#4ade80]/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#4ade80]">Interactive</span></div>{previewSource ? <PreviewViewer source={previewSource} className="h-[330px] w-full" /> : <div className="flex h-[330px] flex-col items-center justify-center rounded-2xl border border-dashed border-white/15 bg-white/[.02] px-8 text-center"><div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#4ade80]/10 text-xl text-[#4ade80]">◇</div><p className="text-sm font-semibold">Preview your world here</p><p className="mt-1 text-xs leading-relaxed text-gray-500">Upload a world ZIP, then choose Preview to inspect the same interactive view buyers receive.</p></div>}</aside>
+          <aside className="rounded-2xl border border-white/10 bg-black/20 p-4 sm:p-5"><div className="mb-3 flex items-center justify-between"><div><p className="text-sm font-bold">3D buyer preview</p><p className="text-[11px] text-gray-500">Drag to rotate · scroll to zoom</p></div>{previewState === "ready" && <button type="button" onClick={() => setAdjustOpen((value) => !value)} className="text-[11px] font-semibold text-[#4ade80] hover:underline">{adjustOpen ? "Hide adjust" : "Adjust area"}</button>}</div>{previewSource ? <PreviewViewer source={previewSource} className="h-[330px] w-full" /> : <div className="flex h-[330px] flex-col items-center justify-center rounded-2xl border border-dashed border-white/15 bg-white/[.02] px-8 text-center"><div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#4ade80]/10 text-xl text-[#4ade80]">◇</div><p className="text-sm font-semibold">Preview your world here</p><p className="mt-1 text-xs leading-relaxed text-gray-500">Upload a world ZIP, then choose Preview to inspect the same interactive view buyers receive.</p></div>}{adjustOpen && world && <PreviewAreaControls coords={coords} setCoords={setCoords} radius={radius} setRadius={setRadius} baseRadius={96} buildingSize="selected area" editRadius={editRadius} setEditRadius={setEditRadius} busy={busy} generating={previewState === "generating"} onGenerate={generateWithCoords} intro={<p className="mb-2 text-[11px] text-gray-400">Re-center or resize the captured area, then regenerate.</p>} submitLabel="Regenerate preview" />}</aside>
         </form>
       </div>
     </div>
   );
 }
 
-export function ReadyBuildsSection() {
+export function ReadyBuildsSection({ ownerType = "builder" }) {
   const [listings, setListings] = useState([]);
   const [editing, setEditing] = useState(undefined);
   const [message, setMessage] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const load = useCallback(async () => {
-    const { listings: rows, error } = await listMyReadyBuilds();
+    const { listings: rows, error } = await listMyReadyBuilds(ownerType);
     setListings(rows);
     if (error) setMessage(error.message);
-  }, []);
+  }, [ownerType]);
   useEffect(() => { load(); }, [load]);
   const toggle = async (listing) => {
     const result = await saveReadyBuild({ id: listing.id, title: listing.title, description: listing.description, style: listing.style, priceCents: listing.price_kopecks, active: !listing.is_active, minecraftEdition: listing.minecraft_edition, minecraftVersion: listing.minecraft_version, fileFormat: listing.file_format, includedContent: listing.included_content, dependencies: listing.dependencies });
@@ -299,11 +337,11 @@ export function ReadyBuildsSection() {
     load();
   };
 
-  return <section className="space-y-6"><div className="relative overflow-hidden rounded-3xl border border-[#4ade80]/20 bg-[linear-gradient(115deg,rgba(74,222,128,.13),rgba(17,23,19,.75)_50%,rgba(17,23,19,.9))] p-6 sm:p-8"><div className="relative flex flex-col justify-between gap-5 sm:flex-row sm:items-end"><div><p className="text-xs font-semibold uppercase tracking-[.2em] text-[#4ade80]">Builder marketplace</p><h2 className="mt-2 text-2xl font-extrabold">Your finished builds</h2><p className="mt-2 max-w-xl text-sm leading-relaxed text-gray-400">Manage live listings, improve the presentation, and add a new world whenever it&apos;s ready for buyers.</p></div><button type="button" onClick={() => setEditing(null)} className="inline-flex items-center justify-center gap-2 rounded-full bg-[#4ade80] px-5 py-3 text-sm font-bold text-black transition hover:scale-[1.02]"><span className="text-lg leading-none">+</span> Add a build</button></div></div>
+  return <section className="space-y-6"><div className="relative overflow-hidden rounded-3xl border border-[#4ade80]/20 bg-[linear-gradient(115deg,rgba(74,222,128,.13),rgba(17,23,19,.75)_50%,rgba(17,23,19,.9))] p-6 sm:p-8"><div className="relative flex flex-col justify-between gap-5 sm:flex-row sm:items-end"><div><p className="text-xs font-semibold uppercase tracking-[.2em] text-[#4ade80]">{ownerType === "studio" ? "Studio marketplace" : "Builder marketplace"}</p><h2 className="mt-2 text-2xl font-extrabold">Your finished builds</h2><p className="mt-2 max-w-xl text-sm leading-relaxed text-gray-400">Manage live listings, improve the presentation, and add a new world whenever it&apos;s ready for buyers.</p></div><button type="button" onClick={() => setEditing(null)} className="inline-flex items-center justify-center gap-2 rounded-full bg-[#4ade80] px-5 py-3 text-sm font-bold text-black transition hover:scale-[1.02]"><span className="text-lg leading-none">+</span> Add a build</button></div></div>
     {message && <p className="rounded-xl border border-white/10 bg-white/[.03] px-4 py-3 text-sm text-gray-300">{message}</p>}
     <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">{listings.length ? listings.map((listing) => { const cover = listing.media?.[0]; const paidSales = (listing.purchases || []).filter((purchase) => purchase.status === "paid").length; return <article key={listing.id} className="group overflow-hidden rounded-3xl border border-white/10 bg-white/[.035] transition hover:-translate-y-1 hover:border-[#4ade80]/35"><div className="relative aspect-[16/9] bg-black/30">{cover ? <img src={cover.url} alt={cover.alt || listing.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" /> : <div className="flex h-full items-center justify-center text-sm text-gray-600">No images yet</div>}<span className={`absolute right-3 top-3 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${listing.is_active ? "border-[#4ade80]/40 bg-[#102718]/90 text-[#83efa9]" : "border-white/15 bg-black/60 text-gray-300"}`}>{listing.is_active ? "Live" : "Draft"}</span></div><div className="p-5"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="truncate font-bold">{listing.title}</h3><p className="mt-1 text-xs capitalize text-gray-500">{listing.style} · {paidSales} sale{paidSales === 1 ? "" : "s"}</p></div><span className="whitespace-nowrap text-sm font-bold text-[#4ade80]">{formatPrice(listing.price_kopecks)}</span></div><p className="mt-3 line-clamp-2 text-sm leading-relaxed text-gray-400">{listing.description}</p><div className="mt-5 flex flex-wrap items-center gap-2"><button type="button" onClick={() => setEditing(listing)} className="flex-1 rounded-xl border border-white/15 px-3 py-2.5 text-sm font-semibold text-gray-200 transition hover:border-[#4ade80]/50 hover:bg-[#4ade80]/10">Edit build</button><Link href={`/build?id=${listing.id}`} className="rounded-xl px-2 py-2.5 text-xs font-semibold text-gray-400 hover:text-white">View</Link><button type="button" onClick={() => toggle(listing)} className="rounded-xl px-2 py-2.5 text-xs font-semibold text-[#4ade80] hover:bg-[#4ade80]/10">{listing.is_active ? "Unlist" : "Go live"}</button><button type="button" disabled={deletingId === listing.id} onClick={() => remove(listing)} className="rounded-xl px-2 py-2.5 text-xs font-semibold text-red-400 transition hover:bg-red-500/10 disabled:opacity-40">{deletingId === listing.id ? "Deleting…" : "Delete"}</button></div></div></article>; }) : <button type="button" onClick={() => setEditing(null)} className="col-span-full rounded-3xl border border-dashed border-[#4ade80]/35 bg-[#4ade80]/[.035] px-6 py-16 text-center transition hover:bg-[#4ade80]/[.07]"><span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#4ade80]/10 text-2xl text-[#4ade80]">+</span><span className="mt-4 block font-bold">Place your first finished build</span><span className="mt-1 block text-sm text-gray-500">Upload imagery, a world ZIP, and create an interactive 3D preview.</span></button>}</div>
-    {editing !== undefined && <BuildEditor listing={editing} onClose={() => setEditing(undefined)} onSaved={completeSave} />}
+    {editing !== undefined && <BuildEditor listing={editing} ownerType={ownerType} onClose={() => setEditing(undefined)} onSaved={completeSave} />}
   </section>;
 }
 
-export function ReadyBuildPurchasesSection() { const [purchases,setPurchases]=useState([]); const [message,setMessage]=useState(null); useEffect(()=>{listMyReadyBuildPurchases().then(({purchases:rows})=>setPurchases(rows));},[]); const download=async(id)=>{const {url,error}=await getReadyBuildDownloadUrl(id); if(error) setMessage(error.message); else window.location.assign(url);}; return <section className="glass rounded-3xl p-6 sm:p-8"><p className="text-xs uppercase tracking-widest text-[#4ade80] font-semibold">Library</p><h2 className="text-xl font-bold mt-1">Your ready-made purchases</h2><p className="text-sm text-gray-400 mt-2">Downloads stay tied to the exact version you purchased.</p><div className="mt-6 space-y-3">{purchases.length ? purchases.map(p=><div key={p.id} className="flex flex-wrap items-center gap-4 rounded-2xl border border-white/10 p-4"><div className="flex-1"><p className="font-semibold">{p.title_snapshot}</p><p className="text-xs text-gray-500">{p.builder?.display_name || p.builder?.username} · {p.paid_at ? new Date(p.paid_at).toLocaleDateString() : "Awaiting payment"}</p></div><span className="text-sm text-[#4ade80]">{formatPrice(p.price_kopecks)}</span>{p.status==="paid" && <button onClick={()=>download(p.id)} className="pill-button">Download</button>}</div>) : <p className="text-sm text-gray-500">Your ready-made builds will appear here after purchase.</p>}</div>{message&&<p className="text-sm text-red-400 mt-4">{message}</p>}</section>; }
+export function ReadyBuildPurchasesSection() { const [purchases,setPurchases]=useState([]); const [message,setMessage]=useState(null); useEffect(()=>{listMyReadyBuildPurchases().then(({purchases:rows})=>setPurchases(rows));},[]); const download=async(id)=>{const {url,error}=await getReadyBuildDownloadUrl(id); if(error) setMessage(error.message); else window.location.assign(url);}; return <section className="glass rounded-3xl p-6 sm:p-8"><p className="text-xs uppercase tracking-widest text-[#4ade80] font-semibold">Library</p><h2 className="text-xl font-bold mt-1">Your ready-made purchases</h2><p className="text-sm text-gray-400 mt-2">Downloads stay tied to the exact version you purchased.</p><div className="mt-6 space-y-3">{purchases.length ? purchases.map(p=>{const seller=p.studio||p.builder;return <div key={p.id} className="flex flex-wrap items-center gap-4 rounded-2xl border border-white/10 p-4"><div className="flex-1"><p className="font-semibold">{p.title_snapshot}</p><p className="text-xs text-gray-500">{seller?.name||seller?.display_name||seller?.username||"BuildEx seller"} · {p.paid_at ? new Date(p.paid_at).toLocaleDateString() : "Awaiting payment"}</p></div><span className="text-sm text-[#4ade80]">{formatPrice(p.price_kopecks)}</span>{p.status==="paid" && <button onClick={()=>download(p.id)} className="pill-button">Download</button>}</div>;}) : <p className="text-sm text-gray-500">Your ready-made builds will appear here after purchase.</p>}</div>{message&&<p className="text-sm text-red-400 mt-4">{message}</p>}</section>; }
