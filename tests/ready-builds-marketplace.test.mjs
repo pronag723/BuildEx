@@ -15,6 +15,7 @@ const favoritesMigration = readFileSync("supabase/migrations/0088_ready_build_fa
 const studioReadyBuilds = readFileSync("supabase/migrations/0090_studio_ready_builds_and_lifecycle.sql", "utf8");
 const publishAndBioFix = readFileSync("supabase/migrations/0091_ready_build_publish_and_studio_bio_fix.sql", "utf8");
 const studioRlsFix = readFileSync("supabase/migrations/0092_ready_build_studio_rls_permissions.sql", "utf8");
+const studioDisclosureFix = readFileSync("supabase/migrations/0093_studio_ready_build_disclosures.sql", "utf8");
 const invoice = readFileSync("supabase/functions/create-invoice/index.ts", "utf8");
 const webhook = readFileSync("supabase/functions/payment-webhook/index.ts", "utf8");
 const readyBuildApi = readFileSync("lib/readyBuilds/api.js", "utf8");
@@ -209,6 +210,14 @@ test("studio ready-build reads do not require protected studio columns", () => {
   const ownListings = readyBuildApi.match(/export async function listMyReadyBuilds[\s\S]*?\n}/)?.[0] || "";
   assert.match(ownListings, /permission denied for table studios/i);
   assert.match(ownListings, /run\(safeSelect\)/);
+});
+
+test("studio moderators can save required ready-build disclosures", () => {
+  assert.match(studioDisclosureFix, /function public\.set_ready_build_disclosures/);
+  assert.match(studioDisclosureFix, /public\.can_manage_ready_build\(p_listing::text\)/);
+  assert.match(studioDisclosureFix, /set row_security = off/);
+  assert.match(studioDisclosureFix, /grant execute on function public\.set_ready_build_disclosures\(uuid,text,text,text,text,text,text\) to authenticated/);
+  assert.doesNotMatch(studioDisclosureFix, /builder_id\s*=\s*auth\.uid\(\)/);
 });
 
 test("ready-build checkout owns payment selection and purchase creation", () => {
