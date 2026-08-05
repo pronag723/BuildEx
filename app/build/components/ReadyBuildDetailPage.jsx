@@ -16,6 +16,7 @@ import Avatar from "../../../lib/ui/Avatar";
 import { useGradientBackground } from "../../../lib/ui/useGradientBackground";
 import SmartText from "../../../lib/ui/SmartText";
 import { getOrCreateStudioConversation } from "../../../lib/studios/api";
+import { useScrollLock } from "../../../lib/useScrollLock";
 
 function Chevron({ className = "h-4 w-4" }) {
   return (
@@ -61,6 +62,7 @@ function BuildGallery({ photos, listing, previewLoader }) {
   const [mode, setMode] = useState("photos");
   const [index, setIndex] = useState(0);
   const [lightboxIndex, setLightboxIndex] = useState(null);
+  const [previewExpanded, setPreviewExpanded] = useState(false);
   const touchStartX = useRef(null);
   const count = photos.length;
   const go = (direction) => setIndex((current) => (current + direction + count) % count);
@@ -68,21 +70,23 @@ function BuildGallery({ photos, listing, previewLoader }) {
     setLightboxIndex((current) => (current + direction + count) % count);
   }, [count]);
 
+  useScrollLock(lightboxIndex != null || previewExpanded);
+
   useEffect(() => {
-    if (lightboxIndex == null) return undefined;
-    const previousOverflow = document.body.style.overflow;
+    if (lightboxIndex == null && !previewExpanded) return undefined;
     const onKeyDown = (event) => {
-      if (event.key === "Escape") setLightboxIndex(null);
+      if (event.key === "Escape") {
+        setLightboxIndex(null);
+        setPreviewExpanded(false);
+      }
       if (event.key === "ArrowLeft" && count > 1) goLightbox(-1);
       if (event.key === "ArrowRight" && count > 1) goLightbox(1);
     };
-    document.body.style.overflow = "hidden";
     window.addEventListener("keydown", onKeyDown);
     return () => {
-      document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [lightboxIndex, count, goLightbox]);
+  }, [lightboxIndex, previewExpanded, count, goLightbox]);
 
   const lightboxImage = lightboxIndex == null ? null : photos[lightboxIndex];
 
@@ -101,8 +105,9 @@ function BuildGallery({ photos, listing, previewLoader }) {
       </div>
 
       {mode === "preview" ? (
-        <div className="build-media-panel glass rounded-3xl p-3">
+        <div className="build-media-panel glass group/preview relative rounded-3xl p-3">
           <PreviewViewer source={{ loadPreview: previewLoader }} className="h-[420px] w-full sm:h-[520px]" />
+          <button type="button" onClick={() => setPreviewExpanded(true)} className="absolute right-6 top-6 z-10 inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/60 px-3 py-2 text-xs font-semibold text-white backdrop-blur-md transition hover:border-[#4ade80]/60 hover:text-[#4ade80]" aria-label="Open 3D preview in large view"><ExpandIcon />Large view</button>
         </div>
       ) : (
         <div
@@ -152,6 +157,15 @@ function BuildGallery({ photos, listing, previewLoader }) {
             <button type="button" onClick={() => goLightbox(1)} className="absolute right-1 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-[#4ade80]/45 bg-black/65 text-white backdrop-blur-md transition hover:bg-[#4ade80] hover:text-black sm:right-4" aria-label="Next full-screen photo"><Chevron className="h-6 w-6" /></button>
           </>}
           <span className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full border border-white/10 bg-black/60 px-3 py-1.5 text-xs text-white/70 backdrop-blur-md">{lightboxIndex + 1} / {count}</span>
+        </div>
+      </div>,
+      document.body,
+    )}
+    {previewExpanded && typeof document !== "undefined" && createPortal(
+      <div className="fixed inset-0 z-[400] flex items-center justify-center bg-black/90 p-3 backdrop-blur-xl sm:p-6" role="dialog" aria-modal="true" aria-label="Large 3D preview" onClick={() => setPreviewExpanded(false)}>
+        <button type="button" onClick={() => setPreviewExpanded(false)} className="absolute right-4 top-4 z-20 flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-black/60 text-2xl text-white transition hover:border-[#4ade80]/60 hover:text-[#4ade80]" aria-label="Close large 3D preview">×</button>
+        <div className="h-full w-full max-w-[1600px] pt-14" onClick={(event) => event.stopPropagation()}>
+          <PreviewViewer source={{ loadPreview: previewLoader }} className="h-full min-h-[320px] w-full" />
         </div>
       </div>,
       document.body,
