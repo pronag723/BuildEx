@@ -1681,6 +1681,11 @@ body {
   line-height: 1.65;
 }
 
+.catalog-ready-publisher {
+  order: 4;
+  margin-top: 1.35rem;
+}
+
 .catalog-heading.reveal { transition-delay: 70ms; }
 .catalog-mode-switch.reveal { transition-delay: 150ms; }
 .catalog-header-description.reveal { transition-delay: 230ms; }

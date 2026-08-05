@@ -54,6 +54,7 @@ function BuildEditor({ listing, ownerType, onClose, onSaved }) {
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [message, setMessage] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [draftId, setDraftId] = useState(listing?.id || null);
   const [styleOpen, setStyleOpen] = useState(false);
   const [editionOpen, setEditionOpen] = useState(false);
   const photoRef = useRef(null);
@@ -76,6 +77,7 @@ function BuildEditor({ listing, ownerType, onClose, onSaved }) {
     setCoords({ x: "", y: "", z: "" });
     setAdjustOpen(false);
     setMessage(null);
+    if (file) void generate3dPreview(null, file);
   };
 
   const addPhotos = (files) => {
@@ -118,12 +120,12 @@ function BuildEditor({ listing, ownerType, onClose, onSaved }) {
     setBusy(false);
   };
 
-  const generate3dPreview = async (center = null) => {
-    if (!world) {
+  const generate3dPreview = async (center = null, selectedWorld = world) => {
+    if (!selectedWorld) {
       setMessage("Choose a world ZIP before generating its 3D preview.");
       return;
     }
-    if (world.size > MAX_WORLD_BYTES) {
+    if (selectedWorld.size > MAX_WORLD_BYTES) {
       setMessage("World files must be 200 MB or smaller.");
       return;
     }
@@ -132,7 +134,7 @@ function BuildEditor({ listing, ownerType, onClose, onSaved }) {
     setProgress(0);
     setMessage("Preparing your interactive 3D preview…");
     try {
-      const result = await generatePreview(world, setProgress, center ? { center, radius } : {});
+      const result = await generatePreview(selectedWorld, setProgress, center ? { center, radius } : {});
       setPreview(result);
       setPreviewState("ready");
       setAdjustOpen(false);
@@ -189,13 +191,15 @@ function BuildEditor({ listing, ownerType, onClose, onSaved }) {
     setBusy(true);
     setMessage(isEditing ? "Saving your build…" : "Publishing your build…");
     try {
-      let listingId = listing?.id;
+      let listingId = listing?.id || draftId;
       if (!listingId) {
         const created = await createReadyBuild({ ...form, priceCents, ownerType });
         if (created.error || !created.listingId) throw created.error || new Error("Couldn't create the listing.");
         listingId = created.listingId;
+        setDraftId(listingId);
       }
       const orderedMediaIds = [];
+      const uploadedPhotos = [];
       for (let index = 0; index < photos.length; index += 1) {
         const photo = photos[index];
         if (photo.kind === "existing") {
@@ -205,6 +209,13 @@ function BuildEditor({ listing, ownerType, onClose, onSaved }) {
         const result = await uploadReadyBuildImage(listingId, photo.file, 10000 + index);
         if (result.error) throw result.error;
         orderedMediaIds.push(result.id);
+        uploadedPhotos.push({ key: photo.key, id: result.id, storage_path: result.storagePath, url: result.publicUrl });
+      }
+      if (uploadedPhotos.length) {
+        const uploadedByKey = new Map(uploadedPhotos.map((photo) => [photo.key, photo]));
+        setPhotos((items) => items.map((photo) => uploadedByKey.has(photo.key)
+          ? { ...photo, ...uploadedByKey.get(photo.key), kind: "existing" }
+          : photo));
       }
       if (orderedMediaIds.length) {
         const reordered = await reorderReadyBuildImages(listingId, orderedMediaIds);
@@ -254,7 +265,7 @@ function BuildEditor({ listing, ownerType, onClose, onSaved }) {
           <button type="button" onClick={onClose} className="rounded-full border border-white/15 px-4 py-2 text-sm text-gray-300 transition hover:bg-white/10">Close</button>
         </div>
 
-        <form onSubmit={save} className="grid gap-6 p-5 sm:grid-cols-[minmax(0,1fr)_minmax(320px,.9fr)] sm:p-8">
+        <form onSubmit={save} className="space-y-6 p-5 sm:p-8">
           <div className="space-y-5">
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="block sm:col-span-2"><span className="text-xs font-medium text-gray-400">Build name</span><input required minLength="3" maxLength="100" value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} placeholder="e.g. Emerald Citadel" className="field mt-1.5" /></label>
@@ -288,18 +299,21 @@ function BuildEditor({ listing, ownerType, onClose, onSaved }) {
                 {photos.length ? <div className="mt-3 space-y-2"><p className="text-[11px] text-gray-500">Set the first image as the cover. Use the arrows to reorder or remove an image.</p><div className="flex gap-2 overflow-x-auto pb-1">{photos.map((photo, index) => <div key={photo.key} className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-white/15"><img src={photo.url} alt={photo.alt || "Build"} className="h-full w-full object-cover" />{index === 0 && <span className="absolute left-1 top-1 rounded bg-[#4ade80] px-1 py-0.5 text-[8px] font-bold text-black">COVER</span>}<button type="button" disabled={busy} onClick={() => removePhoto(photo)} aria-label="Remove image" className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/80 text-sm font-bold leading-none text-white transition hover:bg-red-500 disabled:opacity-40">×</button><div className="absolute inset-x-1 bottom-1 flex justify-between"><button type="button" disabled={index === 0 || busy} onClick={() => movePhoto(index, index - 1)} aria-label="Move image left" className="h-5 w-5 rounded bg-black/75 text-xs text-white disabled:opacity-30">‹</button><button type="button" disabled={index === photos.length - 1 || busy} onClick={() => movePhoto(index, index + 1)} aria-label="Move image right" className="h-5 w-5 rounded bg-black/75 text-xs text-white disabled:opacity-30">›</button></div></div>)}</div></div> : null}
               </div>
               <div className="rounded-2xl border border-dashed border-[#4ade80]/35 bg-[#4ade80]/[.04] p-4">
-                <p className="text-sm font-semibold">World file & 3D preview</p><p className="mt-1 text-xs text-gray-500">Upload a ZIP up to 200 MB. We generate a rotatable voxel preview.</p>
+                <div className="flex items-start justify-between gap-3"><div><p className="text-sm font-semibold">World file & 3D preview</p><p className="mt-1 text-xs text-gray-500">Upload a ZIP up to 200 MB. Preview generation starts automatically.</p></div><span className={`shrink-0 rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-[.14em] ${previewState === "ready" ? "border-[#4ade80]/30 bg-[#4ade80]/10 text-[#8df3b2]" : previewState === "generating" ? "border-sky-400/30 bg-sky-400/10 text-sky-200" : previewState === "needs_coords" ? "border-amber-400/30 bg-amber-400/10 text-amber-200" : "border-white/10 bg-white/[.04] text-gray-400"}`}>{previewState === "ready" ? "Preview ready" : previewState === "generating" ? "Generating" : previewState === "needs_coords" ? "Needs location" : "Waiting for ZIP"}</span></div>
                 <input ref={worldRef} hidden type="file" accept=".zip,application/zip" onChange={(event) => chooseWorld(event.target.files?.[0])} />
-                <div className="mt-4 flex gap-2"><button type="button" onClick={() => worldRef.current?.click()} className="flex-1 rounded-xl border border-white/15 px-3 py-2.5 text-sm font-semibold text-gray-200 transition hover:border-[#4ade80]/50">{world ? "Change ZIP" : isEditing ? "Replace ZIP" : "Upload ZIP"}</button><button type="button" disabled={!world || busy} onClick={() => generate3dPreview()} className="rounded-xl bg-[#4ade80] px-3 py-2.5 text-sm font-bold text-black disabled:opacity-40">Preview</button></div>
+                <button type="button" disabled={busy} onClick={() => worldRef.current?.click()} className="mt-4 w-full rounded-xl border border-[#4ade80]/30 bg-[#4ade80]/10 px-3 py-2.5 text-sm font-semibold text-[#9af5bd] transition hover:border-[#4ade80]/60 hover:bg-[#4ade80]/15 disabled:opacity-50">{world ? "Choose a different ZIP" : isEditing ? "Replace world ZIP" : "Choose world ZIP"}</button>
                 <p className="mt-2 truncate text-[11px] text-gray-500">{world ? `${world.name} · ${(world.size / 1024 / 1024).toFixed(1)} MB` : listing?.version ? "Current version has a 3D preview" : "No world file selected"}</p>
                 {previewState === "generating" && <div className="mt-3"><div className="h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full bg-[#4ade80] transition-all" style={{ width: `${Math.round(progress * 100)}%` }} /></div><p className="mt-1 text-[11px] text-gray-500">Generating preview… {Math.round(progress * 100)}%</p></div>}
-                {previewState === "needs_coords" && <PreviewAreaControls coords={coords} setCoords={setCoords} radius={radius} setRadius={setRadius} baseRadius={96} buildingSize="selected area" editRadius={editRadius} setEditRadius={setEditRadius} busy={busy} generating={previewState === "generating"} onGenerate={generateWithCoords} tone="warn" intro={<p className="mb-2 text-[11px] leading-relaxed text-amber-200/90">We couldn&apos;t isolate the build automatically. Enter approximate coordinates from F3 and we&apos;ll render only that area.</p>} />}
               </div>
             </div>
-            {message && <p className={`rounded-xl px-3 py-2 text-sm ${message.includes("failed") || message.includes("must") || message.includes("Choose") || message.includes("Enter") ? "bg-red-500/10 text-red-300" : "bg-[#4ade80]/10 text-[#9af5bd]"}`}>{message}</p>}
-            <div className="flex flex-wrap items-center gap-3"><button disabled={busy} className="rounded-full bg-[#4ade80] px-6 py-3 text-sm font-bold text-black shadow-[0_8px_28px_rgba(74,222,128,.2)] transition hover:-translate-y-0.5 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50">{busy ? "Working…" : isEditing && !listing.is_active ? "Save & publish" : isEditing ? "Save changes" : "Publish build"}</button><span className="text-xs text-gray-500">{isEditing ? "Saving publishes the latest version to the marketplace feed." : "Images, a world ZIP, and a $5 minimum are required."}</span></div>
           </div>
-          <aside className="rounded-2xl border border-white/10 bg-black/20 p-4 sm:p-5"><div className="mb-3 flex items-center justify-between"><div><p className="text-sm font-bold">3D buyer preview</p><p className="text-[11px] text-gray-500">Drag to rotate · scroll to zoom</p></div>{previewState === "ready" && <button type="button" onClick={() => setAdjustOpen((value) => !value)} className="text-[11px] font-semibold text-[#4ade80] hover:underline">{adjustOpen ? "Hide adjust" : "Adjust area"}</button>}</div>{previewSource ? <PreviewViewer source={previewSource} className="h-[330px] w-full" /> : <div className="flex h-[330px] flex-col items-center justify-center rounded-2xl border border-dashed border-white/15 bg-white/[.02] px-8 text-center"><div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#4ade80]/10 text-xl text-[#4ade80]">◇</div><p className="text-sm font-semibold">Preview your world here</p><p className="mt-1 text-xs leading-relaxed text-gray-500">Upload a world ZIP, then choose Preview to inspect the same interactive view buyers receive.</p></div>}{adjustOpen && world && <PreviewAreaControls coords={coords} setCoords={setCoords} radius={radius} setRadius={setRadius} baseRadius={96} buildingSize="selected area" editRadius={editRadius} setEditRadius={setEditRadius} busy={busy} generating={previewState === "generating"} onGenerate={generateWithCoords} intro={<p className="mb-2 text-[11px] text-gray-400">Re-center or resize the captured area, then regenerate.</p>} submitLabel="Regenerate preview" />}</aside>
+          <aside className="rounded-3xl border border-white/10 bg-black/20 p-4 sm:p-5">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><p className="text-base font-bold">3D buyer preview</p><p className="mt-0.5 text-xs text-gray-500">This is the exact interactive view buyers receive.</p></div>{previewState === "ready" && world && <button type="button" onClick={() => setAdjustOpen((value) => !value)} className="rounded-full border border-[#4ade80]/30 bg-[#4ade80]/10 px-4 py-2 text-xs font-bold text-[#8df3b2] transition hover:border-[#4ade80]/60 hover:bg-[#4ade80]/15">{adjustOpen ? "Done adjusting" : "Re-center preview"}</button>}</div>
+            {(previewState === "needs_coords" || adjustOpen) && world && <PreviewAreaControls coords={coords} setCoords={setCoords} radius={radius} setRadius={setRadius} baseRadius={96} buildingSize="selected area" editRadius={editRadius} setEditRadius={setEditRadius} busy={busy} generating={previewState === "generating"} onGenerate={generateWithCoords} tone={previewState === "needs_coords" ? "warn" : "neutral"} intro={<div className="mb-4"><p className={`text-sm font-bold ${previewState === "needs_coords" ? "text-amber-100" : "text-gray-100"}`}>{previewState === "needs_coords" ? "Tell us where the build is" : "Adjust the captured area"}</p><p className="mt-1 text-xs leading-relaxed text-gray-400">Enter approximate X and Z coordinates from Minecraft&apos;s F3 screen. Y is optional. Then choose how much of the surrounding world to include.</p></div>} submitLabel="Generate this area" />}
+            <div className={`${(previewState === "needs_coords" || adjustOpen) && world ? "mt-4" : ""}`}>{previewSource ? <PreviewViewer source={previewSource} className="h-[280px] w-full sm:h-[420px]" /> : <div className="flex h-[240px] flex-col items-center justify-center rounded-2xl border border-dashed border-white/15 bg-white/[.02] px-8 text-center sm:h-[320px]"><div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#4ade80]/10 text-xl text-[#4ade80]">◇</div><p className="text-sm font-semibold">Your preview will appear automatically</p><p className="mt-1 max-w-md text-xs leading-relaxed text-gray-500">Choose a world ZIP above. If the build cannot be located automatically, we&apos;ll ask for its approximate coordinates here.</p></div>}</div>
+          </aside>
+          {message && <p className={`rounded-2xl border px-4 py-3 text-sm ${message.includes("failed") || message.includes("must") || message.includes("Choose") || message.includes("Enter") || message.includes("does not exist") ? "border-red-400/20 bg-red-500/10 text-red-300" : "border-[#4ade80]/15 bg-[#4ade80]/10 text-[#9af5bd]"}`}>{message}</p>}
+          <div className="flex flex-col gap-3 rounded-2xl border border-white/[.07] bg-white/[.025] p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-semibold text-gray-200">Ready to list this build?</p><p className="mt-1 text-xs text-gray-500">{isEditing ? "Saving publishes the latest version to the marketplace feed." : "Images, a world ZIP, a reviewed preview, and a $5 minimum are required."}</p></div><button disabled={busy} className="w-full rounded-full bg-[#4ade80] px-7 py-3 text-sm font-bold text-black shadow-[0_8px_28px_rgba(74,222,128,.2)] transition hover:-translate-y-0.5 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto">{busy ? "Working…" : isEditing && !listing.is_active ? "Save & publish" : isEditing ? "Save changes" : "Publish build"}</button></div>
         </form>
       </div>
     </div>

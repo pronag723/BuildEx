@@ -168,16 +168,19 @@ $$;
 
 create or replace function public.reorder_ready_build_media(p_listing uuid, p_media_ids uuid[])
 returns void language plpgsql security definer set search_path = public set row_security = off as $$
+declare v_offset int;
 begin
   if not public.can_manage_ready_build(p_listing::text) then raise exception 'Listing not found'; end if;
   if cardinality(p_media_ids) <> (select count(*) from public.ready_build_media where listing_id=p_listing)
-     or cardinality(p_media_ids) <> (select count(distinct id) from unnest(p_media_ids) id) then
+     or cardinality(p_media_ids) <> (select count(distinct media_id) from unnest(p_media_ids) as ids(media_id)) then
     raise exception 'Include every listing image exactly once';
   end if;
-  update public.ready_build_media m set position = ordered.position + 10000
-    from (select id, ordinality::int - 1 position from unnest(p_media_ids) with ordinality) ordered
+  select coalesce(max(position),0) + cardinality(p_media_ids) + 1 into v_offset
+    from public.ready_build_media where listing_id=p_listing;
+  update public.ready_build_media set position=position+v_offset where listing_id=p_listing;
+  update public.ready_build_media m set position = ordered.position
+    from (select media_id as id, ordinality::int - 1 position from unnest(p_media_ids) with ordinality as ids(media_id, ordinality)) ordered
    where m.id=ordered.id and m.listing_id=p_listing;
-  update public.ready_build_media set position=position-10000 where listing_id=p_listing and position>=10000;
 end;
 $$;
 

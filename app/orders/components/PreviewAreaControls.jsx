@@ -13,25 +13,25 @@ export default function PreviewAreaControls({
   const sizeLabel = SIZE_META[buildingSize]?.label || buildingSize || "selected";
   const span = radius * 2;
   return (
-    <div className={`mt-4 rounded-2xl border p-3 ${tone === "warn" ? "border-amber-400/20 bg-amber-400/[0.06]" : "border-white/10 bg-white/[0.03]"}`}>
+    <div className={`mt-4 rounded-2xl border p-4 sm:p-5 ${tone === "warn" ? "border-amber-400/30 bg-amber-400/[0.07] shadow-[0_12px_40px_rgba(251,191,36,.06)]" : "border-white/10 bg-white/[0.03]"}`}>
       {intro}
-      <div className="grid grid-cols-3 gap-2">
-        {["x", "y", "z"].map((axis) => (
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        {["x", "z", "y"].map((axis) => (
           <label key={axis} className="block">
-            <span className="mb-1 block text-[10px] uppercase tracking-widest text-gray-400">
-              {axis.toUpperCase()}{axis === "y" && " (opt.)"}
+            <span className="mb-1.5 flex items-center justify-between text-[11px] font-bold uppercase tracking-widest text-gray-300">
+              <span>{axis.toUpperCase()} coordinate</span>{axis === "y" && <span className="font-medium normal-case tracking-normal text-gray-500">Optional</span>}
             </span>
             <input type="text" inputMode="text" pattern="-?[0-9]*" value={coords[axis]}
               onChange={(event) => setCoords((current) => ({ ...current, [axis]: event.target.value.replace(/[^0-9-]/g, "").replace(/(?!^)-/g, "") }))}
               disabled={busy} placeholder={axis === "y" ? "—" : "0"}
-              className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none placeholder:text-gray-600 focus:border-[#4ade80]/60 focus:ring-2 focus:ring-[#4ade80]/15" />
+              className="w-full rounded-xl border border-white/15 bg-black/30 px-3 py-3 text-base font-semibold tabular-nums text-white outline-none placeholder:text-gray-600 focus:border-[#4ade80]/60 focus:ring-2 focus:ring-[#4ade80]/15" />
           </label>
         ))}
       </div>
-      <div className="mt-3 flex items-center justify-between gap-2">
-        <p className="text-[11px] text-gray-400">Capture area: <strong className="text-gray-200">~{span}×{span} blocks</strong>{!editRadius && <> · {sizeLabel}</>}</p>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs text-gray-400">Capture area: <strong className="text-gray-200">~{span}×{span} blocks</strong>{!editRadius && <> · {sizeLabel}</>}</p>
         <button type="button" disabled={busy} onClick={() => { if (editRadius) setRadius(baseRadius); setEditRadius((value) => !value); }}
-          className="text-[11px] font-semibold text-[#4ade80] hover:underline disabled:opacity-50">
+          className="rounded-full border border-[#4ade80]/20 bg-[#4ade80]/5 px-3 py-1.5 text-xs font-semibold text-[#4ade80] transition hover:bg-[#4ade80]/10 disabled:opacity-50">
           {editRadius ? "Use suggested" : "Edit area size"}
         </button>
       </div>

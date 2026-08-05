@@ -13,6 +13,7 @@ const deletionRecovery = readFileSync("supabase/migrations/0086_restore_ready_bu
 const publicPreviewReads = readFileSync("supabase/migrations/0087_public_ready_build_preview_reads.sql", "utf8");
 const favoritesMigration = readFileSync("supabase/migrations/0088_ready_build_favorites.sql", "utf8");
 const studioReadyBuilds = readFileSync("supabase/migrations/0090_studio_ready_builds_and_lifecycle.sql", "utf8");
+const publishAndBioFix = readFileSync("supabase/migrations/0091_ready_build_publish_and_studio_bio_fix.sql", "utf8");
 const invoice = readFileSync("supabase/functions/create-invoice/index.ts", "utf8");
 const webhook = readFileSync("supabase/functions/payment-webhook/index.ts", "utf8");
 const readyBuildApi = readFileSync("lib/readyBuilds/api.js", "utf8");
@@ -68,6 +69,13 @@ test("ready-build image reordering is owner-checked outside browser RLS", () => 
   assert.match(reorderFix, /builder_id = auth\.uid\(\)/);
   assert.match(reorderFix, /with ordinality/);
   assert.match(reorderFix, /grant execute on function public\.reorder_ready_build_media\(uuid, uuid\[\]\) to authenticated/);
+});
+
+test("studio-ready media reordering names the unnest column and stages unique positions", () => {
+  assert.match(publishAndBioFix, /as ids\(media_id, ordinality\)/);
+  assert.match(publishAndBioFix, /set position = position \+ v_offset/);
+  assert.match(publishAndBioFix, /set position = ordered\.position/);
+  assert.doesNotMatch(publishAndBioFix, /select id, ordinality/);
 });
 
 test("ready-build version uploads use insert-only storage writes", () => {
@@ -170,6 +178,8 @@ test("ready-build editor reuses coordinate-scoped preview recovery", () => {
   assert.match(readyBuildEditor, /COORD_PROMPT_CODES/);
   assert.match(readyBuildEditor, /center, radius/);
   assert.match(readyBuildEditor, /Generate and review the 3D preview/);
+  assert.match(readyBuildEditor, /generate3dPreview\(null, file\)/);
+  assert.match(readyBuildEditor, /Your preview will appear automatically/);
 });
 
 test("feed publishing CTA and account controls are role-aware", () => {
@@ -180,6 +190,14 @@ test("feed publishing CTA and account controls are role-aware", () => {
   assert.match(accountPage, /getMyStudioDeleteEligibility/);
   assert.match(studioDashboard, /getMyStudioLeaveEligibility/);
   assert.match(studioDashboard, /role="tooltip"/);
+  assert.match(studioDashboard, /createPortal/);
+});
+
+test("studio catalog reads expose both current About and legacy bio", () => {
+  assert.match(publishAndBioFix, /grant select \(about, bio\)/);
+  const studioApi = readFileSync("lib/studios/api.js", "utf8");
+  assert.match(studioApi, /logo_url, about, bio, status/);
+  assert.match(studioApi, /bio: row\.about \|\| row\.bio/);
 });
 
 test("ready-build checkout owns payment selection and purchase creation", () => {

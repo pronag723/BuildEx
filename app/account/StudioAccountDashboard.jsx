@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -1783,42 +1784,42 @@ export function StudioModeratorDashboard({ section = "profile" }) {
               const specialties = member.profile.specialties || [];
 
               return (
-                <article key={member.id} className="team-member-card overflow-hidden rounded-3xl border border-white/10 bg-black/[0.12] p-5 sm:p-6">
-                  <header className="flex flex-col gap-4 sm:flex-row sm:items-center">
-                    <div className="flex min-w-0 items-center gap-4">
+                <article key={member.id} className="team-member-card overflow-hidden rounded-2xl border border-white/10 bg-black/[0.12] p-3.5 sm:rounded-3xl sm:p-6">
+                  <header className="flex items-center gap-3 sm:gap-4">
+                    <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
                       <Avatar
                         src={member.builder?.avatar_url}
                         name={member.builder?.display_name || "Builder"}
-                        className="h-14 w-14 rounded-2xl ring-2 ring-[#4ade80]/25 text-lg"
+                        className="h-11 w-11 rounded-xl ring-2 ring-[#4ade80]/25 text-base sm:h-14 sm:w-14 sm:rounded-2xl sm:text-lg"
                       />
                       <div className="min-w-0">
-                        <h3 className="truncate text-lg font-bold text-white">{member.builder?.display_name || "Builder"}</h3>
-                        <p className="truncate text-sm text-gray-400">@{member.builder?.username || "unknown"}</p>
+                        <h3 className="truncate text-sm font-bold text-white sm:text-lg">{member.builder?.display_name || "Builder"}</h3>
+                        <p className="truncate text-xs text-gray-400 sm:text-sm">@{member.builder?.username || "unknown"}</p>
                       </div>
                     </div>
-                    <div className="flex sm:ml-auto sm:self-center">
+                    <div className="flex shrink-0">
                       <span
-                        className={`inline-flex min-w-[132px] items-center justify-center rounded-full border px-4 py-2 text-sm font-bold ${availabilityPresentation.badge}`}
+                        className={`inline-flex items-center justify-center rounded-full border px-2.5 py-1.5 text-[10px] font-bold sm:min-w-[132px] sm:px-4 sm:py-2 sm:text-sm ${availabilityPresentation.badge}`}
                       >
                         {availability.short}
                       </span>
                     </div>
                   </header>
 
-                  <div className="mt-5 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+                  <div className="mt-3 grid grid-cols-3 gap-1.5 sm:mt-5 sm:gap-2.5">
                     {[
                       ["Tracked earnings", formatPrice(member.trackedEarnings), true],
                       ["Completed projects", member.completedProjects, false],
                       ["Active assignments", member.activeAssignments, false],
                     ].map(([label, value, accent]) => (
-                      <div key={label} className="rounded-2xl border border-white/[0.06] bg-white/[0.04] px-4 py-3">
-                        <p className="text-xs font-medium text-gray-400">{label}</p>
-                        <p className={`mt-1 text-xl font-extrabold ${accent ? "text-[#4ade80]" : "text-white"}`}>{value}</p>
+                      <div key={label} className="min-w-0 rounded-xl border border-white/[0.06] bg-white/[0.04] px-2 py-2 sm:rounded-2xl sm:px-4 sm:py-3">
+                        <p className="truncate text-[9px] font-medium leading-tight text-gray-500 sm:text-xs sm:text-gray-400">{label}</p>
+                        <p className={`mt-1 truncate text-sm font-extrabold sm:text-xl ${accent ? "text-[#4ade80]" : "text-white"}`}>{value}</p>
                       </div>
                     ))}
                   </div>
 
-                  <div className="mt-5 grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(240px,0.75fr)]">
+                  <div className="mt-5 hidden gap-4 sm:grid md:grid-cols-[minmax(0,1fr)_minmax(240px,0.75fr)]">
                     <div className="min-w-0 space-y-4">
                       {tools.length > 0 && (
                         <div>
@@ -1855,10 +1856,10 @@ export function StudioModeratorDashboard({ section = "profile" }) {
                     </div>
                   </div>
 
-                  <footer className="mt-4 flex flex-wrap gap-2 border-t border-white/[0.06] pt-4 sm:justify-end">
+                  <footer className="mt-3 flex gap-2 border-t border-white/[0.06] pt-3 sm:mt-4 sm:flex-wrap sm:justify-end sm:pt-4">
                       <Link
                         href={`/chats?to=${encodeURIComponent(member.builder?.username || "")}`}
-                        className="team-action-button group inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#4ade80]/30 bg-[#4ade80]/10 px-4 py-2.5 text-sm font-bold text-[#86efac] shadow-[0_8px_24px_rgba(74,222,128,0.08)] hover:border-[#4ade80]/60 hover:bg-[#4ade80] hover:text-black hover:shadow-[0_12px_28px_rgba(74,222,128,0.2)]"
+                        className="team-action-button group inline-flex min-h-9 flex-1 items-center justify-center gap-2 rounded-xl border border-[#4ade80]/30 bg-[#4ade80]/10 px-3 py-2 text-xs font-bold text-[#86efac] shadow-[0_8px_24px_rgba(74,222,128,0.08)] hover:border-[#4ade80]/60 hover:bg-[#4ade80] hover:text-black hover:shadow-[0_12px_28px_rgba(74,222,128,0.2)] sm:min-h-11 sm:flex-none sm:px-4 sm:py-2.5 sm:text-sm"
                       >
                         <MessageCircle size={17} aria-hidden="true" className="transition-transform duration-300 group-hover:scale-110" />
                         Message
@@ -1866,7 +1867,7 @@ export function StudioModeratorDashboard({ section = "profile" }) {
                       <button
                         type="button"
                         onClick={() => openRemoveConfirmation(member)}
-                        className="team-action-button group inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-red-400/20 bg-red-400/[0.04] px-4 py-2.5 text-sm font-semibold text-red-300 hover:border-red-400/50 hover:bg-red-400/10 hover:text-red-200 hover:shadow-[0_12px_28px_rgba(248,113,113,0.12)]"
+                        className="team-action-button group inline-flex min-h-9 flex-1 items-center justify-center gap-2 rounded-xl border border-red-400/20 bg-red-400/[0.04] px-3 py-2 text-xs font-semibold text-red-300 hover:border-red-400/50 hover:bg-red-400/10 hover:text-red-200 hover:shadow-[0_12px_28px_rgba(248,113,113,0.12)] sm:min-h-11 sm:flex-none sm:px-4 sm:py-2.5 sm:text-sm"
                       >
                         <UserMinus size={17} aria-hidden="true" className="transition-transform duration-300 group-hover:-translate-x-0.5" />
                         Remove
@@ -2941,7 +2942,7 @@ export function StudioEmployeeDashboard({ builderProfile, section = "profile", o
             {!leaveEligibility?.can_leave && <div id="leave-studio-help" role="tooltip" className="pointer-events-none absolute bottom-[calc(100%+.65rem)] right-0 z-20 w-64 translate-y-1 rounded-xl border border-amber-400/20 bg-[#171b18] px-3 py-2 text-xs leading-relaxed text-amber-100 opacity-0 shadow-2xl transition group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100">Complete or resolve your assigned build before leaving the studio.</div>}
           </div>
         </div>
-        {leaveOpen && <div className="fixed inset-0 z-[230] flex items-center justify-center bg-black/75 p-4 backdrop-blur-md" role="dialog" aria-modal="true"><div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#171b18] p-6 shadow-2xl"><h3 className="text-xl font-bold">Leave the studio?</h3><p className="mt-3 text-sm leading-relaxed text-gray-400">You will become an independent builder and remain hidden from the marketplace until you change your availability.</p><div className="mt-6 flex justify-end gap-2"><button type="button" disabled={leaving} onClick={() => setLeaveOpen(false)} className="rounded-full border border-white/15 px-4 py-2 text-sm">Cancel</button><button type="button" disabled={leaving} onClick={async () => { setLeaving(true); setError(null); const result = await leaveMyStudio(); if (result.error) { setError(result.error.message); setLeaving(false); setLeaveOpen(false); return; } window.location.assign(withBase("/account")); }} className="rounded-full bg-red-500 px-5 py-2 text-sm font-bold text-white disabled:opacity-50">{leaving ? "Leaving…" : "Leave studio"}</button></div></div></div>}
+        {leaveOpen && typeof document !== "undefined" && createPortal(<div className="fixed inset-0 z-[300] flex min-h-dvh items-center justify-center bg-black/80 p-4 backdrop-blur-md" role="dialog" aria-modal="true" aria-labelledby="leave-studio-title" onMouseDown={(event) => event.target === event.currentTarget && !leaving && setLeaveOpen(false)}><div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#171b18] p-6 shadow-[0_30px_100px_rgba(0,0,0,.75)] sm:p-7"><div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-red-400/20 bg-red-500/10 text-red-300"><UserMinus size={21} aria-hidden="true" /></div><h3 id="leave-studio-title" className="mt-5 text-xl font-bold">Leave the studio?</h3><p className="mt-3 text-sm leading-relaxed text-gray-400">You will become an independent builder and remain hidden from the marketplace until you change your availability.</p><div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" disabled={leaving} onClick={() => setLeaveOpen(false)} className="rounded-full border border-white/15 px-4 py-2.5 text-sm transition hover:bg-white/[.06]">Cancel</button><button type="button" disabled={leaving} onClick={async () => { setLeaving(true); setError(null); const result = await leaveMyStudio(); if (result.error) { setError(result.error.message); setLeaving(false); setLeaveOpen(false); return; } window.location.assign(withBase("/account")); }} className="rounded-full bg-red-500 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-red-400 disabled:opacity-50">{leaving ? "Leaving…" : "Leave studio"}</button></div></div></div>, document.body)}
       </Card>}
       {section === "orders" && (
         <EmployeeOrdersCard
