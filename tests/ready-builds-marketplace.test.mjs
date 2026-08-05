@@ -14,6 +14,7 @@ const publicPreviewReads = readFileSync("supabase/migrations/0087_public_ready_b
 const favoritesMigration = readFileSync("supabase/migrations/0088_ready_build_favorites.sql", "utf8");
 const studioReadyBuilds = readFileSync("supabase/migrations/0090_studio_ready_builds_and_lifecycle.sql", "utf8");
 const publishAndBioFix = readFileSync("supabase/migrations/0091_ready_build_publish_and_studio_bio_fix.sql", "utf8");
+const studioRlsFix = readFileSync("supabase/migrations/0092_ready_build_studio_rls_permissions.sql", "utf8");
 const invoice = readFileSync("supabase/functions/create-invoice/index.ts", "utf8");
 const webhook = readFileSync("supabase/functions/payment-webhook/index.ts", "utf8");
 const readyBuildApi = readFileSync("lib/readyBuilds/api.js", "utf8");
@@ -198,6 +199,16 @@ test("studio catalog reads expose both current About and legacy bio", () => {
   const studioApi = readFileSync("lib/studios/api.js", "utf8");
   assert.match(studioApi, /logo_url, about, bio, status/);
   assert.match(studioApi, /bio: row\.about \|\| row\.bio/);
+});
+
+test("studio ready-build reads do not require protected studio columns", () => {
+  assert.match(studioRlsFix, /function public\.is_studio_moderator/);
+  assert.match(studioRlsFix, /security definer/);
+  assert.match(studioRlsFix, /public\.is_studio_moderator\(studio_id\)/);
+  assert.doesNotMatch(studioRlsFix, /select 1 from public\.studios s where s\.id=studio_id/);
+  const ownListings = readyBuildApi.match(/export async function listMyReadyBuilds[\s\S]*?\n}/)?.[0] || "";
+  assert.match(ownListings, /permission denied for table studios/i);
+  assert.match(ownListings, /run\(safeSelect\)/);
 });
 
 test("ready-build checkout owns payment selection and purchase creation", () => {
