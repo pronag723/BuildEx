@@ -414,17 +414,25 @@ button.carousel-arrow:active {
   opacity: 0.5;
 }
 
+/* The ambient animated gradient was intentionally retired. Keep the legacy
+   mount points hidden while older page shells are migrated, so every route
+   shares the same quiet solid canvas without disturbing its UI motion. */
+.gradient-background,
+.gradient-edge-glow {
+  display: none;
+}
+
 /* ==================== BASE STYLES ==================== */
 body {
   font-family: "Inter", system-ui, sans-serif;
-  background: #171717;
+  background: #111411;
   animation: pageLoad 0.6s ease-out;
   color: white;
   overflow-y: auto;
 }
 
 .light body {
-  background: #e7e6e4;
+  background: #f0f1ed;
   color: #0f172a;
 }
 

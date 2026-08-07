@@ -91,7 +91,7 @@ export default function ChatsPage() {
   useEffect(() => {
     const gradientBg = gradientRef.current;
     const edgeGlow = edgeGlowRef.current;
-    if (!gradientBg || !edgeGlow) return undefined;
+    if (!gradientBg || !edgeGlow || window.getComputedStyle(gradientBg).display === "none") return undefined;
 
     const cfg = {
       edgeOffset: 12,

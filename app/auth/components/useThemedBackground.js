@@ -23,7 +23,7 @@ export function useThemedBackground() {
   useEffect(() => {
     const bg = gradientRef.current;
     const edge = edgeGlowRef.current;
-    if (!bg || !edge) return;
+    if (!bg || !edge || window.getComputedStyle(bg).display === "none") return;
 
     const cfg = {
       edgeOffset: 12,

@@ -71,7 +71,7 @@ export default function BuildExPage() {
   useEffect(() => {
     const gradientBg = gradientRef.current;
     const edgeGlow = edgeGlowRef.current;
-    if (!gradientBg || !edgeGlow) return undefined;
+    if (!gradientBg || !edgeGlow || window.getComputedStyle(gradientBg).display === "none") return undefined;
 
     const config = {
       edgeOffset: 12,

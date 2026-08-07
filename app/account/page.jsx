@@ -2345,7 +2345,7 @@ function AccountPageInner() {
   useEffect(() => {
     const gradientBg = gradientRef.current;
     const edgeGlow = edgeGlowRef.current;
-    if (!gradientBg || !edgeGlow) return;
+    if (!gradientBg || !edgeGlow || window.getComputedStyle(gradientBg).display === "none") return;
 
     const cfg = {
       edgeOffset: 12, speed: 1, smoothing: 0.08,
