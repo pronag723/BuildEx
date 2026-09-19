@@ -1011,15 +1011,26 @@ function AccountPageInner() {
     return () => cancelAnimationFrame(raf);
   }, [contentReady]);
 
-  // Scroll reveal
+  // Scroll reveal.
+  //
+  // `.reveal` starts at opacity 0 and is only shown once this observer marks
+  // it active, so EVERY state change that can mount a new `.reveal` card has
+  // to be a dependency here — a card that mounts between runs is never
+  // observed and stays invisible until something else re-runs the effect.
+  //
+  // `builderLoaded` is the one that bites: a brand-new account has no
+  // builder_profiles row, so `builderProfile` is null before AND after the
+  // fetch and never changes identity. Only `builderLoaded` flips, and without
+  // it in this list the "Create a builder profile" card mounted invisibly and
+  // needed a page refresh to appear.
   useEffect(() => {
     const obs = new IntersectionObserver(
       (entries) => entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("active"); obs.unobserve(e.target); } }),
       { threshold: 0.08 }
     );
-    document.querySelectorAll(".reveal").forEach((el) => obs.observe(el));
+    document.querySelectorAll(".reveal:not(.active)").forEach((el) => obs.observe(el));
     return () => obs.disconnect();
-  }, [profile, builderProfile, section]);
+  }, [profile, builderProfile, builderLoaded, portfolioCount, section]);
 
   // Builder-ness is the existence of a builder_profiles row — never
   // profiles.role, which visitors leave null and older accounts carry stale
