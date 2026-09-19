@@ -98,7 +98,6 @@ export function mapRow(row) {
     username: row.username,
     display_name: row.display_name || row.username || "Builder",
     avatar: rewriteStorageUrl(row.avatar_url) || null,
-    rank: bp.rank || "rookie",
 
     // Profile
     bio: row.bio || "",
@@ -115,13 +114,6 @@ export function mapRow(row) {
     online: isOnline(row.last_seen_at),
     member_since: row.created_at || null,
     specialties,
-
-    // Stats — real, cached aggregates from builder_profiles (Stage 8). They
-    // default to 0 in the DB, so a builder with no completed orders still maps
-    // cleanly; coalesce guards a pre-migration row where the columns are absent.
-    avg_rating: Number(bp.avg_rating) || 0,
-    completed_projects: Number(bp.completed_orders) || 0,
-    total_reviews: Number(bp.reviews_count) || 0,
 
     // Portfolio
     portfolio: mapPortfolio(row.portfolio),

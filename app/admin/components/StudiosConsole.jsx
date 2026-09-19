@@ -189,8 +189,6 @@ function ManagedStudioRow({ studio, onChanged }) {
           </p>
           <p className="text-xs text-gray-500">@{studio.username} · {studio.status}</p>
           <div className="mt-2 flex flex-wrap gap-3 text-xs text-gray-400">
-            <span>{studio.completed_orders} completed</span>
-            <span>{studio.reviews_count} reviews</span>
             <span>{studio.available_count} available</span>
           </div>
         </div>

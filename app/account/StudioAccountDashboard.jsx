@@ -53,7 +53,6 @@ import {
 } from "../../lib/studios/api";
 import AvatarUploader from "../onboarding/components/AvatarUploader";
 import Avatar from "../../lib/ui/Avatar";
-import { RANKS } from "../builders/data/builders";
 import { withBase } from "../home/utils";
 import {
   AVAILABILITY_STATES,
@@ -938,15 +937,7 @@ export function StudioModeratorDashboard({ section = "profile" }) {
                 Edit profile
               </button>
             </div>
-            <div className="mt-7 pt-5 border-t border-white/[0.08] grid grid-cols-3 gap-3 text-center">
-              <div>
-                <p className="text-xl font-extrabold">{studio.completed_projects || 0}</p>
-                <p className="text-[10px] text-gray-500 uppercase tracking-wide">Projects</p>
-              </div>
-              <div>
-                <p className="text-xl font-extrabold">{Number(studio.avg_rating || 0).toFixed(2)}</p>
-                <p className="text-[10px] text-gray-500 uppercase tracking-wide">Avg. rating</p>
-              </div>
+            <div className="mt-7 pt-5 border-t border-white/[0.08] grid grid-cols-1 gap-3 text-center">
               <div>
                 <p className="text-xl font-extrabold">{availableMembers.length}</p>
                 <p className="text-[10px] text-gray-500 uppercase tracking-wide">Available builders</p>
@@ -1138,16 +1129,8 @@ export function StudioModeratorDashboard({ section = "profile" }) {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 min-w-0">
                       <p className="text-sm font-semibold truncate">{candidate.display_name || "Builder"}</p>
-                      {candidate.builder_profile?.rank && (
-                        <span className="rounded-full border border-[#4ade80]/25 bg-[#4ade80]/10 px-2 py-0.5 text-[10px] font-semibold text-[#86efac]">
-                          {(RANKS[candidate.builder_profile.rank] || RANKS.rookie).label}
-                        </span>
-                      )}
                     </div>
                     <p className="text-xs text-gray-500 truncate">@{candidate.username}</p>
-                    <p className="mt-1 text-[11px] text-gray-400">
-                      ★ {Number(candidate.builder_profile?.avg_rating || 0).toFixed(2)} · {Number(candidate.builder_profile?.reviews_count || 0)} reviews · {Number(candidate.builder_profile?.completed_orders || 0)} projects
-                    </p>
                   </div>
                   <Link
                     href={`/builders/profile?u=${encodeURIComponent(candidate.username)}`}
@@ -1620,7 +1603,7 @@ export function StudioEmployeeDashboard({ builderProfile, section = "profile", o
       </Card>}
       {section === "profile" && <Card title="Studio membership" description="Return to independent building once you have no outstanding studio work.">
         <div className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-black/10 p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div><p className="text-sm font-semibold">Leave this studio</p><p className="mt-1 text-xs leading-relaxed text-gray-500">Your identity, portfolio, expertise, rates, reviews, and rank are preserved. Your independent profile starts private until you make yourself available.</p></div>
+          <div><p className="text-sm font-semibold">Leave this studio</p><p className="mt-1 text-xs leading-relaxed text-gray-500">Your identity, portfolio, expertise, and rates are preserved. Your independent profile starts private until you make yourself available.</p></div>
           <div className="group relative flex-shrink-0">
             <button type="button" disabled={!leaveEligibility?.can_leave || leaving} onClick={() => setLeaveOpen(true)} aria-describedby={!leaveEligibility?.can_leave ? "leave-studio-help" : undefined} className="rounded-full border border-red-400/35 bg-red-500/10 px-5 py-2.5 text-sm font-semibold text-red-200 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/[0.03] disabled:text-gray-600">Leave studio</button>
             {!leaveEligibility?.can_leave && <div id="leave-studio-help" role="tooltip" className="pointer-events-none absolute bottom-[calc(100%+.65rem)] right-0 z-20 w-64 translate-y-1 rounded-xl border border-amber-400/20 bg-[#171b18] px-3 py-2 text-xs leading-relaxed text-amber-100 opacity-0 shadow-2xl transition group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100">Complete or resolve your assigned build before leaving the studio.</div>}

@@ -59,8 +59,6 @@ export default function CatalogPage() {
   const query = params.get("q") || "";
   const selectedStyles = useMemo(() => parseArray(params.get("style")), [params]);
   const selectedBuildTypes = useMemo(() => parseArray(params.get("type")), [params]);
-  const minRating = Number(params.get("rating")) || 0;
-  const selectedRanks = useMemo(() => parseArray(params.get("rank")), [params]);
   const selectedStudios = useMemo(() => parseArray(params.get("studio")), [params]);
   const provider = ["builders", "studios"].includes(params.get("provider"))
     ? params.get("provider")
@@ -282,24 +280,9 @@ export default function CatalogPage() {
     [selectedBuildTypes, updateURL]
   );
 
-  const handleRatingChange = useCallback(
-    (value) => updateURL({ rating: value || null }),
-    [updateURL]
-  );
-
   const handleFavoritesToggle = useCallback(
     () => updateURL({ fav: favoritesOnly ? null : "1" }),
     [favoritesOnly, updateURL]
-  );
-
-  const handleRankToggle = useCallback(
-    (rank) => {
-      const next = selectedRanks.includes(rank)
-        ? selectedRanks.filter((r) => r !== rank)
-        : [...selectedRanks, rank];
-      updateURL({ rank: serializeArray(next) });
-    },
-    [selectedRanks, updateURL]
   );
 
   const handleStudioToggle = useCallback(
@@ -354,8 +337,6 @@ export default function CatalogPage() {
       query,
       styles: selectedStyles,
       buildTypes: selectedBuildTypes,
-      minRating,
-      ranks: selectedRanks,
       studios: selectedStudios,
       provider,
     });
@@ -365,7 +346,7 @@ export default function CatalogPage() {
         )
       : filtered;
     return sortBuilders(scoped, sort, feedSeed);
-  }, [builders, query, selectedStyles, selectedBuildTypes, minRating, selectedRanks, selectedStudios, provider, sort, feedSeed, effectiveFavoritesOnly, favoriteIds]);
+  }, [builders, query, selectedStyles, selectedBuildTypes, selectedStudios, provider, sort, feedSeed, effectiveFavoritesOnly, favoriteIds]);
 
   const visibleBuilders = useMemo(
     () => filteredBuilders.slice(0, pageCount * ITEMS_PER_PAGE),
@@ -373,8 +354,8 @@ export default function CatalogPage() {
   );
   // Key for triggering card re-animation when filters change
   const animKey = useMemo(
-    () => `${query}|${selectedStyles}|${selectedBuildTypes}|${minRating}|${selectedRanks}|${selectedStudios}|${provider}|${effectiveFavoritesOnly}|${sort}|${feedSeed}`,
-    [query, selectedStyles, selectedBuildTypes, minRating, selectedRanks, selectedStudios, provider, effectiveFavoritesOnly, sort, feedSeed]
+    () => `${query}|${selectedStyles}|${selectedBuildTypes}|${selectedStudios}|${provider}|${effectiveFavoritesOnly}|${sort}|${feedSeed}`,
+    [query, selectedStyles, selectedBuildTypes, selectedStudios, provider, effectiveFavoritesOnly, sort, feedSeed]
   );
 
   // Active filter count (for mobile button badge)
@@ -382,13 +363,11 @@ export default function CatalogPage() {
     let n = 0;
     if (selectedStyles.length) n++;
     if (selectedBuildTypes.length) n++;
-    if (minRating) n++;
-    if (selectedRanks.length) n++;
     if (selectedStudios.length) n++;
     if (provider !== "all") n++;
     if (effectiveFavoritesOnly) n++;
     return n;
-  }, [selectedStyles, selectedBuildTypes, minRating, selectedRanks, selectedStudios, provider, effectiveFavoritesOnly]);
+  }, [selectedStyles, selectedBuildTypes, selectedStudios, provider, effectiveFavoritesOnly]);
 
   const isLight = theme === "light";
 
@@ -400,10 +379,6 @@ export default function CatalogPage() {
     onStyleToggle: handleStyleToggle,
     selectedBuildTypes,
     onBuildTypeToggle: handleBuildTypeToggle,
-    minRating,
-    onRatingChange: handleRatingChange,
-    selectedRanks,
-    onRankToggle: handleRankToggle,
     studioOptions,
     selectedStudios,
     onStudioToggle: handleStudioToggle,

@@ -29,12 +29,6 @@ import {
   STYLES,
   sanitizeBuilderTools,
 } from "../../lib/onboarding/constants";
-import { RANKS } from "../builders/data/builders";
-import {
-  commissionBpsForRank,
-  formatCommissionRate,
-  rankProgress,
-} from "../../lib/ranks";
 import { withBase } from "../home/utils";
 import Avatar from "../../lib/ui/Avatar";
 import { Icon } from "../../lib/icons";
@@ -797,154 +791,6 @@ function PortfolioSection({ portfolioCount, onSaved }) {
   );
 }
 
-// ─── Rank & commission (Stage 9) ────────────────────────────────────────────
-// Read-only: rank is earned from real metrics (completed orders + rating), not
-// edited. Shows the builder their current rank, the commission rate it earns,
-// and progress toward the next rank. Numbers come from lib/ranks.js, the same
-// source the SQL mirrors, so this matches what place_order will charge.
-function RankSection({ builderProfile }) {
-  const rankKey = builderProfile?.rank || "rookie";
-  const rankMeta = RANKS[rankKey] || RANKS.rookie;
-  const commissionBps = commissionBpsForRank(rankKey);
-  const completedOrders = Number(builderProfile?.completed_orders) || 0;
-  const avgRating = Number(builderProfile?.avg_rating) || 0;
-  const reviewsCount = Number(builderProfile?.reviews_count) || 0;
-
-  // Studio promo (migration 0026): a referred builder pays a flat reduced
-  // commission for their first 4 months, which overrides the rank rate. Show
-  // that as the effective rate while the window is open.
-  const promoBps = Number(builderProfile?.studio_promo_bps);
-  const promoEnds = builderProfile?.studio_promo_ends_at
-    ? new Date(builderProfile.studio_promo_ends_at)
-    : null;
-  const promoActive =
-    !!promoEnds && promoEnds.getTime() > Date.now() && Number.isFinite(promoBps) && promoBps > 0;
-  const promoEndsLabel = promoEnds
-    ? promoEnds.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-    : "";
-
-  const progress = rankProgress({ rank: rankKey, completedOrders, avgRating });
-  const nextMeta = progress ? RANKS[progress.next] : null;
-
-  return (
-    <section className="reveal glass rounded-3xl p-6 lg:p-8">
-      <h3 className="text-lg font-bold mb-1">Rank &amp; Commission</h3>
-      <p className="text-xs text-gray-500 mb-5">
-        Your rank is earned from completed orders and your average rating. A
-        higher rank lowers the platform commission on every order.
-      </p>
-
-      <div className="flex flex-wrap items-center gap-3 mb-5">
-        <span
-          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold border ${rankMeta.bgClass} ${rankMeta.textClass} ${rankMeta.borderClass}`}
-        >
-          <span
-            className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-            style={{ background: rankMeta.dotColor }}
-          />
-          {rankMeta.label}
-        </span>
-        <span className="text-sm text-gray-400">
-          Platform commission{" "}
-          <strong className="text-[#4ade80]">
-            {formatCommissionRate(promoActive ? promoBps : commissionBps)}
-          </strong>{" "}
-          per order
-        </span>
-        {promoActive && (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border bg-emerald-500/15 text-emerald-300 border-emerald-500/30">
-            <Icon name="handshake" size={12} />
-            Studio promo
-          </span>
-        )}
-      </div>
-
-      {promoActive && (
-        <p className="-mt-2 mb-5 text-xs text-emerald-300/80 leading-relaxed">
-          Reduced studio rate until {promoEndsLabel} — then{" "}
-          {formatCommissionRate(commissionBps)} ({rankMeta.label} rank rate).
-        </p>
-      )}
-
-      <div className="grid grid-cols-2 gap-3 mb-5">
-        <div className="rounded-2xl border border-white/10 px-4 py-3">
-          <div className="text-2xl font-extrabold">{completedOrders}</div>
-          <div className="text-xs text-gray-500">Completed orders</div>
-        </div>
-        <div className="rounded-2xl border border-white/10 px-4 py-3">
-          <div className="text-2xl font-extrabold">
-            {reviewsCount > 0 ? avgRating.toFixed(2) : "—"}
-            <span className="text-base text-amber-400"> ★</span>
-          </div>
-          <div className="text-xs text-gray-500">
-            Average rating{reviewsCount > 0 ? ` (${reviewsCount})` : ""}
-          </div>
-        </div>
-      </div>
-
-      {progress ? (
-        <div className="rounded-2xl border border-dashed border-white/15 p-4">
-          <p className="text-sm font-semibold mb-3">
-            Next rank:{" "}
-            <span className={nextMeta?.textClass}>{nextMeta?.label}</span>{" "}
-            <span className="text-gray-500 font-normal">
-              ({formatCommissionRate(commissionBpsForRank(progress.next))} commission)
-            </span>
-          </p>
-
-          {/* Completed-orders progress */}
-          <div className="mb-3">
-            <div className="flex items-center justify-between text-xs mb-1.5">
-              <span className="text-gray-400">
-                Completed orders
-                {progress.ordersMet && <Icon name="check" size={13} strokeWidth={2.5} className="inline-block ml-1 text-[#4ade80] align-text-bottom" />}
-              </span>
-              <span className="text-gray-500">
-                {progress.ordersHave} / {progress.ordersNeed}
-              </span>
-            </div>
-            <div className="h-2 rounded-full bg-white/10 overflow-hidden">
-              <div
-                className="h-full rounded-full bg-[#4ade80] transition-all"
-                style={{ width: `${Math.round(progress.ordersPct * 100)}%` }}
-              />
-            </div>
-          </div>
-
-          {/* Average-rating progress */}
-          <div>
-            <div className="flex items-center justify-between text-xs mb-1.5">
-              <span className="text-gray-400">
-                Average rating
-                {progress.ratingMet && <Icon name="check" size={13} strokeWidth={2.5} className="inline-block ml-1 text-[#4ade80] align-text-bottom" />}
-              </span>
-              <span className="text-gray-500">
-                {progress.ratingHave.toFixed(1)} / above {progress.ratingNeed.toFixed(1)}★
-              </span>
-            </div>
-            <div className="h-2 rounded-full bg-white/10 overflow-hidden">
-              <div
-                className="h-full rounded-full bg-[#4ade80] transition-all"
-                style={{ width: `${Math.round(progress.ratingPct * 100)}%` }}
-              />
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="rounded-2xl border border-dashed border-amber-400/30 p-4 text-center">
-          <p className="text-sm text-amber-400 font-semibold inline-flex items-center gap-1.5">
-            You&apos;ve reached the top rank — Master.
-            <Icon name="trophy" size={15} />
-          </p>
-          <p className="text-xs text-gray-500 mt-1">
-            You pay the lowest commission on BuildEx.
-          </p>
-        </div>
-      )}
-    </section>
-  );
-}
-
 // ─── Client preferences ─────────────────────────────────────────────────────
 function ClientPreferencesSection({ profile, onSaved }) {
   const { user } = useAuth();
@@ -1257,8 +1103,6 @@ function AccountHeader({ profile, builderProfile, onSaved }) {
   const nameValid =
     trimmedName.length >= DISPLAY_NAME_MIN && trimmedName.length <= DISPLAY_NAME_MAX;
   const canSave = nameValid && handleValid && !!handle;
-  // Builders carry a rank (rookie → master); show it instead of a bare "builder".
-  const rankMeta = isBuilder ? RANKS[builderProfile?.rank] || RANKS.rookie : null;
 
   const availability = AVAILABILITY_STATES.find(
     (a) => a.key === (builderProfile?.availability_status || "available")
@@ -1398,12 +1242,10 @@ function AccountHeader({ profile, builderProfile, onSaved }) {
             <h2 className="text-2xl sm:text-3xl font-extrabold leading-tight break-words min-w-0">
               {profile?.display_name || "Your name"}
             </h2>
-            {rankMeta && (
-              <span
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${rankMeta.bgClass} ${rankMeta.textClass} ${rankMeta.borderClass}`}
-              >
-                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: rankMeta.dotColor }} />
-                {rankMeta.label} {role === "both" ? "Builder & Client" : "Builder"}
+            {isBuilder && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#4ade80]/15 border border-[#4ade80]/30 text-[#4ade80]">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80] flex-shrink-0" />
+                {role === "both" ? "Builder & Client" : "Builder"}
               </span>
             )}
           </div>
@@ -1412,7 +1254,7 @@ function AccountHeader({ profile, builderProfile, onSaved }) {
             <p className="text-sm text-gray-500 mb-3 break-all">@{profile.username}</p>
           )}
 
-          {!rankMeta && role && (
+          {!isBuilder && role && (
             <div className="flex justify-center sm:justify-start mb-3">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#4ade80]/15 border border-[#4ade80]/30 text-[#4ade80] capitalize">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80] flex-shrink-0" />
@@ -1544,19 +1386,7 @@ function StudioInvitationCard({ onAccepted }) {
                 <p className="text-xs text-gray-500 mt-1">Received {new Date(invitation.created_at).toLocaleDateString()}</p>
               </div>
             </div>
-            <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <div className="rounded-xl border border-white/10 bg-black/15 p-3 transition-[transform,background-color,border-color] duration-300 ease-out hover:-translate-y-0.5 hover:border-white/20 hover:bg-black/25">
-                <p className="text-lg font-bold">{Number(invitation.studio?.avg_rating || 0).toFixed(2)}</p>
-                <p className="text-[10px] uppercase tracking-wide text-gray-500">Rating</p>
-              </div>
-              <div className="rounded-xl border border-white/10 bg-black/15 p-3 transition-[transform,background-color,border-color] duration-300 ease-out hover:-translate-y-0.5 hover:border-white/20 hover:bg-black/25">
-                <p className="text-lg font-bold">{Number(invitation.studio?.reviews_count || 0)}</p>
-                <p className="text-[10px] uppercase tracking-wide text-gray-500">Reviews</p>
-              </div>
-              <div className="rounded-xl border border-white/10 bg-black/15 p-3 transition-[transform,background-color,border-color] duration-300 ease-out hover:-translate-y-0.5 hover:border-white/20 hover:bg-black/25">
-                <p className="text-lg font-bold">{Number(invitation.studio?.completed_orders || 0)}</p>
-                <p className="text-[10px] uppercase tracking-wide text-gray-500">Projects</p>
-              </div>
+            <div className="mt-4 grid grid-cols-1 gap-2">
               <div className="rounded-xl border border-[#4ade80]/20 bg-[#4ade80]/5 p-3 transition-[transform,background-color,border-color] duration-300 ease-out hover:-translate-y-0.5 hover:border-[#4ade80]/40 hover:bg-[#4ade80]/10">
                 <p className="text-lg font-bold text-[#4ade80]">
                   {invitation.studio?.employee_commission_bps == null
@@ -1948,7 +1778,6 @@ function AccountPageInner() {
 
                 {isBuilder && (
                   <>
-                    <RankSection builderProfile={builderProfile} />
                     <PortfolioSection portfolioCount={portfolioCount} onSaved={refresh} />
                     <SpecialtiesSection builderProfile={builderProfile} onSaved={refresh} />
                     <ExpertiseSection builderProfile={builderProfile} onSaved={refresh} />

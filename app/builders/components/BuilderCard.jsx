@@ -2,18 +2,9 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
-import { RANKS } from "../data/builders";
 import { publicAsset, withBase } from "../../home/utils";
 import { useFavorites } from "../../../lib/favorites/FavoritesContext";
 import StudioOfficialBadge from "./StudioOfficialBadge";
-
-function StarIcon({ className = "w-3.5 h-3.5" }) {
-  return (
-    <svg className={className} viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-    </svg>
-  );
-}
 
 function ArrowIcon({ className = "w-4 h-4" }) {
   return (
@@ -50,7 +41,6 @@ function HeartIcon({ className = "w-4 h-4", filled = false }) {
 
 export default function BuilderCard({ builder, animationDelay = 0 }) {
   const isStudio = builder.provider_type === "studio";
-  const rank = isStudio ? null : (RANKS[builder.rank] || RANKS.rookie);
   const previews = builder.portfolio.slice(0, 6);
   const count = previews.length;
 
@@ -243,7 +233,7 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
         onMouseLeave={() => setInfoHover(false)}
       >
         {/* Header */}
-        <div className="flex items-start gap-3">
+        <div className="flex items-center gap-3">
           {builder.avatar ? (
             <img
               src={builder.avatar}
@@ -259,9 +249,9 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
           )}
           <div className="min-w-0 flex-1">
             {/* Name row: studio affiliation (migration 0026) sits to the LEFT of
-                the nickname, then the name, then the rank badge. Non-clickable
-                here because the whole card is already a <Link>; the storefront
-                link lives on the profile page header. */}
+                the nickname, then the name. Non-clickable here because the whole
+                card is already a <Link>; the storefront link lives on the
+                profile page header. */}
             <div className="flex items-center gap-2">
               {builder.studio && (
                 <span
@@ -280,23 +270,13 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
               {isStudio && builder.is_verified && (
                 <StudioOfficialBadge />
               )}
-              {isStudio ? (
+              {isStudio && (
                 <span className="px-2.5 py-1 rounded-full text-xs font-semibold border flex-shrink-0 bg-[#4ade80]/10 text-[#4ade80] border-[#4ade80]/30">
                   Studio
-                </span>
-              ) : (
-                <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border flex-shrink-0 ${rank.bgClass} ${rank.textClass} ${rank.borderClass}`}>
-                  {rank.label}
                 </span>
               )}
             </div>
             <p className="text-xs text-gray-500">@{builder.username}</p>
-            <div className="flex items-center gap-1.5 mt-1">
-              <StarIcon className="w-3 h-3 text-amber-400" />
-              <span className="text-xs font-semibold">{builder.avg_rating.toFixed(2)}</span>
-              <span className="text-xs text-gray-500">·</span>
-              <span className="text-xs text-gray-400">{builder.completed_projects} projects</span>
-            </div>
           </div>
         </div>
 

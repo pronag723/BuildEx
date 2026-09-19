@@ -7,9 +7,6 @@ import { createPortal } from "react-dom";
 import CatalogNavbar from "../../../components/CatalogNavbar";
 import CatalogMobileMenu from "../../../components/CatalogMobileMenu";
 import SiteFooter from "../../../../home/components/SiteFooter";
-import { RANKS } from "../../../data/builders";
-import { getBuilderReviews } from "../../../data/reviews";
-import { listBuilderReviews } from "../../../../../lib/reviews/api";
 import { publicAsset, withBase } from "../../../../home/utils";
 import Avatar from "../../../../../lib/ui/Avatar";
 import { useAuthGate } from "../../../../../lib/auth/useAuthGate";
@@ -18,49 +15,9 @@ import { Icon } from "../../../../../lib/icons";
 import { useFavorites } from "../../../../../lib/favorites/FavoritesContext";
 import StudioOfficialBadge from "../../../components/StudioOfficialBadge";
 import { useScrollLock } from "../../../../../lib/useScrollLock";
-import {
-  fetchStudioReviews,
-  getOrCreateStudioConversation,
-} from "../../../../../lib/studios/api";
-
-// Neutral avatar used when a reviewer has no picture (e.g. a Discord account
-// without an avatar). Inline so it never 404s under the GitHub Pages basePath.
-const FALLBACK_AVATAR =
-  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='20' fill='%23334155'/%3E%3Ccircle cx='20' cy='16' r='7' fill='%2364748b'/%3E%3Cpath d='M6 38c0-8 6-12 14-12s14 4 14 12' fill='%2364748b'/%3E%3C/svg%3E";
-
-// Both the live (Supabase) and demo (mock) review sources are normalised to one
-// shape so the Reviews section doesn't care where a review came from.
-function mapDbReviews(rows) {
-  return (rows || []).map((r) => ({
-    id: r.id,
-    rating: r.rating,
-    text: r.body || "",
-    created_at: r.created_at,
-    reviewerName: r.reviewer?.display_name || r.reviewer?.username || "Client",
-    reviewerAvatar: r.reviewer?.avatar_url || null,
-    project: null,
-  }));
-}
-function mapMockReviews(rows) {
-  return (rows || []).map((r) => ({
-    id: r.id,
-    rating: r.rating,
-    text: r.comment || "",
-    created_at: r.created_at,
-    reviewerName: r.reviewer?.display_name || "Client",
-    reviewerAvatar: r.reviewer?.avatar || null,
-    project: r.project || null,
-  }));
-}
+import { getOrCreateStudioConversation } from "../../../../../lib/studios/api";
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
-function IconStar({ className = "w-4 h-4" }) {
-  return (
-    <svg className={className} viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-    </svg>
-  );
-}
 function IconClock({ className = "w-4 h-4" }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
@@ -140,12 +97,6 @@ function PortfolioCarousel({ items }) {
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
             <span className="absolute right-4 top-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/55 px-3 py-2 text-xs font-semibold text-white opacity-0 backdrop-blur-md transition-all group-hover/photo:opacity-100 group-focus-visible/photo:opacity-100"><IconExpand />View full screen</span>
-
-            {item.featured && (
-              <div className="absolute bottom-4 left-4 px-3 py-1 rounded-full text-xs bg-[#4ade80]/20 text-[#4ade80] backdrop-blur-sm border border-[#4ade80]/30 font-semibold flex items-center gap-1">
-                <IconStar className="w-3 h-3" /> Featured
-              </div>
-            )}
           </button>
         ))}
       </div>
@@ -234,18 +185,6 @@ function ContactSidebar({ builder, onShowSoon, onContact }) {
         </div>
       </div>
 
-      {/* Quick stats */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="glass rounded-2xl p-3 text-center">
-          <p className="text-xl font-extrabold">{builder.avg_rating.toFixed(2)}</p>
-          <p className="text-[10px] text-gray-500 uppercase tracking-wide mt-0.5">Rating</p>
-        </div>
-        <div className="glass rounded-2xl p-3 text-center">
-          <p className="text-xl font-extrabold">{builder.completed_projects}</p>
-          <p className="text-[10px] text-gray-500 uppercase tracking-wide mt-0.5">Projects</p>
-        </div>
-      </div>
-
       {/* CTA */}
       <button
         type="button"
@@ -282,99 +221,6 @@ function ContactSidebar({ builder, onShowSoon, onContact }) {
   );
 }
 
-// ─── Reviews section ─────────────────────────────────────────────────────────
-function ReviewsSection({ reviews, builder }) {
-  const total = reviews.length;
-  // Star distribution computed from the (already normalised) list, so it works
-  // identically for live and demo data.
-  const breakdown = reviews.reduce(
-    (acc, rev) => {
-      acc[rev.rating] = (acc[rev.rating] || 0) + 1;
-      return acc;
-    },
-    { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
-  );
-
-  function RatingBar({ stars }) {
-    const count = breakdown[stars] || 0;
-    const pct = total > 0 ? Math.round((count / total) * 100) : 0;
-    return (
-      <div className="flex items-center gap-2 text-xs">
-        <span className="text-gray-400 w-4 text-right">{stars}</span>
-        <IconStar className="w-3 h-3 text-amber-400 flex-shrink-0" />
-        <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
-          <div className="rating-bar-fill h-full rounded-full bg-[#4ade80]" style={{ width: `${pct}%` }} />
-        </div>
-        <span className="text-gray-500 w-6 text-left">{count}</span>
-      </div>
-    );
-  }
-
-  return (
-    <section className="reveal glass rounded-3xl p-6 lg:p-8" id="reviews">
-      <h2 className="font-bold text-xl mb-6">Reviews</h2>
-
-      {total === 0 ? (
-        <p className="text-gray-500 text-sm">
-          No reviews yet for this {builder.provider_type === "studio" ? "studio" : "builder"}.
-        </p>
-      ) : (
-        <>
-          <div className="flex flex-col sm:flex-row gap-6 mb-8 pb-8 border-b border-white/[0.08]">
-            <div className="text-center flex-shrink-0">
-              <p className="text-5xl font-extrabold text-[#4ade80]">{builder.avg_rating.toFixed(1)}</p>
-              <div className="flex items-center justify-center gap-0.5 mt-2 mb-1">
-                {[1, 2, 3, 4, 5].map((s) => (
-                  <IconStar key={s} className={`w-4 h-4 ${s <= Math.round(builder.avg_rating) ? "text-amber-400" : "text-gray-600"}`} />
-                ))}
-              </div>
-              <p className="text-xs text-gray-500">{total} review{total !== 1 ? "s" : ""}</p>
-            </div>
-            <div className="flex-1 space-y-2">
-              {[5, 4, 3, 2, 1].map((s) => <RatingBar key={s} stars={s} />)}
-            </div>
-          </div>
-
-          <div className="space-y-5">
-            {reviews.map((rev) => (
-              <article key={rev.id} className="flex gap-3">
-                <img
-                  src={rev.reviewerAvatar ? publicAsset(rev.reviewerAvatar) : FALLBACK_AVATAR}
-                  alt={rev.reviewerName}
-                  className="w-9 h-9 rounded-full object-cover flex-shrink-0 mt-0.5 ring-1 ring-white/10"
-                  loading="lazy"
-                  decoding="async"
-                />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <span className="font-semibold text-sm">{rev.reviewerName}</span>
-                    <div className="flex items-center gap-0.5">
-                      {[1, 2, 3, 4, 5].map((s) => (
-                        <IconStar key={s} className={`w-3 h-3 ${s <= rev.rating ? "text-amber-400" : "text-gray-600"}`} />
-                      ))}
-                    </div>
-                    {rev.project && (
-                      <span className="text-[10px] text-gray-500 px-2 py-0.5 rounded-full bg-white/5 border border-white/10">
-                        {rev.project}
-                      </span>
-                    )}
-                    <span className="text-xs text-gray-500 ml-auto">
-                      {new Date(rev.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                    </span>
-                  </div>
-                  {rev.text && (
-                    <p className="text-sm text-gray-400 leading-relaxed">{rev.text}</p>
-                  )}
-                </div>
-              </article>
-            ))}
-          </div>
-        </>
-      )}
-    </section>
-  );
-}
-
 // ─── Main page ───────────────────────────────────────────────────────────────
 export default function BuilderProfilePage({ builder }) {
   const [theme, setTheme] = useState(null);
@@ -387,28 +233,6 @@ export default function BuilderProfilePage({ builder }) {
   const isLight = theme === "light";
   const isStudio = builder.provider_type === "studio";
   const isStudioEmployee = builder.profile_type === "studio_employee";
-  const rank = isStudio ? null : (RANKS[builder.rank] || RANKS.rookie);
-
-  // Real, DB-backed builders carry a profiles.id — fetch their reviews live.
-  // Demo/seeded builders (no id, served from static data) keep the mock set so
-  // the catalog still looks populated offline.
-  const [reviews, setReviews] = useState(() =>
-    builder.id ? [] : mapMockReviews(getBuilderReviews(builder.username))
-  );
-
-  useEffect(() => {
-    if (!builder.id) return;
-    let cancelled = false;
-    const request = isStudio
-      ? fetchStudioReviews(builder.id)
-      : listBuilderReviews(builder.id);
-    request.then(({ reviews: rows }) => {
-      if (!cancelled) setReviews(mapDbReviews(rows));
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [builder.id, builder.username, isStudio]);
 
   const gate = useAuthGate();
   const router = useRouter();
@@ -670,13 +494,9 @@ export default function BuilderProfilePage({ builder }) {
                     {builder.display_name}
                   </h1>
                   {isStudio && builder.is_verified && <StudioOfficialBadge />}
-                  {isStudio ? (
+                  {isStudio && (
                     <span className="px-2.5 py-1 rounded-full text-xs font-semibold border bg-[#4ade80]/10 text-[#4ade80] border-[#4ade80]/30">
                       Studio
-                    </span>
-                  ) : (
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${rank.bgClass} ${rank.textClass} ${rank.borderClass}`}>
-                      {rank.label} Builder
                     </span>
                   )}
                 </div>
@@ -684,15 +504,6 @@ export default function BuilderProfilePage({ builder }) {
 
                 {/* Meta bar */}
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-5 gap-y-2 text-sm text-gray-400 mb-4">
-                  <span className="flex items-center gap-1.5">
-                    <IconStar className="w-3.5 h-3.5 text-amber-400" />
-                    <strong className="text-amber-400">{builder.avg_rating.toFixed(2)}</strong>
-                    <span>({reviews.length} reviews)</span>
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <Icon name="package" size={14} />
-                    {builder.completed_projects} completed
-                  </span>
                   <span className="flex items-center gap-1.5">
                     <IconClock className="w-3.5 h-3.5" />
                     {isStudio ? "Team availability updates live" : `Replies ${builder.response_time}`}
@@ -770,15 +581,7 @@ export default function BuilderProfilePage({ builder }) {
                   </div>
                 </div>}
 
-                <div className={`grid grid-cols-2 ${isStudio ? "sm:grid-cols-3" : "sm:grid-cols-4"} gap-3 mt-6 pt-6 border-t border-white/[0.08]`}>
-                  <div className="text-center">
-                    <p className="text-xl font-bold">{builder.avg_rating.toFixed(2)}</p>
-                    <p className="text-[10px] text-gray-500 uppercase tracking-wide">Avg. Rating</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xl font-bold">{builder.completed_projects}</p>
-                    <p className="text-[10px] text-gray-500 uppercase tracking-wide">Projects</p>
-                  </div>
+                <div className={`grid ${isStudio ? "grid-cols-1" : "grid-cols-2"} gap-3 mt-6 pt-6 border-t border-white/[0.08]`}>
                   {!isStudio && <div className="text-center">
                     <p className="text-xl font-bold">{builder.response_time}</p>
                     <p className="text-[10px] text-gray-500 uppercase tracking-wide">Response</p>
@@ -789,9 +592,6 @@ export default function BuilderProfilePage({ builder }) {
                   </div>
                 </div>
               </section>
-
-              {/* Reviews */}
-              <ReviewsSection reviews={reviews} builder={builder} />
             </div>
 
             {/* RIGHT: Sticky contact sidebar */}
