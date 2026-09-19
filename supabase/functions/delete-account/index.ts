@@ -119,23 +119,25 @@ Deno.serve(async (req) => {
   });
   try {
     const userId = userData.user.id;
-    const { data: deletionEligibility, error: eligibilityError } = await asUser.rpc(
-      "get_my_studio_delete_eligibility",
-    );
-    if (eligibilityError && eligibilityError.code !== "PGRST202") {
-      throw new Error(`Could not verify studio deletion: ${eligibilityError.message}`);
-    }
-    if (deletionEligibility?.is_studio && !deletionEligibility?.can_delete) {
-      return json({
-        error: "Complete all outstanding studio orders before deleting the studio",
-        blockingOrderCount: deletionEligibility.blocking_order_count,
-      }, 409);
-    }
+    // No studio pre-check any more. This used to call
+    // get_my_studio_delete_eligibility to stop a studio owner deleting while
+    // they still had outstanding orders. Migration 0097 revoked that function
+    // from `authenticated` along with the rest of the studios program, and this
+    // call runs as the caller — so it started failing with "permission denied"
+    // and blocked every account deletion. Both things it guarded are gone:
+    // there are no studios and no orders to be outstanding.
+    // `orders` is a decommissioned table that is deliberately retained, and it
+    // is only read here to find the dormant deliverable/preview files that
+    // belong to this user so they go with the account. If the lookup fails we
+    // carry on and delete the account anyway: leaving a few dormant files
+    // behind is a far better outcome than refusing to delete someone's data.
     const { data: orders, error: ordersError } = await admin
       .from("orders")
       .select("id")
       .or(`buyer_id.eq.${userId},builder_id.eq.${userId}`);
-    if (ordersError) throw new Error(`Could not list account orders: ${ordersError.message}`);
+    if (ordersError) {
+      console.warn("delete-account: could not list orders for storage cleanup:", ordersError.message);
+    }
 
     await Promise.all([
       removeFilesAtPrefix(admin, "avatars", userId),
