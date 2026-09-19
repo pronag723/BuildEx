@@ -87,7 +87,9 @@ export default function ConversationList({
     <div className="flex-1 overflow-y-auto py-2 hide-scrollbar">
       {conversations.map((c) => {
         const active = c.conversation_id === activeId;
-        const name = c.other_display_name || c.other_username || "Builder";
+        // A conversation partner may be hiring rather than building, so never
+        // fall back to "Builder" — their @handle, then a neutral word.
+        const name = c.other_display_name || c.other_username || "Member";
         const unread = Number(c.unread_count) || 0;
         if (compact) {
           return (

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import SmartText from "../../../lib/ui/SmartText";
+import { isPublicBuilder } from "../../../lib/chat/api";
 import { publicAsset } from "../../home/utils";
 import { useScrollLock } from "../../../lib/useScrollLock";
 
@@ -188,8 +189,27 @@ export default function MessageThread({
     files.forEach((file) => onSendImage?.(file));
   }
 
-  const peerName = peer?.display_name || peer?.username || "Builder";
+  // The other side of a thread is a person, not necessarily a builder — they
+  // may well be someone hiring. Fall back to their @handle, then to a neutral
+  // word, never to "Builder".
+  const peerName = peer?.display_name || peer?.username || "Member";
   const canWrite = isDraft || conversationMeta?.can_write !== false;
+
+  // Only builders have a page at /builders/profile, so only their @handle is a
+  // link. For everyone else the handle still shows — it just isn't clickable,
+  // rather than leading to a "builder not found" dead end.
+  const [peerHasProfile, setPeerHasProfile] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    setPeerHasProfile(false);
+    if (!peer?.id) return undefined;
+    isPublicBuilder(peer.id).then((yes) => {
+      if (!cancelled) setPeerHasProfile(yes);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [peer?.id]);
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -207,12 +227,16 @@ export default function MessageThread({
         <div className="min-w-0">
           <p className="font-bold text-sm truncate leading-tight">{peerName}</p>
           {peer?.username && (
-            <Link
-              href={`/builders/profile?u=${encodeURIComponent(peer.username)}`}
-              className="text-xs text-gray-500 hover:text-[#4ade80] transition-colors"
-            >
-              @{peer.username}
-            </Link>
+            peerHasProfile ? (
+              <Link
+                href={`/builders/profile?u=${encodeURIComponent(peer.username)}`}
+                className="text-xs text-gray-500 hover:text-[#4ade80] transition-colors"
+              >
+                @{peer.username}
+              </Link>
+            ) : (
+              <p className="text-xs text-gray-500">@{peer.username}</p>
+            )
           )}
         </div>
       </div>
@@ -228,6 +252,9 @@ export default function MessageThread({
           <div className="flex flex-col items-center justify-center text-center px-6 py-10">
             <PeerAvatar name={peerName} url={peer?.avatar_url} size={64} />
             <p className="font-semibold text-sm mt-4 mb-1">{peerName}</p>
+            {peer?.username && (
+              <p className="text-xs text-gray-500 mb-2">@{peer.username}</p>
+            )}
             <p className="text-xs text-gray-500 max-w-[260px] leading-relaxed">
               This is the start of your conversation. Say hello and describe the build you have in mind.
             </p>

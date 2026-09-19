@@ -12,13 +12,15 @@
 //
 // There is no registration behind sign-in any more, so nothing else happens
 // here — a brand-new account already has a usable profiles row by the time
-// AuthContext settles (lib/auth/profile.js → ensureProfile).
+// AuthContext settles (lib/auth/profile.js → ensureProfile). Someone who signed
+// in with nowhere particular to be lands on /account, where they can carry on
+// filling their profile in.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../../lib/auth/AuthContext";
-import { sanitizeRedirect } from "../../../lib/auth/redirects";
+import { resolvePostLoginPath } from "../../../lib/auth/redirects";
 import { withBase } from "../../home/utils";
 
 export default function AuthCallbackPage() {
@@ -29,10 +31,12 @@ export default function AuthCallbackPage() {
   );
 }
 
-function readTarget() {
-  if (typeof window === "undefined") return "/";
+// The page the user was heading for before signing in, or their profile when
+// there wasn't one (see resolvePostLoginPath).
+function readTarget(profile) {
+  if (typeof window === "undefined") return "/account";
   const params = new URLSearchParams(window.location.search);
-  return sanitizeRedirect(params.get("redirect"));
+  return resolvePostLoginPath(profile, params.get("redirect"));
 }
 
 function readOAuthError() {
@@ -49,7 +53,7 @@ function readOAuthError() {
 
 function AuthCallbackInner() {
   const router = useRouter();
-  const { status, configured } = useAuth();
+  const { status, configured, profile } = useAuth();
   const [stuck, setStuck] = useState(false);
 
   useEffect(() => {
@@ -67,8 +71,8 @@ function AuthCallbackInner() {
       router.replace("/login");
       return;
     }
-    router.replace(readTarget());
-  }, [status, configured, router]);
+    router.replace(readTarget(profile));
+  }, [status, configured, profile, router]);
 
   // The exchange itself can take 10–15 s on a Supabase cold start; only show
   // the escape hatch once we're well past that.
