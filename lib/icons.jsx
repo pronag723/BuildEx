@@ -20,7 +20,7 @@ import {
   Lock, ShieldCheck, MessageCircle, Scale, Clock, Calendar, RotateCcw,
   Folder, Lightbulb, Blocks, Info, PartyPopper, Check, X, FileText,
   // flow / misc
-  Search, Wallet, Hammer, Target, Sun, Moon, Star, LogOut,
+  Search, Wallet, Hammer, Target, Sun, Moon, Star, LogOut, Send, AtSign,
 } from "lucide-react";
 
 // Semantic key → lucide component. Keys are referenced from the data files.
@@ -91,6 +91,9 @@ export const ICONS = {
   moon: Moon,
   star: Star,
   logout: LogOut,
+  // contact links (builder_profiles.contact_links)
+  send: Send,
+  at: AtSign,
 
   // ── Legacy aliases ──────────────────────────────────────────────────────
   // Pricing-tier icons were once persisted as emoji in the DB (builder_profiles

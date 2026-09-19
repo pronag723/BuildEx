@@ -9,69 +9,41 @@ import {
   deleteOwnAccount,
   fetchOnboardingState,
   listPortfolioImages,
-  saveBuilderAvailability,
-  saveBuilderExpertise,
   saveBuilderIdentity,
   saveBuilderStyles,
-  saveClientProfile,
 } from "../../lib/onboarding/api";
 import {
-  AVAILABILITY_STATES,
   BIO_MAX,
-  BUILD_TYPES,
-  BUILDER_TOOLS,
-  CLIENT_INTEREST_STYLES,
   DISPLAY_NAME_MAX,
   DISPLAY_NAME_MIN,
-  PROJECT_TYPES,
-  RESPONSE_TIMES,
-  SERVER_TYPES,
   STYLES,
-  sanitizeBuilderTools,
 } from "../../lib/onboarding/constants";
+import {
+  contactLinkError,
+  contactLinkHref,
+  contactLinkText,
+  contactLinkTypeMeta,
+  readContactLinks,
+} from "../../lib/onboarding/contactLinks";
 import { BUILDER_ONBOARDING_START } from "../../lib/onboarding/state";
 import { withBase } from "../home/utils";
-import Avatar from "../../lib/ui/Avatar";
 import { Icon } from "../../lib/icons";
 import CatalogNavbar from "../builders/components/CatalogNavbar";
 import CatalogMobileMenu from "../builders/components/CatalogMobileMenu";
 import SiteFooter from "../home/components/SiteFooter";
 import AvatarUploader from "../onboarding/components/AvatarUploader";
 import ChipGrid from "../onboarding/components/ChipGrid";
+import ContactLinkField from "../onboarding/components/ContactLinkField";
 import HandleInput from "../onboarding/components/HandleInput";
 import PortfolioUploader from "../onboarding/components/PortfolioUploader";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-
-// #rrggbb → rgba(), used for the availability slider's tinted highlight.
-function hexToRgba(hex, alpha = 1) {
-  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || "");
-  if (!m) return `rgba(74,222,128,${alpha})`;
-  const r = parseInt(m[1], 16);
-  const g = parseInt(m[2], 16);
-  const b = parseInt(m[3], 16);
-  return `rgba(${r},${g},${b},${alpha})`;
-}
-
-function responseLabel(hours) {
-  if (hours == null) return null;
-  return (RESPONSE_TIMES.find((r) => r.hours >= hours) || RESPONSE_TIMES.at(-1))?.label || null;
-}
 
 function IconPencil({ className = "w-4 h-4" }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-    </svg>
-  );
-}
-
-function IconClockSmall({ className = "w-4 h-4" }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-      <circle cx="12" cy="12" r="10" />
-      <path d="M12 6v6l4 2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -166,181 +138,6 @@ function SectionTabs({ section, setSection }) {
   );
 }
 
-// ─── Availability (builders) ─────────────────────────────────────────────────
-// A 3-state segmented slider that saves the moment a state is picked — no
-// separate edit/confirm step.
-// What each availability state means for the builder, in plain terms: whether
-// the profile shows up in the /builders feed and whether clients can place an
-// order. Keyed to AVAILABILITY_STATES so the copy stays in sync with the slider.
-const AVAILABILITY_HELP = {
-  available: {
-    visible: true,
-    orderable: true,
-    text: "Your profile is shown in the builders feed and clients can place orders.",
-  },
-  limited: {
-    visible: true,
-    orderable: false,
-    text: "Your profile stays visible in the builders feed, but clients can't place new orders — they can still message you.",
-  },
-  busy: {
-    visible: false,
-    orderable: false,
-    text: "Your profile is hidden from the builders feed and clients can't place orders — they can still message you.",
-  },
-};
-
-function AvailabilitySection({ builderProfile, onSaved }) {
-  const { user } = useAuth();
-  const saved = builderProfile?.availability_status || "available";
-  const [value, setValue] = useState(saved);
-  const [status, setStatus] = useState("idle"); // idle | saving | saved | error
-  const [errorMessage, setErrorMessage] = useState("");
-  const statusTimer = useRef(null);
-
-  // Re-sync if the profile is refreshed elsewhere.
-  useEffect(() => {
-    setValue(saved);
-  }, [saved]);
-
-  useEffect(() => () => clearTimeout(statusTimer.current), []);
-
-  const idx = Math.max(0, AVAILABILITY_STATES.findIndex((a) => a.key === value));
-  const active = AVAILABILITY_STATES[idx] || AVAILABILITY_STATES[0];
-
-  async function choose(key) {
-    if (key === value && status !== "error") return;
-    const prev = value;
-    setValue(key); // optimistic
-    setStatus("saving");
-    setErrorMessage("");
-    clearTimeout(statusTimer.current);
-
-    const supabase = getSupabaseClient();
-    if (!supabase || !user?.id) {
-      setValue(prev);
-      setErrorMessage("Your account connection is unavailable. Refresh and try again.");
-      setStatus("error");
-      return;
-    }
-    const { error } = await saveBuilderAvailability(supabase, user.id, key);
-    if (error) {
-      setValue(prev);
-      setErrorMessage(error.message || "Couldn't save your availability. Try again.");
-      setStatus("error");
-      return;
-    }
-    setStatus("saved");
-    statusTimer.current = setTimeout(() => setStatus("idle"), 1800);
-    onSaved?.();
-  }
-
-  return (
-    <section className="reveal glass rounded-3xl p-6 lg:p-8">
-      <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
-        <h2 className="font-bold text-xl">Availability</h2>
-        <span
-          className={`text-xs font-medium transition-opacity duration-300 inline-flex items-center gap-1.5 ${
-            status === "idle" ? "opacity-0" : "opacity-100"
-          } ${status === "error" ? "text-red-300" : "text-[#4ade80]"}`}
-        >
-          {status === "saving" && (
-            <span className="w-3 h-3 rounded-full border-2 border-[#4ade80]/40 border-t-[#4ade80] animate-spin" />
-          )}
-          {status === "saving" && "Saving…"}
-          {status === "saved" && (
-            <span className="inline-flex items-center gap-1">
-              <Icon name="check" size={13} strokeWidth={2.5} /> Saved
-            </span>
-          )}
-          {status === "error" && "Couldn't save — try again"}
-        </span>
-      </div>
-      {status === "error" && errorMessage && (
-        <p role="alert" className="text-xs text-red-300 mb-4">{errorMessage}</p>
-      )}
-      <p className="text-xs text-gray-500 mb-4">
-        Let clients know whether you&apos;re taking on new commissions. Changes save instantly.
-      </p>
-
-      <div
-        className="relative grid grid-cols-3 p-1 rounded-full bg-white/[0.04] border border-white/10"
-        role="radiogroup"
-        aria-label="Availability"
-      >
-        {/* Sliding highlight */}
-        <span
-          aria-hidden="true"
-          className="absolute inset-y-1 left-1 rounded-full transition-transform duration-300 ease-out"
-          style={{
-            width: "calc((100% - 0.5rem) / 3)",
-            transform: `translateX(calc(${idx} * 100%))`,
-            backgroundColor: hexToRgba(active.dot, 0.16),
-            boxShadow: `0 0 0 1px ${hexToRgba(active.dot, 0.5)}, 0 0 14px ${hexToRgba(active.dot, 0.22)}`,
-          }}
-        />
-        {AVAILABILITY_STATES.map((opt) => {
-          const isActive = opt.key === value;
-          return (
-            <button
-              key={opt.key}
-              type="button"
-              role="radio"
-              aria-checked={isActive}
-              onClick={() => choose(opt.key)}
-              className={`relative z-10 flex items-center justify-center gap-2 py-2.5 px-2 rounded-full text-xs sm:text-sm font-semibold transition-colors ${
-                isActive ? "text-white" : "text-gray-400 hover:text-gray-200"
-              }`}
-            >
-              <span
-                className="w-2 h-2 rounded-full flex-shrink-0"
-                style={{ background: opt.dot, boxShadow: isActive ? `0 0 10px ${opt.dot}` : "none" }}
-              />
-              <span className="truncate">{opt.short || opt.label}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Explanation for the currently selected status only — so builders see
-          how this choice affects their feed visibility and whether clients can
-          order, without the other states cluttering the view. */}
-      {(() => {
-        const help = AVAILABILITY_HELP[active.key];
-        if (!help) return null;
-        return (
-          <div className="mt-5 flex items-start gap-3 rounded-2xl border border-white/20 bg-white/[0.05] p-3">
-            <span
-              className="mt-1 w-2 h-2 rounded-full flex-shrink-0"
-              style={{ background: active.dot, boxShadow: `0 0 10px ${active.dot}` }}
-            />
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-sm font-semibold text-white">
-                  {active.short || active.label}
-                </span>
-                <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-full border border-white/10 text-gray-400">
-                  {help.visible ? "Visible in feed" : "Hidden from feed"}
-                </span>
-                <span
-                  className={`text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-full border ${
-                    help.orderable
-                      ? "border-[#4ade80]/30 text-[#4ade80]"
-                      : "border-white/10 text-gray-400"
-                  }`}
-                >
-                  {help.orderable ? "Orders open" : "Orders paused"}
-                </span>
-              </div>
-              <p className="text-xs text-gray-500 leading-relaxed mt-1">{help.text}</p>
-            </div>
-          </div>
-        );
-      })()}
-    </section>
-  );
-}
-
 // ─── About / bio (shared) ────────────────────────────────────────────────────
 // Only rendered for builders — it is their public pitch.
 function AboutSection({ profile, onSaved }) {
@@ -361,12 +158,11 @@ function AboutSection({ profile, onSaved }) {
     if (!supabase || !user?.id) return;
     setSaving(true);
     setError(null);
-    const payload = {
-      avatarUrl: profile?.avatar_url ?? null,
-      bannerUrl: profile?.banner_url ?? null,
+    // Only the bio — saveBuilderIdentity writes exactly the fields it is
+    // handed, so the avatar and name this card doesn't own stay put.
+    const { error: err } = await saveBuilderIdentity(supabase, user.id, {
       bio: bio.trim() || null,
-    };
-    const { error: err } = await saveBuilderIdentity(supabase, user.id, payload);
+    });
     setSaving(false);
     if (err) {
       setError(err.message || "Couldn't save.");
@@ -418,17 +214,18 @@ function AboutSection({ profile, onSaved }) {
   );
 }
 
-function SpecialtiesSection({ builderProfile, onSaved }) {
+// ─── Styles (builders) ──────────────────────────────────────────────────────
+// Exactly what signup step 2 asks for, nothing more. `build_types` is never
+// passed, so whatever an older builder stored there survives untouched.
+function StylesSection({ builderProfile, onSaved }) {
   const { user } = useAuth();
   const [editing, setEditing] = useState(false);
   const [specialties, setSpecialties] = useState(builderProfile?.specialties || []);
-  const [buildTypes, setBuildTypes] = useState(builderProfile?.build_types || []);
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
 
   function startEdit() {
     setSpecialties(builderProfile?.specialties || []);
-    setBuildTypes(builderProfile?.build_types || []);
     setError(null);
     setEditing(true);
   }
@@ -437,10 +234,7 @@ function SpecialtiesSection({ builderProfile, onSaved }) {
     const supabase = getSupabaseClient();
     if (!supabase || !user?.id) return;
     setSaving(true);
-    const { error: err } = await saveBuilderStyles(supabase, user.id, {
-      specialties,
-      buildTypes,
-    });
+    const { error: err } = await saveBuilderStyles(supabase, user.id, { specialties });
     setSaving(false);
     if (err) {
       setError(err.message || "Couldn't save.");
@@ -450,14 +244,13 @@ function SpecialtiesSection({ builderProfile, onSaved }) {
     await onSaved?.();
   }
 
-  const canSave = specialties.length >= 1 && buildTypes.length >= 1;
+  const canSave = specialties.length >= 1;
   const savedSpecs = builderProfile?.specialties || [];
-  const savedTypes = builderProfile?.build_types || [];
 
   return (
     <section className="reveal glass rounded-3xl p-6 lg:p-8">
       <SectionHeader
-        title="Specialties"
+        title="Styles"
         editing={editing}
         onEdit={startEdit}
         onCancel={() => setEditing(false)}
@@ -478,195 +271,23 @@ function SpecialtiesSection({ builderProfile, onSaved }) {
               ariaLabel="Building styles"
             />
           </div>
-          <div>
-            <div className="onb-label mb-3">Build types</div>
-            <ChipGrid
-              options={BUILD_TYPES}
-              value={buildTypes}
-              onChange={setBuildTypes}
-              multi
-              ariaLabel="Build types"
-            />
-          </div>
           {!canSave && (
-            <p className="text-xs text-gray-500">
-              Pick at least one style and one build type.
-            </p>
+            <p className="text-xs text-gray-500">Pick at least one style.</p>
           )}
           {error && <div role="alert" className="auth-banner auth-banner-error">{error}</div>}
         </div>
+      ) : savedSpecs.length === 0 ? (
+        <p className="text-gray-500 text-sm italic">
+          No styles yet. Click <strong>Edit</strong> to pick some — they are what
+          clients filter the catalog by.
+        </p>
       ) : (
-        <div className="space-y-4">
-          <div>
-            <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2">Styles</p>
-            {savedSpecs.length === 0 ? (
-              <p className="text-gray-500 text-sm italic">None yet.</p>
-            ) : (
-              <div className="flex flex-wrap gap-1.5">
-                {savedSpecs.map((s) => (
-                  <span key={s} className="px-3 py-1 rounded-full text-xs bg-white/5 border border-white/10 text-gray-300 capitalize">
-                    {s}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-          <div>
-            <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2">Build types</p>
-            {savedTypes.length === 0 ? (
-              <p className="text-gray-500 text-sm italic">None yet.</p>
-            ) : (
-              <div className="flex flex-wrap gap-1.5">
-                {savedTypes.map((t) => (
-                  <span key={t} className="px-3 py-1 rounded-full text-xs bg-white/5 border border-white/10 text-gray-300 capitalize">
-                    {t}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </section>
-  );
-}
-
-// ─── Expertise (builders) ───────────────────────────────────────────────────
-function ExpertiseSection({ builderProfile, onSaved }) {
-  const { user } = useAuth();
-  const [editing, setEditing] = useState(false);
-
-  function pickResponse(hours) {
-    if (hours == null) return null;
-    return (RESPONSE_TIMES.find((r) => r.hours >= hours) || RESPONSE_TIMES.at(-1))?.key || null;
-  }
-
-  const [tools, setTools] = useState(sanitizeBuilderTools(builderProfile?.tools));
-  const [projectTypes, setProjectTypes] = useState(builderProfile?.project_types || []);
-  const [responseKey, setResponseKey] = useState(pickResponse(builderProfile?.response_time_hours));
-  const [error, setError] = useState(null);
-  const [saving, setSaving] = useState(false);
-
-  function startEdit() {
-    setTools(sanitizeBuilderTools(builderProfile?.tools));
-    setProjectTypes(builderProfile?.project_types || []);
-    setResponseKey(pickResponse(builderProfile?.response_time_hours));
-    setError(null);
-    setEditing(true);
-  }
-
-  async function save() {
-    const supabase = getSupabaseClient();
-    if (!supabase || !user?.id) return;
-    setSaving(true);
-    const responseTimeHours = RESPONSE_TIMES.find((r) => r.key === responseKey)?.hours ?? null;
-    const { error: err } = await saveBuilderExpertise(supabase, user.id, {
-      tools,
-      projectTypes,
-      responseTimeHours,
-      // Availability is managed by its own section now — preserve the saved
-      // value so saving tools/response doesn't reset it.
-      availabilityStatus: builderProfile?.availability_status || "available",
-    });
-    setSaving(false);
-    if (err) {
-      setError(err.message || "Couldn't save.");
-      return;
-    }
-    setEditing(false);
-    await onSaved?.();
-  }
-
-  const savedTools = builderProfile?.tools || [];
-  const respLabel = RESPONSE_TIMES.find(
-    (r) => r.key === pickResponse(builderProfile?.response_time_hours)
-  )?.label;
-
-  return (
-    <section className="reveal glass rounded-3xl p-6 lg:p-8">
-      <SectionHeader
-        title="Tools & response"
-        editing={editing}
-        onEdit={startEdit}
-        onCancel={() => setEditing(false)}
-        onSave={save}
-        saving={saving}
-        canSave={tools.length >= 1 && !!responseKey}
-      />
-
-      {editing ? (
-        <div className="space-y-6">
-          <div>
-            <div className="onb-label mb-3">Tools used</div>
-            <ChipGrid
-              options={BUILDER_TOOLS}
-              value={tools}
-              onChange={setTools}
-              multi
-            />
-          </div>
-          <div>
-            <div className="onb-label mb-3">Project types</div>
-            <ChipGrid
-              options={PROJECT_TYPES}
-              value={projectTypes}
-              onChange={setProjectTypes}
-              multi
-            />
-          </div>
-          <div>
-            <div className="onb-label mb-3">Response time</div>
-            <ChipGrid
-              options={RESPONSE_TIMES}
-              value={responseKey}
-              onChange={setResponseKey}
-              multi={false}
-            />
-          </div>
-          {error && <div role="alert" className="auth-banner auth-banner-error">{error}</div>}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Tools used</p>
-            {savedTools.length === 0 ? (
-              <p className="text-sm text-gray-500 italic">None selected.</p>
-            ) : (
-              <div className="flex flex-wrap gap-1.5">
-                {savedTools.map((k) => {
-                  const meta = BUILDER_TOOLS.find((t) => t.key === k);
-                  return (
-                    <span key={k} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-white/5 border border-white/10 text-gray-300">
-                      {meta?.icon && <Icon name={meta.icon} size={13} className="text-gray-400" />}
-                      {meta?.label || k}
-                    </span>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-          <div>
-            <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Response time</p>
-            <p className="text-sm text-gray-200">{respLabel || "Not set"}</p>
-          </div>
-          <div>
-            <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Open to</p>
-            {(builderProfile?.project_types || []).length === 0 ? (
-              <p className="text-sm text-gray-500 italic">Nothing selected.</p>
-            ) : (
-              <div className="flex flex-wrap gap-1.5">
-                {(builderProfile?.project_types || []).map((k) => {
-                  const meta = PROJECT_TYPES.find((p) => p.key === k);
-                  return (
-                    <span key={k} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-white/5 border border-white/10 text-gray-300">
-                      {meta?.icon && <Icon name={meta.icon} size={13} className="text-gray-400" />}
-                      {meta?.label || k}
-                    </span>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+        <div className="flex flex-wrap gap-1.5">
+          {savedSpecs.map((sp) => (
+            <span key={sp} className="px-3 py-1 rounded-full text-xs bg-white/5 border border-white/10 text-gray-300 capitalize">
+              {sp}
+            </span>
+          ))}
         </div>
       )}
     </section>
@@ -750,100 +371,6 @@ function PortfolioSection({ portfolioCount, onSaved }) {
                 </div>
               </div>
             ))}
-          </div>
-        </div>
-      )}
-    </section>
-  );
-}
-
-// ─── Client preferences ─────────────────────────────────────────────────────
-function ClientPreferencesSection({ profile, onSaved }) {
-  const { user } = useAuth();
-  const [editing, setEditing] = useState(false);
-  const [interests, setInterests] = useState(profile?.interests || []);
-  const [serverType, setServerType] = useState(profile?.preferred_server_type || null);
-  const [error, setError] = useState(null);
-  const [saving, setSaving] = useState(false);
-
-  function startEdit() {
-    setInterests(profile?.interests || []);
-    setServerType(profile?.preferred_server_type || null);
-    setError(null);
-    setEditing(true);
-  }
-
-  async function save() {
-    const supabase = getSupabaseClient();
-    if (!supabase || !user?.id) return;
-    setSaving(true);
-    const { error: err } = await saveClientProfile(supabase, user.id, {
-      avatarUrl: profile?.avatar_url ?? null,
-      bannerUrl: profile?.banner_url ?? null,
-      bio: profile?.bio ?? null,
-      interests,
-      serverType,
-    });
-    setSaving(false);
-    if (err) {
-      setError(err.message || "Couldn't save.");
-      return;
-    }
-    setEditing(false);
-    await onSaved?.();
-  }
-
-  const savedServer = SERVER_TYPES.find((s) => s.key === profile?.preferred_server_type);
-
-  return (
-    <section className="reveal glass rounded-3xl p-6 lg:p-8">
-      <SectionHeader
-        title="Preferences"
-        editing={editing}
-        onEdit={startEdit}
-        onCancel={() => setEditing(false)}
-        onSave={save}
-        saving={saving}
-      />
-
-      {editing ? (
-        <div className="space-y-6">
-          <div>
-            <div className="onb-label mb-3">Favorite styles</div>
-            <ChipGrid options={CLIENT_INTEREST_STYLES} value={interests} onChange={setInterests} multi />
-          </div>
-          <div>
-            <div className="onb-label mb-3">Preferred server type</div>
-            <ChipGrid options={SERVER_TYPES} value={serverType} onChange={setServerType} multi={false} />
-          </div>
-          {error && <div role="alert" className="auth-banner auth-banner-error">{error}</div>}
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <div>
-            <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2">Favorite styles</p>
-            {(profile?.interests || []).length === 0 ? (
-              <p className="text-gray-500 text-sm italic">None yet.</p>
-            ) : (
-              <div className="flex flex-wrap gap-1.5">
-                {(profile?.interests || []).map((s) => (
-                  <span key={s} className="px-3 py-1 rounded-full text-xs bg-white/5 border border-white/10 text-gray-300 capitalize">
-                    {s}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-          <div>
-            <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2">Server type</p>
-            {savedServer ? (
-              <p className="inline-flex items-center gap-1.5 text-sm text-gray-200">
-                {savedServer.icon && <Icon name={savedServer.icon} size={14} className="text-gray-400" />}
-                {savedServer.label}
-              </p>
-            ) : (
-              <p className="text-gray-500 text-sm italic">Not set.</p>
-            )}
           </div>
         </div>
       )}
@@ -1038,24 +565,33 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
   const [displayName, setDisplayName] = useState(profile?.display_name || "");
   const [handle, setHandle] = useState(profile?.username || "");
   const [handleValid, setHandleValid] = useState(Boolean(profile?.username));
+  const savedContact = readContactLinks(builderProfile?.contact_links);
+  const [contactType, setContactType] = useState(savedContact.type || "discord");
+  const [contactValue, setContactValue] = useState(savedContact.value || "");
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
   const trimmedName = displayName.trim();
   const nameValid =
     trimmedName.length >= DISPLAY_NAME_MIN && trimmedName.length <= DISPLAY_NAME_MAX;
-  const canSave = nameValid && handleValid && !!handle;
+  const contactProblem = contactValue.trim()
+    ? contactLinkError(contactType, contactValue)
+    : null;
+  const canSave = nameValid && handleValid && !!handle && !contactProblem;
 
-  const availability = AVAILABILITY_STATES.find(
-    (a) => a.key === (builderProfile?.availability_status || "available")
-  );
-  const respLabel = responseLabel(builderProfile?.response_time_hours);
   const specialties = builderProfile?.specialties || [];
+  const savedContactMeta = savedContact.type ? contactLinkTypeMeta(savedContact.type) : null;
+  const savedContactHref = savedContact.type
+    ? contactLinkHref(savedContact.type, savedContact.value)
+    : null;
 
   function startEdit() {
     setAvatarUrl(profile?.avatar_url || null);
     setDisplayName(profile?.display_name || "");
     setHandle(profile?.username || "");
     setHandleValid(Boolean(profile?.username));
+    const contact = readContactLinks(builderProfile?.contact_links);
+    setContactType(contact.type || "discord");
+    setContactValue(contact.value || "");
     setError(null);
     setEditing(true);
   }
@@ -1066,15 +602,18 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
     if (!supabase || !user?.id) return;
     setSaving(true);
     setError(null);
+    // Name, handle, avatar and (for builders) the contact link. The bio is the
+    // About card's field and is deliberately not passed, so saving here leaves
+    // it alone.
     const payload = {
       displayName: trimmedName,
       handle,
       avatarUrl,
-      // Banner is no longer editable; preserve whatever's stored so we don't
-      // wipe it with a destructive write.
-      bannerUrl: profile?.banner_url ?? null,
-      bio: profile?.bio ?? null,
     };
+    if (isBuilder) {
+      payload.contactLinkType = contactType;
+      payload.contactLinkValue = contactValue.trim();
+    }
     const { error: err } = await saveBuilderIdentity(supabase, user.id, payload);
     setSaving(false);
     if (err) {
@@ -1127,13 +666,6 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
                   {(profile?.display_name || "B").charAt(0).toUpperCase()}
                 </div>
               )}
-              {isBuilder && availability && (
-                <span
-                  className="absolute bottom-1 right-1 w-5 h-5 rounded-full border-[3px] border-[#1a1a1a]"
-                  style={{ background: availability.dot, boxShadow: `0 0 10px ${availability.dot}` }}
-                  title={availability.label}
-                />
-              )}
             </>
           )}
         </div>
@@ -1170,6 +702,16 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
                 label="Your @nickname"
                 hint="Unique to you — used in your profile URL, mentions and DMs."
               />
+              {isBuilder && (
+                <ContactLinkField
+                  type={contactType}
+                  value={contactValue}
+                  onTypeChange={setContactType}
+                  onValueChange={setContactValue}
+                  label="Where else can clients reach you?"
+                  hint="Shown publicly on your profile. Clear it to remove it."
+                />
+              )}
             </div>
           ) : (
             <>
@@ -1189,20 +731,28 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
             <p className="text-sm text-gray-500 mb-3 break-all">@{profile.username}</p>
           )}
 
-          {isBuilder && (
+          {isBuilder && savedContactMeta && (
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-5 gap-y-2 text-sm text-gray-400 mb-4">
-              {availability && (
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full" style={{ background: availability.dot, boxShadow: `0 0 8px ${availability.dot}` }} />
-                  {availability.label}
-                </span>
-              )}
-              {respLabel && (
-                <span className="flex items-center gap-1.5">
-                  <IconClockSmall className="w-3.5 h-3.5" />
-                  Replies {respLabel.toLowerCase()}
-                </span>
-              )}
+              <span className="inline-flex items-center gap-1.5 min-w-0">
+                <Icon name={savedContactMeta.icon} size={14} className="text-gray-500 flex-shrink-0" />
+                {/* Rendered as text unless the stored value really is an https
+                    URL; contactLinkHref returns null for a bare handle so a
+                    handle can never become an anchor. */}
+                {savedContactHref ? (
+                  <a
+                    href={savedContactHref}
+                    target="_blank"
+                    rel="noopener noreferrer nofollow"
+                    className="truncate hover:text-[#4ade80] transition-colors"
+                  >
+                    {contactLinkText(savedContact.type, savedContact.value)}
+                  </a>
+                ) : (
+                  <span className="truncate">
+                    {contactLinkText(savedContact.type, savedContact.value)}
+                  </span>
+                )}
+              </span>
             </div>
           )}
 
@@ -1274,9 +824,9 @@ function BecomeABuilderCard() {
       <h2 className="font-bold text-xl mt-1">Create a builder profile</h2>
       <p className="text-sm text-gray-500 mt-2 max-w-2xl leading-relaxed">
         Get listed in the builders directory so server owners can find you and message
-        you directly. You&apos;ll pick your styles and build types, the tools you work
-        in, and upload a portfolio. It takes a few minutes and nothing is permanent —
-        you can edit or remove it later.
+        you directly. Three steps: your name and avatar, the styles you build in, and
+        a few photos of your work. It takes a couple of minutes and nothing is
+        permanent — you can edit or remove it later.
       </p>
       <Link
         href={BUILDER_ONBOARDING_START}
@@ -1476,7 +1026,6 @@ function AccountPageInner() {
   // values in. `builderLoaded` guards the gap before that row has been fetched
   // so we don't flash the "create a builder profile" CTA at a real builder.
   const isBuilder = Boolean(builderProfile);
-  const isClient = profile?.role === "client" || profile?.role === "both";
 
   useEffect(() => {
     if (profile && !ACCOUNT_SECTIONS.some((sct) => sct.key === section)) {
@@ -1562,7 +1111,7 @@ function AccountPageInner() {
             </h1>
             <p className="text-sm text-gray-500 mt-1.5">
               {isBuilder
-                ? "Manage how you appear across BuildEx — your identity, availability and portfolio."
+                ? "Manage how you appear across BuildEx — your identity, styles and portfolio."
                 : "Manage your account details and how you appear to the builders you message."}
             </p>
           </div>
@@ -1581,24 +1130,17 @@ function AccountPageInner() {
               />
 
               <div className="space-y-8">
-                {isBuilder && (
-                  <AvailabilitySection builderProfile={builderProfile} onSaved={refresh} />
-                )}
-
-                {/* About is a builder's public pitch — it shows on their
-                    profile page. Someone who isn't listed has nowhere for it to
-                    appear, so they aren't asked for one. */}
+                {/* Builder settings edit exactly what signup asks for and
+                    nothing more: identity + contact link (in the header above),
+                    the bio, the styles, and the portfolio. About is a builder's
+                    public pitch — someone who isn't listed has nowhere for it
+                    to appear, so they aren't asked for one. */}
                 {isBuilder && (
                   <>
                     <AboutSection profile={profile} onSaved={refresh} />
+                    <StylesSection builderProfile={builderProfile} onSaved={refresh} />
                     <PortfolioSection portfolioCount={portfolioCount} onSaved={refresh} />
-                    <SpecialtiesSection builderProfile={builderProfile} onSaved={refresh} />
-                    <ExpertiseSection builderProfile={builderProfile} onSaved={refresh} />
                   </>
-                )}
-
-                {isClient && !isBuilder && (
-                  <ClientPreferencesSection profile={profile} onSaved={refresh} />
                 )}
 
                 {builderLoaded && !isBuilder && <BecomeABuilderCard />}

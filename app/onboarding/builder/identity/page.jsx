@@ -1,5 +1,12 @@
 "use client";
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Builder signup, step 1 of 3 — who you are.
+// Avatar, @handle, display name, a short description, and one optional way to
+// reach you off-platform. Nothing else: rates, tools, response time,
+// availability, project types and the banner are all gone.
+// ─────────────────────────────────────────────────────────────────────────────
+
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getSupabaseClient } from "../../../../lib/supabase/client";
@@ -12,11 +19,15 @@ import {
   DISPLAY_NAME_MAX,
   DISPLAY_NAME_MIN,
 } from "../../../../lib/onboarding/constants";
-import { withBase } from "../../../home/utils";
+import {
+  contactLinkError,
+  readContactLinks,
+} from "../../../../lib/onboarding/contactLinks";
 import OnboardingShell from "../../components/OnboardingShell";
 import OnboardingGate from "../../components/OnboardingGate";
 import OnboardingFooter from "../../components/OnboardingFooter";
 import AvatarUploader from "../../components/AvatarUploader";
+import ContactLinkField from "../../components/ContactLinkField";
 import HandleInput from "../../components/HandleInput";
 
 export default function BuilderIdentityPage() {
@@ -33,15 +44,15 @@ function BuilderIdentityStep({ state }) {
   const router = useRouter();
   const { user, refresh, updateProfile } = useAuth();
   const p = state.profile || {};
+  const savedContact = readContactLinks(state.builderProfile?.contact_links);
 
   const [displayName, setDisplayName] = useState(p.display_name || "");
   const [handle, setHandle] = useState(p.username || "");
   const [handleValid, setHandleValid] = useState(Boolean(p.username));
   const [avatarUrl, setAvatarUrl] = useState(p.avatar_url || null);
-  // Banner/background is no longer collected during onboarding. We still read
-  // and pass through any previously stored value so a re-save doesn't wipe it.
-  const [bannerUrl] = useState(p.banner_url || null);
   const [bio, setBio] = useState(p.bio || "");
+  const [contactType, setContactType] = useState(savedContact.type || "discord");
+  const [contactValue, setContactValue] = useState(savedContact.value || "");
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
 
@@ -58,7 +69,11 @@ function BuilderIdentityStep({ state }) {
   const trimmedName = displayName.trim();
   const nameValid =
     trimmedName.length >= DISPLAY_NAME_MIN && trimmedName.length <= DISPLAY_NAME_MAX;
-  const canContinue = nameValid && handleValid && !!handle;
+  // The contact link is optional, but a half-typed one must not be saved.
+  const contactProblem = contactValue.trim()
+    ? contactLinkError(contactType, contactValue)
+    : null;
+  const canContinue = nameValid && handleValid && !!handle && !contactProblem;
 
   async function handleContinue() {
     if (!canContinue) return;
@@ -71,8 +86,11 @@ function BuilderIdentityStep({ state }) {
       displayName: trimmedName,
       handle,
       avatarUrl,
-      bannerUrl,
       bio: bio.trim() || null,
+      contactLinkType: contactType,
+      contactLinkValue: contactValue.trim(),
+      // Signup: the builder_profiles row must exist for steps 2 and 3.
+      ensureBuilderRow: true,
     });
     if (saveErr) {
       setSaving(false);
@@ -101,10 +119,9 @@ function BuilderIdentityStep({ state }) {
       display_name: trimmedName,
       username: handle,
       avatar_url: avatarUrl ?? null,
-      banner_url: bannerUrl ?? null,
       bio: bio.trim() || null,
     });
-    router.replace(STEPS.builderExpertise);
+    router.replace(STEPS.builderStyles);
     refresh?.();
   }
 
@@ -210,6 +227,18 @@ function BuilderIdentityStep({ state }) {
           </div>
         </div>
 
+        {/* Contact link */}
+        <div className="glass onb-card onb-fade-in onb-fade-in-4">
+          <ContactLinkField
+            type={contactType}
+            value={contactValue}
+            onTypeChange={setContactType}
+            onValueChange={setContactValue}
+            label="Where else can clients reach you?"
+            hint="Shown publicly on your profile. Leave it empty to keep BuildEx messages the only way in."
+          />
+        </div>
+
         {error && (
           <div role="alert" className="auth-banner auth-banner-error">
             {error}
@@ -222,7 +251,13 @@ function BuilderIdentityStep({ state }) {
         onNext={handleContinue}
         nextDisabled={!canContinue}
         isSaving={saving}
-        helper={canContinue ? null : "Add your name and pick a unique @nickname to continue"}
+        helper={
+          canContinue
+            ? null
+            : contactProblem
+            ? "Fix or clear your contact link to continue"
+            : "Add your name and pick a unique @nickname to continue"
+        }
       />
     </div>
   );

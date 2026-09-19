@@ -10,19 +10,55 @@ import SiteFooter from "../../../../home/components/SiteFooter";
 import { publicAsset, withBase } from "../../../../home/utils";
 import Avatar from "../../../../../lib/ui/Avatar";
 import { useAuthGate } from "../../../../../lib/auth/useAuthGate";
-import { AVAILABILITY_STATES } from "../../../../../lib/onboarding/constants";
+import {
+  contactLinkHref,
+  contactLinkText,
+  contactLinkTypeMeta,
+} from "../../../../../lib/onboarding/contactLinks";
 import { Icon } from "../../../../../lib/icons";
 import { useFavorites } from "../../../../../lib/favorites/FavoritesContext";
 import { useScrollLock } from "../../../../../lib/useScrollLock";
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
-function IconClock({ className = "w-4 h-4" }) {
+// ─── Contact link ─────────────────────────────────────────────────────────────
+// The one off-platform contact a builder may publish. This value is typed by
+// the builder and shown to every visitor, so it is treated as hostile input:
+// fetchBuilders has already run it back through the validator, and
+// contactLinkHref returns a URL ONLY for a value that really is a plain
+// https:// URL. A bare handle gets no anchor at all, and the anchor we do
+// render is marked noopener/noreferrer/nofollow so it carries no referrer,
+// no window handle and no ranking signal off the site.
+function ContactLinkLine({ contact, center = false }) {
+  if (!contact?.type) return null;
+  const meta = contactLinkTypeMeta(contact.type);
+  const href = contactLinkHref(contact.type, contact.value);
+  const text = contactLinkText(contact.type, contact.value);
+  if (!meta || !text) return null;
+
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-      <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
-    </svg>
+    <span
+      className={`flex items-center gap-1.5 text-xs text-gray-400 min-w-0 ${
+        center ? "justify-center" : ""
+      }`}
+    >
+      <Icon name={meta.icon} size={13} className="text-gray-500 flex-shrink-0" />
+      <span className="sr-only">{meta.label}: </span>
+      {href ? (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer nofollow"
+          className="truncate hover:text-[#4ade80] transition-colors"
+        >
+          {text}
+        </a>
+      ) : (
+        <span className="truncate">{text}</span>
+      )}
+    </span>
   );
 }
+
 function IconCheck({ className = "w-4 h-4" }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -177,7 +213,7 @@ function ContactSidebar({ builder, onShowSoon, onContact }) {
               Online now
             </p>
           ) : (
-            <p className="text-xs text-gray-500">Offline · replies {builder.response_time}</p>
+            <p className="text-xs text-gray-500">Offline</p>
           )}
         </div>
       </div>
@@ -192,11 +228,8 @@ function ContactSidebar({ builder, onShowSoon, onContact }) {
         Contact Builder
       </button>
 
-      {/* Response info */}
-      <div className="flex items-center justify-center gap-2 text-xs text-gray-400">
-        <IconClock className="w-3.5 h-3.5" />
-        Typically replies in <strong>{builder.response_time}</strong>
-      </div>
+      {/* The one off-platform contact this builder chose to publish. */}
+      <ContactLinkLine contact={builder.contact_link} center />
 
       {/* Trust badges */}
       <div className="pt-3 border-t border-white/[0.06] grid grid-cols-2 gap-2">
@@ -459,27 +492,11 @@ export default function BuilderProfilePage({ builder }) {
                 <p className="text-sm text-gray-500 mb-3">@{builder.username}</p>
 
                 {/* Meta bar */}
-                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-5 gap-y-2 text-sm text-gray-400 mb-4">
-                  <span className="flex items-center gap-1.5">
-                    <IconClock className="w-3.5 h-3.5" />
-                    Replies {builder.response_time}
-                  </span>
-                  {(() => {
-                    const avail =
-                      AVAILABILITY_STATES.find(
-                        (a) => a.key === (builder.availability_status || "available")
-                      ) || AVAILABILITY_STATES[0];
-                    return (
-                      <span className="flex items-center gap-1.5 font-medium" style={{ color: avail.dot }}>
-                        <span
-                          className="w-2 h-2 rounded-full"
-                          style={{ background: avail.dot, boxShadow: `0 0 8px ${avail.dot}` }}
-                        />
-                        {avail.label}
-                      </span>
-                    );
-                  })()}
-                </div>
+                {builder.contact_link && (
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-5 gap-y-2 text-sm text-gray-400 mb-4">
+                    <ContactLinkLine contact={builder.contact_link} />
+                  </div>
+                )}
 
                 {/* Specialties */}
                 <div className="flex flex-wrap justify-center sm:justify-start gap-2">
@@ -523,22 +540,7 @@ export default function BuilderProfilePage({ builder }) {
                   <p className="text-gray-400 leading-relaxed mb-6">{builder.about || builder.bio}</p>
                 ) : null}
 
-                <div>
-                  <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2">Tools used</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {builder.tools.map((t) => (
-                      <span key={t} className="px-2.5 py-1 rounded-full text-xs bg-white/5 border border-white/10 text-gray-300">
-                        {t}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 mt-6 pt-6 border-t border-white/[0.08]">
-                  <div className="text-center">
-                    <p className="text-xl font-bold">{builder.response_time}</p>
-                    <p className="text-[10px] text-gray-500 uppercase tracking-wide">Response</p>
-                  </div>
+                <div className="grid grid-cols-1 gap-3 mt-6 pt-6 border-t border-white/[0.08]">
                   <div className="text-center">
                     <p className="text-xl font-bold">{new Date(builder.member_since).getFullYear()}</p>
                     <p className="text-[10px] text-gray-500 uppercase tracking-wide">Member Since</p>

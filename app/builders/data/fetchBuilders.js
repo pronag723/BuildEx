@@ -16,10 +16,7 @@
 
 import { getSupabaseClient } from "../../../lib/supabase/client";
 import { rewriteStorageUrl } from "../../../lib/supabase/storageUrl";
-import {
-  BUILDER_TOOLS,
-  RESPONSE_TIMES,
-} from "../../../lib/onboarding/constants";
+import { readContactLinks } from "../../../lib/onboarding/contactLinks";
 import { isOnline } from "../../../lib/presence/api";
 
 // Columns shared by the feed query and the single-profile query.
@@ -123,33 +120,22 @@ export async function fetchBuilders() {
 }
 
 // ─── Single builder (public profile page) ───────────────────────────────────
-// The profile page renders a richer shape than the feed card (tools and
-// response time). These helpers fill in those extra, profile-only fields.
-
-function responseTimeLabel(hours) {
-  if (hours == null) return "within a day";
-  const match =
-    RESPONSE_TIMES.find((r) => r.hours >= hours) ||
-    RESPONSE_TIMES[RESPONSE_TIMES.length - 1];
-  return (match?.label || "Within a day").toLowerCase();
-}
-
-function toolLabels(tools) {
-  return (Array.isArray(tools) ? tools : []).map(
-    (key) => BUILDER_TOOLS.find((t) => t.key === key)?.label || key
-  );
-}
+// The profile page renders a slightly richer shape than the feed card: it also
+// shows the one off-platform contact link a builder may publish.
 
 function mapProfileRow(row) {
   const base = mapRow(row);
   const bp = row.builder || {};
+  // readContactLinks re-validates the stored jsonb and drops anything that is
+  // not a bare handle or a plain https:// URL, so a row written before the
+  // CHECK constraint existed can never reach the page as a live link.
+  const contact = readContactLinks(bp.contact_links);
   return {
     ...base,
     // profiles is publicly readable under RLS, so exposing the uuid here is no
     // different from selecting it directly.
     id: row.id,
-    response_time: responseTimeLabel(bp.response_time_hours),
-    tools: toolLabels(bp.tools),
+    contact_link: contact.type ? contact : null,
     member_since: base.member_since || new Date().toISOString(),
   };
 }

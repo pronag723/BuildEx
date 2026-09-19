@@ -108,7 +108,7 @@ export default function OnboardingCompletePage() {
         </div>
 
         <p className="mt-8 text-xs text-gray-500">
-          You can manage your profile, availability, and account settings from your dashboard.
+          You can manage your profile, portfolio and account settings from your dashboard.
         </p>
       </div>
     </OnboardingShell>
