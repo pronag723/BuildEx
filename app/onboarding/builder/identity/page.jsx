@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getSupabaseClient } from "../../../../lib/supabase/client";
 import { useAuth } from "../../../../lib/auth/AuthContext";
-import { saveBuilderIdentity } from "../../../../lib/onboarding/api";
+import { markRoleAsBuilder, saveBuilderIdentity } from "../../../../lib/onboarding/api";
 import { STEPS } from "../../../../lib/onboarding/state";
 import { Icon } from "../../../../lib/icons";
 import {
@@ -21,7 +21,7 @@ import HandleInput from "../../components/HandleInput";
 
 export default function BuilderIdentityPage() {
   return (
-    <OnboardingShell currentStep={STEPS.builderIdentity} role="builder" maxWidth="max-w-3xl">
+    <OnboardingShell currentStep={STEPS.builderIdentity} maxWidth="max-w-3xl">
       <OnboardingGate expectedStep={STEPS.builderIdentity}>
         {(state) => <BuilderIdentityStep state={state} />}
       </OnboardingGate>
@@ -87,6 +87,12 @@ function BuilderIdentityStep({ state }) {
       }
       return;
     }
+
+    // Builder-ness is the existence of the builder_profiles row saveBuilderIdentity
+    // just created; `role` is legacy but kept truthful. Best-effort — a failure
+    // here must not block someone from finishing their profile.
+    await markRoleAsBuilder(supabase, user.id, p.role || null);
+
     setSaving(false);
 
     // Reflect the chosen identity (incl. avatar) in the navbar immediately,
@@ -212,7 +218,7 @@ function BuilderIdentityStep({ state }) {
       </div>
 
       <OnboardingFooter
-        onBack={() => router.push(`${STEPS.role}?revisit=1`)}
+        onBack={() => router.push("/account")}
         onNext={handleContinue}
         nextDisabled={!canContinue}
         isSaving={saving}

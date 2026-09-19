@@ -8,12 +8,12 @@ import {
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
 
+// Builder setup is the only registration flow left: the role fork, client
+// profile setup and both studio registrations were removed with the studios
+// feature, so its final step is the single place completion happens.
 test("every registration type uses the reload-safe completion transition", async () => {
   const pages = await Promise.all([
-    read("app/onboarding/profile/page.jsx"),
     read("app/onboarding/builder/portfolio/page.jsx"),
-    read("app/onboarding/builder/studio/complete/page.jsx"),
-    read("app/onboarding/studio/page.jsx"),
   ]);
 
   for (const page of pages) {

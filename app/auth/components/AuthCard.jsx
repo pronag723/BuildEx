@@ -11,12 +11,11 @@ import { stageAccountAcceptance } from "../../../lib/legal/api";
 
 export default function AuthCard() {
   const router = useRouter();
-  const { status, configured, profile, profileLoaded, signInWithDiscord, signInWithGoogle } = useAuth();
+  const { status, configured, profile, signInWithDiscord, signInWithGoogle } = useAuth();
 
   const [pending, setPending] = useState(null);
   const [error, setError] = useState(null);
   const [redirectTarget, setRedirectTarget] = useState("/");
-  const [acceptedLegal, setAcceptedLegal] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -30,32 +29,17 @@ export default function AuthCard() {
     }
   }, []);
 
-  // If a signed-in user lands on /login, route them onward
-  // IMMEDIATELY without waiting on the auth provider's profile fetch — that
-  // round-trip can take seconds and used to make "login" feel frozen.
-  //
-  // If the profile is already cached we use it to pick the final target;
-  // otherwise we send the user through /onboarding, which has its own
-  // OnboardingGate that decides whether to forward them onward (completed
-  // users → /account or the original redirect target) or keep them in the
-  // flow. That extra hop is a no-op for completed users and is far faster
-  // than blocking on profileLoaded here.
+  // A signed-in user who lands on /login goes straight back to wherever they
+  // came from. There is no registration to detour through any more, so we don't
+  // wait on the profile fetch — that round-trip can take seconds and used to
+  // make "login" feel frozen.
   useEffect(() => {
     if (status !== "authenticated") return;
-    if (profileLoaded) {
-      const next = resolvePostLoginPath(profile, redirectTarget);
-      router.replace(next);
-      return;
-    }
-    const next =
-      redirectTarget && redirectTarget !== "/"
-        ? `/onboarding?redirect=${encodeURIComponent(redirectTarget)}`
-        : "/onboarding";
-    router.replace(next);
-  }, [status, profile, profileLoaded, redirectTarget, router]);
+    router.replace(resolvePostLoginPath(profile, redirectTarget));
+  }, [status, profile, redirectTarget, router]);
 
   async function handleSignIn(provider) {
-    if (pending || !acceptedLegal) return;
+    if (pending) return;
     setError(null);
     setPending(provider);
     stageAccountAcceptance();
@@ -70,7 +54,7 @@ export default function AuthCard() {
   }
 
   const title = "Welcome to BuildEx";
-  const subtitle = "Sign in or create your account with one click. New here? Just pick a provider — we'll set you up automatically.";
+  const subtitle = "One click and you're in. New here? Pick a provider — your account is created for you and you land right back where you were.";
 
   return (
     <div className="reveal active">
@@ -101,17 +85,12 @@ export default function AuthCard() {
           </div>
         )}
 
-        <label className="mb-5 flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-4 text-left text-xs leading-5 text-gray-300">
-          <input type="checkbox" checked={acceptedLegal} onChange={(event) => setAcceptedLegal(event.target.checked)} className="mt-1 h-4 w-4 accent-violet-500" />
-          <span>I am at least 13 and have any consent required by local law. I actively accept the <a href={withBase("/legal/terms/")} className="underline hover:text-white">Terms of Use</a> and acknowledge the <a href={withBase("/legal/privacy/")} className="underline hover:text-white">Privacy Policy</a>.</span>
-        </label>
-
         <div className="flex flex-col gap-3">
           <OAuthButton
             provider="discord"
             onClick={() => handleSignIn("discord")}
             loading={pending === "discord"}
-            disabled={!configured || !acceptedLegal || (pending && pending !== "discord")}
+            disabled={!configured || (pending && pending !== "discord")}
           >
             Continue with Discord
           </OAuthButton>
@@ -119,11 +98,19 @@ export default function AuthCard() {
             provider="google"
             onClick={() => handleSignIn("google")}
             loading={pending === "google"}
-            disabled={!configured || !acceptedLegal || (pending && pending !== "google")}
+            disabled={!configured || (pending && pending !== "google")}
           >
             Continue with Google
           </OAuthButton>
         </div>
+
+        <p className="mt-5 text-center text-xs leading-5 text-gray-400">
+          By continuing you confirm you are at least 13 and have any consent required
+          by local law, and you accept the{" "}
+          <a href={withBase("/legal/terms/")} className="underline hover:text-white">Terms of Use</a>{" "}
+          and acknowledge the{" "}
+          <a href={withBase("/legal/privacy/")} className="underline hover:text-white">Privacy Policy</a>.
+        </p>
 
         <div className="mt-8 flex items-center gap-3">
           <span className="flex-1 h-px bg-white/10" />

@@ -21,50 +21,36 @@ import { Icon } from "../../../lib/icons";
  * `router.replace` calls fight each other and the wrong one wins.
  */
 export default function OnboardingShell({
-  currentStep,    // string path, e.g. "/onboarding/identity"
-  role,           // current role from profile (may be null on step 1)
+  currentStep,    // string path, e.g. "/onboarding/builder/identity"
   children,
   hideStepHeader = false,
   maxWidth = "max-w-3xl",
 }) {
   const { gradientRef, edgeGlowRef, isLight, setTheme } = useThemedBackground();
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, refresh } = useAuth();
   const [cancelling, setCancelling] = useState(false);
 
-  // Leaving onboarding for the homepage (the logo) counts as abandoning the
-  // registration. signOut discards the half-created account (gated server-side
-  // on onboarding_completed_at) and lands the user on home. A completed user who
-  // somehow reaches the shell just navigates home normally.
-  async function handleLeaveToHome(e) {
-    if (profile && profile.onboarding_completed_at) return; // let the link proceed
-    e.preventDefault();
-    if (cancelling) return;
-    setCancelling(true);
-    if (signOut) {
-      await signOut("/");
-    } else if (typeof window !== "undefined") {
-      window.location.href = withBase("/");
-    }
-  }
-
+  // Backing out of builder setup is no longer the same thing as abandoning an
+  // account. The user signed in with one click and already has a real, usable
+  // profile — leaving here only discards the half-built BUILDER profile and
+  // returns them to their account page, still signed in.
   async function handleCancel() {
     if (cancelling) return;
     const confirmed =
       typeof window !== "undefined" &&
       window.confirm(
-        "Cancel registration? Everything you've entered will be discarded and you'll be signed out."
+        "Cancel builder setup? The profile details you've entered here will be discarded. Your account stays exactly as it is."
       );
     if (!confirmed) return;
 
     setCancelling(true);
     const supabase = getSupabaseClient();
     if (supabase && user?.id) {
-      await cancelOnboarding(supabase, user.id);
+      await cancelOnboarding(supabase, user.id, profile?.role || null);
     }
-    if (signOut) {
-      await signOut("/");
-    } else if (typeof window !== "undefined") {
-      window.location.href = withBase("/");
+    refresh?.();
+    if (typeof window !== "undefined") {
+      window.location.href = withBase("/account");
     }
   }
 
@@ -75,7 +61,7 @@ export default function OnboardingShell({
 
       <header className="fixed top-3.5 left-1/2 -translate-x-1/2 z-50 w-full nav-wrapper px-6">
         <div className="glass nav-pill flex items-center justify-between shadow-2xl">
-          <a href={withBase("/")} onClick={handleLeaveToHome} className="flex items-center gap-1.5 no-underline">
+          <a href={withBase("/")} className="flex items-center gap-1.5 no-underline">
             <span className="text-2xl font-bold tracking-tight logo-font nav-logo-text">
               Build<span className="text-[#4ade80] font-extrabold">Ex</span>
             </span>
@@ -108,7 +94,7 @@ export default function OnboardingShell({
       <main className="min-h-screen flex flex-col items-center px-4 sm:px-6 pt-24 sm:pt-28 pb-16">
         <div className={`w-full ${maxWidth}`}>
           {!hideStepHeader && (
-            <StepHeader currentStep={currentStep} role={role} />
+            <StepHeader currentStep={currentStep} />
           )}
           {children}
         </div>

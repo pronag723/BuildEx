@@ -7,12 +7,11 @@
 // /builders page can drop the static demo data without any UI changes.
 //
 // Visibility rules:
-//   • Only profiles that finished onboarding (onboarding_completed_at set) and
-//     have a builder_profiles row are listed.
+//   • Only profiles that finished builder setup (onboarding_completed_at set)
+//     and have a builder_profiles row are listed. The `!inner` join IS the
+//     "is this a builder?" test — profiles.role is legacy and not consulted.
 //   • Builders whose availability is "busy" (the red end of the slider) are
 //     hidden from the feed entirely, per product spec.
-//   • Active studio employees are private team members, not marketplace
-//     providers, and are never listed or exposed through a public profile.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { getSupabaseClient } from "../../../lib/supabase/client";
@@ -22,21 +21,16 @@ import {
   RESPONSE_TIMES,
 } from "../../../lib/onboarding/constants";
 import { isOnline } from "../../../lib/presence/api";
-import { fetchStudios } from "../../../lib/studios/api";
 
 // Columns shared by the feed query and the single-profile query.
 // last_seen_at drives the real online/offline indicator (presence, migration
 // 0019). It's selected with the rest of profiles; a pre-0019 database simply
 // returns it absent, in which case mapRow reads the builder as offline.
+// builder_profiles is embedded with `*` on purpose (migration tolerance): a
+// not-yet-applied column never 400s the whole query. The dormant columns it
+// drags back over the wire — rank, rates, studio_id, profile_type — are simply
+// not mapped.
 export const PROFILE_SELECT =
-  "id, username, display_name, avatar_url, bio, role, created_at, last_seen_at, onboarding_completed_at, " +
-  "builder:builder_profiles!inner(*, studio:studio_id(id, name, slug, logo_url, status)), " +
-  "portfolio:portfolio_images(id, url, position, alt)";
-
-// Same select WITHOUT the studio embed. Used as a fallback when the studios
-// relationship doesn't exist yet (migration 0026 not applied), so the feed never
-// breaks during the window between a frontend deploy and running the migration.
-const PROFILE_SELECT_NO_STUDIO =
   "id, username, display_name, avatar_url, bio, role, created_at, last_seen_at, onboarding_completed_at, " +
   "builder:builder_profiles!inner(*), " +
   "portfolio:portfolio_images(id, url, position, alt)";
@@ -61,26 +55,10 @@ function mapPortfolio(rows) {
 // `availability_status === "busy"` is the source of truth; `is_available` is a
 // mirror kept in sync by the account page, checked as a fallback.
 function isHiddenFromFeed(builderProfile) {
-  if (builderProfile?.profile_type === "studio_employee") return true;
   const status = builderProfile?.availability_status || "available";
   if (status === "busy") return true;
   if (builderProfile?.is_available === false) return true;
   return false;
-}
-
-// The studio a builder was referred by (migration 0026), surfaced for the badge
-// before the nickname + the link to the studio storefront. Suspended studios
-// stop showing the badge, so only an active embed is mapped. A pre-0026 database
-// simply returns no `studio` embed, in which case this reads as null.
-function mapStudio(bp) {
-  const s = bp?.studio || null;
-  if (!s || s.status !== "active") return null;
-  return {
-    id: s.id,
-    name: s.name,
-    slug: s.slug != null ? String(s.slug) : null,
-    logo_url: rewriteStorageUrl(s.logo_url) || null,
-  };
 }
 
 export function mapRow(row) {
@@ -101,10 +79,6 @@ export function mapRow(row) {
 
     // Profile
     bio: row.bio || "",
-    // Studio referral (migration 0026) — null unless the builder joined an active
-    // studio. Drives the studio badge before the nickname + storefront link.
-    studio: mapStudio(bp),
-    profile_type: bp.profile_type || "independent",
     provider_type: "builder",
     availability_status: availability,
     // Real presence — true only when the builder's last heartbeat (last_seen_at,
@@ -128,39 +102,24 @@ export async function fetchBuilders() {
   const supabase = getSupabaseClient();
   if (!supabase) return { builders: [], error: null };
 
-  // Studios are an independent provider source. Always merge their result,
-  // even if a builder-side schema mismatch occurs.
-  const studiosPromise = fetchStudios();
+  // `!inner` on builder_profiles drops every profile without a builder row —
+  // that join is what makes someone a builder now. There is deliberately no
+  // `role` filter: role is a legacy column that visitors leave null and older
+  // accounts carry stale values in, so filtering on it would silently hide
+  // real builders.
+  const { data, error } = await supabase
+    .from("profiles")
+    .select(PROFILE_SELECT)
+    .not("onboarding_completed_at", "is", null)
+    .not("username", "is", null);
 
-  // builder_profiles is embedded with `*` so a not-yet-applied migration column
-  // (e.g. rates/tools) never 400s the whole query — same tolerance the
-  // onboarding loader relies on. `!inner` drops profiles without a builder row.
-  const feedFilters = (q) =>
-    q
-      .in("role", ["builder", "both"])
-      .not("onboarding_completed_at", "is", null)
-      .not("username", "is", null);
+  const builders = error
+    ? []
+    : (data || [])
+        .filter((row) => row.builder && !isHiddenFromFeed(row.builder))
+        .map(mapRow);
 
-  let res = await feedFilters(supabase.from("profiles").select(PROFILE_SELECT));
-  // The studio embed (migration 0026) fails if the studios relationship isn't
-  // there yet — retry without it so the feed degrades gracefully (no badges).
-  if (res.error) {
-    res = await feedFilters(supabase.from("profiles").select(PROFILE_SELECT_NO_STUDIO));
-  }
-  const { data, error } = res;
-
-  const builders = error ? [] : (data || [])
-    .filter(
-      (row) =>
-        row.builder && !isHiddenFromFeed(row.builder)
-    )
-    .map(mapRow);
-
-  const { studios, error: studiosError } = await studiosPromise;
-  return {
-    builders: [...builders, ...(studios || [])],
-    error: error || studiosError || null,
-  };
+  return { builders, error: error || null };
 }
 
 // ─── Single builder (public profile page) ───────────────────────────────────
@@ -202,25 +161,14 @@ export async function fetchBuilderByUsername(username) {
   const supabase = getSupabaseClient();
   if (!supabase || !username) return { builder: null, error: null };
 
-  let res = await supabase
+  const { data, error } = await supabase
     .from("profiles")
     .select(PROFILE_SELECT)
     .ilike("username", username)
     .maybeSingle();
-  // Fallback without the studio embed if migration 0026 isn't applied yet.
-  if (res.error) {
-    res = await supabase
-      .from("profiles")
-      .select(PROFILE_SELECT_NO_STUDIO)
-      .ilike("username", username)
-      .maybeSingle();
-  }
-  const { data, error } = res;
 
   if (error) return { builder: null, error };
-  if (!data || !data.builder || data.builder.profile_type === "studio_employee") {
-    return { builder: null, error: null };
-  }
+  if (!data || !data.builder) return { builder: null, error: null };
 
   return { builder: mapProfileRow(data), error: null };
 }

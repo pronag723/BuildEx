@@ -9,7 +9,6 @@ import {
   navigateAfterOnboarding,
   runOnboardingCompletion,
 } from "../../../../lib/onboarding/completion";
-import { completePendingEmployeeRegistration, finalizeStudioCode } from "../../../../lib/studios/api";
 import { STEPS } from "../../../../lib/onboarding/state";
 import OnboardingShell from "../../components/OnboardingShell";
 import OnboardingGate from "../../components/OnboardingGate";
@@ -18,7 +17,7 @@ import PortfolioUploader from "../../components/PortfolioUploader";
 
 export default function BuilderPortfolioPage() {
   return (
-    <OnboardingShell currentStep={STEPS.builderPortfolio} role="builder" maxWidth="max-w-4xl">
+    <OnboardingShell currentStep={STEPS.builderPortfolio} maxWidth="max-w-4xl">
       <OnboardingGate expectedStep={STEPS.builderPortfolio}>
         {(state) => <BuilderPortfolioStep state={state} />}
       </OnboardingGate>
@@ -34,8 +33,7 @@ function BuilderPortfolioStep({ state }) {
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
 
-  const isPendingEmployee = Boolean(state.builderProfile?.pending_employee_code);
-  const canFinish = isPendingEmployee || count >= 1;
+  const canFinish = count >= 1;
 
   async function handleFinish() {
     if (!canFinish) return;
@@ -44,18 +42,13 @@ function BuilderPortfolioStep({ state }) {
     setError(null);
     setSaving(true);
     const { error: doneErr } = await runOnboardingCompletion(() =>
-      isPendingEmployee
-        ? completePendingEmployeeRegistration()
-        : markOnboardingComplete(supabase, user.id)
+      markOnboardingComplete(supabase, user.id)
     );
     if (doneErr) {
       setSaving(false);
       setError(doneErr.message || "Couldn't finalize. Try again.");
       return;
     }
-    // Legacy referral codes remain best-effort; managed employee codes are
-    // finalized transactionally above after all standard builder details exist.
-    if (!isPendingEmployee) await finalizeStudioCode();
     navigateAfterOnboarding({ router, updateProfile });
   }
 
@@ -90,11 +83,9 @@ function BuilderPortfolioStep({ state }) {
         isSaving={saving}
         nextLabel="Finish setup"
         helper={
-          isPendingEmployee
-            ? "Portfolio photos are optional for studio employees"
-            : canFinish
-              ? `${count} image${count === 1 ? "" : "s"} ready · you can add more later`
-              : "Upload at least one image to finish"
+          canFinish
+            ? `${count} image${count === 1 ? "" : "s"} ready · you can add more later`
+            : "Upload at least one image to finish"
         }
       />
     </div>

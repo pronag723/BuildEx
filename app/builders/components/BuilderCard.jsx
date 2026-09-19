@@ -4,7 +4,6 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import { publicAsset, withBase } from "../../home/utils";
 import { useFavorites } from "../../../lib/favorites/FavoritesContext";
-import StudioOfficialBadge from "./StudioOfficialBadge";
 
 function ArrowIcon({ className = "w-4 h-4" }) {
   return (
@@ -40,7 +39,6 @@ function HeartIcon({ className = "w-4 h-4", filled = false }) {
 }
 
 export default function BuilderCard({ builder, animationDelay = 0 }) {
-  const isStudio = builder.provider_type === "studio";
   const previews = builder.portfolio.slice(0, 6);
   const count = previews.length;
 
@@ -49,7 +47,7 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
   const touchStartX = useRef(null);
 
   const { canFavorite, isFavorite, toggleFavorite } = useFavorites();
-  const favorited = isFavorite(builder.id, isStudio ? "studio" : "builder");
+  const favorited = isFavorite(builder.id, "builder");
 
   const go = (e, dir) => {
     // Keep arrow clicks inside the carousel — never follow the card's link.
@@ -62,7 +60,7 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
     // The card is a <Link>; keep the heart click from navigating.
     e.preventDefault();
     e.stopPropagation();
-    toggleFavorite(builder.id, isStudio ? "studio" : "builder");
+    toggleFavorite(builder.id, "builder");
   };
 
   const selectSlide = (e, nextIndex) => {
@@ -85,11 +83,7 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
 
   return (
     <Link
-      href={
-        isStudio
-          ? `/studios?s=${encodeURIComponent(builder.username)}`
-          : `/builders/profile?u=${encodeURIComponent(builder.username)}`
-      }
+      href={`/builders/profile?u=${encodeURIComponent(builder.username)}`}
       className="offer-card glass rounded-3xl overflow-hidden flex flex-col group cursor-pointer"
       style={{ animationDelay: `${animationDelay}ms` }}
     >
@@ -138,7 +132,7 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
               infoHover ? "translate-y-0" : "translate-y-2.5"
             }`}
           >
-            View {isStudio ? "Studio" : "Profile"}
+            View Profile
             <ArrowIcon />
           </span>
         </div>
@@ -185,12 +179,7 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
         {/* Availability indicator — top left. Mirrors the builder's busyness
             slider: green = available, amber = limited. "Busy" (red) builders are
             filtered out of the feed entirely, so they never render here. */}
-        {isStudio && !builder.has_capacity ? (
-          <div className="absolute top-3 left-3 z-10 px-2.5 py-1 rounded-full text-xs bg-black/60 text-amber-300 backdrop-blur-sm border border-amber-400/30 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-            Message only
-          </div>
-        ) : builder.availability_status === "limited" ? (
+        {builder.availability_status === "limited" ? (
           <div className="absolute top-3 left-3 z-10 px-2.5 py-1 rounded-full text-xs bg-black/60 text-amber-400 backdrop-blur-sm border border-amber-400/30 flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
             Limited
@@ -248,33 +237,10 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
             </div>
           )}
           <div className="min-w-0 flex-1">
-            {/* Name row: studio affiliation (migration 0026) sits to the LEFT of
-                the nickname, then the name. Non-clickable here because the whole
-                card is already a <Link>; the storefront link lives on the
-                profile page header. */}
             <div className="flex items-center gap-2">
-              {builder.studio && (
-                <span
-                  className="px-2 py-0.5 rounded-full text-[11px] font-semibold border bg-emerald-500/15 text-emerald-300 border-emerald-500/30 inline-flex items-center gap-1 flex-shrink-0 max-w-[45%]"
-                  title={`Builder from ${builder.studio.name}`}
-                >
-                  {builder.studio.logo_url && (
-                    <img src={builder.studio.logo_url} alt="" className="w-3 h-3 rounded-sm object-cover flex-shrink-0" />
-                  )}
-                  <span className="truncate">{builder.studio.name}</span>
-                </span>
-              )}
               <p className="text-base font-bold truncate leading-tight min-w-0">
                 {builder.display_name}
               </p>
-              {isStudio && builder.is_verified && (
-                <StudioOfficialBadge />
-              )}
-              {isStudio && (
-                <span className="px-2.5 py-1 rounded-full text-xs font-semibold border flex-shrink-0 bg-[#4ade80]/10 text-[#4ade80] border-[#4ade80]/30">
-                  Studio
-                </span>
-              )}
             </div>
             <p className="text-xs text-gray-500">@{builder.username}</p>
           </div>
@@ -309,7 +275,7 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
         {/* Footer — CTA */}
         <div className="mt-auto pt-3 border-t border-white/[0.08] flex items-center justify-end gap-3">
           <span className="offer-card-view-btn inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#4ade80]/12 border border-[#4ade80]/30 text-[#4ade80] text-xs font-semibold transition-all duration-200 group-hover:bg-[#4ade80] group-hover:text-black group-hover:shadow-[0_0_18px_rgba(74,222,128,0.45)] group-hover:border-[#4ade80]">
-            View {isStudio ? "Studio" : "Profile"}
+            View Profile
             <ArrowIcon className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
           </span>
         </div>

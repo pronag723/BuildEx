@@ -15,7 +15,7 @@ import ChipGrid from "../../components/ChipGrid";
 
 export default function BuilderStylesPage() {
   return (
-    <OnboardingShell currentStep={STEPS.builderStyles} role="builder" maxWidth="max-w-3xl">
+    <OnboardingShell currentStep={STEPS.builderStyles} maxWidth="max-w-3xl">
       <OnboardingGate expectedStep={STEPS.builderStyles}>
         {(state) => <BuilderStylesStep state={state} />}
       </OnboardingGate>

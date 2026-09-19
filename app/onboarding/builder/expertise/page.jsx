@@ -21,7 +21,7 @@ import ChipGrid from "../../components/ChipGrid";
 
 export default function BuilderExpertisePage() {
   return (
-    <OnboardingShell currentStep={STEPS.builderExpertise} role="builder" maxWidth="max-w-3xl">
+    <OnboardingShell currentStep={STEPS.builderExpertise} maxWidth="max-w-3xl">
       <OnboardingGate expectedStep={STEPS.builderExpertise}>
         {(state) => <BuilderExpertiseStep state={state} />}
       </OnboardingGate>

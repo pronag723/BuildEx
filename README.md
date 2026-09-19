@@ -182,7 +182,7 @@ buildex/
 │   │   │
 │   │   ├── login/page.jsx               # Login page
 │   │   ├── signup/page.jsx              # Registration page
-│   │   │                                # (OAuth lands directly on /onboarding — no callback page)
+│   │   │                                # (OAuth lands on /auth/callback, which forwards you back)
 │   │   │
 │   │   ├── builders/
 │   │   │   ├── page.jsx                 # Offer catalog (server-rendered)
@@ -473,7 +473,8 @@ Per-order message thread.
 | `/` | Client | No | Landing page |
 | `/login` | Client | No | Login with Discord or email |
 | `/signup` | Client | No | Register + role selection |
-| `/onboarding` | Client | Yes | OAuth landing + multi-step profile setup |
+| `/auth/callback` | Client | No | OAuth landing — forwards you back where you were |
+| `/onboarding/builder/*` | Client | Yes | Builder profile setup (opt-in from /account) |
 | `/builders` | Server | No | Offer catalog with filters |
 | `/builders/[offerId]` | Server | No | Offer detail + order CTA |
 | `/builders/profile/[username]` | Server | No | Public builder profile |
@@ -545,9 +546,16 @@ Discord and Google OAuth are the two supported login providers. Both go through 
 **Flow:**
 1. User clicks "Log in" / "Join as Builder" / any auth-gated CTA → routed to `/login`
 2. User picks Discord or Google → Supabase redirects to the provider
-3. Provider returns to `/onboarding?code=…` (no intermediate callback page)
+3. Provider returns to `/auth/callback?code=…&redirect=…`
 4. The `AuthProvider` mounted in the root layout creates the Supabase client with `detectSessionInUrl: true`, which auto-exchanges the `?code=` for a session and then runs `ensureProfile()` to create a `profiles` row on first login (auto-populated from OAuth metadata: display name, avatar, username slug, `discord_id` when applicable)
-5. The `OnboardingGate` on `/onboarding` reads the session, fans the user out to the right onboarding step, and — when onboarding is complete — sends them on to the original `?redirect=` target (or `/account` if there was no preserved target)
+5. `/auth/callback` sends the user to the `?redirect=` target they came from (or `/`). There is no registration step — the row `ensureProfile()` creates, with `role: null`, is a complete, usable visitor account: they can browse, favorite and message builders immediately.
+
+**Becoming a builder is a separate, explicit opt-in.** A signed-in user with no
+`builder_profiles` row sees a "Create a builder profile" call to action on
+`/account`; that link is the only entrance to `/onboarding/builder/*`. Throughout
+the app, "is this user a builder?" is answered by the existence of a
+`builder_profiles` row — never by `profiles.role`, which is a legacy column that
+older accounts still carry `client` / `both` / `studio` values in.
 
 **Protected routes** are guarded **client-side** via the `useRequireAuth()` hook and the `<AuthGuard>` wrapper component in `lib/auth/`. This project ships as a static export (`output: "export"`), so Next.js middleware does not run at request time — client-side guards are functionally equivalent and run as soon as the page hydrates.
 
@@ -564,10 +572,14 @@ Discord and Google OAuth are the two supported login providers. Both go through 
    ```
 3. In **Authentication → URL Configuration → Redirect URLs**, allow your local + production OAuth landing URLs:
    ```
-   http://localhost:3000/onboarding
-   https://your-domain.com/onboarding
+   http://localhost:3000/auth/callback
+   https://your-domain.com/auth/callback
    ```
-   (OAuth providers now redirect users directly to `/onboarding`; there is no longer an intermediate `/auth/callback` page.)
+   ⚠ This changed when sign-in became one click. The landing page used to be
+   `/onboarding`; if an existing project still only allows that path, Supabase
+   will ignore the requested redirect and drop users on the Site URL instead —
+   they end up signed in, but on the homepage rather than the page they came
+   from. Add the `/auth/callback` entries before deploying.
 4. Copy your Project URL and `anon` public key into `.env.local` (see `.env.example`).
    For production OAuth branding, enable a Supabase custom domain such as
    `auth.buildex.builders`, keep the original project callback registered during

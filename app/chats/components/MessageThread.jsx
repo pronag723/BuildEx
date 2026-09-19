@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import SmartText from "../../../lib/ui/SmartText";
 import { publicAsset } from "../../home/utils";
-import { Icon } from "../../../lib/icons";
 import { useScrollLock } from "../../../lib/useScrollLock";
 
 function IconSend({ className = "w-5 h-5" }) {
@@ -190,7 +189,6 @@ export default function MessageThread({
   }
 
   const peerName = peer?.display_name || peer?.username || "Builder";
-  const isStudioThread = conversationMeta?.conversation_type === "studio_client";
   const canWrite = isDraft || conversationMeta?.can_write !== false;
 
   return (
@@ -210,11 +208,7 @@ export default function MessageThread({
           <p className="font-bold text-sm truncate leading-tight">{peerName}</p>
           {peer?.username && (
             <Link
-              href={
-                isStudioThread && conversationMeta?.studio_slug
-                  ? `/studios?s=${encodeURIComponent(conversationMeta.studio_slug)}`
-                  : `/builders/profile?u=${encodeURIComponent(peer.username)}`
-              }
+              href={`/builders/profile?u=${encodeURIComponent(peer.username)}`}
               className="text-xs text-gray-500 hover:text-[#4ade80] transition-colors"
             >
               @{peer.username}
@@ -225,22 +219,6 @@ export default function MessageThread({
 
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-5 space-y-1 min-h-0 hide-scrollbar">
-        {isStudioThread && (
-          <div className="mb-4 rounded-2xl border border-[#4ade80]/20 bg-[#4ade80]/[0.07] px-4 py-3 text-xs text-gray-300">
-            {!canWrite ? (
-              "Archived studio conversation · history is frozen at your release time."
-            ) : conversationMeta?.assigned_builder_name ? (
-              <>
-                Current assigned builder:{" "}
-                <span className="font-semibold text-[#4ade80]">
-                  {conversationMeta.assigned_builder_name}
-                </span>
-              </>
-            ) : (
-              "The studio moderator will assign an available builder after payment."
-            )}
-          </div>
-        )}
         {!loading && <ConflictNotice />}
         {loading ? (
           <div className="h-full flex items-center justify-center">
@@ -279,22 +257,9 @@ export default function MessageThread({
             }
 
             const mine = m.sender_id === meId;
-            const senderLabel =
-              !mine && isStudioThread
-                ? m.meta?.sender_role === "assigned_builder"
-                  ? `${m.meta?.sender_name || "Builder"} · Assigned builder`
-                  : m.meta?.sender_role === "studio_moderator"
-                    ? `${m.meta?.sender_name || peerName} · Studio moderator`
-                    : m.meta?.sender_role === "buyer"
-                      ? `${m.meta?.sender_name || peerName} · Buyer`
-                      : m.meta?.sender_role === "studio_team"
-                        ? `${m.meta?.sender_name || "Studio team"} · Studio team`
-                        : m.sender_id === conversationMeta?.assigned_builder_id
-                  ? conversationMeta?.assigned_builder_name || "Assigned builder"
-                  : m.sender_id === peer?.id
-                    ? peerName
-                    : "Studio moderator"
-                : null;
+            // Direct threads have exactly two participants, so the bubble side
+            // already says who is speaking — no per-message sender label.
+            const senderLabel = null;
             const isImage = m.msg_type === "image" && m.meta?.url;
             return (
               <div key={m.id}>

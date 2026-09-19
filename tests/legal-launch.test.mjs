@@ -16,7 +16,14 @@ test("legal center covers every launch document and the Minecraft disclaimer", (
   assert.match(legalDocs, /not affiliated with, endorsed by, sponsored by, or approved by Mojang Studios or Microsoft/);
 });
 
-test("account creation requires active versioned consent", () => {
-  assert.match(auth, /type="checkbox"/);
+// Sign-in is one click now, so the active "tick to continue" gate is gone. The
+// consent itself is not: the notice sits directly under the buttons, links both
+// policies, and stageAccountAcceptance still records the versions the user
+// accepted, which flushes to record_legal_acceptance once they are signed in.
+test("account creation records versioned consent shown at the point of sign-in", () => {
+  assert.doesNotMatch(auth, /type="checkbox"/);
+  assert.match(auth, /By continuing you confirm you are at least 13/);
+  assert.match(auth, /\/legal\/terms\//);
+  assert.match(auth, /\/legal\/privacy\//);
   assert.match(auth, /stageAccountAcceptance/);
 });

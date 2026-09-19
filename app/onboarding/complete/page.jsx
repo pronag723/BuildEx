@@ -13,8 +13,6 @@ export default function OnboardingCompletePage() {
   const router = useRouter();
   const { status, user, configured, displayUser } = useAuth();
   const [profile, setProfile] = useState(null);
-  const [role, setRole] = useState(null);
-  const [isStudioEmployee, setIsStudioEmployee] = useState(false);
 
   // Fetch the now-final profile so the celebration can show the user's name
   // even before AuthContext refreshes its cached row.
@@ -25,15 +23,13 @@ export default function OnboardingCompletePage() {
       if (status !== "authenticated" || !user?.id) return;
       const supabase = getSupabaseClient();
       if (!supabase) return;
-      const { profile: row, builderProfile } = await fetchOnboardingState(supabase, user.id);
+      const { profile: row } = await fetchOnboardingState(supabase, user.id);
       if (cancelled) return;
       setProfile(row);
-      setRole(row?.role || null);
-      setIsStudioEmployee(builderProfile?.profile_type === "studio_employee");
-      // If they landed here without completing onboarding for some reason,
+      // If they landed here without finishing builder setup for some reason,
       // bounce them back to the start of the flow.
       if (row && !row.onboarding_completed_at) {
-        router.replace(STEPS.role);
+        router.replace(STEPS.builderIdentity);
       }
     }
     load();
@@ -46,7 +42,7 @@ export default function OnboardingCompletePage() {
   const name = profile?.display_name || displayUser?.displayName || "Builder";
 
   return (
-    <OnboardingShell currentStep={STEPS.complete} role={role} hideStepHeader maxWidth="max-w-xl">
+    <OnboardingShell currentStep={STEPS.complete} hideStepHeader maxWidth="max-w-xl">
       <div className="glass rounded-3xl p-10 sm:p-14 border border-white/10 text-center relative overflow-hidden onb-fade-in onb-fade-in-1">
         {/* Subtle radial flourish */}
         <div
@@ -79,15 +75,8 @@ export default function OnboardingCompletePage() {
 
         <h1 className="onb-section-title">Welcome to BuildEx, {name}.</h1>
         <p className="onb-section-sub mt-4 mx-auto">
-          {role === "client"
-            ? "Your client profile is live. Browse builders, save your favorites, and reach out when you're ready."
-            : role === "studio"
-            ? "Your studio storefront is ready for BuildEx review. Invite builders from your dashboard."
-            : isStudioEmployee
-            ? "You have joined your studio. Set your availability and watch your dashboard for assignments."
-            : role === "both"
-            ? "Your profile is live as both a builder and a client. Start posting work and exploring the catalog."
-            : "Your builder profile is live and discoverable. Share your handle and let your portfolio do the talking."}
+          Your builder profile is live and discoverable. Share your handle and let
+          your portfolio do the talking.
         </p>
 
         {handle && (
@@ -101,27 +90,15 @@ export default function OnboardingCompletePage() {
         )}
 
         <div className="mt-10 flex flex-col sm:flex-row gap-3 justify-center">
-          {role === "client" ? (
-            <a
-              href={withBase("/builders")}
-              className="onb-btn-primary justify-center"
-            >
-              Browse builders
-              <svg viewBox="0 0 16 16" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M6 3l5 5-5 5" />
-              </svg>
-            </a>
-          ) : (
-            <a
-              href={withBase("/account")}
-              className="onb-btn-primary justify-center"
-            >
-              Go to my profile
-              <svg viewBox="0 0 16 16" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M6 3l5 5-5 5" />
-              </svg>
-            </a>
-          )}
+          <a
+            href={withBase("/account")}
+            className="onb-btn-primary justify-center"
+          >
+            Go to my profile
+            <svg viewBox="0 0 16 16" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M6 3l5 5-5 5" />
+            </svg>
+          </a>
           <a
             href={withBase("/")}
             className="onb-btn-ghost justify-center"
@@ -131,7 +108,7 @@ export default function OnboardingCompletePage() {
         </div>
 
         <p className="mt-8 text-xs text-gray-500">
-          You can manage your profile, availability, team, and account settings from your dashboard.
+          You can manage your profile, availability, and account settings from your dashboard.
         </p>
       </div>
     </OnboardingShell>

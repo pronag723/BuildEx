@@ -3,9 +3,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // BuildEx — Admin console
 // A dedicated operator surface for admins (profiles.is_admin). The order and
-// dispute moderation tabs were removed together with the payment layer; what
-// remains is the auth gate, the shell, and the studios program console.
-// A proper moderation console (users, profiles, chat) is rebuilt in Stage 7.
+// dispute moderation tabs were removed together with the payment layer, and the
+// studios program console went with the studios feature; what remains is the
+// auth gate and the shell. A proper moderation console (users, profiles, chat)
+// is rebuilt in Stage 7.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useEffect, useState } from "react";
@@ -15,7 +16,6 @@ import { useRequireAuth } from "../../../lib/auth/useRequireAuth";
 import CatalogNavbar from "../../builders/components/CatalogNavbar";
 import CatalogMobileMenu from "../../builders/components/CatalogMobileMenu";
 import { useGradientBackground } from "../../../lib/ui/useGradientBackground";
-import StudiosConsole from "./StudiosConsole";
 
 export default function AdminPage() {
   useRequireAuth();
@@ -67,7 +67,7 @@ export default function AdminPage() {
           ) : !isAdmin ? (
             <NotAuthorized />
           ) : (
-            <StudiosConsole />
+            <ConsolePlaceholder />
           )}
         </div>
       </main>
@@ -79,6 +79,18 @@ function Spinner() {
   return (
     <div className="flex items-center justify-center py-24">
       <div className="w-10 h-10 rounded-full border-2 border-[#4ade80] border-t-transparent animate-spin" />
+    </div>
+  );
+}
+
+function ConsolePlaceholder() {
+  return (
+    <div className="glass rounded-3xl p-8 text-center">
+      <h1 className="text-xl font-extrabold mb-2">Moderation console</h1>
+      <p className="text-sm text-gray-400 max-w-md mx-auto">
+        Nothing to operate here yet. User, profile and chat moderation land in the
+        next stage of the revamp.
+      </p>
     </div>
   );
 }

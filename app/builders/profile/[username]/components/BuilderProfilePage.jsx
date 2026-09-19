@@ -13,9 +13,7 @@ import { useAuthGate } from "../../../../../lib/auth/useAuthGate";
 import { AVAILABILITY_STATES } from "../../../../../lib/onboarding/constants";
 import { Icon } from "../../../../../lib/icons";
 import { useFavorites } from "../../../../../lib/favorites/FavoritesContext";
-import StudioOfficialBadge from "../../../components/StudioOfficialBadge";
 import { useScrollLock } from "../../../../../lib/useScrollLock";
-import { getOrCreateStudioConversation } from "../../../../../lib/studios/api";
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 function IconClock({ className = "w-4 h-4" }) {
@@ -157,7 +155,6 @@ function PortfolioCarousel({ items }) {
 
 // ─── Contact sidebar ─────────────────────────────────────────────────────────
 function ContactSidebar({ builder, onShowSoon, onContact }) {
-  const isStudio = builder.provider_type === "studio";
   return (
     <div className="glass rounded-3xl p-6 builder-sidebar-sticky space-y-5">
       {/* Avatar + header */}
@@ -192,17 +189,13 @@ function ContactSidebar({ builder, onShowSoon, onContact }) {
         className="w-full py-3.5 rounded-full border border-white/15 bg-white/5 text-gray-200 font-semibold text-base hover:bg-white/10 hover:border-white/30 transition-all flex items-center justify-center gap-2"
       >
         <IconChat className="w-4 h-4" />
-        Contact {isStudio ? "Studio" : "Builder"}
+        Contact Builder
       </button>
 
       {/* Response info */}
       <div className="flex items-center justify-center gap-2 text-xs text-gray-400">
         <IconClock className="w-3.5 h-3.5" />
-        {isStudio ? (
-          <>Team availability updates live</>
-        ) : (
-          <>Typically replies in <strong>{builder.response_time}</strong></>
-        )}
+        Typically replies in <strong>{builder.response_time}</strong>
       </div>
 
       {/* Trust badges */}
@@ -231,15 +224,13 @@ export default function BuilderProfilePage({ builder }) {
   const edgeGlowRef = useRef(null);
 
   const isLight = theme === "light";
-  const isStudio = builder.provider_type === "studio";
-  const isStudioEmployee = builder.profile_type === "studio_employee";
 
   const gate = useAuthGate();
   const router = useRouter();
 
   // Favorites — signed-in visitors can bookmark this builder from the header.
   const { canFavorite, isFavorite, toggleFavorite } = useFavorites();
-  const favorited = isFavorite(builder.id, isStudio ? "studio" : "builder");
+  const favorited = isFavorite(builder.id, "builder");
 
   const showSoon = useCallback((msg) => {
     setToast(msg);
@@ -250,21 +241,6 @@ export default function BuilderProfilePage({ builder }) {
   // visitors are routed to /login first, then back here. The /chats page resolves
   // the @handle to the builder and starts the conversation.
   const contactBuilder = useCallback(() => {
-    if (isStudio) {
-      const target = `/studios?s=${encodeURIComponent(builder.username)}`;
-      gate(
-        async () => {
-          const result = await getOrCreateStudioConversation(builder.id);
-          if (result.error) {
-            showSoon(result.error.message || "Couldn't open the studio conversation.");
-            return;
-          }
-          router.push(`/chats?c=${encodeURIComponent(result.conversationId)}`);
-        },
-        { redirectTo: target }
-      );
-      return;
-    }
     // Next prepends the deployment basePath to router.push automatically, so the
     // path must stay base-less here — wrapping it in withBase() would double the
     // prefix (/BuildEx/BuildEx/chats) and 404 on GitHub Pages.
@@ -275,7 +251,7 @@ export default function BuilderProfilePage({ builder }) {
       },
       { redirectTo: target }
     );
-  }, [gate, router, builder.id, builder.username, isStudio, showSoon]);
+  }, [gate, router, builder.username]);
 
   const requireAuthThenSoon = useCallback(
     (msg) => {
@@ -415,7 +391,7 @@ export default function BuilderProfilePage({ builder }) {
               <Link href="/" className="hover:text-[#4ade80] transition-colors">Home</Link>
               <IconChevron className="w-3 h-3 opacity-50" />
               <Link href="/builders" className="hover:text-[#4ade80] transition-colors">
-                {isStudio ? "Studios" : "Builders"}
+                Builders
               </Link>
               <IconChevron className="w-3 h-3 opacity-50" />
               <span className="truncate max-w-[200px] sm:max-w-xs" aria-current="page">{builder.display_name}</span>
@@ -424,7 +400,7 @@ export default function BuilderProfilePage({ builder }) {
               {canFavorite && builder.id && (
                 <button
                   type="button"
-                  onClick={() => toggleFavorite(builder.id, isStudio ? "studio" : "builder")}
+                  onClick={() => toggleFavorite(builder.id, "builder")}
                   aria-pressed={favorited}
                   aria-label={favorited ? "Remove from favorites" : "Add to favorites"}
                   className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold border transition-all ${
@@ -453,7 +429,7 @@ export default function BuilderProfilePage({ builder }) {
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold border border-[#4ade80]/30 text-[#4ade80] bg-[#4ade80]/10 hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.35)] transition-all"
               >
                 <IconChevron className="w-3 h-3 rotate-180" />
-                Back to {isStudio ? "Studios" : "Builders"}
+                Back to Builders
               </Link>
             </div>
           </div>
@@ -476,29 +452,9 @@ export default function BuilderProfilePage({ builder }) {
               {/* Identity + stats */}
               <div className="flex-1 min-w-0 text-center sm:text-left">
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-2">
-                  {/* Studio affiliation (migration 0026) — a note before the
-                      nickname linking to the studio storefront. */}
-                  {builder.studio && builder.studio.slug && (
-                    <Link
-                      href={`/studios?s=${encodeURIComponent(builder.studio.slug)}`}
-                      className="px-2.5 py-1 rounded-full text-xs font-semibold border bg-emerald-500/15 text-emerald-300 border-emerald-500/30 inline-flex items-center gap-1.5 hover:bg-emerald-500/25 transition-colors"
-                      title={`View ${builder.studio.name}`}
-                    >
-                      {builder.studio.logo_url && (
-                        <img src={builder.studio.logo_url} alt="" className="w-3.5 h-3.5 rounded-sm object-cover" />
-                      )}
-                      {builder.studio.name}
-                    </Link>
-                  )}
                   <h1 className="text-2xl sm:text-3xl font-extrabold leading-tight">
                     {builder.display_name}
                   </h1>
-                  {isStudio && builder.is_verified && <StudioOfficialBadge />}
-                  {isStudio && (
-                    <span className="px-2.5 py-1 rounded-full text-xs font-semibold border bg-[#4ade80]/10 text-[#4ade80] border-[#4ade80]/30">
-                      Studio
-                    </span>
-                  )}
                 </div>
                 <p className="text-sm text-gray-500 mb-3">@{builder.username}</p>
 
@@ -506,7 +462,7 @@ export default function BuilderProfilePage({ builder }) {
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-5 gap-y-2 text-sm text-gray-400 mb-4">
                   <span className="flex items-center gap-1.5">
                     <IconClock className="w-3.5 h-3.5" />
-                    {isStudio ? "Team availability updates live" : `Replies ${builder.response_time}`}
+                    Replies {builder.response_time}
                   </span>
                   {(() => {
                     const avail =
@@ -543,9 +499,8 @@ export default function BuilderProfilePage({ builder }) {
             {/* LEFT: Content */}
             <div className="space-y-8 min-w-0">
 
-              {/* Portfolio gallery. Affiliated builders can keep a standard
-                  profile without needing portfolio screenshots. */}
-              {(builder.portfolio.length > 0 || !isStudioEmployee) && <section className="reveal">
+              {/* Portfolio gallery */}
+              <section className="reveal">
                 <div className="flex items-end justify-between mb-5">
                   <h2 className="font-bold text-xl">Portfolio</h2>
                   <span className="text-xs text-gray-500">
@@ -554,23 +509,21 @@ export default function BuilderProfilePage({ builder }) {
                 </div>
                 {builder.portfolio.length === 0 ? (
                   <div className="glass rounded-3xl p-12 text-center text-gray-500 text-sm">
-                    This {isStudio ? "studio" : "builder"} hasn&apos;t added portfolio entries yet.
+                    This builder hasn&apos;t added portfolio entries yet.
                   </div>
                 ) : (
                   <PortfolioCarousel items={builder.portfolio} />
                 )}
-              </section>}
+              </section>
 
               {/* About */}
               <section className="reveal glass rounded-3xl p-6 lg:p-8">
                 <h2 className="font-bold text-xl mb-4">About</h2>
                 {(builder.about || builder.bio) ? (
                   <p className="text-gray-400 leading-relaxed mb-6">{builder.about || builder.bio}</p>
-                ) : isStudio ? (
-                  <p className="text-gray-500 text-sm italic mb-6">This studio has not added an About description yet.</p>
                 ) : null}
 
-                {!isStudio && <div>
+                <div>
                   <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2">Tools used</p>
                   <div className="flex flex-wrap gap-1.5">
                     {builder.tools.map((t) => (
@@ -579,13 +532,13 @@ export default function BuilderProfilePage({ builder }) {
                       </span>
                     ))}
                   </div>
-                </div>}
+                </div>
 
-                <div className={`grid ${isStudio ? "grid-cols-1" : "grid-cols-2"} gap-3 mt-6 pt-6 border-t border-white/[0.08]`}>
-                  {!isStudio && <div className="text-center">
+                <div className="grid grid-cols-2 gap-3 mt-6 pt-6 border-t border-white/[0.08]">
+                  <div className="text-center">
                     <p className="text-xl font-bold">{builder.response_time}</p>
                     <p className="text-[10px] text-gray-500 uppercase tracking-wide">Response</p>
-                  </div>}
+                  </div>
                   <div className="text-center">
                     <p className="text-xl font-bold">{new Date(builder.member_since).getFullYear()}</p>
                     <p className="text-[10px] text-gray-500 uppercase tracking-wide">Member Since</p>
@@ -611,7 +564,7 @@ export default function BuilderProfilePage({ builder }) {
             className="flex-1 py-3 px-4 rounded-full border border-white/15 bg-white/5 text-gray-200 font-semibold text-sm hover:bg-white/10 hover:border-white/30 transition-all flex items-center justify-center gap-1.5"
           >
             <IconChat className="w-4 h-4" />
-            Contact {isStudio ? "Studio" : "Builder"}
+            Contact Builder
           </button>
         </div>
       </div>

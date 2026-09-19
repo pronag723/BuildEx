@@ -29,6 +29,7 @@ import {
   STYLES,
   sanitizeBuilderTools,
 } from "../../lib/onboarding/constants";
+import { BUILDER_ONBOARDING_START } from "../../lib/onboarding/state";
 import { withBase } from "../home/utils";
 import Avatar from "../../lib/ui/Avatar";
 import { Icon } from "../../lib/icons";
@@ -41,15 +42,6 @@ import HandleInput from "../onboarding/components/HandleInput";
 import PortfolioUploader from "../onboarding/components/PortfolioUploader";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  StudioEmployeeDashboard,
-  StudioModeratorDashboard,
-} from "./StudioAccountDashboard";
-import {
-  listMyStudioInvitations,
-  respondToStudioBuilderInvitation,
-  getMyStudioDeleteEligibility,
-} from "../../lib/studios/api";
 
 // #rrggbb → rgba(), used for the availability slider's tinted highlight.
 function hexToRgba(hex, alpha = 1) {
@@ -127,30 +119,13 @@ function SectionHeader({ title, editing, onEdit, onCancel, onSave, saving, canSa
 // The three top-level views of the account page. A segmented control sits above
 // the avatar and toggles which group of cards is shown, so the page no longer
 // stacks everything in one long scroll.
-const BASE_ACCOUNT_SECTIONS = [
+const ACCOUNT_SECTIONS = [
   { key: "profile", label: "Profile", short: "Profile" },
-  { key: "invitations", label: "Invitations", short: "Invites" },
   { key: "danger", label: "Account", short: "Account" },
 ];
 
-const CLIENT_ACCOUNT_SECTIONS = BASE_ACCOUNT_SECTIONS.filter(
-  ({ key }) => key !== "invitations"
-);
-
-const STUDIO_ACCOUNT_SECTIONS = [
-  { key: "profile", label: "Storefront", short: "Profile" },
-  { key: "team", label: "Team", short: "Team" },
-  { key: "danger", label: "Account", short: "Account" },
-];
-
-function SectionTabs({ section, setSection, isBuilder, isStudio = false, isEmployee = false }) {
-  const sections = isStudio
-    ? STUDIO_ACCOUNT_SECTIONS
-    : isEmployee
-      ? [BASE_ACCOUNT_SECTIONS[0], BASE_ACCOUNT_SECTIONS[2]]
-      : isBuilder
-      ? BASE_ACCOUNT_SECTIONS
-      : CLIENT_ACCOUNT_SECTIONS;
+function SectionTabs({ section, setSection }) {
+  const sections = ACCOUNT_SECTIONS;
   const idx = Math.max(0, sections.findIndex((s) => s.key === section));
   return (
     <div
@@ -892,19 +867,10 @@ function AccountActionsSection() {
   const [confirmText, setConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState(null);
-  const [deleteEligibility, setDeleteEligibility] = useState(null);
 
   const canDelete = confirmText.trim().toUpperCase() === "DELETE";
-  const isStudioAccount = profile?.role === "studio";
-  const studioDeleteBlocked = Boolean(isStudioAccount && deleteEligibility && !deleteEligibility.can_delete);
-
-  useEffect(() => {
-    if (!isStudioAccount) return;
-    getMyStudioDeleteEligibility().then(({ eligibility }) => setDeleteEligibility(eligibility));
-  }, [isStudioAccount]);
 
   function openConfirm() {
-    if (studioDeleteBlocked) return;
     setConfirmText("");
     setError(null);
     setConfirmOpen(true);
@@ -980,23 +946,15 @@ function AccountActionsSection() {
       <div className="mt-6 pt-6 border-t border-white/10">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-red-400/25 bg-red-500/[0.06] p-5">
           <div className="min-w-0">
-            <h3 className="font-semibold text-red-200 text-sm">
-              Delete {isStudioAccount ? "studio " : ""}account
-            </h3>
+            <h3 className="font-semibold text-red-200 text-sm">Delete account</h3>
             <p className="text-xs text-gray-400 mt-1 max-w-md leading-relaxed">
-              {isStudioAccount
-                ? studioDeleteBlocked
-                  ? `Resolve ${deleteEligibility.blocking_order_count} outstanding studio order${deleteEligibility.blocking_order_count === 1 ? "" : "s"} before deleting the studio.`
-                  : "Permanently remove your login, privatize the team as rookie independent builders, and suspend the studio."
-                : "Permanently remove your account and everything tied to it — profile, availability, portfolio and rates."}{" "}
-              This can&apos;t be undone.
+              Permanently remove your account and everything tied to it — profile,
+              availability, portfolio and conversations. This can&apos;t be undone.
             </p>
           </div>
           <button
             type="button"
             onClick={openConfirm}
-            disabled={studioDeleteBlocked}
-            title={studioDeleteBlocked ? "Complete all outstanding studio orders before deleting the studio" : undefined}
             className="flex-shrink-0 py-2.5 px-5 text-sm font-semibold rounded-full bg-red-500/15 text-red-200 border border-red-400/40 hover:bg-red-500/25 hover:border-red-400/60 transition-all disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/[0.03] disabled:text-gray-600"
           >
             Delete account
@@ -1025,12 +983,11 @@ function AccountActionsSection() {
               </svg>
             </div>
             <h3 id="delete-account-title" className="text-xl font-bold mb-2">
-              Delete your {isStudioAccount ? "studio " : ""}account?
+              Delete your account?
             </h3>
             <p className="text-sm text-gray-400 leading-relaxed mb-5">
-              {isStudioAccount
-                ? "This permanently deletes your BuildEx login, suspends the studio, and returns every member to a private rookie independent profile."
-                : "This permanently deletes your BuildEx account and all associated data — profile, availability, portfolio images and rates."}{" "}
+              This permanently deletes your BuildEx account and all associated data —
+              profile, availability, portfolio images and conversations.{" "}
               <strong className="text-red-200">This action cannot be undone.</strong>
             </p>
             <label htmlFor="confirm-delete" className="onb-label block mb-2">
@@ -1083,7 +1040,7 @@ function AccountActionsSection() {
 // ─── Hero header (avatar + identity) ─────────────────────────────────────────
 // Mirrors the public builder profile hero (no banner) so what the builder edits
 // reads like what clients will eventually see.
-function AccountHeader({ profile, builderProfile, onSaved }) {
+function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
   const { user, updateProfile } = useAuth();
   const [editing, setEditing] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || null);
@@ -1092,13 +1049,6 @@ function AccountHeader({ profile, builderProfile, onSaved }) {
   const [handleValid, setHandleValid] = useState(Boolean(profile?.username));
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
-  const role = profile?.role;
-  const isStudio = role === "studio";
-  const isEmployee = builderProfile?.profile_type === "studio_employee";
-  // Employees use the shared identity/header editor, but are not public
-  // marketplace builders while their studio membership is active.
-  const isBuilder = role === "builder" || role === "both" || isEmployee;
-
   const trimmedName = displayName.trim();
   const nameValid =
     trimmedName.length >= DISPLAY_NAME_MIN && trimmedName.length <= DISPLAY_NAME_MAX;
@@ -1245,22 +1195,13 @@ function AccountHeader({ profile, builderProfile, onSaved }) {
             {isBuilder && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#4ade80]/15 border border-[#4ade80]/30 text-[#4ade80]">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80] flex-shrink-0" />
-                {role === "both" ? "Builder & Client" : "Builder"}
+                Builder
               </span>
             )}
           </div>
 
           {profile?.username && (
             <p className="text-sm text-gray-500 mb-3 break-all">@{profile.username}</p>
-          )}
-
-          {!isBuilder && role && (
-            <div className="flex justify-center sm:justify-start mb-3">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#4ade80]/15 border border-[#4ade80]/30 text-[#4ade80] capitalize">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80] flex-shrink-0" />
-                {role}
-              </span>
-            </div>
           )}
 
           {isBuilder && (
@@ -1338,97 +1279,27 @@ function AccountHeader({ profile, builderProfile, onSaved }) {
   );
 }
 
-function StudioInvitationCard({ onAccepted }) {
-  const [invitations, setInvitations] = useState([]);
-  const [busyId, setBusyId] = useState(null);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    let active = true;
-    listMyStudioInvitations().then((result) => {
-      if (!active) return;
-      if (result.error) setError(result.error.message || "Couldn't load studio invitations.");
-      else setInvitations(result.invitations || []);
-    });
-    return () => { active = false; };
-  }, []);
-
+// ─── Become a builder ───────────────────────────────────────────────────────
+// The ONLY entrance to builder onboarding. Anyone signed in is a visitor until
+// they have a builder_profiles row; this card is what creates one.
+function BecomeABuilderCard() {
   return (
-    <section className="reveal glass rounded-3xl p-6 lg:p-8">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-xs uppercase tracking-[0.18em] text-[#4ade80]/80">Studio network</p>
-          <h2 className="font-bold text-xl mt-1">Studio invitations</h2>
-          <p className="text-sm text-gray-500 mt-2 max-w-2xl">Review invitations from studios before joining their team. Your existing builder profile is preserved when you accept.</p>
-        </div>
-        <div className="hidden sm:flex w-11 h-11 rounded-2xl border border-[#4ade80]/20 bg-[#4ade80]/10 items-center justify-center text-[#4ade80]">✦</div>
-      </div>
-      {error && <p className="auth-banner auth-banner-error mt-4">{error}</p>}
-      <div className="mt-5 rounded-2xl border border-white/10 bg-black/15 p-4 sm:p-5">
-        <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">What joining means</p>
-        <div className="mt-3 grid gap-2 text-sm text-gray-300">
-          <p>• Your identity, expertise, rates, and existing portfolio stay on your account.</p>
-          <p>• Your builder profile leaves the public feed while you are part of the studio.</p>
-          <p>• Studio availability uses Available or Busy and is managed alongside assignments.</p>
-        </div>
-      </div>
-      <div className="mt-5 space-y-3">
-        {invitations.length === 0 && !error && (
-          <div className="rounded-2xl border border-dashed border-white/10 p-6 text-center text-sm text-gray-500">No pending studio invitations.</div>
-        )}
-        {invitations.map((invitation) => (
-          <div key={invitation.id} className="rounded-2xl border border-[#4ade80]/25 bg-gradient-to-br from-[#4ade80]/10 to-transparent p-4 sm:p-5 transition-[transform,background-color,border-color,box-shadow] duration-500 ease-out hover:-translate-y-0.5 hover:border-[#4ade80]/40 hover:shadow-[0_16px_36px_rgba(0,0,0,0.18)]">
-            <div className="flex items-center gap-3">
-              {invitation.studio?.logo_url ? <img src={invitation.studio.logo_url} alt="" className="w-12 h-12 rounded-2xl object-cover border border-white/10" /> : <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-lg font-bold">{(invitation.studio?.name || "S").charAt(0)}</div>}
-              <div className="min-w-0 flex-1">
-                <p className="text-xs uppercase tracking-wider text-[#4ade80]">Invitation from</p>
-                <p className="font-bold text-lg truncate">{invitation.studio?.name || "Studio"}</p>
-                <p className="text-xs text-gray-500 mt-1">Received {new Date(invitation.created_at).toLocaleDateString()}</p>
-              </div>
-            </div>
-            <div className="mt-4 grid grid-cols-1 gap-2">
-              <div className="rounded-xl border border-[#4ade80]/20 bg-[#4ade80]/5 p-3 transition-[transform,background-color,border-color] duration-300 ease-out hover:-translate-y-0.5 hover:border-[#4ade80]/40 hover:bg-[#4ade80]/10">
-                <p className="text-lg font-bold text-[#4ade80]">
-                  {invitation.studio?.employee_commission_bps == null
-                    ? "—"
-                    : `${(Number(invitation.studio.employee_commission_bps) / 100).toFixed(2)}%`}
-                </p>
-                <p className="text-[10px] uppercase tracking-wide text-gray-500">Employee rate</p>
-              </div>
-            </div>
-            {invitation.studio?.about && (
-              <p className="mt-4 text-sm leading-relaxed text-gray-400">{invitation.studio.about}</p>
-            )}
-            <div className="mt-4 pt-4 border-t border-white/10 flex flex-wrap items-center justify-end gap-2">
-              {invitation.studio?.slug && (
-                <Link
-                  href={`/studios?s=${encodeURIComponent(invitation.studio.slug)}`}
-                  className="mr-auto inline-flex items-center rounded-xl border border-[#4ade80]/30 bg-[#4ade80]/10 px-4 py-2 text-xs font-semibold text-[#4ade80] transition-[transform,background-color,border-color,box-shadow] duration-300 ease-out hover:-translate-y-0.5 hover:border-[#4ade80]/60 hover:bg-[#4ade80]/20 hover:shadow-[0_8px_20px_rgba(74,222,128,0.14)]"
-                >
-                  View studio profile
-                </Link>
-              )}
-              <button type="button" disabled={busyId === invitation.id} onClick={async () => {
-                setBusyId(invitation.id);
-                const result = await respondToStudioBuilderInvitation(invitation.id, "decline");
-                setBusyId(null);
-                if (result.error) setError(result.error.message || "Couldn't decline invitation.");
-                else setInvitations((current) => current.filter((item) => item.id !== invitation.id));
-              }} className="px-4 py-2 rounded-xl border border-white/10 text-xs text-gray-300 transition-[transform,background-color,border-color] duration-300 ease-out hover:-translate-y-0.5 hover:border-white/25 hover:bg-white/5 disabled:opacity-50">Decline</button>
-              <button type="button" disabled={busyId === invitation.id} onClick={async () => {
-                setBusyId(invitation.id);
-                const result = await respondToStudioBuilderInvitation(invitation.id, "accept");
-                setBusyId(null);
-                if (result.error) setError(result.error.message || "Couldn't accept invitation.");
-                else {
-                  setInvitations((current) => current.filter((item) => item.id !== invitation.id));
-                  await onAccepted?.();
-                }
-              }} className="px-4 py-2 rounded-xl bg-[#4ade80] text-black text-xs font-bold transition-[transform,background-color,box-shadow] duration-300 ease-out hover:-translate-y-0.5 hover:bg-[#86efac] hover:shadow-[0_8px_20px_rgba(74,222,128,0.22)] disabled:opacity-50">{busyId === invitation.id ? "Saving…" : "Accept invitation"}</button>
-            </div>
-          </div>
-        ))}
-      </div>
+    <section className="reveal glass rounded-3xl p-6 lg:p-8 border border-[#4ade80]/20">
+      <p className="text-xs uppercase tracking-[0.18em] text-[#4ade80]/80">Build for others</p>
+      <h2 className="font-bold text-xl mt-1">Create a builder profile</h2>
+      <p className="text-sm text-gray-500 mt-2 max-w-2xl leading-relaxed">
+        Get listed in the builders directory so server owners can find you and message
+        you directly. You&apos;ll pick your styles and build types, the tools you work
+        in, and upload a portfolio. It takes a few minutes and nothing is permanent —
+        you can edit or remove it later.
+      </p>
+      <Link
+        href={BUILDER_ONBOARDING_START}
+        className="mt-5 inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#4ade80] text-black text-sm font-bold transition-[transform,background-color,box-shadow] duration-300 ease-out hover:-translate-y-0.5 hover:bg-[#86efac] hover:shadow-[0_8px_20px_rgba(74,222,128,0.22)]"
+      >
+        Create a builder profile
+        <Icon name="hammer" size={16} />
+      </Link>
     </section>
   );
 }
@@ -1615,17 +1486,18 @@ function AccountPageInner() {
     return () => obs.disconnect();
   }, [profile, builderProfile, section]);
 
-  const role = profile?.role;
-  const isStudio = role === "studio";
-  const isEmployee = builderProfile?.profile_type === "studio_employee";
-  const isBuilder = role === "builder" || role === "both" || isEmployee;
-  const isClient = role === "client" || role === "both";
+  // Builder-ness is the existence of a builder_profiles row — never
+  // profiles.role, which visitors leave null and older accounts carry stale
+  // values in. `builderLoaded` guards the gap before that row has been fetched
+  // so we don't flash the "create a builder profile" CTA at a real builder.
+  const isBuilder = Boolean(builderProfile);
+  const isClient = profile?.role === "client" || profile?.role === "both";
 
   useEffect(() => {
-    if (profile && section === "invitations" && !isBuilder) {
+    if (profile && !ACCOUNT_SECTIONS.some((sct) => sct.key === section)) {
       selectSection("profile");
     }
-  }, [profile, section, isBuilder, selectSection]);
+  }, [profile, section, selectSection]);
 
   // Render the spinner only when we have NOTHING to show. As soon as either
   // the cached profile from AuthContext or a fresh fetch lands, paint the
@@ -1698,69 +1570,28 @@ function AccountPageInner() {
           {/* Page intro */}
           <div className="mb-6 detail-fade-up">
             <p className="text-xs font-semibold uppercase tracking-widest text-[#4ade80]/80 mb-1.5">
-              {isStudio ? "Studio settings" : "Profile settings"}
+              Profile settings
             </p>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight logo-font">
-              {isStudio ? "Your studio" : "Your profile"}
+              Your profile
             </h1>
             <p className="text-sm text-gray-500 mt-1.5">
-              {isStudio
-                ? "Manage your storefront and team in focused sections."
-                : isEmployee
-                ? "Manage your studio identity, employment status, and account settings."
-                : isBuilder
+              {isBuilder
                 ? "Manage how you appear across BuildEx — your identity, availability and portfolio."
-                : "Manage your account details and building preferences."}
+                : "Manage your account details and how you appear to the builders you message."}
             </p>
           </div>
 
           {/* Section switcher — sits above the avatar and picks which group
               of cards is shown, so the page is no longer one long stack. */}
-          {isStudio ? (
-            <>
-              <SectionTabs
-                section={section}
-                setSection={selectSection}
-                isBuilder={false}
-                isStudio
-              />
-              {section === "danger" ? (
-                <div className="space-y-8">
-                  <AccountActionsSection />
-                </div>
-              ) : (
-                <StudioModeratorDashboard section={section} />
-              )}
-            </>
-          ) : isEmployee ? (
-            <>
-              <SectionTabs section={section} setSection={selectSection} isBuilder isEmployee />
-              {section === "danger" ? (
-                <div className="space-y-8"><AccountActionsSection /></div>
-              ) : (
-                <>
-                  {section === "profile" && (
-                    <div className="space-y-8">
-                      <AccountHeader profile={profile} builderProfile={builderProfile} onSaved={refresh} />
-                      <StudioEmployeeDashboard builderProfile={builderProfile} section="profile" onAvailabilitySaved={refresh} />
-                      <AboutSection profile={profile} builderProfile={builderProfile} isBuilder onSaved={refresh} />
-                      <SpecialtiesSection builderProfile={builderProfile} onSaved={refresh} />
-                      <ExpertiseSection builderProfile={builderProfile} onSaved={refresh} />
-                    </div>
-                  )}
-                  {section !== "profile" && <StudioEmployeeDashboard builderProfile={builderProfile} section={section} onAvailabilitySaved={refresh} />}
-                </>
-              )}
-            </>
-          ) : (
-            <>
-          <SectionTabs section={section} setSection={selectSection} isBuilder={isBuilder} />
+          <SectionTabs section={section} setSection={selectSection} />
 
           {section === "profile" && (
             <>
               <AccountHeader
                 profile={profile}
                 builderProfile={builderProfile}
+                isBuilder={isBuilder}
                 onSaved={refresh}
               />
 
@@ -1787,20 +1618,16 @@ function AccountPageInner() {
                 {isClient && !isBuilder && (
                   <ClientPreferencesSection profile={profile} onSaved={refresh} />
                 )}
+
+                {builderLoaded && !isBuilder && <BecomeABuilderCard />}
               </div>
             </>
-          )}
-
-          {section === "invitations" && isBuilder && (
-            <StudioInvitationCard onAccepted={refresh} />
           )}
 
           {section === "danger" && (
             <div className="space-y-8">
               <AccountActionsSection />
             </div>
-          )}
-            </>
           )}
         </div>
       </main>

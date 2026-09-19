@@ -18,11 +18,6 @@ export default function sitemap() {
       url: `${baseUrl}/builders/profile/`,
       changeFrequency: "weekly",
       priority: 0.6
-    },
-    {
-      url: `${baseUrl}/studios/`,
-      changeFrequency: "weekly",
-      priority: 0.6
     }
   ];
   const legal = ["", "terms/", "payments/", "sellers/", "ready-build-license/", "privacy/", "community/", "legal-notice/"];

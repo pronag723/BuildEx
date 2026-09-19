@@ -23,14 +23,15 @@ const AuthContext = createContext({
 function buildOAuthRedirect(redirectPath) {
   if (typeof window === "undefined") return undefined;
   const base = process.env.NEXT_PUBLIC_BASE_PATH || "";
-  // OAuth providers send the user straight to /onboarding. The AuthProvider
-  // mounted in the root layout creates the Supabase client with
-  // `detectSessionInUrl: true`, which auto-exchanges the `?code=` on the URL.
-  // The /onboarding gate handles loading, fan-out to the right step, OAuth
-  // errors, and post-completion redirect — so no intermediate callback page
-  // is needed.
+  // OAuth providers return the user to /auth/callback. The AuthProvider mounted
+  // in the root layout creates the Supabase client with
+  // `detectSessionInUrl: true`, which auto-exchanges the `?code=` on the URL;
+  // the callback page only forwards the user to wherever they came from.
+  //
+  // This path must be listed in Supabase → Authentication → URL Configuration →
+  // Redirect URLs. It replaced /onboarding when sign-in became one click.
   const search = redirectPath ? `?redirect=${encodeURIComponent(redirectPath)}` : "";
-  return `${window.location.origin}${base}/onboarding${search}`;
+  return `${window.location.origin}${base}/auth/callback${search}`;
 }
 
 // ─── Profile cache ───────────────────────────────────────────────────────────
@@ -326,13 +327,25 @@ export function AuthProvider({ children }) {
   const signOut = useCallback(
     async (redirectTo) => {
       if (!supabase) return;
-      // Bailing out mid-onboarding? Discard the half-created account so it can't
-      // collide with the user's next sign-in (e.g. a half-claimed username).
-      // Best-effort, and gated server-side on onboarding_completed_at, so a
-      // finished account is never touched.
-      if (profile && !profile.onboarding_completed_at) {
+      // Bailing out mid-BUILDER-signup? Discard the half-created account so it
+      // can't collide with the user's next sign-in (e.g. a half-claimed
+      // username). Best-effort, and gated server-side on
+      // onboarding_completed_at, so a finished account is never touched.
+      //
+      // `onboarding_completed_at is null` is NOT sufficient on its own any
+      // more: since sign-in became one click, an ordinary visitor also has a
+      // null there for the life of their account. Deleting on that alone would
+      // wipe a real user's profile, favorites and chat history every time they
+      // signed out. A builder_profiles row is what marks someone as actually
+      // part-way through builder onboarding, so we require that too.
+      if (profile && !profile.onboarding_completed_at && profile.id) {
         try {
-          await supabase.rpc("delete_incomplete_registration");
+          const { data: builderRow } = await supabase
+            .from("builder_profiles")
+            .select("id")
+            .eq("id", profile.id)
+            .maybeSingle();
+          if (builderRow) await supabase.rpc("delete_incomplete_registration");
         } catch {}
       }
       await supabase.auth.signOut();

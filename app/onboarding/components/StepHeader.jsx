@@ -1,14 +1,14 @@
 "use client";
 
-import { stepsForRole } from "../../../lib/onboarding/state";
+import { builderSteps } from "../../../lib/onboarding/state";
 
 /**
  * Visual step indicator across the top of every onboarding step.
  * Renders a row of dots (current / completed / upcoming) connected by a
  * progress bar that fills as the user advances.
  */
-export default function StepHeader({ currentStep, role }) {
-  const steps = stepsForRole(role);
+export default function StepHeader({ currentStep }) {
+  const steps = builderSteps();
   const currentIdx = Math.max(
     0,
     steps.findIndex((s) => s.path === currentStep)
@@ -22,17 +22,7 @@ export default function StepHeader({ currentStep, role }) {
           <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80] animate-pulse" />
           Step {currentIdx + 1} of {steps.length}
         </span>
-        <span className="text-gray-500 hidden sm:inline">
-          {role
-            ? role === "builder"
-              ? "Builder setup"
-              : role === "studio"
-              ? "Studio setup"
-              : role === "both"
-              ? "Builder + client setup"
-              : "Client setup"
-            : "Welcome to BuildEx"}
-        </span>
+        <span className="text-gray-500 hidden sm:inline">Builder setup</span>
       </div>
 
       <div className="step-track" aria-label="Onboarding progress">
