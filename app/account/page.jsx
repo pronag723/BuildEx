@@ -342,7 +342,8 @@ function AvailabilitySection({ builderProfile, onSaved }) {
 }
 
 // ─── About / bio (shared) ────────────────────────────────────────────────────
-function AboutSection({ profile, builderProfile, isBuilder, onSaved }) {
+// Only rendered for builders — it is their public pitch.
+function AboutSection({ profile, onSaved }) {
   const { user } = useAuth();
   const [editing, setEditing] = useState(false);
   const [bio, setBio] = useState(profile?.bio || "");
@@ -365,13 +366,7 @@ function AboutSection({ profile, builderProfile, isBuilder, onSaved }) {
       bannerUrl: profile?.banner_url ?? null,
       bio: bio.trim() || null,
     };
-    const { error: err } = isBuilder
-      ? await saveBuilderIdentity(supabase, user.id, payload)
-      : await saveClientProfile(supabase, user.id, {
-          ...payload,
-          interests: profile?.interests || [],
-          serverType: profile?.preferred_server_type ?? null,
-        });
+    const { error: err } = await saveBuilderIdentity(supabase, user.id, payload);
     setSaving(false);
     if (err) {
       setError(err.message || "Couldn't save.");
@@ -399,11 +394,7 @@ function AboutSection({ profile, builderProfile, isBuilder, onSaved }) {
             <textarea
               id="acc-bio"
               className="onb-input onb-textarea"
-              placeholder={
-                isBuilder
-                  ? "Share your story, what you love building, the kind of projects you take on…"
-                  : "Tell builders what kind of work you're hiring for."
-              }
+              placeholder="Share your story, what you love building, the kind of projects you take on…"
               value={bio}
               onChange={(e) => setBio(e.target.value.slice(0, BIO_MAX))}
               maxLength={BIO_MAX}
@@ -1084,13 +1075,7 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
       bannerUrl: profile?.banner_url ?? null,
       bio: profile?.bio ?? null,
     };
-    const { error: err } = isBuilder
-      ? await saveBuilderIdentity(supabase, user.id, payload)
-      : await saveClientProfile(supabase, user.id, {
-          ...payload,
-          interests: profile?.interests || [],
-          serverType: profile?.preferred_server_type ?? null,
-        });
+    const { error: err } = await saveBuilderIdentity(supabase, user.id, payload);
     setSaving(false);
     if (err) {
       if (err.code === "23505" || /duplicate|unique/i.test(err.message || "")) {
@@ -1600,15 +1585,12 @@ function AccountPageInner() {
                   <AvailabilitySection builderProfile={builderProfile} onSaved={refresh} />
                 )}
 
-                <AboutSection
-                  profile={profile}
-                  builderProfile={builderProfile}
-                  isBuilder={isBuilder}
-                  onSaved={refresh}
-                />
-
+                {/* About is a builder's public pitch — it shows on their
+                    profile page. Someone who isn't listed has nowhere for it to
+                    appear, so they aren't asked for one. */}
                 {isBuilder && (
                   <>
+                    <AboutSection profile={profile} onSaved={refresh} />
                     <PortfolioSection portfolioCount={portfolioCount} onSaved={refresh} />
                     <SpecialtiesSection builderProfile={builderProfile} onSaved={refresh} />
                     <ExpertiseSection builderProfile={builderProfile} onSaved={refresh} />

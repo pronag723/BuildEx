@@ -9,7 +9,6 @@ import { STEPS } from "../../../../lib/onboarding/state";
 import {
   AVAILABILITY_STATES,
   BUILDER_TOOLS,
-  PROJECT_TYPES,
   RESPONSE_TIMES,
   sanitizeBuilderTools,
 } from "../../../../lib/onboarding/constants";
@@ -41,14 +40,10 @@ function BuilderExpertiseStep({ state }) {
   const bp = state.builderProfile || {};
 
   const [tools, setTools] = useState(sanitizeBuilderTools(bp.tools));
-  const [projectTypes, setProjectTypes] = useState(
-    Array.isArray(bp.project_types) ? bp.project_types : []
-  );
   const [responseKey, setResponseKey] = useState(pickResponseForHours(bp.response_time_hours));
   const [availability, setAvailability] = useState(bp.availability_status || "available");
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
-  const isPendingStudioEmployee = Boolean(bp.pending_employee_code);
 
   const canContinue = tools.length >= 1 && !!responseKey;
 
@@ -61,9 +56,8 @@ function BuilderExpertiseStep({ state }) {
     setSaving(true);
     const { error: saveErr } = await saveBuilderExpertise(supabase, user.id, {
       tools,
-      projectTypes,
       responseTimeHours,
-      ...(isPendingStudioEmployee ? {} : { availabilityStatus: availability }),
+      availabilityStatus: availability,
     });
     setSaving(false);
     if (saveErr) {
@@ -79,7 +73,7 @@ function BuilderExpertiseStep({ state }) {
       <div className="text-center mb-10 onb-fade-in onb-fade-in-1">
         <h1 className="onb-section-title">Your expertise</h1>
         <p className="onb-section-sub mt-3 mx-auto">
-          Tell clients how you work. These signals power matching, sort order and rank progression.
+          Tell clients how you work. This is what they see before they message you.
         </p>
       </div>
 
@@ -99,19 +93,6 @@ function BuilderExpertiseStep({ state }) {
           />
         </div>
 
-        {/* Project types */}
-        <div className="glass onb-card onb-fade-in onb-fade-in-2">
-          <div className="onb-label mb-3">What kind of work are you open to?</div>
-          <p className="text-xs text-gray-500 mb-4">Pick as many as you want.</p>
-          <ChipGrid
-            options={PROJECT_TYPES}
-            value={projectTypes}
-            onChange={setProjectTypes}
-            multi
-            ariaLabel="Project types"
-          />
-        </div>
-
         {/* Response time */}
         <div className="glass onb-card onb-fade-in onb-fade-in-3">
           <div className="onb-label mb-3">Typical response time</div>
@@ -127,32 +108,29 @@ function BuilderExpertiseStep({ state }) {
           />
         </div>
 
-        {/* Employment status is set by studio employees after account creation. */}
-        {!isPendingStudioEmployee && (
-          <div className="glass onb-card onb-fade-in onb-fade-in-4">
-            <div className="onb-label mb-3">Right now you&apos;re…</div>
-            <div className="flex flex-wrap gap-2">
-              {AVAILABILITY_STATES.map((opt) => {
-                const active = availability === opt.key;
-                return (
-                  <button
-                    key={opt.key}
-                    type="button"
-                    onClick={() => setAvailability(opt.key)}
-                    className={`availability-pill ${active ? "is-active" : ""}`}
-                    aria-pressed={active}
-                  >
-                    <span
-                      className="availability-dot"
-                      style={{ background: opt.dot, boxShadow: `0 0 10px ${opt.dot}` }}
-                    />
-                    <span>{opt.label}</span>
-                  </button>
-                );
-              })}
-            </div>
+        <div className="glass onb-card onb-fade-in onb-fade-in-4">
+          <div className="onb-label mb-3">Right now you&apos;re…</div>
+          <div className="flex flex-wrap gap-2">
+            {AVAILABILITY_STATES.map((opt) => {
+              const active = availability === opt.key;
+              return (
+                <button
+                  key={opt.key}
+                  type="button"
+                  onClick={() => setAvailability(opt.key)}
+                  className={`availability-pill ${active ? "is-active" : ""}`}
+                  aria-pressed={active}
+                >
+                  <span
+                    className="availability-dot"
+                    style={{ background: opt.dot, boxShadow: `0 0 10px ${opt.dot}` }}
+                  />
+                  <span>{opt.label}</span>
+                </button>
+              );
+            })}
           </div>
-        )}
+        </div>
 
         {error && (
           <div role="alert" className="auth-banner auth-banner-error">
