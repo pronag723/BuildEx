@@ -4,7 +4,6 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import { RANKS } from "../data/builders";
 import { publicAsset, withBase } from "../../home/utils";
-import { formatPrice } from "../../../lib/pricing";
 import { useFavorites } from "../../../lib/favorites/FavoritesContext";
 import StudioOfficialBadge from "./StudioOfficialBadge";
 
@@ -327,17 +326,8 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
           </p>
         )}
 
-        {/* Footer — rates + CTA */}
-        <div className="mt-auto pt-3 border-t border-white/[0.08] flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-[10px] text-gray-500 uppercase tracking-wide mb-0.5">
-              Rates from
-            </p>
-            <p className="text-[#4ade80] font-bold text-lg leading-none">
-              {builder.starts_from > 0 ? formatPrice(builder.starts_from) : "—"}
-            </p>
-          </div>
-
+        {/* Footer — CTA */}
+        <div className="mt-auto pt-3 border-t border-white/[0.08] flex items-center justify-end gap-3">
           <span className="offer-card-view-btn inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#4ade80]/12 border border-[#4ade80]/30 text-[#4ade80] text-xs font-semibold transition-all duration-200 group-hover:bg-[#4ade80] group-hover:text-black group-hover:shadow-[0_0_18px_rgba(74,222,128,0.45)] group-hover:border-[#4ade80]">
             View {isStudio ? "Studio" : "Profile"}
             <ArrowIcon className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />

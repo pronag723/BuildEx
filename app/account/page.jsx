@@ -12,8 +12,6 @@ import {
   saveBuilderAvailability,
   saveBuilderExpertise,
   saveBuilderIdentity,
-  saveBuilderPayout,
-  saveBuilderRates,
   saveBuilderStyles,
   saveClientProfile,
 } from "../../lib/onboarding/api";
@@ -47,23 +45,8 @@ import AvatarUploader from "../onboarding/components/AvatarUploader";
 import ChipGrid from "../onboarding/components/ChipGrid";
 import HandleInput from "../onboarding/components/HandleInput";
 import PortfolioUploader from "../onboarding/components/PortfolioUploader";
-import {
-  RatesEditor,
-  RatesPreview,
-  mergeRates,
-  normalizeRates,
-  validateRates,
-} from "../onboarding/components/RatesFields";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { listMyOrders } from "../../lib/orders/api";
-import { formatPrice, SIZE_META } from "../../lib/pricing";
-import {
-  cancelWithdrawal,
-  getMyPayoutSummary,
-  listMyPayoutHistory,
-  requestWithdrawal,
-} from "../../lib/payouts/api";
 import {
   StudioEmployeeDashboard,
   StudioModeratorDashboard,
@@ -73,7 +56,6 @@ import {
   respondToStudioBuilderInvitation,
   getMyStudioDeleteEligibility,
 } from "../../lib/studios/api";
-import { ReadyBuildsSection } from "./ReadyBuildsSection";
 
 // #rrggbb → rgba(), used for the availability slider's tinted highlight.
 function hexToRgba(hex, alpha = 1) {
@@ -147,109 +129,6 @@ function SectionHeader({ title, editing, onEdit, onCancel, onSave, saving, canSa
   );
 }
 
-// ─── Active orders (both roles) ──────────────────────────────────────────────
-// The "Orders" tab on the account page: every commission currently in flight,
-// whether the user is the builder (incoming work) or the buyer (a purchase).
-// A peek at the next few + a link to the full dashboard at /orders.
-const ACTIVE_STATUSES = new Set(["paid", "in_progress", "delivered"]);
-
-function ActiveOrdersSection({ userId }) {
-  const [orders, setOrders] = useState(null);
-
-  useEffect(() => {
-    if (!userId) return;
-    let cancelled = false;
-    listMyOrders().then(({ orders: rows }) => {
-      if (cancelled) return;
-      // Both sides: rows where the user is the builder OR the buyer. RLS has
-      // already scoped the result to this user, so the status filter is all
-      // that's left.
-      setOrders((rows || []).filter((o) => ACTIVE_STATUSES.has(o.status)));
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [userId]);
-
-  return (
-    <section className="reveal glass rounded-3xl p-6 lg:p-8">
-      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-        <div>
-          <h2 className="font-bold text-xl">Active orders</h2>
-          <p className="text-xs text-gray-500 mt-0.5">
-            Commissions in flight — work you&apos;re building and orders
-            you&apos;ve placed.
-          </p>
-        </div>
-        <Link
-          href="/orders"
-          className="px-3 py-1.5 rounded-full text-xs font-semibold border border-[#4ade80]/30 text-[#4ade80] bg-[#4ade80]/10 hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.35)] transition-all inline-flex items-center gap-1.5"
-        >
-          Full dashboard →
-        </Link>
-      </div>
-
-      {orders === null ? (
-        <p className="text-sm text-gray-500">Loading…</p>
-      ) : orders.length === 0 ? (
-        <p className="text-sm text-gray-500">
-          No active orders right now. New commissions appear here the moment
-          they&apos;re paid.
-        </p>
-      ) : (
-        <ul className="space-y-2">
-          {orders.slice(0, 6).map((o) => {
-            // Show the other party + which side of the deal the user is on.
-            const asBuilder = o.builder_id === userId;
-            const peer = (asBuilder ? o.buyer : o.builder) || {};
-            const sizeLabel =
-              SIZE_META[o.building_size]?.label || o.building_size;
-            return (
-              <li key={o.id}>
-                {/* A real anchor (not next/link): a full navigation reliably
-                    deep-links to the order. A next/link soft navigation doesn't
-                    surface ?id= to the orders page's mount-time readOrderId(),
-                    so it would land on the list instead. Mirrors NotificationsBell. */}
-                <a
-                  href={withBase(`/orders/?id=${encodeURIComponent(o.id)}`)}
-                  className="flex items-center gap-3 p-3 rounded-2xl border border-white/10 hover:border-[#4ade80]/40 hover:bg-white/5 transition-all"
-                >
-                  <Avatar
-                    src={peer.avatar_url}
-                    name={peer.display_name}
-                    className="w-9 h-9 rounded-full ring-1 ring-white/10 flex-shrink-0 text-sm"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="font-semibold text-sm truncate">
-                        {peer.display_name || "Unknown user"}
-                      </p>
-                      <span className="px-1.5 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wide border border-white/10 text-gray-400 flex-shrink-0">
-                        {asBuilder ? "Selling" : "Buying"}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-gray-500 truncate capitalize">
-                      {sizeLabel} · {o.style} · {o.status.replace("_", " ")}
-                    </p>
-                  </div>
-                  <span className="font-bold text-[#4ade80] text-sm flex-shrink-0">
-                    {formatPrice(o.price_kopecks)}
-                  </span>
-                </a>
-              </li>
-            );
-          })}
-          {orders.length > 6 && (
-            <li className="text-xs text-gray-500 text-center pt-1">
-              +{orders.length - 6} more on the dashboard
-            </li>
-          )}
-        </ul>
-      )}
-    </section>
-  );
-}
-
 // ─── Section switcher ────────────────────────────────────────────────────────
 // The three top-level views of the account page. A segmented control sits above
 // the avatar and toggles which group of cards is shown, so the page no longer
@@ -257,7 +136,6 @@ function ActiveOrdersSection({ userId }) {
 const BASE_ACCOUNT_SECTIONS = [
   { key: "profile", label: "Profile", short: "Profile" },
   { key: "invitations", label: "Invitations", short: "Invites" },
-  { key: "orders", label: "Active orders", short: "Orders" },
   { key: "danger", label: "Account", short: "Account" },
 ];
 
@@ -267,10 +145,7 @@ const CLIENT_ACCOUNT_SECTIONS = BASE_ACCOUNT_SECTIONS.filter(
 
 const STUDIO_ACCOUNT_SECTIONS = [
   { key: "profile", label: "Storefront", short: "Profile" },
-  { key: "ready-builds", label: "Ready-made builds", short: "Builds" },
   { key: "team", label: "Team", short: "Team" },
-  { key: "orders", label: "Orders", short: "Orders" },
-  { key: "payouts", label: "Payouts", short: "Payouts" },
   { key: "danger", label: "Account", short: "Account" },
 ];
 
@@ -278,20 +153,10 @@ function SectionTabs({ section, setSection, isBuilder, isStudio = false, isEmplo
   const sections = isStudio
     ? STUDIO_ACCOUNT_SECTIONS
     : isEmployee
-      ? [
-        BASE_ACCOUNT_SECTIONS[0],
-        { key: "orders", label: "Assignments", short: "Orders" },
-        { key: "payouts", label: "Payments", short: "Payments" },
-        BASE_ACCOUNT_SECTIONS[3],
-      ]
+      ? [BASE_ACCOUNT_SECTIONS[0], BASE_ACCOUNT_SECTIONS[2]]
       : isBuilder
-      ? [
-        BASE_ACCOUNT_SECTIONS[0],
-        { key: "ready-builds", label: "Ready-made builds", short: "Builds" },
-        { key: "payouts", label: "Payouts", short: "Payouts" },
-        ...BASE_ACCOUNT_SECTIONS.slice(1),
-      ]
-      : [...CLIENT_ACCOUNT_SECTIONS.slice(0, 1), { key: "purchases", label: "Purchases", short: "Buys" }, ...CLIENT_ACCOUNT_SECTIONS.slice(1)];
+      ? BASE_ACCOUNT_SECTIONS
+      : CLIENT_ACCOUNT_SECTIONS;
   const idx = Math.max(0, sections.findIndex((s) => s.key === section));
   return (
     <div
@@ -590,423 +455,6 @@ function AboutSection({ profile, builderProfile, isBuilder, onSaved }) {
         </div>
       )}
     </section>
-  );
-}
-
-// ─── Payout (builders) ───────────────────────────────────────────────────────
-const PAYOUT_NETWORKS = [
-  {
-    key: "usdt_bsc",
-    label: "BSC / BEP-20",
-    badge: "USDT · BSC",
-    hint: "BNB Smart Chain · low fees · address starts with 0x",
-    placeholder: "0x… (42 characters)",
-    regex: /^0x[0-9a-fA-F]{40}$/i,
-    formatError: "Invalid BSC address — use 0x followed by 40 hexadecimal characters.",
-  },
-];
-
-const PAYOUT_METHODS = [...PAYOUT_NETWORKS];
-
-async function verifyWalletOnChain(networkKey, address) {
-  try {
-    if (networkKey === "usdt_bsc") {
-      const r = await fetch("https://bsc-dataseed.binance.org", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jsonrpc: "2.0", method: "eth_getBalance", params: [address, "latest"], id: 1 }),
-      });
-      if (!r.ok) return { state: "error", msg: "Couldn't reach BSC to verify." };
-      const data = await r.json();
-      if (data?.error || !("result" in data)) return { state: "error", msg: "Couldn't verify this address." };
-      if (parseInt(data.result, 16) === 0) {
-        return { state: "warn", msg: "No on-chain activity detected — confirm it's your address before saving." };
-      }
-      return { state: "ok", msg: null };
-    }
-    return { state: "error", msg: "Unknown network." };
-  } catch {
-    return { state: "error", msg: "Couldn't reach verification service — double-check the address manually." };
-  }
-}
-
-function PayoutSection({ builderProfile, onSaved }) {
-  const { user } = useAuth();
-  const [editing, setEditing] = useState(false);
-  const [network, setNetwork] = useState(null);
-  const [address, setAddress] = useState("");
-  const [addrError, setAddrError] = useState(null);
-  const [verify, setVerify] = useState({ state: "idle", msg: null });
-  const [error, setError] = useState(null);
-  const [saving, setSaving] = useState(false);
-
-  function resolveNetwork(method) {
-    if (method === "usdt_bsc") return method;
-    return null;
-  }
-
-  function startEdit() {
-    setNetwork(resolveNetwork(builderProfile?.payout_method));
-    setAddress(builderProfile?.payout_details || "");
-    setAddrError(null);
-    setVerify({ state: "idle", msg: null });
-    setError(null);
-    setEditing(true);
-  }
-
-  function pickNetwork(key) {
-    setNetwork(key);
-    setAddress("");
-    setAddrError(null);
-    setVerify({ state: "idle", msg: null });
-  }
-
-  function validateFormat(net, addr) {
-    if (!addr) return null;
-    const meta = PAYOUT_NETWORKS.find((n) => n.key === net);
-    return meta && !meta.regex.test(addr) ? meta.formatError : null;
-  }
-
-  function onAddressChange(val) {
-    setAddress(val);
-    setAddrError(validateFormat(network, val.trim()));
-    setVerify({ state: "idle", msg: null });
-  }
-
-  async function onAddressBlur() {
-    const trimmed = address.trim();
-    if (!trimmed || addrError || !network) return;
-    setVerify({ state: "checking", msg: null });
-    const result = await verifyWalletOnChain(network, trimmed);
-    setVerify(result);
-  }
-
-  async function save() {
-    const supabase = getSupabaseClient();
-    if (!supabase || !user?.id) return;
-    if (!network) { setError("Select a payout method first."); return; }
-    const trimmed = address.trim();
-    if (!trimmed) { setError("Enter your USDT wallet address."); return; }
-    const fmtErr = validateFormat(network, trimmed);
-    if (fmtErr) { setAddrError(fmtErr); return; }
-    setSaving(true);
-    setError(null);
-    const { error: err } = await saveBuilderPayout(supabase, user.id, { method: network, details: trimmed });
-    setSaving(false);
-    if (err) { setError(err.message || "Couldn't save."); return; }
-    setEditing(false);
-    await onSaved?.();
-  }
-
-  const activeMeta = PAYOUT_METHODS.find((n) => n.key === network);
-  const canSave = !!network && !!address.trim() && !addrError;
-  const savedNetMeta = PAYOUT_METHODS.find((n) => n.key === resolveNetwork(builderProfile?.payout_method));
-  const savedWallet = builderProfile?.payout_details || null;
-
-  return (
-    <section className="reveal glass rounded-3xl p-6 lg:p-8">
-      <SectionHeader
-        title="Payout"
-        editing={editing}
-        onEdit={startEdit}
-        onCancel={() => setEditing(false)}
-        onSave={save}
-        saving={saving}
-        canSave={canSave}
-      />
-
-      {editing ? (
-        <div className="space-y-5">
-          {/* Step 1: pick method */}
-          <div>
-            <div className="onb-label mb-3">Payout method</div>
-            <div className="flex gap-2 flex-wrap">
-              {PAYOUT_METHODS.map((n) => (
-                <button
-                  key={n.key}
-                  type="button"
-                  onClick={() => pickNetwork(n.key)}
-                  disabled={n.disabled}
-                  className={`px-4 py-2 rounded-full text-sm font-semibold border transition-all ${
-                    n.disabled
-                      ? "border-white/10 text-gray-600 cursor-not-allowed"
-                      : network === n.key
-                      ? "bg-[#4ade80]/10 border-[#4ade80]/60 text-[#4ade80]"
-                      : "border-white/15 text-gray-400 hover:border-white/30 hover:text-gray-200"
-                  }`}
-                >
-                  {n.key === "sepa_eur" ? `${n.label} · unavailable` : `USDT - ${n.label}`}
-                </button>
-              ))}
-            </div>
-            {activeMeta && (
-              <p className="mt-2 text-xs text-gray-500">{activeMeta.hint}</p>
-            )}
-          </div>
-
-          {/* Step 2: enter address (appears only after network is chosen) */}
-          {network && network !== "sepa_eur" && (
-            <div>
-              <label htmlFor="acc-payout-address" className="onb-label block mb-2">
-                Wallet address
-              </label>
-              <div className="relative">
-                <input
-                  id="acc-payout-address"
-                  type="text"
-                  className={`onb-input font-mono text-sm ${addrError ? "is-error" : verify.state === "ok" ? "is-success" : ""}`}
-                  style={{ paddingRight: "2.5rem" }}
-                  placeholder={activeMeta?.placeholder || ""}
-                  value={address}
-                  onChange={(e) => onAddressChange(e.target.value)}
-                  onBlur={onAddressBlur}
-                  autoComplete="off"
-                  spellCheck={false}
-                />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                  {verify.state === "checking" && (
-                    <span className="block w-4 h-4 rounded-full border-2 border-[#4ade80]/40 border-t-[#4ade80] animate-spin" />
-                  )}
-                  {verify.state === "ok" && (
-                    <Icon name="check" size={16} strokeWidth={2.5} className="text-[#4ade80]" />
-                  )}
-                  {(verify.state === "warn" || verify.state === "error") && (
-                    <Icon name="alert-triangle" size={16} className="text-amber-400" />
-                  )}
-                </span>
-              </div>
-              {addrError ? (
-                <p className="mt-1.5 text-xs text-red-400">{addrError}</p>
-              ) : verify.msg ? (
-                <p className={`mt-1.5 text-xs ${verify.state === "ok" ? "text-[#4ade80]" : "text-amber-400"}`}>
-                  {verify.msg}
-                </p>
-              ) : (
-                <p className="mt-2 text-xs text-gray-500 leading-relaxed">
-                  Your earnings are paid in USDT to this wallet once an order completes.
-                  Double-check it — crypto transfers can&apos;t be reversed.
-                </p>
-              )}
-            </div>
-          )}
-
-          {error && <div role="alert" className="auth-banner auth-banner-error">{error}</div>}
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {savedWallet ? (
-            <>
-              <div className="flex items-center gap-2">
-                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[#4ade80]/10 border border-[#4ade80]/30 text-[#4ade80]">
-                  {savedNetMeta?.badge || "Crypto (USDT)"}
-                </span>
-              </div>
-              <p className="text-xs text-gray-400 break-all font-mono">{savedWallet}</p>
-            </>
-          ) : (
-            <p className="text-gray-500 text-sm italic">
-              No payout method set yet. Click <strong>Edit</strong> to add one.
-            </p>
-          )}
-        </div>
-      )}
-    </section>
-  );
-}
-
-// ─── Specialties (builders) ─────────────────────────────────────────────────
-const WITHDRAWAL_STATUS = {
-  requested: ["Awaiting review", "text-amber-300"],
-  approved: ["Approved", "text-sky-300"],
-  processing: ["Processing", "text-sky-300"],
-  sent: ["Sent", "text-[#4ade80]"],
-  rejected: ["Rejected", "text-red-300"],
-  failed: ["Failed", "text-red-300"],
-  cancelled: ["Cancelled", "text-gray-400"],
-};
-
-function BuilderPayoutsDashboard({ builderProfile, onSaved }) {
-  const [summary, setSummary] = useState(null);
-  const [history, setHistory] = useState(null);
-  const [amount, setAmount] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(null);
-  const [notice, setNotice] = useState(null);
-
-  const reload = useCallback(async () => {
-    const [{ summary: totals, error: totalsError }, { payouts, error: historyError }] =
-      await Promise.all([getMyPayoutSummary(), listMyPayoutHistory()]);
-    setSummary(totals);
-    setHistory(payouts);
-    setError(totalsError?.message || historyError?.message || null);
-  }, []);
-
-  useEffect(() => {
-    reload();
-  }, [reload]);
-
-  const amountCents = Math.round(Number(amount || 0) * 100);
-  const available = Number(summary?.available_cents) || 0;
-  const minimum = Number(summary?.minimum_cents) || 2000;
-  const hasDestination =
-    builderProfile?.payout_method === "usdt_bsc" &&
-    !!builderProfile?.payout_details;
-  const canWithdraw =
-    hasDestination && amountCents >= minimum && amountCents <= available && !busy;
-
-  async function submitWithdrawal() {
-    if (!canWithdraw) return;
-    setBusy(true);
-    setError(null);
-    setNotice(null);
-    const { error: requestError } = await requestWithdrawal(amountCents);
-    setBusy(false);
-    if (requestError) {
-      setError(requestError.message || "Could not request withdrawal.");
-      return;
-    }
-    setAmount("");
-    setNotice("Withdrawal requested. Your balance is reserved pending admin review.");
-    await reload();
-  }
-
-  async function cancel(id) {
-    setBusy(true);
-    setError(null);
-    const { error: cancelError } = await cancelWithdrawal(id);
-    setBusy(false);
-    if (cancelError) {
-      setError(cancelError.message || "Could not cancel withdrawal.");
-      return;
-    }
-    setNotice("Withdrawal cancelled and funds returned to your available balance.");
-    await reload();
-  }
-
-  return (
-    <div className="space-y-8">
-      <section className="reveal glass rounded-3xl p-6 lg:p-8">
-        <div className="flex items-start justify-between gap-4 flex-wrap mb-6">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-[#4ade80]/80">
-              Builder wallet
-            </p>
-            <h2 className="font-bold text-2xl mt-1">Balance</h2>
-          </div>
-          <span className="text-xs text-gray-500">Balances are shown in USD.</span>
-        </div>
-        <div className="grid sm:grid-cols-3 gap-3">
-          {[
-            ["Available", summary?.available_cents, "text-[#4ade80]"],
-            ["Pending", summary?.pending_cents, "text-amber-300"],
-            ["Lifetime paid", summary?.paid_cents, "text-white"],
-          ].map(([label, cents, cls]) => (
-            <div key={label} className="rounded-2xl border border-white/10 bg-black/20 p-4">
-              <p className="text-xs text-gray-500">{label}</p>
-              <p className={`text-2xl font-extrabold mt-1 ${cls}`}>
-                {summary ? formatPrice(Number(cents) || 0) : "—"}
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <PayoutSection builderProfile={builderProfile} onSaved={async () => {
-        await onSaved?.();
-        await reload();
-      }} />
-
-      <section className="reveal glass rounded-3xl p-6 lg:p-8">
-        <h2 className="font-bold text-xl">Withdraw funds</h2>
-        <p className="text-xs text-gray-500 mt-1 mb-5">
-          Minimum {formatPrice(minimum)}. Approved requests are included in the
-          weekly USDT-BSC batch; BuildEx absorbs the payout network fee.
-        </p>
-        <div className="flex gap-3 flex-wrap">
-          <div className="relative flex-1 min-w-[220px]">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">$</span>
-            <input
-              type="number"
-              min={minimum / 100}
-              step="0.01"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className="onb-input"
-              style={{ paddingLeft: "2rem" }}
-              placeholder={(minimum / 100).toFixed(2)}
-            />
-          </div>
-          <button type="button" onClick={() => setAmount((available / 100).toFixed(2))}
-            disabled={!available || busy}
-            className="px-4 py-2 rounded-full text-xs font-semibold border border-white/15 text-gray-300 disabled:opacity-40">
-            Max
-          </button>
-          <button type="button" onClick={submitWithdrawal} disabled={!canWithdraw}
-            className="px-6 py-2 rounded-full text-sm font-bold bg-[#4ade80] text-black disabled:opacity-40 disabled:cursor-not-allowed">
-            {busy ? "Submitting…" : "Request withdrawal"}
-          </button>
-        </div>
-        {!hasDestination && (
-          <p className="text-xs text-amber-300 mt-3">
-            Save a USDT payout destination above before requesting a withdrawal.
-          </p>
-        )}
-        {amountCents > available && (
-          <p className="text-xs text-red-400 mt-3">Amount exceeds your available balance.</p>
-        )}
-        {error && <div role="alert" className="auth-banner auth-banner-error mt-4">{error}</div>}
-        {notice && <div className="auth-banner mt-4 text-[#4ade80]">{notice}</div>}
-      </section>
-
-      <section className="reveal glass rounded-3xl p-6 lg:p-8">
-        <h2 className="font-bold text-xl mb-4">Withdrawal history</h2>
-        {history === null ? (
-          <p className="text-sm text-gray-500">Loading…</p>
-        ) : history.length === 0 ? (
-          <p className="text-sm text-gray-500">No withdrawals yet.</p>
-        ) : (
-          <div className="space-y-2">
-            {history.map((p) => {
-              const meta = WITHDRAWAL_STATUS[p.status] || [p.status, "text-gray-300"];
-              return (
-                <div key={p.id} className="rounded-2xl border border-white/10 p-4 flex items-center gap-3 flex-wrap">
-                  <div className="flex-1 min-w-[180px]">
-                    <p className="text-sm font-semibold">
-                      USDT · BSC/BEP-20
-                    </p>
-                    <p className="text-[11px] text-gray-500">
-                      {new Date(p.created_at).toLocaleString()}
-                    </p>
-                    {p.payout_reference && (
-                      <p className="text-[11px] text-sky-300 mt-1 break-all">
-                        Reference: {p.payout_reference}
-                      </p>
-                    )}
-                    {p.admin_note && (
-                      <p className="text-[11px] text-gray-400 mt-1">{p.admin_note}</p>
-                    )}
-                    {p.rejection_reason && <p className="text-[11px] text-red-300 mt-1">{p.rejection_reason}</p>}
-                  </div>
-                  <span className="font-bold">{formatPrice(p.amount_cents)}</span>
-                  {p.fee_amount_cents != null && (
-                    <span className="text-[11px] text-gray-500">
-                      Net {formatPrice(p.net_amount_cents ?? p.amount_cents)}
-                    </span>
-                  )}
-                  <span className={`text-xs font-semibold ${meta[1]}`}>{meta[0]}</span>
-                  {p.status === "requested" && (
-                    <button type="button" onClick={() => cancel(p.id)} disabled={busy}
-                      className="px-3 py-1.5 rounded-full text-[11px] border border-white/15 text-gray-300">
-                      Cancel
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </section>
-    </div>
   );
 }
 
@@ -1349,7 +797,6 @@ function PortfolioSection({ portfolioCount, onSaved }) {
   );
 }
 
-// ─── Rates (builders) ───────────────────────────────────────────────────────
 // ─── Rank & commission (Stage 9) ────────────────────────────────────────────
 // Read-only: rank is earned from real metrics (completed orders + rating), not
 // edited. Shows the builder their current rank, the commission rate it earns,
@@ -1491,75 +938,6 @@ function RankSection({ builderProfile }) {
           </p>
           <p className="text-xs text-gray-500 mt-1">
             You pay the lowest commission on BuildEx.
-          </p>
-        </div>
-      )}
-    </section>
-  );
-}
-
-function RatesSection({ builderProfile, onSaved }) {
-  const { user } = useAuth();
-  const [editing, setEditing] = useState(false);
-  const [rates, setRates] = useState(() => mergeRates(builderProfile?.rates));
-  const [error, setError] = useState(null);
-  const [saving, setSaving] = useState(false);
-
-  const hasRates = !!builderProfile?.rates && Object.keys(builderProfile.rates).length > 0;
-  const savedRates = mergeRates(builderProfile?.rates);
-
-  function startEdit() {
-    setRates(mergeRates(builderProfile?.rates));
-    setError(null);
-    setEditing(true);
-  }
-
-  async function save() {
-    const msg = validateRates(rates);
-    if (msg) {
-      setError(msg);
-      return;
-    }
-    const supabase = getSupabaseClient();
-    if (!supabase || !user?.id) return;
-    setSaving(true);
-    const { error: err } = await saveBuilderRates(supabase, user.id, normalizeRates(rates));
-    setSaving(false);
-    if (err) {
-      setError(err.message || "Couldn't save.");
-      return;
-    }
-    setEditing(false);
-    await onSaved?.();
-  }
-
-  return (
-    <section className="reveal glass rounded-3xl p-6 lg:p-8">
-      <SectionHeader
-        title="Rates & Project Scale"
-        editing={editing}
-        onEdit={startEdit}
-        onCancel={() => setEditing(false)}
-        onSave={save}
-        saving={saving}
-        canSave={!validateRates(rates)}
-      />
-      <p className="text-xs text-gray-500 -mt-2 mb-5">
-        Set an exact price for each build scale. Toggle off any sizes you don&apos;t currently offer.
-      </p>
-
-      {editing ? (
-        <div className="space-y-4">
-          <RatesEditor rates={rates} onChange={setRates} />
-          {error && <div role="alert" className="auth-banner auth-banner-error">{error}</div>}
-        </div>
-      ) : hasRates ? (
-        <RatesPreview rates={savedRates} />
-      ) : (
-        <div className="rounded-2xl border border-dashed border-white/15 p-8 text-center">
-          <p className="text-gray-400 text-sm">You haven&apos;t set your rates yet.</p>
-          <p className="text-gray-500 text-xs mt-1">
-            Click <strong>Edit</strong> to add an exact price for each build scale.
           </p>
         </div>
       )}
@@ -2255,9 +1633,9 @@ function AccountPageInner() {
   const [theme, setTheme] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [toast, setToast] = useState(null);
-  // Top-level account view: "profile" (visuals/identity), "orders" (active
-  // orders), or "danger" (account controls + delete). Keep it in the URL so
-  // a refresh or shared account link restores the selected tab.
+  // Top-level account view: "profile" (visuals/identity) or "danger" (account
+  // controls + delete). Keep it in the URL so a refresh or a shared account
+  // link restores the selected tab.
   const [section, setSection] = useState(() => searchParams.get("section") || "profile");
   const selectSection = useCallback((nextSection) => {
     setSection(nextSection);
@@ -2265,8 +1643,7 @@ function AccountPageInner() {
     const url = new URL(window.location.href);
     if (nextSection === "profile") url.searchParams.delete("section");
     else url.searchParams.set("section", nextSection);
-    // Keep Next's app router in sync. Mutating history directly can leave the
-    // route cache stale after the ready-builds section has mounted.
+    // Keep Next's app router in sync.
     router.replace(`${url.pathname}${url.search}${url.hash}`, { scroll: false });
   }, [router]);
 
@@ -2498,11 +1875,11 @@ function AccountPageInner() {
             </h1>
             <p className="text-sm text-gray-500 mt-1.5">
               {isStudio
-                ? "Manage your storefront, team, orders and payouts in focused sections."
+                ? "Manage your storefront and team in focused sections."
                 : isEmployee
-                ? "Manage your studio identity, employment status, assignments, and account settings."
+                ? "Manage your studio identity, employment status, and account settings."
                 : isBuilder
-                ? "Manage how you appear to clients across BuildEx — your identity, availability, portfolio and rates."
+                ? "Manage how you appear across BuildEx — your identity, availability and portfolio."
                 : "Manage your account details and building preferences."}
             </p>
           </div>
@@ -2521,8 +1898,6 @@ function AccountPageInner() {
                 <div className="space-y-8">
                   <AccountActionsSection />
                 </div>
-              ) : section === "ready-builds" ? (
-                <ReadyBuildsSection ownerType="studio" />
               ) : (
                 <StudioModeratorDashboard section={section} />
               )}
@@ -2539,7 +1914,6 @@ function AccountPageInner() {
                       <AccountHeader profile={profile} builderProfile={builderProfile} onSaved={refresh} />
                       <StudioEmployeeDashboard builderProfile={builderProfile} section="profile" onAvailabilitySaved={refresh} />
                       <AboutSection profile={profile} builderProfile={builderProfile} isBuilder onSaved={refresh} />
-                      {!isEmployee && <RatesSection builderProfile={builderProfile} onSaved={refresh} />}
                       <SpecialtiesSection builderProfile={builderProfile} onSaved={refresh} />
                       <ExpertiseSection builderProfile={builderProfile} onSaved={refresh} />
                     </div>
@@ -2576,7 +1950,6 @@ function AccountPageInner() {
                   <>
                     <RankSection builderProfile={builderProfile} />
                     <PortfolioSection portfolioCount={portfolioCount} onSaved={refresh} />
-                    <RatesSection builderProfile={builderProfile} onSaved={refresh} />
                     <SpecialtiesSection builderProfile={builderProfile} onSaved={refresh} />
                     <ExpertiseSection builderProfile={builderProfile} onSaved={refresh} />
                   </>
@@ -2589,22 +1962,8 @@ function AccountPageInner() {
             </>
           )}
 
-          {section === "orders" && (
-            <div className="space-y-8">
-              <ActiveOrdersSection userId={user?.id} />
-            </div>
-          )}
-
           {section === "invitations" && isBuilder && (
             <StudioInvitationCard onAccepted={refresh} />
-          )}
-
-          {section === "payouts" && isBuilder && (
-            <BuilderPayoutsDashboard builderProfile={builderProfile} onSaved={refresh} />
-          )}
-
-          {section === "ready-builds" && isBuilder && !isEmployee && (
-            <ReadyBuildsSection />
           )}
 
           {section === "danger" && (

@@ -246,9 +246,6 @@ export default function CatalogFilters({
   onStyleToggle,
   selectedBuildTypes,
   onBuildTypeToggle,
-  minPrice,
-  maxPrice,
-  onPriceChange,
   minRating,
   onRatingChange,
   selectedRanks,
@@ -344,43 +341,6 @@ export default function CatalogFilters({
             onChange={() => onBuildTypeToggle(bt.key)}
           />
         ))}
-      </FilterGroup>
-
-      {/* Price range */}
-      <FilterGroup label="Price Range" defaultOpen={false}>
-        <div className="flex items-center gap-2 pt-1">
-          <div className="relative flex-1">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-500 pointer-events-none">
-              $
-            </span>
-            <input
-              type="number"
-              min="0"
-              placeholder="Min"
-              value={minPrice || ""}
-              onChange={(e) =>
-                onPriceChange({ min: Number(e.target.value), max: maxPrice })
-              }
-              className="price-input w-full glass rounded-xl pl-6 pr-3 py-2.5 text-sm focus:outline-none focus:border-[#4ade80]/50 transition-all"
-            />
-          </div>
-          <span className="text-gray-500 text-sm flex-shrink-0">—</span>
-          <div className="relative flex-1">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-500 pointer-events-none">
-              $
-            </span>
-            <input
-              type="number"
-              min="0"
-              placeholder="Max"
-              value={maxPrice || ""}
-              onChange={(e) =>
-                onPriceChange({ min: minPrice, max: Number(e.target.value) })
-              }
-              className="price-input w-full glass rounded-xl pl-6 pr-3 py-2.5 text-sm focus:outline-none focus:border-[#4ade80]/50 transition-all"
-            />
-          </div>
-        </div>
       </FilterGroup>
 
       {/* Rating */}

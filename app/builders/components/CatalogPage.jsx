@@ -18,14 +18,8 @@ import CatalogSearch from "./CatalogSearch";
 import CatalogSort from "./CatalogSort";
 import FiltersMobileModal from "./FiltersMobileModal";
 import BuilderGrid from "./BuilderGrid";
-import ReadyBuildGrid from "./ReadyBuildGrid";
 import PaginationControls from "./PaginationControls";
 import SiteFooter from "../../home/components/SiteFooter";
-import { listReadyBuilds } from "../../../lib/readyBuilds/api";
-import { useAuth } from "../../../lib/auth/AuthContext";
-import { getSupabaseClient } from "../../../lib/supabase/client";
-import { buildLoginUrl } from "../../../lib/auth/redirects";
-import { withBase } from "../../home/utils";
 
 // ─── URL param helpers ────────────────────────────────────────────────────────
 
@@ -46,7 +40,6 @@ function readParamsFromLocation() {
 // ─── Main client page ─────────────────────────────────────────────────────────
 
 export default function CatalogPage() {
-  const { status, user, profile } = useAuth();
   // URL search params held as local state. Synced to history via replaceState.
   // We avoid `useSearchParams()` because it forces a Suspense boundary that
   // currently hangs the page in Next 16 + React 19 with `output: "export"`.
@@ -55,8 +48,7 @@ export default function CatalogPage() {
   // Sync state when the user navigates back/forward
   useEffect(() => {
     // The static server render cannot see the query string. Re-read it after
-    // hydration and after a Next client navigation back from a build detail so
-    // ?mode=ready reliably restores the ready-made feed instead of builders.
+    // hydration and after a Next client navigation back from a builder profile.
     setParams(readParamsFromLocation());
     const onPop = () => setParams(readParamsFromLocation());
     window.addEventListener("popstate", onPop);
@@ -67,8 +59,6 @@ export default function CatalogPage() {
   const query = params.get("q") || "";
   const selectedStyles = useMemo(() => parseArray(params.get("style")), [params]);
   const selectedBuildTypes = useMemo(() => parseArray(params.get("type")), [params]);
-  const minPrice = Number(params.get("min")) || 0;
-  const maxPrice = Number(params.get("max")) || 0;
   const minRating = Number(params.get("rating")) || 0;
   const selectedRanks = useMemo(() => parseArray(params.get("rank")), [params]);
   const selectedStudios = useMemo(() => parseArray(params.get("studio")), [params]);
@@ -77,14 +67,6 @@ export default function CatalogPage() {
     : "all";
   const favoritesOnly = params.get("fav") === "1";
   const sort = params.get("sort") || DEFAULT_SORT;
-  // Defer the URL-derived mode until after hydration. The catalog is statically
-  // exported, so the server has no search string while the client does; deriving
-  // this during the first render caused a hydration mismatch for shared ready
-  // build links.
-  const [mode, setMode] = useState("custom");
-  useEffect(() => {
-    setMode(params.get("mode") === "ready" ? "ready" : "custom");
-  }, [params]);
 
   // Seed for the default "Recommended" (randomised) order. A fresh visit rolls
   // a new seed; returning from a builder profile reuses it so the order doesn't
@@ -101,8 +83,6 @@ export default function CatalogPage() {
   // ── Live builder feed (replaces the old static demo array) ──────────────────
   const [builders, setBuilders] = useState([]);
   const [buildersLoading, setBuildersLoading] = useState(true);
-  const [readyBuilds, setReadyBuilds] = useState([]);
-  const [readyBuildsLoading, setReadyBuildsLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -115,14 +95,6 @@ export default function CatalogPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    listReadyBuilds().then(({ listings }) => {
-      if (!cancelled) { setReadyBuilds(listings || []); setReadyBuildsLoading(false); }
-    });
-    return () => { cancelled = true; };
   }, []);
 
   // ── Local UI state ──────────────────────────────────────────────────────────
@@ -228,7 +200,7 @@ export default function CatalogPage() {
     );
     els.forEach((el) => obs.observe(el));
     return () => obs.disconnect();
-  }, [mode]);
+  }, []);
 
   // ── Mobile menu / keyboard cleanup ─────────────────────────────────────────
   useEffect(() => {
@@ -256,30 +228,6 @@ export default function CatalogPage() {
     setToastMsg(msg);
     clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToastMsg(null), 3000);
-  }
-
-  async function openReadyBuildPublisher() {
-    if (status !== "authenticated" || !user?.id) {
-      window.location.assign(withBase(buildLoginUrl("/builders?mode=ready")));
-      return;
-    }
-    if (profile?.role === "studio") {
-      window.location.assign(withBase("/account?section=ready-builds"));
-      return;
-    }
-    const supabase = getSupabaseClient();
-    const { data: builderProfile } = await supabase
-      .from("builder_profiles")
-      .select("profile_type")
-      .eq("id", user.id)
-      .maybeSingle();
-    if ((profile?.role === "builder" || profile?.role === "both") && builderProfile?.profile_type === "independent") {
-      window.location.assign(withBase("/account?section=ready-builds"));
-      return;
-    }
-    showToast(builderProfile?.profile_type === "studio_employee"
-      ? "Studio employees cannot publish ready-made builds; ask the studio moderator."
-      : "Ready-made builds can be published by independent builders and studio moderators.");
   }
 
   // ── URL update helper (writes to history + updates local state) ────────────
@@ -332,11 +280,6 @@ export default function CatalogPage() {
       updateURL({ type: serializeArray(next) });
     },
     [selectedBuildTypes, updateURL]
-  );
-
-  const handlePriceChange = useCallback(
-    ({ min, max }) => updateURL({ min: min || null, max: max || null }),
-    [updateURL]
   );
 
   const handleRatingChange = useCallback(
@@ -411,8 +354,6 @@ export default function CatalogPage() {
       query,
       styles: selectedStyles,
       buildTypes: selectedBuildTypes,
-      minPrice,
-      maxPrice,
       minRating,
       ranks: selectedRanks,
       studios: selectedStudios,
@@ -424,21 +365,16 @@ export default function CatalogPage() {
         )
       : filtered;
     return sortBuilders(scoped, sort, feedSeed);
-  }, [builders, query, selectedStyles, selectedBuildTypes, minPrice, maxPrice, minRating, selectedRanks, selectedStudios, provider, sort, feedSeed, effectiveFavoritesOnly, favoriteIds]);
+  }, [builders, query, selectedStyles, selectedBuildTypes, minRating, selectedRanks, selectedStudios, provider, sort, feedSeed, effectiveFavoritesOnly, favoriteIds]);
 
   const visibleBuilders = useMemo(
     () => filteredBuilders.slice(0, pageCount * ITEMS_PER_PAGE),
     [filteredBuilders, pageCount]
   );
-  const visibleReadyBuilds = useMemo(() => readyBuilds.filter((build) => {
-    const haystack = `${build.title} ${build.description} ${build.style} ${build.builder?.display_name || ""}`.toLowerCase();
-    return (!query || haystack.includes(query.toLowerCase())) && (!selectedStyles.length || selectedStyles.includes(build.style));
-  }), [readyBuilds, query, selectedStyles]);
-
   // Key for triggering card re-animation when filters change
   const animKey = useMemo(
-    () => `${query}|${selectedStyles}|${selectedBuildTypes}|${minPrice}|${maxPrice}|${minRating}|${selectedRanks}|${selectedStudios}|${provider}|${effectiveFavoritesOnly}|${sort}|${feedSeed}`,
-    [query, selectedStyles, selectedBuildTypes, minPrice, maxPrice, minRating, selectedRanks, selectedStudios, provider, effectiveFavoritesOnly, sort, feedSeed]
+    () => `${query}|${selectedStyles}|${selectedBuildTypes}|${minRating}|${selectedRanks}|${selectedStudios}|${provider}|${effectiveFavoritesOnly}|${sort}|${feedSeed}`,
+    [query, selectedStyles, selectedBuildTypes, minRating, selectedRanks, selectedStudios, provider, effectiveFavoritesOnly, sort, feedSeed]
   );
 
   // Active filter count (for mobile button badge)
@@ -446,14 +382,13 @@ export default function CatalogPage() {
     let n = 0;
     if (selectedStyles.length) n++;
     if (selectedBuildTypes.length) n++;
-    if (minPrice || maxPrice) n++;
     if (minRating) n++;
     if (selectedRanks.length) n++;
     if (selectedStudios.length) n++;
     if (provider !== "all") n++;
     if (effectiveFavoritesOnly) n++;
     return n;
-  }, [selectedStyles, selectedBuildTypes, minPrice, maxPrice, minRating, selectedRanks, selectedStudios, provider, effectiveFavoritesOnly]);
+  }, [selectedStyles, selectedBuildTypes, minRating, selectedRanks, selectedStudios, provider, effectiveFavoritesOnly]);
 
   const isLight = theme === "light";
 
@@ -465,9 +400,6 @@ export default function CatalogPage() {
     onStyleToggle: handleStyleToggle,
     selectedBuildTypes,
     onBuildTypeToggle: handleBuildTypeToggle,
-    minPrice,
-    maxPrice,
-    onPriceChange: handlePriceChange,
     minRating,
     onRatingChange: handleRatingChange,
     selectedRanks,
@@ -512,17 +444,11 @@ export default function CatalogPage() {
           <div className="max-w-7xl mx-auto px-6">
             <div className="catalog-header-content">
               <h1 className="catalog-heading reveal text-4xl sm:text-5xl font-extrabold tracking-tight leading-tight mb-3">
-                {mode === "ready" ? <>Discover <span className="text-[#4ade80]">Ready-Made</span> Builds</> : <>Hire Elite <span className="text-[#4ade80]">Minecraft</span> Builders</>}
+                Discover Elite <span className="text-[#4ade80]">Minecraft</span> Builders
               </h1>
-              <p className={`catalog-header-description reveal text-gray-400 text-base sm:text-lg max-w-xl ${mode === "ready" ? "hidden" : ""}`}>
-                Browse talented creators, view their portfolios, and commission
-                custom builds — rates negotiated per project, with protected payments.
+              <p className="catalog-header-description reveal text-gray-400 text-base sm:text-lg max-w-xl">
+                Browse talented creators and explore their portfolios.
               </p>
-              {mode === "ready" && <><p className="catalog-header-description reveal text-gray-400 text-base sm:text-lg max-w-xl">Browse finished Minecraft worlds from independent builders and studios. Preview every build in 3D, then download it instantly after payment.</p><button type="button" onClick={openReadyBuildPublisher} className="catalog-ready-publisher reveal group inline-flex items-center gap-2.5 rounded-full border border-[#4ade80]/35 bg-[linear-gradient(120deg,rgba(74,222,128,.14),rgba(74,222,128,.06))] px-5 py-2.5 text-sm font-bold text-[#9af5bd] shadow-[0_10px_35px_rgba(74,222,128,.08)] transition hover:-translate-y-0.5 hover:border-[#4ade80]/60 hover:bg-[#4ade80]/20 hover:shadow-[0_14px_38px_rgba(74,222,128,.16)]"><span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#4ade80] text-base leading-none text-black transition group-hover:rotate-90">+</span><span>Have a build? Upload it</span></button></>}
-
-            <div className={`catalog-mode-switch ${mode === "ready" ? "is-ready" : "is-custom"} reveal`} role="tablist" aria-label="Browse mode">
-              {[{ key: "custom", label: "Custom builds" }, { key: "ready", label: "Ready-made builds" }].map((item) => <button key={item.key} type="button" role="tab" aria-selected={mode === item.key} onClick={() => updateURL({ mode: item.key === "ready" ? "ready" : null })} className={`catalog-mode-switch-option ${mode === item.key ? "is-active" : ""}`}>{item.label}</button>)}
-            </div>
             </div>
           </div>
         </section>
@@ -582,9 +508,9 @@ export default function CatalogPage() {
                 <div className="flex items-center justify-between mb-6 reveal">
                   <p className="text-sm text-gray-400">
                     <span className="text-white font-semibold">
-                      {mode === "ready" ? visibleReadyBuilds.length : filteredBuilders.length}
+                      {filteredBuilders.length}
                     </span>{" "}
-                    {mode === "ready" ? (visibleReadyBuilds.length === 1 ? "build" : "builds") : (filteredBuilders.length === 1 ? "provider" : "providers")} found
+                    {filteredBuilders.length === 1 ? "provider" : "providers"} found
                     {query && (
                       <span className="ml-2">
                         for{" "}
@@ -613,9 +539,7 @@ export default function CatalogPage() {
                 </div>
 
                 {/* Builder grid (spinner until the live feed resolves) */}
-                {mode === "ready" ? readyBuildsLoading ? (
-                  <div className="flex flex-col items-center justify-center py-24 text-center"><div className="w-10 h-10 rounded-full border-2 border-[#4ade80] border-t-transparent animate-spin mb-4" /><p className="text-gray-400 text-sm">Loading ready-made builds…</p></div>
-                ) : <ReadyBuildGrid listings={visibleReadyBuilds} /> : buildersLoading ? (
+                {buildersLoading ? (
                   <div className="flex flex-col items-center justify-center py-24 text-center">
                     <div className="w-10 h-10 rounded-full border-2 border-[#4ade80] border-t-transparent animate-spin mb-4" />
                     <p className="text-gray-400 text-sm">Loading builders…</p>

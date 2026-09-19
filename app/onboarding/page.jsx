@@ -80,7 +80,7 @@ function RoleStep({ state }) {
             icon={BUILDER_ICON}
             bullets={[
               "Public profile + portfolio at @yourhandle",
-              "Get matched with paid commissions",
+              "Get discovered by server owners",
               "Show your styles, build types, and availability",
             ]}
             selected={selected === "builder"}
@@ -96,7 +96,7 @@ function RoleStep({ state }) {
             bullets={[
               "Browse vetted builders across every style",
               "Save favorites, message, and request quotes",
-              "Track every commission in one place",
+              "Keep every conversation in one place",
             ]}
             selected={selected === "client"}
             onSelect={() => setSelected("client")}

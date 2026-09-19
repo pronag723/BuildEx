@@ -22,7 +22,6 @@ import {
   RESPONSE_TIMES,
 } from "../../../lib/onboarding/constants";
 import { isOnline } from "../../../lib/presence/api";
-import { startsFromPrice, ratesToTiers } from "../../../lib/pricing";
 import { fetchStudios } from "../../../lib/studios/api";
 
 // Columns shared by the feed query and the single-profile query.
@@ -58,13 +57,6 @@ function mapPortfolio(rows) {
     });
 }
 
-// Builder rates are { small|medium|large: { enabled, blocks, price_kopecks } }.
-// (price_kopecks now holds USD cents — legacy column name.)
-// starts_from = cheapest enabled tier's price in cents (0 if none set).
-function deriveStartsFrom(rates) {
-  return startsFromPrice(rates);
-}
-
 // A builder is hidden from the feed when their availability slider is on red.
 // `availability_status === "busy"` is the source of truth; `is_available` is a
 // mirror kept in sync by the account page, checked as a fallback.
@@ -95,8 +87,6 @@ export function mapRow(row) {
   const bp = row.builder || {};
   const specialties = Array.isArray(bp.specialties) ? bp.specialties : [];
   const buildTypes = Array.isArray(bp.build_types) ? bp.build_types : [];
-  const rates = bp.rates && typeof bp.rates === "object" ? bp.rates : {};
-  const startsFrom = deriveStartsFrom(rates);
   const availability = bp.availability_status || "available";
 
   return {
@@ -137,10 +127,6 @@ export function mapRow(row) {
     portfolio: mapPortfolio(row.portfolio),
     styles: specialties,
     build_types: buildTypes,
-
-    // Rates — exact price per enabled size (cents)
-    rates,
-    starts_from: startsFrom,
   };
 }
 
@@ -186,9 +172,8 @@ export async function fetchBuilders() {
 }
 
 // ─── Single builder (public profile page) ───────────────────────────────────
-// The profile page renders a richer shape than the feed card (workflow, tools,
-// response time, and a complete small/medium/large rate set). These helpers
-// fill in those extra, profile-only fields.
+// The profile page renders a richer shape than the feed card (tools and
+// response time). These helpers fill in those extra, profile-only fields.
 
 function responseTimeLabel(hours) {
   if (hours == null) return "within a day";
@@ -204,42 +189,16 @@ function toolLabels(tools) {
   );
 }
 
-// Normalize rates for the public profile + order pages into an ordered array of
-// display tiers (built-ins first, then any builder-added custom sizes). Disabled
-// tiers are kept so the order page can show the full menu greyed out.
-// Returns: [{ id, label, icon, blocks, price (cents), enabled, areaText }]
-function areaTextFor(tier) {
-  const blocks = Number(tier.blocks) || 0;
-  if (blocks <= 0) return "Custom scope — quote on request";
-  if (tier.id === "large") return `${blocks}×${blocks} blocks and beyond`;
-  return `Up to ${blocks}×${blocks} blocks`;
-}
-
-function normalizeProfileRates(rates) {
-  return ratesToTiers(rates).map((tier) => ({
-    id: tier.id,
-    label: tier.label,
-    icon: tier.icon,
-    hint: tier.hint,
-    blocks: tier.blocks,
-    price: tier.price,
-    enabled: tier.enabled,
-    areaText: areaTextFor(tier),
-  }));
-}
-
 function mapProfileRow(row) {
   const base = mapRow(row);
   const bp = row.builder || {};
   return {
     ...base,
-    // profiles.id is needed by the order placement RPC (builder_id) and by the
-    // "is this me?" self-check on /order. profiles is publicly readable under
-    // RLS, so exposing the uuid here is no different from selecting it directly.
+    // profiles is publicly readable under RLS, so exposing the uuid here is no
+    // different from selecting it directly.
     id: row.id,
     response_time: responseTimeLabel(bp.response_time_hours),
     tools: toolLabels(bp.tools),
-    rates: normalizeProfileRates(bp.rates),
     member_since: base.member_since || new Date().toISOString(),
   };
 }

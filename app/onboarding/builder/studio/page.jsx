@@ -136,8 +136,7 @@ function BuilderStudioChoice() {
             </div>
             <p className="text-sm text-gray-300 leading-relaxed">
               You will add your profile, tools, styles, and collaboration
-              preferences. Your studio controls client pricing, so you will not
-              set public rates. A portfolio is optional for studio employees.
+              preferences. A portfolio is optional for studio employees.
             </p>
           </>
         )}

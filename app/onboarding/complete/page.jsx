@@ -82,12 +82,12 @@ export default function OnboardingCompletePage() {
           {role === "client"
             ? "Your client profile is live. Browse builders, save your favorites, and reach out when you're ready."
             : role === "studio"
-            ? "Your studio storefront is ready for BuildEx review. Set your team commission and invite builders from your dashboard."
+            ? "Your studio storefront is ready for BuildEx review. Invite builders from your dashboard."
             : isStudioEmployee
             ? "You have joined your studio. Set your availability and watch your dashboard for assignments."
             : role === "both"
             ? "Your profile is live as both a builder and a client. Start posting work and exploring the catalog."
-            : "Your builder profile is live and discoverable. Share your handle, take on commissions, and watch your rank climb."}
+            : "Your builder profile is live and discoverable. Share your handle and let your portfolio do the talking."}
         </p>
 
         {handle && (

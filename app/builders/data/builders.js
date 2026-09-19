@@ -1,6 +1,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // BuildEx — Builder-centric data model
-// Each builder represents a creator profile with portfolio + negotiable rates.
+// Each builder represents a creator profile with a portfolio.
 // Supabase migration: SELECT * FROM builder_profiles JOIN portfolio_items
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -14,7 +14,6 @@ import {
   RATING_OPTIONS,
   ITEMS_PER_PAGE,
 } from "./offers";
-import { startsFromPrice } from "../../../lib/pricing";
 import { seededShuffle } from "./feedOrder";
 
 // Re-export shared constants so consumers only need one import.
@@ -27,38 +26,11 @@ export const SORT_OPTIONS = [
   { key: "featured",   label: "Recommended" },
   { key: "newest",     label: "Recently Joined" },
   { key: "rating",     label: "Highest Rated" },
-  { key: "price_asc",  label: "Price: Low → High" },
-  { key: "price_desc", label: "Price: High → Low" },
   { key: "orders",     label: "Most Projects" },
 ];
 
 // The default ordering when no explicit sort is chosen.
 export const DEFAULT_SORT = "featured";
-
-// ─── Rate brackets per rank (exact price, cents) ────────────────────────────
-// price is stored in USD cents (100 cents = $1).
-const RATE_BY_RANK = {
-  rookie: {
-    small:  { enabled: true, price: 2000,  label: "Small spawn or arena (under 100×100)" },
-    medium: { enabled: true, price: 4500,  label: "Medium hub or lobby (100–200 area)" },
-    large:  { enabled: true, price: 8000,  label: "Large kingdom or network (200+ area)" },
-  },
-  advanced: {
-    small:  { enabled: true, price: 4000,  label: "Small spawn or arena (under 100×100)" },
-    medium: { enabled: true, price: 8000,  label: "Medium hub or lobby (100–250 area)" },
-    large:  { enabled: true, price: 15000, label: "Large kingdom or network (250+ area)" },
-  },
-  expert: {
-    small:  { enabled: true, price: 6000,  label: "Small spawn or arena (under 150×150)" },
-    medium: { enabled: true, price: 11000, label: "Medium hub or lobby (150–300 area)" },
-    large:  { enabled: true, price: 20000, label: "Large kingdom or network (300+ area)" },
-  },
-  master: {
-    small:  { enabled: true, price: 9000,  label: "Small spawn or arena (under 150×150)" },
-    medium: { enabled: true, price: 15000, label: "Medium hub or lobby (150–350 area)" },
-    large:  { enabled: true, price: 28000, label: "Large kingdom or signature build" },
-  },
-};
 
 // ─── Workflow snippets (per rank) ───────────────────────────────────────────
 const WORKFLOW_BY_RANK = {
@@ -112,7 +84,6 @@ function buildBuilders() {
 
     const profile = BUILDER_PROFILES[u] || {};
     const portfolio = PORTFOLIO_BY_BUILDER[u] || [];
-    const rates = RATE_BY_RANK[offer.builder.rank];
 
     // Aggregate styles & build types from the builder's portfolio for filtering.
     const styles = Array.from(new Set(portfolio.map((p) => p.style)));
@@ -148,10 +119,6 @@ function buildBuilders() {
       styles,
       build_types,
 
-      // Rates — exact price per size (cents)
-      rates,
-      starts_from: startsFromPrice(rates),
-
       // Workflow
       workflow: WORKFLOW_BY_RANK[offer.builder.rank],
       tools: TOOLS_BY_RANK[offer.builder.rank],
@@ -174,8 +141,6 @@ export function filterBuilders(builders, filters) {
     query = "",
     styles = [],
     buildTypes = [],
-    minPrice = 0,
-    maxPrice = 0,
     minRating = 0,
     ranks = [],
     studios = [],
@@ -200,8 +165,6 @@ export function filterBuilders(builders, filters) {
 
     if (!isStudioProvider && styles.length > 0 && !styles.some((s) => b.styles.includes(s))) return false;
     if (!isStudioProvider && buildTypes.length > 0 && !buildTypes.some((t) => b.build_types.includes(t))) return false;
-    if (minPrice > 0 && b.starts_from < minPrice) return false;
-    if (maxPrice > 0 && b.starts_from > maxPrice) return false;
     if (minRating > 0 && b.avg_rating < minRating) return false;
     if (!isStudioProvider && ranks.length > 0 && !ranks.includes(b.rank)) return false;
     // Studio filter (migration 0026): match the builder's studio slug.
@@ -222,10 +185,6 @@ export function sortBuilders(builders, sort, seed = 0) {
   switch (sort) {
     case "rating":
       return result.sort((a, b) => b.avg_rating - a.avg_rating);
-    case "price_asc":
-      return result.sort((a, b) => a.starts_from - b.starts_from);
-    case "price_desc":
-      return result.sort((a, b) => b.starts_from - a.starts_from);
     case "orders":
       return result.sort((a, b) => (b.completed_projects || 0) - (a.completed_projects || 0));
     case "newest":

@@ -1,6 +1,6 @@
-// Shared CORS headers. create-invoice is called from the browser via
+// Shared CORS headers. delete-account is called from the browser via
 // supabase.functions.invoke, so it must answer the preflight and echo CORS on
-// the real response. The webhook is server-to-server and doesn't need these.
+// the real response.
 export const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":

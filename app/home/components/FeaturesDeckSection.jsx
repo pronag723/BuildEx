@@ -13,49 +13,6 @@ import { Icon } from "../../../lib/icons";
 
 // ── Per-feature stylized mockups (pure presentation) ────────────────────────
 
-// 3D voxel preview — a small isometric cluster of cubes inside a viewer frame.
-function PreviewMock() {
-  return (
-    <div className="fd-mock fd-mock-preview">
-      <div className="fd-viewer-bar">
-        <span className="fd-dot" />
-        <span className="fd-dot" />
-        <span className="fd-dot" />
-        <span className="fd-viewer-label">3D preview</span>
-      </div>
-      <div className="fd-stage">
-        <div className="fd-voxel">
-          <span className="fd-face fd-top" />
-          <span className="fd-face fd-left" />
-          <span className="fd-face fd-right" />
-        </div>
-      </div>
-      <div className="fd-hint">Drag to rotate · scroll to zoom</div>
-    </div>
-  );
-}
-
-// Escrow / transaction security — a lock with a buyer → escrow → builder flow.
-function EscrowMock() {
-  return (
-    <div className="fd-mock fd-mock-escrow">
-      <div className="fd-lock">
-        <Icon name="lock" size={26} />
-      </div>
-      <div className="fd-flow">
-        <span className="fd-node">Buyer</span>
-        <span className="fd-line" />
-        <span className="fd-node fd-node-active">
-          <Icon name="shield" size={13} /> Protected
-        </span>
-        <span className="fd-line" />
-        <span className="fd-node">Builder</span>
-      </div>
-      <div className="fd-escrow-note">Funds released only after you approve</div>
-    </div>
-  );
-}
-
 // Rank ladder — rookie → master with the falling commission rate.
 function RankMock() {
   const tiers = [
@@ -107,42 +64,17 @@ function ReviewMock() {
   );
 }
 
-// Live chat + order tracking — a chat bubble pair and a status timeline.
+// Live chat — a chat bubble pair.
 function ChatMock() {
-  const steps = ["Paid", "In progress", "Delivered"];
   return (
     <div className="fd-mock fd-mock-chat">
       <div className="fd-bubble fd-bubble-in">Can you add a dragon tower?</div>
-      <div className="fd-bubble fd-bubble-out">On it — sending a preview soon ✦</div>
-      <div className="fd-track">
-        {steps.map((s, i) => (
-          <span key={s} className="fd-track-step">
-            <span className={`fd-track-dot ${i <= 1 ? "fd-track-done" : ""}`} />
-            {s}
-          </span>
-        ))}
-      </div>
+      <div className="fd-bubble fd-bubble-out">On it — sending some sketches ✦</div>
     </div>
   );
 }
 
 const FEATURES = [
-  {
-    key: "preview",
-    icon: "box",
-    title: "Interactive 3D Previews",
-    body: "Rotate and zoom an automatic 3D render of the build before you confirm — no downloads, no guesswork.",
-    bullets: ["Rotate · zoom · inspect", "Generated at delivery", "Approve with confidence"],
-    Mock: PreviewMock,
-  },
-  {
-    key: "escrow",
-    icon: "shield",
-    title: "Protected Payments",
-    body: "Your payment is held safely and only released to the builder once you've approved the delivery.",
-    bullets: ["Funds protected until completion", "Released on approval", "Disputes reviewed by support"],
-    Mock: EscrowMock,
-  },
   {
     key: "ranks",
     icon: "trophy",
@@ -162,9 +94,9 @@ const FEATURES = [
   {
     key: "chat",
     icon: "chat",
-    title: "Live Chat & Order Tracking",
-    body: "Message builders directly, share files and photos, and follow your order from payment to delivery.",
-    bullets: ["Direct messaging", "Paste & send photos", "Live order status"],
+    title: "Live Chat",
+    body: "Message builders directly and share files and photos while you work out the details.",
+    bullets: ["Direct messaging", "Paste & send photos", "Read receipts"],
     Mock: ChatMock,
   },
 ];

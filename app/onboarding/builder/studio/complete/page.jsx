@@ -54,8 +54,7 @@ function StudioEmployeeComplete() {
       <div className="glass onb-card text-sm text-gray-300 leading-relaxed">
         Studio employees receive assignments through their studio. Your skills,
         styles, tools, and response time help the studio match you to the right
-        projects. Client pricing is managed by your studio, and a personal
-        portfolio is not required.
+        projects. A personal portfolio is not required.
         {error && <div role="alert" className="auth-banner auth-banner-error mt-5">{error}</div>}
       </div>
       <OnboardingFooter

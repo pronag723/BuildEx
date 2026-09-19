@@ -13,8 +13,7 @@ export const projects = [
     rank: "Master",
     title: "Dark Fantasy Castle",
     builder: "PixelForge",
-    rating: "4.98",
-    price: "$1,250"
+    rating: "4.98"
   },
   {
     image: "/projects/spawn-anarchy-1.jpg",
@@ -22,8 +21,7 @@ export const projects = [
     rank: "Architect",
     title: "Spawn Anarchy",
     builder: "BlockVortex",
-    rating: "4.95",
-    price: "$890"
+    rating: "4.95"
   },
   {
     image: "/projects/spawn-anarchy-2.jpg",
@@ -31,16 +29,14 @@ export const projects = [
     rank: "Craftsman",
     title: "Spawn Anarchy",
     builder: "CraftEmpire",
-    rating: "4.87",
-    price: "$670"
+    rating: "4.87"
   },
   {
     image: "/projects/throne-hall-1.jpg",
     alt: "Medieval throne hall interior Minecraft build",
     title: "Throne Hall",
     builder: "CrownCraft",
-    rating: "4.96",
-    price: "$1,320"
+    rating: "4.96"
   },
   {
     image: "/projects/japan-house.jpg",
@@ -48,16 +44,14 @@ export const projects = [
     rank: "Master",
     title: "Japan House",
     builder: "ZenBlocks",
-    rating: "4.94",
-    price: "$840"
+    rating: "4.94"
   },
   {
     image: "/projects/gray-citadel.jpg",
     alt: "Gray stone citadel Minecraft build",
     title: "Gray Citadel",
     builder: "SummitBuilds",
-    rating: "4.82",
-    price: "$780"
+    rating: "4.82"
   },
   {
     image: "/projects/throne-hall-2.jpg",
@@ -65,8 +59,7 @@ export const projects = [
     rank: "Master",
     title: "Throne Hall",
     builder: "NatureCraft",
-    rating: "4.91",
-    price: "$920"
+    rating: "4.91"
   }
 ];
 
@@ -75,20 +68,20 @@ export const steps = [
     icon: "search",
     title: "1. Browse the Feed",
     body:
-      "Explore a live feed of verified Minecraft builders. Filter by style, rank, and price, and view real portfolios before you reach out."
+      "Explore a live feed of verified Minecraft builders. Filter by style and specialty, and view real portfolios before you reach out."
   },
   {
     icon: "handshake",
-    title: "2. Hire Directly",
+    title: "2. Reach Out Directly",
     body:
-      "Found the right builder? Message and hire them directly, then track your order from start to delivery - world files or schematics, reviewed before release.",
+      "Found the right builder? Message them directly and work out the scope, the timeline and the details between you.",
     className: "relative md:-mt-4"
   },
   {
-    icon: "wallet",
-    title: "3. Pay Nothing Extra",
+    icon: "chat",
+    title: "3. Keep It Simple",
     body:
-      "Clients pay only the build price. Builders cover the platform commission, and a higher rank means a lower fee for the builder."
+      "BuildEx introduces you and gets out of the way. Everything after the first message is between you and the builder."
   }
 ];
 
@@ -98,27 +91,27 @@ export const testimonials = [
     name: "EmberCraft",
     role: "Server Owner, AetherMC",
     body:
-      '"I found a builder in the feed and hired them the same day. Our new spawn is stunning and players keep asking who made it. No bidding, no hassle."'
+      '"I found a builder in the feed and messaged them the same day. Our new spawn is stunning and players keep asking who made it."'
   },
   {
     image: "/avatars/reviewer-2.svg",
     name: "VoxelVera",
     role: "Master Builder",
     body:
-      "\"BuildEx is my main source of income. Clients reach out to me directly, the commission comes out of my side, and climbing rank keeps lowering my fee.\""
+      "\"BuildEx is where my clients find me. They reach out directly, and my portfolio does the rest of the talking.\""
   },
   {
     image: "/avatars/reviewer-3.svg",
     name: "NovaForge",
     role: "Network Admin, SkyRealms",
     body:
-      '"Being able to see full portfolios before messaging anyone made hiring effortless. We picked a builder, tracked the order, and approved the delivery."'
+      '"Being able to see full portfolios before messaging anyone made finding the right builder effortless."'
   },
   {
     image: "/avatars/reviewer-4.svg",
     name: "QuartzKing",
     role: "Game Studio Lead",
     body:
-      "\"I needed a custom hub map and had the right builder hired within minutes of browsing the feed. The whole process felt smooth and professional.\""
+      "\"I needed a custom hub map and found the right builder within minutes of browsing the feed. The whole process felt smooth and professional.\""
   }
 ];

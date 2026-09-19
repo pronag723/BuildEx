@@ -3,37 +3,12 @@
 # into the SQL editor). project_id is just a local label.
 project_id = "buildex"
 
-# ─── Edge Functions (Stage 12 payments) ──────────────────────────────────────
-# create-invoice is called by the signed-in buyer's browser, so it must verify
-# the caller's JWT (the default).
-[functions.create-invoice]
-verify_jwt = true
-
-[functions.payment-options]
-verify_jwt = true
-
+# ─── Edge Functions ──────────────────────────────────────────────────────────
+# The payment, payout and ready-build functions were removed with the money
+# layer; account deletion is the only Edge Function left.
+#
 # The function validates the Authorization token with auth.getUser() itself.
 # Keep gateway verification off because this project uses asymmetric ES256 keys
 # and the gateway can lag behind Auth's key set during key rotation.
 [functions.delete-account]
 verify_jwt = false
-
-[functions.cleanup-ready-build-assets]
-verify_jwt = true
-
-# payment-webhook is called by NOWPayments (IPN), which is unauthenticated — it
-# proves itself with an HMAC request signature we verify in code instead. JWT
-# verification MUST be off or every callback would 401.
-[functions.payment-webhook]
-verify_jwt = false
-
-# Legacy payout automation helpers. Manual settlement is now the primary flow,
-# but these remain deployable if automation is ever revisited.
-[functions.create-payout]
-verify_jwt = true
-
-[functions.verify-payout]
-verify_jwt = true
-
-[functions.reconcile-payout]
-verify_jwt = true

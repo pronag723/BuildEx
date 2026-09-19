@@ -360,7 +360,6 @@ const STEP_ORDER = [
   STEPS.builderStudioComplete,
   STEPS.builderExpertise,
   STEPS.builderStyles,
-  STEPS.builderRates,
   STEPS.builderPortfolio,
   STEPS.complete,
 ];

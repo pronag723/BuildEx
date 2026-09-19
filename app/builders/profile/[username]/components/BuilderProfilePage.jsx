@@ -14,7 +14,6 @@ import { publicAsset, withBase } from "../../../../home/utils";
 import Avatar from "../../../../../lib/ui/Avatar";
 import { useAuthGate } from "../../../../../lib/auth/useAuthGate";
 import { AVAILABILITY_STATES } from "../../../../../lib/onboarding/constants";
-import { formatPrice, ratesToTiers, SIZE_META } from "../../../../../lib/pricing";
 import { Icon } from "../../../../../lib/icons";
 import { useFavorites } from "../../../../../lib/favorites/FavoritesContext";
 import StudioOfficialBadge from "../../../components/StudioOfficialBadge";
@@ -97,17 +96,6 @@ function IconChat({ className = "w-5 h-5" }) {
     </svg>
   );
 }
-function IconQuote({ className = "w-5 h-5" }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-      <polyline points="14 2 14 8 20 8" />
-      <line x1="9" y1="14" x2="15" y2="14" />
-      <line x1="9" y1="18" x2="13" y2="18" />
-    </svg>
-  );
-}
-
 // ─── Portfolio carousel ──────────────────────────────────────────────────────
 function PortfolioCarousel({ items }) {
   const [index, setIndex] = useState(0);
@@ -216,55 +204,9 @@ function PortfolioCarousel({ items }) {
   );
 }
 
-// Normalize a builder's rates into display tiers. Live profiles already arrive
-// as an array (see fetchBuilders.normalizeProfileRates); demo/seeded builders
-// carry the legacy keyed-object shape where `label` is the descriptive line, so
-// we map that to { title, areaText } here.
-function toRateCards(rates) {
-  if (Array.isArray(rates)) return rates;
-  return ratesToTiers(rates).map((t) => ({
-    ...t,
-    label: SIZE_META[t.id]?.label || t.label,
-    areaText:
-      t.blocks > 0
-        ? t.id === "large"
-          ? `${t.blocks}×${t.blocks} blocks and beyond`
-          : `Up to ${t.blocks}×${t.blocks} blocks`
-        : rates?.[t.id]?.label || "Quote on request",
-  }));
-}
-
-// ─── Rate card (exact price, N-tier shape) ──────────────────────────────────
-function RateCard({ info }) {
-  return (
-    <div className="glass rounded-2xl p-5 flex flex-col gap-2 transition-all duration-300 hover:border-[#4ade80]/40 hover:shadow-[0_0_24px_rgba(74,222,128,0.12)]">
-      <div className="flex items-center gap-2.5 mb-1">
-        <span className="icon-tile icon-tile-sm text-[#4ade80] flex-shrink-0">
-          <Icon name={info.icon} size={18} />
-        </span>
-        <h3 className="font-bold text-base truncate">{info.label}</h3>
-      </div>
-      <p className="text-xs text-gray-400 leading-relaxed">{info.areaText}</p>
-      <div className="mt-2 pt-3 border-t border-white/[0.06]">
-        <p className="text-[10px] text-gray-500 uppercase tracking-wide">Price</p>
-        <p className="text-[#4ade80] font-extrabold text-xl leading-tight">
-          {info.price > 0 ? formatPrice(info.price) : "—"}
-        </p>
-      </div>
-    </div>
-  );
-}
-
 // ─── Contact sidebar ─────────────────────────────────────────────────────────
-function ContactSidebar({ builder, onShowSoon, onContact, onOrder }) {
+function ContactSidebar({ builder, onShowSoon, onContact }) {
   const isStudio = builder.provider_type === "studio";
-  // Orders are only open when the builder is "available". "busy" hides them from
-  // the feed and pauses work; "limited" keeps them visible but also pauses new
-  // orders — both disable the Order CTA, with a status-specific note.
-  const status = builder.availability_status || "available";
-  const isBusy = status === "busy";
-  const isLimited = status === "limited";
-  const ordersBlocked = isBusy || isLimited;
   return (
     <div className="glass rounded-3xl p-6 builder-sidebar-sticky space-y-5">
       {/* Avatar + header */}
@@ -304,33 +246,7 @@ function ContactSidebar({ builder, onShowSoon, onContact, onOrder }) {
         </div>
       </div>
 
-      {/* Starting price */}
-      <div className="py-4 border-y border-white/[0.08]">
-        <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Rates from</p>
-        <p className="text-2xl font-extrabold text-[#4ade80] leading-none">
-          {builder.starts_from > 0 ? formatPrice(builder.starts_from) : "—"}
-        </p>
-        <p className="text-[11px] text-gray-500 mt-1.5 leading-relaxed">
-          Final pricing is discussed per project.
-        </p>
-      </div>
-
-      {/* CTAs — Order is the primary (green) action, Contact is secondary (dark) */}
-      <button
-        type="button"
-        onClick={onOrder}
-        disabled={ordersBlocked}
-        title={ordersBlocked ? `This ${isStudio ? "studio" : "builder"} isn't taking new orders right now` : undefined}
-        className={`w-full py-4 rounded-full font-bold text-base transition-all flex items-center justify-center gap-2 ${
-          ordersBlocked
-            ? "bg-white/5 border border-white/10 text-gray-500 cursor-not-allowed"
-            : "bg-[#4ade80] text-black green-glow hover:bg-[#22c55e]"
-        }`}
-      >
-        <IconQuote className="w-4 h-4" />
-        {ordersBlocked ? "Not taking orders" : "Order Now"}
-      </button>
-
+      {/* CTA */}
       <button
         type="button"
         onClick={onContact}
@@ -339,15 +255,6 @@ function ContactSidebar({ builder, onShowSoon, onContact, onOrder }) {
         <IconChat className="w-4 h-4" />
         Contact {isStudio ? "Studio" : "Builder"}
       </button>
-      {ordersBlocked && (
-        <p className="-mt-2 text-center text-[11px] text-gray-500 leading-relaxed">
-          {isStudio
-            ? "This studio is not accepting new orders right now. You can still contact the team about future work."
-            : isBusy
-              ? "This builder is currently busy and isn't taking new orders. You can still contact them to discuss future work."
-              : "This builder has limited availability and isn't taking new orders right now. You can still contact them to discuss future work."}
-        </p>
-      )}
 
       {/* Response info */}
       <div className="flex items-center justify-center gap-2 text-xs text-gray-400">
@@ -362,10 +269,8 @@ function ContactSidebar({ builder, onShowSoon, onContact, onOrder }) {
       {/* Trust badges */}
       <div className="pt-3 border-t border-white/[0.06] grid grid-cols-2 gap-2">
         {[
-          { icon: "lock", label: "Protected Payment" },
           { icon: "chat", label: "Discuss Anytime" },
           { icon: "files", label: "Source Files" },
-          { icon: "sparkles", label: "Custom Quotes" },
         ].map(({ icon, label }) => (
           <div key={label} className="flex items-center gap-1.5 text-[11px] text-gray-500">
             <Icon name={icon} size={13} className="text-[#4ade80]/80" />
@@ -483,10 +388,6 @@ export default function BuilderProfilePage({ builder }) {
   const isStudio = builder.provider_type === "studio";
   const isStudioEmployee = builder.profile_type === "studio_employee";
   const rank = isStudio ? null : (RANKS[builder.rank] || RANKS.rookie);
-  // Orders are only open when "available"; both "busy" and "limited" pause them.
-  const ordersBlocked =
-    builder.availability_status === "busy" ||
-    builder.availability_status === "limited";
 
   // Real, DB-backed builders carry a profiles.id — fetch their reviews live.
   // Demo/seeded builders (no id, served from static data) keep the mock set so
@@ -551,34 +452,6 @@ export default function BuilderProfilePage({ builder }) {
       { redirectTo: target }
     );
   }, [gate, router, builder.id, builder.username, isStudio, showSoon]);
-
-  // "Order now" CTA — routes to the buyer placement flow (Stage 3).
-  // Auth-gated so logged-out visitors hit /login first and come back here.
-  const orderNow = useCallback(() => {
-    // Orders are only open when the builder is "available". A "busy" builder is
-    // hidden from the feed; a "limited" one stays visible but has paused new
-    // orders — both short-circuit with a notice instead of routing to the
-    // (now-blocked) placement page.
-    const status = builder.availability_status || "available";
-    if (status === "busy" || status === "limited") {
-      setToast(
-        status === "busy"
-          ? `${builder.display_name} is busy and isn't taking new orders right now.`
-          : `${builder.display_name} has limited availability and isn't taking new orders right now.`
-      );
-      setTimeout(() => setToast(null), 3500);
-      return;
-    }
-    const target = isStudio
-      ? `/order?s=${encodeURIComponent(builder.username)}`
-      : `/order/?to=${encodeURIComponent(builder.username)}`;
-    gate(
-      () => {
-        router.push(target);
-      },
-      { redirectTo: target }
-    );
-  }, [gate, router, builder.username, builder.availability_status, builder.display_name, isStudio]);
 
   const requireAuthThenSoon = useCallback(
     (msg) => {
@@ -917,44 +790,13 @@ export default function BuilderProfilePage({ builder }) {
                 </div>
               </section>
 
-              {/* Rates */}
-              <section className="reveal glass rounded-3xl p-6 lg:p-8">
-                <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 mb-5">
-                  <div>
-                    <h2 className="font-bold text-xl">Rates & Project Scale</h2>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Exact prices per build scale. Final scope is always discussed per project.
-                    </p>
-                  </div>
-                  <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs bg-[#4ade80]/10 border border-[#4ade80]/30 text-[#4ade80] font-medium self-start">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80]" />
-                    Custom quotes welcome
-                  </span>
-                </div>
-
-                {(() => {
-                  const enabledTiers = toRateCards(builder.rates).filter(
-                    (t) => t.enabled && t.price > 0
-                  );
-                  return enabledTiers.length === 0 ? (
-                    <p className="text-sm text-gray-500 italic">No rates set yet.</p>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      {enabledTiers.map((t) => (
-                        <RateCard key={t.id} info={t} />
-                      ))}
-                    </div>
-                  );
-                })()}
-              </section>
-
               {/* Reviews */}
               <ReviewsSection reviews={reviews} builder={builder} />
             </div>
 
             {/* RIGHT: Sticky contact sidebar */}
             <div className="hidden lg:block lg:sticky lg:top-24 lg:self-start">
-              <ContactSidebar builder={builder} onShowSoon={requireAuthThenSoon} onContact={contactBuilder} onOrder={orderNow} />
+              <ContactSidebar builder={builder} onShowSoon={requireAuthThenSoon} onContact={contactBuilder} />
             </div>
           </div>
         </div>
@@ -963,33 +805,13 @@ export default function BuilderProfilePage({ builder }) {
       {/* Mobile sticky bottom bar */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[150] glass border-t border-white/10 safe-bottom px-4 pt-3 pb-4">
         <div className="flex items-center gap-3 max-w-lg mx-auto">
-          <div className="flex-shrink-0">
-            <p className="text-[10px] text-gray-500 uppercase tracking-wide">Rates from</p>
-            <p className="text-lg font-extrabold text-[#4ade80] leading-none">
-              {builder.starts_from > 0 ? formatPrice(builder.starts_from) : "—"}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={orderNow}
-            disabled={ordersBlocked}
-            title={ordersBlocked ? `This ${isStudio ? "studio" : "builder"} isn't taking new orders right now` : undefined}
-            className={`flex-1 py-3 rounded-full font-bold text-sm transition-all flex items-center justify-center gap-1.5 ${
-              ordersBlocked
-                ? "bg-white/5 border border-white/10 text-gray-500 cursor-not-allowed"
-                : "bg-[#4ade80] text-black green-glow"
-            }`}
-          >
-            <IconQuote className="w-4 h-4" />
-            {ordersBlocked ? "Not taking orders" : "Order Now"}
-          </button>
           <button
             type="button"
             onClick={contactBuilder}
-            aria-label="Contact builder"
-            className="py-3 px-4 rounded-full border border-white/15 bg-white/5 text-gray-200 font-semibold text-sm hover:bg-white/10 hover:border-white/30 transition-all flex items-center gap-1.5 flex-shrink-0"
+            className="flex-1 py-3 px-4 rounded-full border border-white/15 bg-white/5 text-gray-200 font-semibold text-sm hover:bg-white/10 hover:border-white/30 transition-all flex items-center justify-center gap-1.5"
           >
             <IconChat className="w-4 h-4" />
+            Contact {isStudio ? "Studio" : "Builder"}
           </button>
         </div>
       </div>

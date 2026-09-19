@@ -9,7 +9,6 @@ import {
   recoverManagedStudioOwner,
   setModeratorInviteStatus,
 } from "../../../lib/studios/api";
-import { formatPrice } from "../../../lib/pricing";
 
 const INPUT =
   "w-full px-3 py-2.5 rounded-xl bg-black/25 border border-white/10 text-sm outline-none focus:border-emerald-400/60";
@@ -193,8 +192,6 @@ function ManagedStudioRow({ studio, onChanged }) {
             <span>{studio.completed_orders} completed</span>
             <span>{studio.reviews_count} reviews</span>
             <span>{studio.available_count} available</span>
-            <span>Balance {formatPrice(studio.balance?.available_cents || 0)}</span>
-            <span>From {studio.starts_from ? formatPrice(studio.starts_from) : "—"}</span>
           </div>
         </div>
         <label className="w-36">

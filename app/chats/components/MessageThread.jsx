@@ -4,9 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import SmartText from "../../../lib/ui/SmartText";
 import { publicAsset } from "../../home/utils";
-import { formatPrice, SIZE_META } from "../../../lib/pricing";
 import { Icon } from "../../../lib/icons";
-import WorldPreview from "../../orders/components/WorldPreview";
 import { useScrollLock } from "../../../lib/useScrollLock";
 
 function IconSend({ className = "w-5 h-5" }) {
@@ -60,124 +58,18 @@ function ConflictNotice() {
   );
 }
 
-// ─── Order-event message rendering (Stage 5) ─────────────────────────────────
-// System messages emitted by the order lifecycle RPCs (msg_type='order_event').
-// The PAID event ships the full order summary + brief in meta so it renders as
-// a distinct card; later transitions render as compact centred status lines.
-// Every variant deep-links to the order's detail page.
-const ORDER_EVENT_LABELS = {
-  paid: "Order paid",
-  started: "Builder started work",
-  delivered: "Marked as delivered",
-  completed: "Order completed",
-  cancelled: "Order cancelled",
-  disputed: "Dispute opened",
-  dispute_released: "Dispute resolved · released",
-  dispute_refunded: "Dispute resolved · refunded",
-};
-
-function OrderEventMessage({ message, onPreview }) {
-  const meta = message.meta || {};
-  const event = meta.event;
-  const orderId = meta.order_id;
-  const href = orderId ? `/orders/?id=${encodeURIComponent(orderId)}` : "/orders";
-
-  if (event === "delivered") {
-    // Delivery card: shows the file and, unless the event explicitly says that
-    // no preview exists, a "View 3D preview" button. Some delivery events
-    // created by migration 0043 omitted has_preview even though the artifact
-    // was uploaded, so an absent legacy flag must not hide the viewer.
-    return (
-      <div className="flex justify-center my-4 px-2">
-        <div className="block max-w-[460px] w-full rounded-2xl border border-purple-400/30 bg-purple-400/[0.08] p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Icon name="package" size={16} className="text-purple-200" />
-            <span className="font-bold text-sm text-purple-200">
-              Builder delivered the world
-            </span>
-          </div>
-          {meta.file_name && (
-            <p className="text-[11px] text-gray-400 truncate mb-3">
-              {meta.file_name}
-            </p>
-          )}
-          <div className="flex flex-wrap items-center gap-2">
-            {meta.has_preview !== false && orderId && (
-              <button
-                type="button"
-                onClick={() => onPreview?.(orderId)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-[#4ade80] text-black hover:bg-[#22c55e] transition-all"
-              >
-                <Icon name="box" size={14} strokeWidth={2} /> View 3D preview
-              </button>
-            )}
-            <Link
-              href={href}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold border border-white/15 text-gray-200 hover:bg-white/5 transition-all"
-            >
-              Open order
-            </Link>
-          </div>
-          <p className="text-[10px] text-gray-500 mt-3 text-right">
-            {clockTime(message.created_at)}
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (event === "paid") {
-    // The card the buyer described: "Order paid" + brief copied into the chat.
-    const sizeLabel =
-      meta.size_label || (meta.size ? SIZE_META[meta.size]?.label || meta.size : null);
-    return (
-      <div className="flex justify-center my-4 px-2">
-        <Link
-          href={href}
-          className="block max-w-[460px] w-full rounded-2xl border border-[#4ade80]/30 bg-[#4ade80]/[0.08] hover:border-[#4ade80]/60 hover:bg-[#4ade80]/[0.12] transition-all p-4"
-        >
-          <div className="flex items-center justify-between gap-3 mb-3">
-            <div className="flex items-center gap-2 min-w-0">
-              <Icon name="lock" size={16} className="text-[#4ade80]" />
-              <span className="font-bold text-sm text-[#4ade80]">
-                Order paid · protected
-              </span>
-            </div>
-            {meta.price_kopecks != null && (
-              <span className="font-extrabold text-[#4ade80] text-sm flex-shrink-0">
-                {formatPrice(meta.price_kopecks)}
-              </span>
-            )}
-          </div>
-
-          {(sizeLabel || meta.style) && (
-            <p className="text-[11px] text-gray-400 uppercase tracking-wide mb-2">
-              {sizeLabel}
-              {sizeLabel && meta.style ? " · " : ""}
-              <span className="capitalize">{meta.style}</span>
-            </p>
-          )}
-
-          <p className="text-[10px] text-gray-500 mt-3 text-right">
-            {clockTime(message.created_at)} · tap to open the order
-          </p>
-        </Link>
-      </div>
-    );
-  }
-
-  // Other lifecycle events render as compact centred lines.
-  const label = ORDER_EVENT_LABELS[event] || message.body || "Order updated";
+// ─── Legacy order-event messages ────────────────────────────────────
+// Orders were removed from the product, but real threads still contain the
+// system rows the old lifecycle RPCs wrote (msg_type='order_event'). The rows
+// stay in the database; here they degrade to a neutral muted line so an old
+// conversation still reads end to end and nothing crashes on their meta shape.
+function OrderEventMessage({ message }) {
   return (
     <div className="flex justify-center my-3 px-2">
-      <Link
-        href={href}
-        className="inline-flex items-center gap-2 text-[11px] font-medium text-gray-400 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full px-3 py-1 transition-all"
-      >
-        <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80] flex-shrink-0" />
-        <span>{label}</span>
-        <span className="text-gray-500">· {clockTime(message.created_at)}</span>
-      </Link>
+      <span className="inline-flex items-center gap-2 text-[11px] font-medium text-gray-500 bg-white/5 border border-white/10 rounded-full px-3 py-1">
+        <span>Order update</span>
+        <span className="text-gray-600">· {clockTime(message.created_at)}</span>
+      </span>
     </div>
   );
 }
@@ -229,14 +121,13 @@ export default function MessageThread({
   onBack,
 }) {
   const [draft, setDraft] = useState("");
-  const [previewOrderId, setPreviewOrderId] = useState(null);
   const [lightboxUrl, setLightboxUrl] = useState(null);
   const scrollRef = useRef(null);
   const taRef = useRef(null);
   const fileRef = useRef(null);
 
   // Lock page scroll while the image lightbox is open so the thread behind the
-  // dimmed overlay can't scroll. (The 3D WorldPreview locks itself.)
+  // dimmed overlay can't scroll.
   useScrollLock(!!lightboxUrl);
 
   // Stick to the bottom as messages arrive / the thread switches.
@@ -370,8 +261,8 @@ export default function MessageThread({
               !prev ||
               new Date(prev.created_at).toDateString() !== new Date(m.created_at).toDateString();
 
-            // System messages from the order lifecycle render as cards/lines,
-            // not as left/right chat bubbles. Day chip still leads if needed.
+            // Legacy order-lifecycle rows render as a neutral centred line, not
+            // as left/right chat bubbles. Day chip still leads if needed.
             if (m.msg_type === "order_event") {
               return (
                 <div key={m.id}>
@@ -382,7 +273,7 @@ export default function MessageThread({
                       </span>
                     </div>
                   )}
-                  <OrderEventMessage message={m} onPreview={setPreviewOrderId} />
+                  <OrderEventMessage message={m} />
                 </div>
               );
             }
@@ -534,13 +425,6 @@ export default function MessageThread({
           </button>
         </div>
       </div>
-
-      {previewOrderId && (
-        <WorldPreview
-          orderId={previewOrderId}
-          onClose={() => setPreviewOrderId(null)}
-        />
-      )}
 
       {lightboxUrl && (
         <div

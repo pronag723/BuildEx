@@ -12,8 +12,8 @@ export default function HowItWorksSection() {
             How Build<span className="text-[#4ade80]">Ex</span> Works
           </h2>
           <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-            Browse the builder feed, hire the right creator directly, and pay
-            only the build price - simple, secure, and built for Minecraft.
+            Browse the builder feed, find the right creator, and message them
+            directly - simple, straightforward, and built for Minecraft.
           </p>
         </div>
 

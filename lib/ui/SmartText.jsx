@@ -13,8 +13,6 @@ function compactUrlLabel(rawUrl) {
         const handle = url.searchParams.get("u");
         return handle ? `BuildEx profile · @${handle}` : "BuildEx profile";
       }
-      if (url.pathname.startsWith("/build")) return "BuildEx ready-made build";
-      if (url.pathname.startsWith("/orders")) return "BuildEx order";
       if (url.pathname.startsWith("/studios")) return "BuildEx studio";
       return "BuildEx link";
     }

@@ -33,23 +33,17 @@ import {
 import { useAuth } from "../../lib/auth/AuthContext";
 import {
   addStudioPortfolioImage,
-  assignStudioOrder,
-  cancelStudioWithdrawal,
   createEmployeeCode,
   createStudioBuilderInvitation,
   deleteEmployeeCode,
   deleteStudioPortfolioImage,
   fetchMyStudio,
-  getStudioBalance,
   getMyStudioLeaveEligibility,
   leaveMyStudio,
   listEmployeeCodes,
-  listMyEmployeeEarnings,
-  listStudioEmployeeEarnings,
   listStudioMembers,
   searchIndependentBuilders,
   removeStudioEmployee,
-  requestStudioWithdrawal,
   setMyStudioAcceptingOrders,
   setEmployeeCodeStatus,
   setMyEmployeeAvailability,
@@ -57,9 +51,6 @@ import {
   updateMyStudioAbout,
   updateStudioPortfolioPositions,
 } from "../../lib/studios/api";
-import { listMyOrders } from "../../lib/orders/api";
-import { listMyPayoutHistory } from "../../lib/payouts/api";
-import { formatPrice, ratesToTiers } from "../../lib/pricing";
 import AvatarUploader from "../onboarding/components/AvatarUploader";
 import Avatar from "../../lib/ui/Avatar";
 import { RANKS } from "../builders/data/builders";
@@ -72,12 +63,6 @@ import {
   PORTFOLIO_MAX_FILE_MB,
   PORTFOLIO_MAX_IMAGES,
 } from "../../lib/onboarding/constants";
-import {
-  RatesEditor,
-  mergeRates,
-  normalizeRates,
-  validateRates,
-} from "../onboarding/components/RatesFields";
 
 const INPUT =
   "studio-control w-full px-4 py-3 rounded-2xl bg-black/25 border border-white/10 text-sm outline-none transition-all hover:border-white/20 focus:border-[#4ade80]/60 focus:ring-4 focus:ring-[#4ade80]/10";
@@ -105,8 +90,6 @@ const TEAM_AVAILABILITY_OPTIONS = [
 const TEAM_SORT_OPTIONS = [
   { value: "name", label: "Sort: Name" },
   { value: "availability", label: "Sort: Availability" },
-  { value: "active-work", label: "Sort: Active work" },
-  { value: "completed", label: "Sort: Completed" },
 ];
 
 function readableProfileValue(value, labels = {}) {
@@ -257,129 +240,6 @@ function TeamFilterMenu({ label, value, options, onChange, icon: MenuIcon }) {
           );
         })}
       </div>
-    </div>
-  );
-}
-
-const PAYOUT_NETWORKS = [
-  {
-    value: "usdt_bsc",
-    label: "USDT",
-    network: "BNB Smart Chain",
-    badge: "BEP-20",
-    hint: "Low-fee weekly payouts",
-    prefix: "0x",
-  },
-];
-
-function getWalletValidation(method, address) {
-  const value = address.trim();
-  if (!value) {
-    return { valid: false, empty: true, message: "Enter the receiving wallet address." };
-  }
-  if (method === "usdt_bsc") {
-    const valid = /^0x[0-9a-fA-F]{40}$/.test(value);
-    return {
-      valid,
-      empty: false,
-      message: valid
-        ? "Valid BSC/BEP-20 address format"
-        : "BSC addresses must begin with 0x followed by 40 hexadecimal characters.",
-    };
-  }
-  return { valid: false, empty: false, message: "Choose a supported payout network." };
-}
-
-function NetworkSelect({ value, onChange }) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef(null);
-  const selected =
-    PAYOUT_NETWORKS.find((network) => network.value === value) || PAYOUT_NETWORKS[0];
-
-  useEffect(() => {
-    function close(event) {
-      if (!rootRef.current?.contains(event.target)) setOpen(false);
-    }
-    function closeOnEscape(event) {
-      if (event.key === "Escape") setOpen(false);
-    }
-    document.addEventListener("pointerdown", close);
-    document.addEventListener("keydown", closeOnEscape);
-    return () => {
-      document.removeEventListener("pointerdown", close);
-      document.removeEventListener("keydown", closeOnEscape);
-    };
-  }, []);
-
-  return (
-    <div ref={rootRef} className="relative">
-      <button
-        type="button"
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        onClick={() => setOpen((current) => !current)}
-        className={`${INPUT} flex items-center justify-between gap-3 text-left`}
-      >
-        <span className="flex items-center gap-3 min-w-0">
-          <span className="w-9 h-9 rounded-xl bg-[#4ade80]/10 border border-[#4ade80]/20 text-[#4ade80] inline-flex items-center justify-center flex-shrink-0">
-            <Wallet size={17} />
-          </span>
-          <span className="min-w-0">
-            <span className="font-semibold text-gray-100">{selected.label}</span>
-            <span className="text-gray-500"> · {selected.network}</span>
-          </span>
-        </span>
-        <span className="flex items-center gap-2 flex-shrink-0">
-          <span className="hidden xs:inline-flex text-[10px] uppercase tracking-wider px-2 py-1 rounded-full bg-white/[0.05] border border-white/10 text-gray-400">
-            {selected.badge}
-          </span>
-          <ChevronDown
-            size={17}
-            className={`text-gray-400 transition-transform ${open ? "rotate-180" : ""}`}
-          />
-        </span>
-      </button>
-      {open && (
-        <div
-          role="listbox"
-          aria-label="Payout network"
-          className="absolute z-40 left-0 right-0 top-[calc(100%+8px)] p-2 rounded-2xl border border-white/15 bg-[#191d1a]/95 backdrop-blur-2xl shadow-2xl studio-network-menu"
-        >
-          {PAYOUT_NETWORKS.map((network) => {
-            const active = network.value === selected.value;
-            return (
-              <button
-                key={network.value}
-                type="button"
-                role="option"
-                aria-selected={active}
-                onClick={() => {
-                  onChange(network.value);
-                  setOpen(false);
-                }}
-                className={`w-full flex items-center gap-3 rounded-xl px-3 py-3 text-left transition-all ${
-                  active
-                    ? "bg-[#4ade80]/12 border border-[#4ade80]/25"
-                    : "border border-transparent hover:bg-white/[0.05]"
-                }`}
-              >
-                <span className={`w-9 h-9 rounded-xl inline-flex items-center justify-center text-xs font-bold ${
-                  active ? "bg-[#4ade80] text-black" : "bg-white/[0.06] text-gray-300"
-                }`}>
-                  {network.badge.split("-")[0]}
-                </span>
-                <span className="flex-1 min-w-0">
-                  <span className="block text-sm font-semibold">
-                    {network.label} on {network.network}
-                  </span>
-                  <span className="block text-[11px] text-gray-500 mt-0.5">{network.hint}</span>
-                </span>
-                {active && <Check size={17} className="text-[#4ade80]" />}
-              </button>
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 }
@@ -670,39 +530,6 @@ function StudioPortfolioEditor({ studio, onReload, onError }) {
   );
 }
 
-function StudioRatesPreview({ rates }) {
-  const tiers = ratesToTiers(rates).filter((tier) => tier.enabled && tier.price > 0);
-  if (tiers.length === 0) {
-    return (
-      <div className="rounded-2xl border border-dashed border-white/15 p-8 text-center text-sm text-gray-500">
-        No studio rates have been published yet.
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-3">
-      {tiers.map((tier) => (
-        <div key={tier.id} className="rounded-2xl border border-white/10 p-4">
-          <div className="flex items-center gap-2.5">
-            <span className="icon-tile icon-tile-sm text-[#4ade80]">
-              <Wallet size={16} />
-            </span>
-            <h3 className="font-semibold text-sm">{tier.label}</h3>
-          </div>
-          <p className="text-xs text-gray-400 mt-2">
-            {tier.blocks > 0 ? `Up to ${tier.blocks}×${tier.blocks} blocks` : "Custom scope"}
-          </p>
-          <div className="mt-3 pt-3 border-t border-white/[0.07]">
-            <p className="text-[10px] text-gray-500 uppercase tracking-wide">Exact price</p>
-            <p className="text-[#4ade80] font-extrabold text-xl">{formatPrice(tier.price)}</p>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 export function StudioModeratorDashboard({ section = "profile" }) {
   const { user } = useAuth();
   const router = useRouter();
@@ -714,33 +541,19 @@ export function StudioModeratorDashboard({ section = "profile" }) {
   const [candidateBusy, setCandidateBusy] = useState(false);
   const [invitationActionId, setInvitationActionId] = useState(null);
   const [codes, setCodes] = useState([]);
-  const [orders, setOrders] = useState([]);
-  const [balance, setBalance] = useState(null);
-  const [employeeEarnings, setEmployeeEarnings] = useState([]);
-  const [withdrawals, setWithdrawals] = useState([]);
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [about, setAbout] = useState("");
-  const [rates, setRates] = useState(() => mergeRates(null));
-  const [employeePct, setEmployeePct] = useState("");
   const [accepting, setAccepting] = useState(false);
-  const [payoutMethod, setPayoutMethod] = useState("usdt_bsc");
-  const [payoutDetails, setPayoutDetails] = useState("");
   const [newCode, setNewCode] = useState("");
   const [codeLimit, setCodeLimit] = useState(1);
   const [codeExpiry, setCodeExpiry] = useState("");
   const [codeActionId, setCodeActionId] = useState(null);
   const [copiedCodeId, setCopiedCodeId] = useState(null);
-  const [withdrawDollars, setWithdrawDollars] = useState("");
-  const [orderStatusFilter, setOrderStatusFilter] = useState("active");
   const [memberQuery, setMemberQuery] = useState("");
   const [memberAvailabilityFilter, setMemberAvailabilityFilter] = useState("all");
   const [memberSort, setMemberSort] = useState("name");
-  const [assignmentOrder, setAssignmentOrder] = useState(null);
-  const [assignmentTarget, setAssignmentTarget] = useState(null);
-  const [assigningBuilder, setAssigningBuilder] = useState(false);
-  const [ratesEditing, setRatesEditing] = useState(false);
   const [portfolioEditing, setPortfolioEditing] = useState(false);
   const [profileEditing, setProfileEditing] = useState(false);
   const [aboutEditing, setAboutEditing] = useState(false);
@@ -780,10 +593,6 @@ export function StudioModeratorDashboard({ section = "profile" }) {
     load();
   }
 
-  const openOrder = useCallback((orderId) => {
-    router.push(withBase(`/orders/?id=${encodeURIComponent(orderId)}`));
-  }, [router]);
-
   const load = useCallback(async () => {
     try {
       const studioResult = await fetchMyStudio();
@@ -797,48 +606,21 @@ export function StudioModeratorDashboard({ section = "profile" }) {
       setUsername(row.username);
       setAvatarUrl(row.avatar);
       setAbout(row.about || "");
-      setRates(mergeRates(row.rates));
-      setEmployeePct(
-        row.employee_commission_bps == null ? "" : String(row.employee_commission_bps / 100)
-      );
       setAccepting(row.accepting_orders);
-      setPayoutMethod(row.payout_method || "usdt_bsc");
-      setPayoutDetails(row.payout_details || "");
 
       const settled = await Promise.allSettled([
         listStudioMembers(row.id),
         listEmployeeCodes(row.id),
-        listMyOrders(),
-        getStudioBalance(),
-        listStudioEmployeeEarnings(row.id),
-        listMyPayoutHistory(),
       ]);
       const results = settled.map((result) =>
         result.status === "fulfilled"
           ? result.value
           : { error: result.reason || new Error("Request failed") }
       );
-      const [
-        memberResult,
-        codeResult,
-        orderResult,
-        balanceResult,
-        earningsResult,
-        withdrawalResult,
-      ] = results;
+      const [memberResult, codeResult] = results;
 
       if (!memberResult.error) setMembers(memberResult.members || []);
       if (!codeResult.error) setCodes(codeResult.codes || []);
-      if (!orderResult.error) {
-        setOrders((orderResult.orders || []).filter((order) => order.studio_id === row.id));
-      }
-      if (!balanceResult.error) setBalance(balanceResult.summary || null);
-      if (!earningsResult.error) setEmployeeEarnings(earningsResult.earnings || []);
-      if (!withdrawalResult.error) {
-        setWithdrawals(
-          (withdrawalResult.payouts || []).filter((payout) => payout.studio_id === row.id)
-        );
-      }
 
       const partialError = results.find((result) => result.error)?.error;
       setError(
@@ -887,24 +669,7 @@ export function StudioModeratorDashboard({ section = "profile" }) {
       .filter((member) => member.status === "active")
       .map((member) => {
         const profile = member.builder?.builder_profile || {};
-        const memberOrders = orders.filter(
-          (order) => order.assigned_builder_id === member.builder_id
-        );
-        const earnings = employeeEarnings.filter(
-          (row) => row.builder_id === member.builder_id
-        );
-        return {
-          ...member,
-          profile,
-          trackedEarnings: earnings.reduce(
-            (sum, row) => sum + Number(row.amount_kopecks || 0),
-            0
-          ),
-          completedProjects: memberOrders.filter((order) => order.status === "completed").length,
-          activeAssignments: memberOrders.filter(
-            (order) => !["completed", "cancelled"].includes(order.status)
-          ).length,
-        };
+        return { ...member, profile };
       })
       .filter((member) => {
         if (
@@ -925,8 +690,6 @@ export function StudioModeratorDashboard({ section = "profile" }) {
       });
 
     return active.sort((a, b) => {
-      if (memberSort === "active-work") return b.activeAssignments - a.activeAssignments;
-      if (memberSort === "completed") return b.completedProjects - a.completedProjects;
       if (memberSort === "availability") {
         const priority = { available: 0, limited: 1, busy: 2 };
         const difference =
@@ -937,21 +700,7 @@ export function StudioModeratorDashboard({ section = "profile" }) {
         String(b.builder?.display_name || b.builder?.username || "")
       );
     });
-  }, [
-    employeeEarnings,
-    memberAvailabilityFilter,
-    memberQuery,
-    memberSort,
-    members,
-    orders,
-  ]);
-  const visibleOrders = useMemo(() => {
-    if (orderStatusFilter === "all") return orders;
-    if (orderStatusFilter === "active") {
-      return orders.filter((order) => !["completed", "cancelled"].includes(order.status));
-    }
-    return orders.filter((order) => order.status === orderStatusFilter);
-  }, [orderStatusFilter, orders]);
+  }, [memberAvailabilityFilter, memberQuery, memberSort, members]);
   const storefrontChanged = useMemo(
     () =>
       Boolean(
@@ -962,58 +711,21 @@ export function StudioModeratorDashboard({ section = "profile" }) {
       ),
     [avatarUrl, name, studio, username]
   );
-  const ratesChanged = useMemo(
-    () =>
-      Boolean(
-        studio &&
-          JSON.stringify(normalizeRates(rates)) !== JSON.stringify(studio.rates || {})
-      ),
-    [rates, studio]
-  );
-  const commissionChanged = useMemo(
-    () =>
-      Boolean(
-        studio &&
-          employeePct !== "" &&
-          Math.round(Number(employeePct) * 100) !== Number(studio.employee_commission_bps)
-      ),
-    [employeePct, studio]
-  );
-  const payoutChanged = useMemo(
-    () =>
-      Boolean(
-        studio &&
-          (payoutMethod !== (studio.payout_method || "usdt_bsc") ||
-            payoutDetails.trim() !== (studio.payout_details || ""))
-      ),
-    [payoutDetails, payoutMethod, studio]
-  );
-  const walletValidation = useMemo(
-    () => getWalletValidation(payoutMethod, payoutDetails),
-    [payoutDetails, payoutMethod]
-  );
-
+  // The rate / commission / payout arguments are gone from the UI but are still
+  // required by update_my_studio, so the stored values are passed straight back
+  // through untouched. Nothing about the studio's money columns is rewritten.
   async function saveStudio(options = {}) {
-    const validation = validateRates(rates);
-    if (validation) {
-      setError(validation);
-      return;
-    }
-    if (options.validatePayout && !walletValidation.valid) {
-      setError(walletValidation.message);
-      return;
-    }
     setBusy(true);
     setError(null);
     const result = await updateMyStudio({
       name: name.trim(),
       username: username.trim(),
       avatarUrl,
-      rates: normalizeRates(rates),
-      employeeCommissionBps: Math.round(Number(employeePct) * 100),
+      rates: studio.rates || {},
+      employeeCommissionBps: Number(studio.employee_commission_bps) || 0,
       acceptingOrders: accepting,
-      payoutMethod: payoutDetails.trim() ? payoutMethod : null,
-      payoutDetails: payoutDetails.trim() || null,
+      payoutMethod: studio.payout_method || null,
+      payoutDetails: studio.payout_details || null,
     });
     setBusy(false);
     if (result.error) {
@@ -1022,7 +734,6 @@ export function StudioModeratorDashboard({ section = "profile" }) {
     }
     setNotice("Studio settings saved.");
     if (options.closeProfile) setProfileEditing(false);
-    if (ratesChanged) setRatesEditing(false);
     load();
   }
 
@@ -1113,35 +824,6 @@ export function StudioModeratorDashboard({ section = "profile" }) {
     setNotice("Invite code deleted.");
   }
 
-  function closeAssignmentDialog() {
-    if (assigningBuilder) return;
-    setAssignmentOrder(null);
-    setAssignmentTarget(null);
-  }
-
-  async function confirmAssignment() {
-    if (!assignmentOrder || !assignmentTarget || assigningBuilder) return;
-    setAssigningBuilder(true);
-    setError(null);
-    const result = await assignStudioOrder(
-      assignmentOrder.id,
-      assignmentTarget.builder_id
-    );
-    setAssigningBuilder(false);
-    if (result.error) {
-      setError(result.error.message || "Couldn't assign the order.");
-      return;
-    }
-    const builderName =
-      assignmentTarget.builder?.display_name ||
-      assignmentTarget.builder?.username ||
-      "Builder";
-    setAssignmentOrder(null);
-    setAssignmentTarget(null);
-    setNotice(`${builderName} was assigned to the order.`);
-    await load();
-  }
-
   if (!studio) {
     return (
       <div className="glass rounded-3xl p-8 text-center">
@@ -1212,8 +894,7 @@ export function StudioModeratorDashboard({ section = "profile" }) {
                     busy ||
                     !storefrontChanged ||
                     name.trim().length < 2 ||
-                    username.trim().length < 3 ||
-                    employeePct === ""
+                    username.trim().length < 3
                   }
                   className="px-5 py-2 rounded-full text-xs font-bold bg-[#4ade80] text-black hover:bg-[#22c55e] transition-all disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
                 >
@@ -1391,37 +1072,6 @@ export function StudioModeratorDashboard({ section = "profile" }) {
         </div>
       </Card>}
 
-      {section === "profile" && <Card
-        title="Rates & Project Scale"
-        description="Set an exact price for each build scale. Toggle off sizes the studio doesn't offer."
-        aside={
-          <button
-            type="button"
-            onClick={() => setRatesEditing((current) => !current)}
-            className="px-3 py-1.5 rounded-full text-xs font-semibold border border-[#4ade80]/30 text-[#4ade80] bg-[#4ade80]/10 inline-flex items-center gap-1.5"
-          >
-            <Pencil size={13} />
-            {ratesEditing ? "Cancel" : "Edit"}
-          </button>
-        }
-      >
-        {ratesEditing ? (
-          <>
-            <RatesEditor rates={rates} onChange={setRates} />
-            <SaveButton
-              changed={ratesChanged}
-              busy={busy}
-              invalid={employeePct === "" || Boolean(validateRates(rates))}
-              onClick={saveStudio}
-            >
-              {busy ? "Saving…" : "Save rates"}
-            </SaveButton>
-          </>
-        ) : (
-          <StudioRatesPreview rates={studio.rates} />
-        )}
-      </Card>}
-
       {section === "profile" && <section className="detail-fade-up">
         <div className="flex items-center justify-between mb-5 flex-wrap gap-2">
           <div>
@@ -1451,32 +1101,6 @@ export function StudioModeratorDashboard({ section = "profile" }) {
           <PortfolioRail studio={studio} onReload={load} onError={setError} editing={false} />
         )}
       </section>}
-
-      {section === "team" && <Card
-        title="Employee commission"
-        description="Set the percentage tracked for employees on newly assigned orders."
-      >
-        <label className="block max-w-sm">
-          <span className="text-xs text-gray-400 block mb-1">Employee commission %</span>
-          <input
-            type="number"
-            min="0"
-            max="100"
-            step="0.01"
-            className={INPUT}
-            value={employeePct}
-            onChange={(e) => setEmployeePct(e.target.value)}
-          />
-        </label>
-        <SaveButton
-          changed={commissionChanged}
-          busy={busy}
-          invalid={employeePct === ""}
-          onClick={saveStudio}
-        >
-          {busy ? "Saving…" : "Save commission"}
-        </SaveButton>
-      </Card>}
 
       {section === "team" && <Card
         title="Team and employee codes"
@@ -1806,19 +1430,6 @@ export function StudioModeratorDashboard({ section = "profile" }) {
                     </div>
                   </header>
 
-                  <div className="mt-3 grid grid-cols-3 gap-1.5 sm:mt-5 sm:gap-2.5">
-                    {[
-                      ["Tracked earnings", formatPrice(member.trackedEarnings), true],
-                      ["Completed projects", member.completedProjects, false],
-                      ["Active assignments", member.activeAssignments, false],
-                    ].map(([label, value, accent]) => (
-                      <div key={label} className="min-w-0 rounded-xl border border-white/[0.06] bg-white/[0.04] px-2 py-2 sm:rounded-2xl sm:px-4 sm:py-3">
-                        <p className="truncate text-[9px] font-medium leading-tight text-gray-500 sm:text-xs sm:text-gray-400">{label}</p>
-                        <p className={`mt-1 truncate text-sm font-extrabold sm:text-xl ${accent ? "text-[#4ade80]" : "text-white"}`}>{value}</p>
-                      </div>
-                    ))}
-                  </div>
-
                   <div className="mt-5 hidden gap-4 sm:grid md:grid-cols-[minmax(0,1fr)_minmax(240px,0.75fr)]">
                     <div className="min-w-0 space-y-4">
                       {tools.length > 0 && (
@@ -1880,423 +1491,6 @@ export function StudioModeratorDashboard({ section = "profile" }) {
         )}
       </Card>}
 
-      {section === "orders" && (
-        <div className="grid sm:grid-cols-3 gap-3 detail-fade-up">
-          {[
-            [
-              "Open orders",
-              orders.filter(
-                (order) => !["completed", "cancelled"].includes(order.status)
-              ).length,
-              Inbox,
-            ],
-            [
-              "Ready to assign",
-              orders.filter(
-                (order) => order.status === "paid" && !order.assigned_builder_id
-              ).length,
-              UserRoundCheck,
-            ],
-            ["Available builders", availableMembers.length, Users],
-          ].map(([label, value, StatIcon]) => (
-            <div
-              key={label}
-              className="glass studio-stat-card rounded-2xl p-4 flex items-center gap-3"
-            >
-              <span className="w-10 h-10 rounded-xl bg-[#4ade80]/10 border border-[#4ade80]/20 text-[#4ade80] inline-flex items-center justify-center">
-                <StatIcon size={18} />
-              </span>
-              <span>
-                <span className="block text-xl font-extrabold">{value}</span>
-                <span className="block text-[11px] text-gray-500">{label}</span>
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {section === "orders" && <Card
-        title="Studio orders"
-        description="Review incoming work, filter the queue, then confirm each builder assignment."
-      >
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-          <div>
-            <p className="text-xs font-semibold text-gray-300">Show orders</p>
-            <p className="text-[11px] text-gray-500 mt-1">Completed and cancelled orders stay available for review.</p>
-          </div>
-          <div className="relative grid grid-cols-4 items-center rounded-2xl border border-white/10 bg-black/20 p-1" role="group" aria-label="Filter orders by status">
-            <span
-              aria-hidden="true"
-              className="absolute inset-y-1 left-1 rounded-xl bg-[#4ade80] transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
-              style={{
-                width: "calc((100% - 0.5rem) / 4)",
-                transform: `translateX(${["active", "completed", "cancelled", "all"].indexOf(orderStatusFilter) * 100}%)`,
-              }}
-            />
-            {[['active', 'Active'], ['completed', 'Completed'], ['cancelled', 'Cancelled'], ['all', 'All']].map(([value, label]) => (
-              <button key={value} type="button" aria-pressed={orderStatusFilter === value} onClick={() => setOrderStatusFilter(value)} className={`relative z-10 rounded-xl px-3 py-2 text-xs font-semibold transition-colors duration-300 ${orderStatusFilter === value ? "text-black" : "text-gray-400 hover:text-white"}`}>
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="space-y-3">
-          {visibleOrders.length === 0 && (
-            <div className="rounded-3xl border border-dashed border-white/15 bg-black/[0.08] px-6 py-12 text-center">
-              <span className="mx-auto w-14 h-14 rounded-2xl bg-[#4ade80]/10 border border-[#4ade80]/20 text-[#4ade80] flex items-center justify-center mb-4">
-                <Inbox size={25} />
-              </span>
-              <h3 className="font-bold text-lg">Your order queue is ready</h3>
-              <p className="text-sm text-gray-500 leading-relaxed max-w-md mx-auto mt-2">
-                New paid studio orders will appear here with the client, project
-                scale, value, and assignment controls. There is nothing waiting
-                right now.
-              </p>
-              <div className="flex flex-wrap items-center justify-center gap-2 mt-5">
-                <Link
-                  href={`/studios?s=${encodeURIComponent(studio.username)}`}
-                  className="px-4 py-2.5 rounded-full bg-[#4ade80] text-black text-sm font-bold inline-flex items-center gap-2 hover:bg-[#22c55e] transition-colors"
-                >
-                  View storefront <ExternalLink size={14} />
-                </Link>
-                <button
-                  type="button"
-                  onClick={load}
-                  className="px-4 py-2.5 rounded-full border border-white/15 bg-white/[0.04] text-sm font-semibold hover:border-white/30 hover:bg-white/[0.08] transition-all"
-                >
-                  Refresh queue
-                </button>
-              </div>
-            </div>
-          )}
-          {visibleOrders.map((order, orderIndex) => {
-            const assignedMember = members.find(
-              (member) => member.builder_id === order.assigned_builder_id
-            );
-            const canAssign = ["paid", "in_progress"].includes(order.status);
-            const createdDate = order.created_at
-              ? new Intl.DateTimeFormat(undefined, {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                }).format(new Date(order.created_at))
-              : null;
-
-            return (
-              <article
-                key={order.id}
-                className="studio-order-row rounded-3xl border border-white/10 bg-black/[0.08] p-5 hover:border-white/[0.17] hover:bg-white/[0.018] sm:p-6"
-                style={{ "--order-index": orderIndex }}
-              >
-                <div className="flex flex-col gap-6">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex items-center gap-2.5">
-                      <p className="text-xs font-bold uppercase tracking-[0.16em] text-gray-500">
-                        Order #{String(order.id).slice(0, 8)}
-                      </p>
-                      <span className="rounded-full border border-[#4ade80]/20 bg-[#4ade80]/10 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-[#86efac]">
-                        {String(order.status || "new").replaceAll("_", " ")}
-                      </span>
-                    </div>
-                    {createdDate && (
-                      <span className="inline-flex items-center gap-1.5 text-xs text-gray-500">
-                        <CalendarDays size={13} />
-                        Placed {createdDate}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="flex flex-col gap-5 md:flex-row md:items-end">
-                    <dl className="grid min-w-0 flex-1 grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-4">
-                      <div>
-                        <dt className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-600">
-                          Client nickname
-                        </dt>
-                        <dd className="mt-1.5 truncate text-base font-semibold text-gray-100">
-                          @{order.buyer?.username || order.buyer?.display_name || "buyer"}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-600">
-                          Build style
-                        </dt>
-                        <dd className="mt-1.5 truncate text-base font-semibold text-gray-100">
-                          {order.style || "Custom"}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-600">
-                          Project size
-                        </dt>
-                        <dd className="mt-1.5 truncate text-base font-semibold text-gray-100">
-                          {order.size_label || order.building_size || "Custom"}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-600">
-                          Order value
-                        </dt>
-                        <dd className="mt-1.5 text-base font-bold text-[#4ade80]">
-                          {formatPrice(order.price_kopecks)}
-                        </dd>
-                      </div>
-                    </dl>
-
-                    <div className="grid w-full grid-cols-2 gap-2 md:w-auto md:min-w-[250px]">
-                      {canAssign && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setAssignmentOrder(order);
-                            setAssignmentTarget(null);
-                          }}
-                          className="studio-pressable inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#4ade80] px-4 py-3 text-xs font-bold text-black hover:bg-[#5ee88c]"
-                        >
-                          <UserRoundCheck size={14} />
-                          {order.assigned_builder_id ? "Change builder" : "Assign builder"}
-                        </button>
-                      )}
-                      <Link
-                        href={withBase(`/orders/?id=${encodeURIComponent(order.id)}`)}
-                        onClick={(event) => {
-                          if (
-                            event.button !== 0 ||
-                            event.metaKey ||
-                            event.ctrlKey ||
-                            event.shiftKey ||
-                            event.altKey
-                          )
-                            return;
-                          event.preventDefault();
-                          openOrder(order.id);
-                        }}
-                        className={`studio-pressable ${canAssign ? "" : "col-span-2"} inline-flex items-center justify-center gap-1.5 rounded-xl border border-white/15 bg-white/[0.035] px-4 py-3 text-xs font-semibold text-gray-200 hover:border-white/25 hover:bg-white/[0.06]`}
-                      >
-                        Open order <ArrowRight size={13} />
-                      </Link>
-                    </div>
-                  </div>
-
-                  {assignedMember && (
-                    <p className="border-t border-white/[0.06] pt-3 text-xs text-gray-500">
-                      Assigned to{" "}
-                      <span className="font-semibold text-gray-300">
-                        @{assignedMember.builder?.username ||
-                          assignedMember.builder?.display_name ||
-                          "builder"}
-                      </span>
-                    </p>
-                  )}
-                </div>
-              </article>
-            );
-          })}
-        </div>
-      </Card>}
-
-      {assignmentOrder && (
-        <OrderAssignmentDialog
-          order={assignmentOrder}
-          members={members}
-          confirmingMember={assignmentTarget}
-          assigning={assigningBuilder}
-          onChoose={setAssignmentTarget}
-          onConfirm={confirmAssignment}
-          onClose={closeAssignmentDialog}
-        />
-      )}
-
-      {section === "payouts" && <Card
-        title="Payout"
-        description="Choose the exact network and verify the receiving address."
-        className="order-2"
-        aside={
-          <span className="hidden sm:inline-flex items-center gap-1.5 text-[11px] text-[#4ade80]">
-            <ShieldCheck size={14} /> Format validation enabled
-          </span>
-        }
-      >
-        <div className="grid sm:grid-cols-2 gap-4">
-          <label>
-            <span className="text-[11px] uppercase tracking-wider text-gray-500 block mb-2">
-              Asset &amp; network
-            </span>
-            <NetworkSelect
-              value={payoutMethod}
-              onChange={(nextValue) => {
-                setPayoutMethod(nextValue);
-                setError(null);
-              }}
-            />
-          </label>
-          <label>
-            <span className="text-[11px] uppercase tracking-wider text-gray-500 block mb-2">
-              Receiving wallet
-            </span>
-            <div className="relative">
-              <input
-                className={`${INPUT} pr-11 ${
-                  payoutDetails && walletValidation.valid
-                    ? "!border-[#4ade80]/55 !ring-4 !ring-[#4ade80]/10"
-                    : payoutDetails
-                      ? "!border-red-400/55 !ring-4 !ring-red-400/10"
-                      : ""
-                }`}
-                value={payoutDetails}
-                spellCheck="false"
-                autoComplete="off"
-                onChange={(e) => {
-                  setPayoutDetails(e.target.value.replace(/\s/g, ""));
-                  setError(null);
-                }}
-                placeholder={`${PAYOUT_NETWORKS.find((item) => item.value === payoutMethod)?.prefix || ""}…`}
-              />
-              {payoutDetails && (
-                <span className={`absolute right-3.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full inline-flex items-center justify-center ${
-                  walletValidation.valid
-                    ? "bg-[#4ade80]/15 text-[#4ade80]"
-                    : "bg-red-400/10 text-red-300"
-                }`}>
-                  {walletValidation.valid ? (
-                    <Check size={15} />
-                  ) : (
-                    <span className="text-sm font-bold">!</span>
-                  )}
-                </span>
-              )}
-            </div>
-            <span className={`text-[11px] mt-2 min-h-[16px] flex items-center gap-1.5 ${
-              walletValidation.valid
-                ? "text-[#4ade80]"
-                : walletValidation.empty
-                  ? "text-gray-500"
-                  : "text-red-300"
-            }`}>
-              {walletValidation.valid && <ShieldCheck size={13} />}
-              {walletValidation.message}
-            </span>
-          </label>
-        </div>
-        <div className="mt-4 rounded-2xl border border-amber-300/15 bg-amber-300/[0.04] px-4 py-3 text-[11px] text-amber-100/70 leading-relaxed">
-          Network and address must match. Crypto transfers are irreversible, so
-          compare the first and last characters with your wallet before requesting
-          a withdrawal.
-        </div>
-        <SaveButton
-          changed={payoutChanged}
-          busy={busy}
-          invalid={!walletValidation.valid}
-          onClick={() => saveStudio({ validatePayout: true })}
-        >
-          {busy ? "Saving…" : "Save payout details"}
-        </SaveButton>
-      </Card>}
-
-      {section === "payouts" && <Card
-        title={
-          <span>
-            <span className="block text-xs font-medium uppercase tracking-[0.16em] text-[#4ade80] mb-1">
-              Studio wallet
-            </span>
-            <span className="block text-2xl">Balance</span>
-          </span>
-        }
-        aside={<span className="text-xs text-gray-500">Balances are shown in USD.</span>}
-        className="order-1"
-      >
-        <div className="grid sm:grid-cols-3 gap-3 mb-5">
-          {[
-            ["Available", balance?.available_cents],
-            ["Pending", balance?.pending_cents],
-            ["Lifetime paid", balance?.withdrawn_cents],
-          ].map(([label, value]) => (
-            <div key={label} className="studio-stat-card rounded-2xl bg-black/20 border border-white/10 p-5 transition-all hover:border-[#4ade80]/25">
-              <p className="text-xs text-gray-500">{label}</p>
-              <p className={`font-extrabold text-2xl mt-1 ${
-                label === "Available"
-                  ? "text-[#4ade80]"
-                  : label === "Pending"
-                    ? "text-amber-300"
-                    : ""
-              }`}>
-                {formatPrice(Number(value) || 0)}
-              </p>
-            </div>
-          ))}
-        </div>
-        <div className="mt-6 pt-6 border-t border-white/[0.08]">
-          <h3 className="font-bold text-lg">Withdraw funds</h3>
-          <p className="text-xs text-gray-500 mt-1 mb-4">
-            Minimum $20.00. Approved requests join the weekly USDT-BSC batch;
-            BuildEx absorbs the payout network fee.
-          </p>
-        <div className="flex flex-col sm:flex-row gap-3 max-w-xl">
-          <label className="relative flex-1">
-            <span className="sr-only">Withdrawal amount in USD</span>
-            <CircleDollarSign size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
-            <input
-              type="number"
-              min="20"
-              step="0.01"
-              className={`${INPUT} !pl-11`}
-              value={withdrawDollars}
-              onChange={(e) => setWithdrawDollars(e.target.value)}
-              placeholder="Minimum $20.00"
-            />
-          </label>
-          <button
-            type="button"
-            onClick={async () => {
-              const result = await requestStudioWithdrawal(Math.round(Number(withdrawDollars) * 100));
-              if (result.error) setError(result.error.message);
-              else {
-                setWithdrawDollars("");
-                setNotice("Studio withdrawal requested.");
-                load();
-              }
-            }}
-            disabled={
-              !walletValidation.valid ||
-              Number(withdrawDollars) < 20 ||
-              Number(withdrawDollars) * 100 > Number(balance?.available_cents || 0)
-            }
-            className="px-5 py-3 rounded-2xl bg-[#4ade80] text-black text-sm font-bold transition-all hover:bg-[#22c55e] hover:-translate-y-0.5 disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none"
-          >
-            Withdraw
-          </button>
-        </div>
-        <p className="text-[11px] text-gray-500 mt-2">
-          Withdrawals require a valid saved wallet, at least $20, and enough available balance.
-        </p>
-        </div>
-        <div className="mt-6 pt-6 border-t border-white/[0.08] divide-y divide-white/[0.07]">
-            <h3 className="font-bold text-lg pb-4">Withdrawal history</h3>
-            {withdrawals.length === 0 && (
-              <p className="text-sm text-gray-500 py-2">No withdrawals yet.</p>
-            )}
-            {withdrawals.map((withdrawal) => (
-              <div key={withdrawal.id} className="py-3 flex justify-between gap-3 text-sm">
-                <span className="capitalize text-gray-400">{withdrawal.status}</span>
-                <span className="flex items-center gap-2">
-                  <span className="font-semibold">{formatPrice(withdrawal.amount_cents)}</span>
-                  {withdrawal.status === "requested" && (
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        const result = await cancelStudioWithdrawal(withdrawal.id);
-                        if (result.error) setError(result.error.message);
-                        else load();
-                      }}
-                      className="text-xs text-red-300 hover:text-red-200"
-                    >
-                      Cancel
-                    </button>
-                  )}
-                </span>
-              </div>
-            ))}
-        </div>
-      </Card>}
       {removeTarget && (
         <div
           className="fixed inset-0 z-[200] flex items-center justify-center p-4"
@@ -2344,497 +1538,16 @@ export function StudioModeratorDashboard({ section = "profile" }) {
   );
 }
 
-function OrderAssignmentDialog({
-  order,
-  members,
-  confirmingMember,
-  assigning,
-  onChoose,
-  onConfirm,
-  onClose,
-}) {
-  const dialogRef = useRef(null);
-  const sortedMembers = useMemo(
-    () =>
-      members
-        .filter((member) => member.status === "active")
-        .sort((a, b) => {
-          const availabilityDifference =
-            Number(b.availability_status === "available") -
-            Number(a.availability_status === "available");
-          if (availabilityDifference) return availabilityDifference;
-          return (a.builder?.display_name || a.builder?.username || "").localeCompare(
-            b.builder?.display_name || b.builder?.username || ""
-          );
-        }),
-    [members]
-  );
-  const availableCount = sortedMembers.filter(
-    (member) => member.availability_status === "available"
-  ).length;
-
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    dialogRef.current?.focus();
-    function closeOnEscape(event) {
-      if (event.key === "Escape" && !assigning) onClose();
-    }
-    document.addEventListener("keydown", closeOnEscape);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.removeEventListener("keydown", closeOnEscape);
-    };
-  }, [assigning, onClose]);
-
-  if (!order) return null;
-
-  return (
-    <div
-      className="studio-assignment-backdrop fixed inset-0 z-[100] flex items-end justify-center bg-black/75 p-0 backdrop-blur-sm sm:items-center sm:p-6"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget && !assigning) onClose();
-      }}
-    >
-      <section
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="assignment-dialog-title"
-        tabIndex={-1}
-        className="studio-assignment-dialog relative flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-t-[1.75rem] border border-white/10 bg-[#171b18] shadow-[0_30px_100px_rgba(0,0,0,0.65)] outline-none sm:rounded-[1.75rem]"
-      >
-        <div className="relative border-b border-white/[0.08] px-5 py-5 sm:px-7 sm:py-6">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(74,222,128,0.12),transparent_48%)]" />
-          <div className="relative flex items-start justify-between gap-4">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#4ade80]">
-                Order assignment
-              </p>
-              <h2 id="assignment-dialog-title" className="mt-1.5 text-xl font-bold sm:text-2xl">
-                Choose the right builder
-              </h2>
-              <p className="mt-1.5 max-w-xl text-xs leading-relaxed text-gray-400 sm:text-sm">
-                {order.style || "Custom"} · {order.size_label || order.building_size} ·{" "}
-                {formatPrice(order.price_kopecks)}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={assigning}
-              aria-label="Close builder selection"
-              className="studio-pressable rounded-xl border border-white/10 bg-white/[0.04] p-2.5 text-gray-400 hover:border-white/20 hover:bg-white/[0.08] hover:text-white disabled:opacity-40"
-            >
-              <X size={18} />
-            </button>
-          </div>
-          <div className="relative mt-4 flex flex-wrap items-center gap-2 text-[11px]">
-            <span className="rounded-full border border-[#4ade80]/20 bg-[#4ade80]/10 px-2.5 py-1 text-[#86efac]">
-              {availableCount} available now
-            </span>
-            <span className="rounded-full border border-white/10 bg-white/[0.035] px-2.5 py-1 text-gray-400">
-              {sortedMembers.length} team members
-            </span>
-          </div>
-        </div>
-
-        <div className="studio-builder-list overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
-          {sortedMembers.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-white/15 px-6 py-12 text-center">
-              <Users className="mx-auto text-gray-500" size={25} />
-              <p className="mt-3 text-sm font-semibold">No active builders yet</p>
-              <p className="mt-1 text-xs text-gray-500">
-                Add builders from the Team section before assigning this order.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {sortedMembers.map((member, index) => {
-                const profile = member.builder?.builder_profile || {};
-                const available = member.availability_status === "available";
-                const assigned = member.builder_id === order.assigned_builder_id;
-                const styles = profile.specialties || [];
-                const builderName =
-                  member.builder?.display_name || member.builder?.username || "Builder";
-
-                return (
-                  <article
-                    key={member.builder_id}
-                    className={`studio-builder-option rounded-2xl border p-4 sm:p-5 ${
-                      available
-                        ? "border-white/10 bg-white/[0.025] hover:border-white/[0.18] hover:bg-white/[0.04]"
-                        : "border-white/[0.06] bg-black/15 opacity-65"
-                    }`}
-                    style={{ "--builder-index": index }}
-                  >
-                    <div className="grid gap-4 sm:grid-cols-[minmax(145px,0.75fr)_minmax(245px,1.45fr)_auto] sm:items-center sm:gap-5">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <div className="relative flex-shrink-0">
-                          <Avatar
-                            src={member.builder?.avatar_url}
-                            name={builderName}
-                            className="h-12 w-12 rounded-2xl text-lg ring-1 ring-white/10 sm:h-14 sm:w-14"
-                          />
-                          <span
-                            className={`absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full border-[3px] border-[#171b18] ${
-                              available ? "bg-[#4ade80]" : "bg-amber-400"
-                            }`}
-                          />
-                        </div>
-                        <div className="min-w-0">
-                          <h3 className="truncate text-sm font-bold text-gray-100 sm:text-base">
-                            {builderName}
-                          </h3>
-                          <p className="truncate text-xs text-gray-500">
-                            @{member.builder?.username || "unknown"}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="min-w-0 border-white/[0.06] sm:border-l sm:pl-5">
-                        <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-gray-600">
-                          Build styles
-                        </p>
-                        <div className="mt-2 flex flex-wrap gap-1.5">
-                          {styles.length > 0 ? (
-                            styles.slice(0, 4).map((style) => (
-                              <span
-                                key={style}
-                                className={`rounded-full border px-2 py-1 text-[10px] ${
-                                  style === order.style
-                                    ? "border-[#4ade80]/30 bg-[#4ade80]/10 text-[#86efac]"
-                                    : "border-white/10 bg-white/[0.025] text-gray-400"
-                                }`}
-                              >
-                                {style}
-                              </span>
-                            ))
-                          ) : (
-                            <span className="text-[11px] text-gray-500">No styles listed</span>
-                          )}
-                        </div>
-
-                        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] text-gray-500">
-                          <span className="inline-flex items-center gap-1.5">
-                            <Star size={12} className="text-amber-300" />
-                            {Number(profile.avg_rating || 0).toFixed(1)} rating
-                          </span>
-                          <span className="inline-flex items-center gap-1.5">
-                            <BriefcaseBusiness size={12} />
-                            {Number(profile.completed_orders || 0)} completed
-                          </span>
-                          <span className="inline-flex items-center gap-1.5">
-                            <Clock3 size={12} />
-                            Responds in {profile.response_time_hours || "—"}h
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between gap-3 sm:flex-col sm:items-stretch sm:justify-center">
-                        <span
-                          className={`rounded-full border px-2.5 py-1 text-center text-[9px] font-bold uppercase tracking-wider ${
-                            available
-                              ? "border-[#4ade80]/25 bg-[#4ade80]/10 text-[#4ade80]"
-                              : "border-amber-400/20 bg-amber-400/[0.08] text-amber-300"
-                          }`}
-                        >
-                          {assigned ? "Assigned" : available ? "Available" : "Busy"}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => onChoose(member)}
-                          disabled={!available || assigned || assigning}
-                          className="studio-pressable min-w-[92px] rounded-xl bg-[#4ade80] px-4 py-2.5 text-xs font-bold text-black hover:bg-[#5ee88c] disabled:cursor-not-allowed disabled:bg-white/[0.06] disabled:text-gray-500 disabled:transform-none"
-                        >
-                          {assigned ? "Assigned" : available ? "Assign" : "Unavailable"}
-                        </button>
-                      </div>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {confirmingMember && (
-          <div className="studio-confirm-layer absolute inset-0 z-10 flex items-end justify-center bg-black/75 p-4 backdrop-blur-md sm:items-center sm:p-8">
-            <div className="studio-confirm-card w-full max-w-md rounded-3xl border border-white/10 bg-[#1c211d] p-5 shadow-2xl sm:p-6">
-              <div className="flex items-center gap-3">
-                <Avatar
-                  src={confirmingMember.builder?.avatar_url}
-                  name={confirmingMember.builder?.display_name || "Builder"}
-                  className="h-12 w-12 rounded-2xl text-lg ring-2 ring-[#4ade80]/25"
-                />
-                <div className="min-w-0">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#4ade80]">
-                    Confirm assignment
-                  </p>
-                  <h3 className="truncate text-lg font-bold">
-                    {confirmingMember.builder?.display_name || "Builder"}
-                  </h3>
-                </div>
-              </div>
-              <p className="mt-4 text-sm leading-relaxed text-gray-400">
-                Assign this {order.style || "custom"} order to{" "}
-                <strong className="text-gray-100">
-                  @{confirmingMember.builder?.username || "builder"}
-                </strong>
-                ? They’ll be notified immediately. Their availability will remain unchanged.
-              </p>
-              <div className="mt-5 grid grid-cols-2 gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => onChoose(null)}
-                  disabled={assigning}
-                  className="studio-pressable rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold text-gray-300 hover:bg-white/[0.05] disabled:opacity-40"
-                >
-                  Go back
-                </button>
-                <button
-                  type="button"
-                  onClick={onConfirm}
-                  disabled={assigning}
-                  className="studio-pressable rounded-xl bg-[#4ade80] px-4 py-3 text-sm font-bold text-black hover:bg-[#5ee88c] disabled:cursor-wait disabled:opacity-60"
-                >
-                  {assigning ? "Assigning…" : "Confirm assignment"}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </section>
-    </div>
-  );
-}
-
-function EmployeeOrdersCard({
-  assignedOrders,
-  assignmentFilter,
-  assignmentFilters,
-  activeAssignmentFilter,
-  onFilterChange,
-  userId,
-}) {
-  const activeIndex = Math.max(
-    0,
-    assignmentFilters.findIndex((filter) => filter.key === assignmentFilter)
-  );
-
-  return (
-    <Card
-      title="Studio assignments"
-      description="Track active work, completed builds, disputes, and your commission on every order."
-      aside={
-        <span className="hidden rounded-full border border-[#4ade80]/20 bg-[#4ade80]/10 px-3 py-1.5 text-[11px] font-semibold text-[#86efac] sm:inline-flex">
-          {assignedOrders.length} total
-        </span>
-      }
-    >
-      <div
-        className="relative mb-5 grid grid-cols-4 rounded-2xl border border-white/10 bg-white/[0.025] p-1"
-        role="tablist"
-        aria-label="Assignment status"
-      >
-        <span
-          aria-hidden="true"
-          className="absolute inset-y-1 left-1 rounded-xl bg-[#4ade80]/15 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
-          style={{
-            width: "calc((100% - 0.5rem) / 4)",
-            transform: `translateX(calc(${activeIndex} * 100%))`,
-            boxShadow:
-              "0 0 0 1px rgba(74,222,128,0.45), 0 0 16px rgba(74,222,128,0.14)",
-          }}
-        />
-        {assignmentFilters.map((filter) => (
-          <button
-            key={filter.key}
-            type="button"
-            role="tab"
-            aria-selected={filter.key === assignmentFilter}
-            onClick={() => onFilterChange(filter.key)}
-            className={`relative z-10 inline-flex min-w-0 items-center justify-center gap-1 rounded-xl px-1 py-2.5 text-[11px] font-semibold transition-colors sm:text-xs ${
-              filter.key === assignmentFilter
-                ? "text-white"
-                : "text-gray-500 hover:text-gray-200"
-            }`}
-          >
-            <span className="truncate">{filter.label}</span>
-            {filter.rows.length > 0 && (
-              <span
-                className={`inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-bold ${
-                  filter.key === "disputed"
-                    ? "bg-red-400/20 text-red-300"
-                    : filter.key === assignmentFilter
-                      ? "bg-[#4ade80]/25 text-[#86efac]"
-                      : "bg-white/[0.07] text-gray-500"
-                }`}
-              >
-                {filter.rows.length}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
-
-      <div className="space-y-3">
-        {activeAssignmentFilter.rows.length === 0 && (
-          <div className="rounded-3xl border border-dashed border-white/15 bg-black/[0.08] px-6 py-10 text-center">
-            <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl border border-[#4ade80]/20 bg-[#4ade80]/10 text-[#4ade80]">
-              <Inbox size={22} />
-            </span>
-            <p className="text-sm font-semibold">
-              No {activeAssignmentFilter.label.toLowerCase()} assignments
-            </p>
-            <p className="mt-1 text-xs text-gray-500">
-              Orders in this stage will appear here automatically.
-            </p>
-          </div>
-        )}
-        {activeAssignmentFilter.rows.map((order, orderIndex) => {
-          const assignment = order.assignments?.find(
-            (row) => row.builder_id === userId
-          );
-          const commissionBps = Number(
-            assignment?.employee_commission_bps ??
-              order.employee_commission_bps_snapshot ??
-              0
-          );
-          const createdDate = order.created_at
-            ? new Intl.DateTimeFormat(undefined, {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-              }).format(new Date(order.created_at))
-            : null;
-          const isCurrent = order.assigned_builder_id === userId;
-
-          return (
-            <article
-              key={order.id}
-              className="studio-order-row rounded-3xl border border-white/10 bg-black/[0.08] p-5 hover:border-[#4ade80]/25 hover:bg-white/[0.018] sm:p-6"
-              style={{ "--order-index": orderIndex }}
-            >
-              <div className="flex flex-col gap-5">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex flex-wrap items-center gap-2.5">
-                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-gray-500">
-                      Order #{String(order.id).slice(0, 8)}
-                    </p>
-                    <span
-                      className={`rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider ${
-                        order.status === "disputed"
-                          ? "border-red-400/25 bg-red-400/10 text-red-300"
-                          : order.status === "completed"
-                            ? "border-emerald-400/25 bg-emerald-400/10 text-emerald-300"
-                            : "border-[#4ade80]/20 bg-[#4ade80]/10 text-[#86efac]"
-                      }`}
-                    >
-                      {String(order.status || "new").replaceAll("_", " ")}
-                    </span>
-                    {!isCurrent && (
-                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-gray-400">
-                        Historical
-                      </span>
-                    )}
-                  </div>
-                  {createdDate && (
-                    <span className="inline-flex items-center gap-1.5 text-xs text-gray-500">
-                      <CalendarDays size={13} />
-                      Placed {createdDate}
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex flex-col gap-5 lg:flex-row lg:items-end">
-                  <dl className="grid min-w-0 flex-1 grid-cols-2 gap-x-5 gap-y-5 sm:grid-cols-5">
-                    <div>
-                      <dt className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-600">
-                        Client
-                      </dt>
-                      <dd className="mt-1.5 truncate text-sm font-semibold text-gray-100">
-                        @{order.buyer?.username || order.buyer?.display_name || "buyer"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-600">
-                        Build style
-                      </dt>
-                      <dd className="mt-1.5 truncate text-sm font-semibold capitalize text-gray-100">
-                        {order.style || "Custom"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-600">
-                        Project size
-                      </dt>
-                      <dd className="mt-1.5 truncate text-sm font-semibold text-gray-100">
-                        {order.size_label || order.building_size || "Custom"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-600">
-                        Order value
-                      </dt>
-                      <dd className="mt-1.5 text-sm font-bold text-[#4ade80]">
-                        {formatPrice(order.price_kopecks)}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-600">
-                        Your commission
-                      </dt>
-                      <dd className="mt-1.5 text-sm font-bold text-[#86efac]">
-                        {(commissionBps / 100).toFixed(2)}%
-                      </dd>
-                    </div>
-                  </dl>
-
-                  <Link
-                    href={withBase(`/orders/?id=${encodeURIComponent(order.id)}`)}
-                    className="studio-pressable inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-white/15 bg-white/[0.035] px-5 py-3 text-xs font-semibold text-gray-200 hover:border-[#4ade80]/35 hover:bg-[#4ade80]/10 hover:text-[#86efac] lg:w-auto"
-                  >
-                    Open order <ArrowRight size={13} />
-                  </Link>
-                </div>
-
-                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.06] pt-3 text-[11px] text-gray-500">
-                  <span>{isCurrent ? "Current studio assignment" : "Archived studio assignment"}</span>
-                  {assignment?.released_at && (
-                    <span>
-                      Released {new Date(assignment.released_at).toLocaleDateString()}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </article>
-          );
-        })}
-      </div>
-    </Card>
-  );
-}
-
 export function StudioEmployeeDashboard({ builderProfile, section = "profile", onAvailabilitySaved }) {
   const { user } = useAuth();
   const [status, setStatus] = useState(builderProfile?.availability_status || "available");
-  const [earnings, setEarnings] = useState([]);
-  const [orders, setOrders] = useState([]);
-  const [assignmentFilter, setAssignmentFilter] = useState("active");
   const [error, setError] = useState(null);
   const [leaveEligibility, setLeaveEligibility] = useState(null);
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [leaving, setLeaving] = useState(false);
 
   const load = useCallback(async () => {
-    const [earningResult, orderResult, leaveResult] = await Promise.all([
-      listMyEmployeeEarnings(),
-      listMyOrders(),
-      getMyStudioLeaveEligibility(),
-    ]);
-    setEarnings(earningResult.earnings || []);
-    setOrders(orderResult.orders || []);
+    const leaveResult = await getMyStudioLeaveEligibility();
     if (!leaveResult.error) setLeaveEligibility(leaveResult.eligibility);
   }, []);
 
@@ -2845,35 +1558,6 @@ export function StudioEmployeeDashboard({ builderProfile, section = "profile", o
   useEffect(() => {
     setStatus(builderProfile?.availability_status || "available");
   }, [builderProfile?.availability_status]);
-
-  const total = earnings.reduce((sum, row) => sum + Number(row.amount_kopecks || 0), 0);
-  const assignedOrders = useMemo(
-    () =>
-      orders.filter(
-        (order) =>
-          order.assigned_builder_id === user?.id ||
-          order.assignments?.some((assignment) => assignment.builder_id === user?.id)
-      ),
-    [orders, user?.id]
-  );
-  const assignmentFilters = useMemo(() => {
-    const activeStatuses = new Set(["pending_payment", "paid", "in_progress", "delivered"]);
-    const buckets = {
-      active: assignedOrders.filter((order) => activeStatuses.has(order.status)),
-      completed: assignedOrders.filter((order) => order.status === "completed"),
-      disputed: assignedOrders.filter((order) => order.status === "disputed"),
-      all: assignedOrders,
-    };
-    return [
-      { key: "active", label: "Active", rows: buckets.active },
-      { key: "completed", label: "Completed", rows: buckets.completed },
-      { key: "disputed", label: "Disputed", rows: buckets.disputed },
-      { key: "all", label: "All", rows: buckets.all },
-    ];
-  }, [assignedOrders]);
-  const activeAssignmentFilter =
-    assignmentFilters.find((filter) => filter.key === assignmentFilter) ||
-    assignmentFilters[0];
 
   const employeeStatus = status === "busy" ? "busy" : "available";
   const statusOptions = [
@@ -2943,34 +1627,6 @@ export function StudioEmployeeDashboard({ builderProfile, section = "profile", o
           </div>
         </div>
         {leaveOpen && typeof document !== "undefined" && createPortal(<div className="fixed inset-0 z-[300] flex min-h-dvh items-center justify-center bg-black/80 p-4 backdrop-blur-md" role="dialog" aria-modal="true" aria-labelledby="leave-studio-title" onMouseDown={(event) => event.target === event.currentTarget && !leaving && setLeaveOpen(false)}><div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#171b18] p-6 shadow-[0_30px_100px_rgba(0,0,0,.75)] sm:p-7"><div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-red-400/20 bg-red-500/10 text-red-300"><UserMinus size={21} aria-hidden="true" /></div><h3 id="leave-studio-title" className="mt-5 text-xl font-bold">Leave the studio?</h3><p className="mt-3 text-sm leading-relaxed text-gray-400">You will become an independent builder and remain hidden from the marketplace until you change your availability.</p><div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" disabled={leaving} onClick={() => setLeaveOpen(false)} className="rounded-full border border-white/15 px-4 py-2.5 text-sm transition hover:bg-white/[.06]">Cancel</button><button type="button" disabled={leaving} onClick={async () => { setLeaving(true); setError(null); const result = await leaveMyStudio(); if (result.error) { setError(result.error.message); setLeaving(false); setLeaveOpen(false); return; } window.location.assign(withBase("/account")); }} className="rounded-full bg-red-500 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-red-400 disabled:opacity-50">{leaving ? "Leaving…" : "Leave studio"}</button></div></div></div>, document.body)}
-      </Card>}
-      {section === "orders" && (
-        <EmployeeOrdersCard
-          assignedOrders={assignedOrders}
-          assignmentFilter={assignmentFilter}
-          assignmentFilters={assignmentFilters}
-          activeAssignmentFilter={activeAssignmentFilter}
-          onFilterChange={setAssignmentFilter}
-          userId={user?.id}
-        />
-      )}
-      {section === "payouts" && <Card title="Payment balance" description="Your studio commission is already accounted for in every amount shown.">
-        <div className="rounded-2xl border border-[#4ade80]/20 bg-[#4ade80]/[0.06] p-5 sm:p-6">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#86efac]">Earned through your studio</p>
-          <p className="mt-2 text-3xl font-extrabold tracking-tight text-[#4ade80]">{formatPrice(total)}</p>
-          <p className="mt-2 max-w-xl text-xs leading-relaxed text-gray-400">
-            This is your tracked share after the studio&apos;s commission. Payments are not available in BuildEx yet, so your studio will settle this balance separately.
-          </p>
-        </div>
-        <div className="mt-5 divide-y divide-white/[0.07]">
-          {earnings.length === 0 && <p className="py-4 text-sm text-gray-500">Completed studio work will appear here once it earns a commission.</p>}
-          {earnings.map((row) => (
-            <div key={row.id} className="py-3 flex justify-between gap-3 text-sm">
-              <span>{row.studio?.name || "Studio"} · {(Number(row.commission_bps) / 100).toFixed(2)}%</span>
-              <span className="font-semibold">{formatPrice(row.amount_kopecks)}</span>
-            </div>
-          ))}
-        </div>
       </Card>}
     </div>
   );

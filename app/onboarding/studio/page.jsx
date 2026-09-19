@@ -17,12 +17,6 @@ import OnboardingGate from "../components/OnboardingGate";
 import OnboardingFooter from "../components/OnboardingFooter";
 import AvatarUploader from "../components/AvatarUploader";
 import PortfolioUploader from "../components/PortfolioUploader";
-import {
-  RatesEditor,
-  mergeRates,
-  normalizeRates,
-  validateRates,
-} from "../components/RatesFields";
 import { BIO_MAX } from "../../../lib/onboarding/constants";
 
 const INPUT =
@@ -47,7 +41,6 @@ function StudioOnboarding() {
   const [username, setUsername] = useState("");
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [about, setAbout] = useState("");
-  const [rates, setRates] = useState(() => mergeRates(null));
   const [portfolioCount, setPortfolioCount] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -66,16 +59,6 @@ function StudioOnboarding() {
 
   function nextFromIdentity() {
     if (name.trim().length < 2 || username.trim().length < 3 || !avatarUrl) return;
-    setStep("rates");
-  }
-
-  function nextFromRates() {
-    const validation = validateRates(rates);
-    if (validation) {
-      setError(validation);
-      return;
-    }
-    setError(null);
     setStep("portfolio");
   }
 
@@ -90,7 +73,7 @@ function StudioOnboarding() {
         username: username.trim().toLowerCase(),
         avatarUrl,
         about: about.trim() || null,
-        rates: normalizeRates(rates),
+        rates: {},
       })
     );
     setBusy(false);
@@ -103,8 +86,7 @@ function StudioOnboarding() {
 
   const titles = {
     code: ["Verify your studio", "Enter the moderator-only code created by BuildEx."],
-    identity: ["Create the studio identity", "This is what buyers will see in the catalog and chat."],
-    rates: ["Set studio prices", "Studios accept every style; only size-based prices are required."],
+    identity: ["Create the studio identity", "This is what visitors will see in the catalog and chat."],
     portfolio: ["Build the studio portfolio", "Upload at least one representative build."],
   };
 
@@ -112,7 +94,7 @@ function StudioOnboarding() {
     <div>
       <div className="text-center mb-8">
         <p className="text-xs text-[#4ade80] uppercase tracking-[0.2em] mb-3">
-          Studio setup · {["code", "identity", "rates", "portfolio"].indexOf(step) + 1}/4
+          Studio setup · {["code", "identity", "portfolio"].indexOf(step) + 1}/3
         </p>
         <h1 className="onb-section-title">{titles[step][0]}</h1>
         <p className="onb-section-sub mt-3 mx-auto">{titles[step][1]}</p>
@@ -181,8 +163,6 @@ function StudioOnboarding() {
           </div>
         )}
 
-        {step === "rates" && <RatesEditor rates={rates} onChange={setRates} />}
-
         {step === "portfolio" && (
           <PortfolioUploader
             userId={user?.id}
@@ -198,26 +178,20 @@ function StudioOnboarding() {
         onBack={
           step === "code"
             ? () => router.push(`${STEPS.role}?revisit=1`)
-            : () =>
-                setStep(
-                  step === "identity" ? "code" : step === "rates" ? "identity" : "rates"
-                )
+            : () => setStep(step === "identity" ? "code" : "identity")
         }
         onNext={
           step === "code"
             ? checkCode
             : step === "identity"
               ? nextFromIdentity
-              : step === "rates"
-                ? nextFromRates
-                : finish
+              : finish
         }
         nextDisabled={
           busy ||
           (step === "code" && code.trim().length < 6) ||
           (step === "identity" &&
             (name.trim().length < 2 || username.trim().length < 3 || !avatarUrl)) ||
-          (step === "rates" && Boolean(validateRates(rates))) ||
           (step === "portfolio" && portfolioCount < 1)
         }
         isSaving={busy}

@@ -205,8 +205,8 @@ export default function NotificationsBell() {
                         {n.link ? (
                           // A real anchor (not next/link): a full navigation to
                           // withBase(link) reliably deep-links to the target —
-                          // including when the user is ALREADY on /orders, where a
-                          // soft same-route navigation wouldn't re-open the order.
+                          // including when the user is ALREADY on that route, where
+                          // a soft same-route navigation wouldn'''t re-read the id.
                           <a
                             href={withBase(n.link)}
                             role="menuitem"

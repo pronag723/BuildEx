@@ -32,7 +32,7 @@ const NotificationsContext = createContext({
 });
 
 // The current page as a base-path-relative "/path?query" string, so it can be
-// compared against a notification's stored `link` (e.g. "/orders/?id=…").
+// compared against a notification's stored `link`.
 function currentRelativeUrl() {
   if (typeof window === "undefined") return "";
   const base = process.env.NEXT_PUBLIC_BASE_PATH || "";
@@ -42,7 +42,7 @@ function currentRelativeUrl() {
 }
 
 // Loose match between a notification link and a URL: ignore a trailing slash on
-// the path segment so "/orders/?id=x" and "/orders?id=x" compare equal.
+// the path segment so "/x/?id=1" and "/x?id=1" compare equal.
 function linksMatch(a, b) {
   if (!a || !b) return false;
   const norm = (s) => s.replace(/\/(\?)/, "$1").replace(/\/$/, "");
