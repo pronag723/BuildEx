@@ -3,6 +3,32 @@
 Paste each file into the Supabase SQL editor in order, then run. All
 migrations are idempotent (safe to re-run during development).
 
+## Current: the directory revamp (0095–0102)
+
+BuildEx is a directory now. These are the migrations that made it one — read
+them first. **Everything below the table is history**: 0008–0094 build the
+payment, order, review, rank, studio and ready-build features that 0095–0097
+decommission. Those tables and functions still exist, because we decommission
+rather than delete, but nothing in the app touches them.
+
+| # | What it does |
+|---|---|
+| 0095 | Removes the payment, order, payout and dispute layer |
+| 0096 | Removes reviews and ranks |
+| 0097 | Removes studios and role-based registration |
+| 0098–0099 | Builder contact / social links (`builder_profiles.contact_links`) |
+| 0100 | Chat abuse controls: rate limits and `conversation_reports` |
+| 0101 | Moderation: `builder_profiles.is_hidden`, enforced in RLS |
+| 0102 | **Revokes EXECUTE on the decommissioned RPCs.** Keeping a function kept it *callable* — Postgres grants EXECUTE to PUBLIC by default, so 13 SECURITY DEFINER functions from removed features were reachable by `anon`, i.e. by anyone holding the publishable key in the site's JS bundle. Deliberately leaves the five predicates that RLS policies (several on `storage.objects`) still reference. |
+
+> **0101 gotcha.** Its `hidden_by` column gave `profiles` and `builder_profiles`
+> a *second* foreign key. Any PostgREST embed between those two tables must now
+> name the constraint — `builder_profiles!builder_profiles_id_fkey!inner(*)` —
+> or it is ambiguous and the query fails with 300 / PGRST201. An unqualified
+> embed is what silently emptied the builder feed.
+
+## History (0001–0094)
+
 | # | File | What it does |
 |---|---|---|
 | 0001 | `0001_profiles_base.sql` | Baseline `profiles` table from the README, plus a case-insensitive uniqueness index on the `@handle`. Skip if you already created this table per the README. |
