@@ -9,7 +9,7 @@ export default function PaginationControls({ total, shown, onLoadMore }) {
       <p className="text-sm text-gray-400">
         Showing{" "}
         <span className="text-white font-semibold">{shown}</span> of{" "}
-        <span className="text-white font-semibold">{total}</span> offers
+        <span className="text-white font-semibold">{total}</span> builders
       </p>
 
       {hasMore && (
@@ -37,7 +37,7 @@ export default function PaginationControls({ total, shown, onLoadMore }) {
       {!hasMore && total > 0 && (
         <p className="text-xs text-gray-500 flex items-center gap-2">
           <span className="w-1.5 h-1.5 bg-[#4ade80] rounded-full" />
-          You&apos;ve seen all available offers
+          You&apos;ve seen every builder
         </p>
       )}
     </div>

@@ -63,7 +63,7 @@ export default function FiltersMobileModal({
             <div>
               <h2 className="font-semibold">Filters</h2>
               <p className="mt-0.5 text-xs text-gray-500">
-                Refine builders and studios
+                Narrow down the builder list
               </p>
             </div>
             <button
@@ -100,7 +100,7 @@ export default function FiltersMobileModal({
               onClick={onClose}
               className="w-full py-3 bg-[#4ade80] text-black font-semibold rounded-2xl text-sm green-glow hover:scale-[1.02] active:scale-[0.99] transition-transform duration-200"
             >
-              Show {resultCount} {resultCount === 1 ? "provider" : "providers"}
+              Show {resultCount} {resultCount === 1 ? "builder" : "builders"}
             </button>
           </div>
         </div>

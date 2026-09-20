@@ -176,18 +176,12 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
           </>
         )}
 
-        {/* Availability indicator — top left. Mirrors the builder's busyness
-            slider: green = available, amber = limited. "Busy" (red) builders are
-            filtered out of the feed entirely, so they never render here. */}
-        {builder.availability_status === "limited" ? (
-          <div className="absolute top-3 left-3 z-10 px-2.5 py-1 rounded-full text-xs bg-black/60 text-amber-400 backdrop-blur-sm border border-amber-400/30 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-            Limited
-          </div>
-        ) : (
+        {/* Presence — top left, and only when the builder is actually online
+            (a real heartbeat on profiles.last_seen_at, see lib/presence). */}
+        {builder.online && (
           <div className="absolute top-3 left-3 z-10 px-2.5 py-1 rounded-full text-xs bg-black/60 text-[#4ade80] backdrop-blur-sm border border-[#4ade80]/30 flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80] online-dot" />
-            Available
+            Online
           </div>
         )}
 

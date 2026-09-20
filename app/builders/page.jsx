@@ -1,9 +1,9 @@
 import CatalogPage from "./components/CatalogPage";
 
 export const metadata = {
-  title: "Hire Minecraft Builders | BuildEx",
+  title: "Minecraft Builder Directory | BuildEx",
   description:
-    "Browse elite Minecraft creators on BuildEx. View portfolios, compare specialties, and message builders directly.",
+    "A directory of Minecraft builders on BuildEx. Browse portfolios, filter by style, and message builders directly.",
 };
 
 export default function BuildersPage() {

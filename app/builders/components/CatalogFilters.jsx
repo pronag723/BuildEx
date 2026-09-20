@@ -130,15 +130,10 @@ function FilterGroup({ label, children, defaultOpen = true }) {
 
 // ─── Main panel ───────────────────────────────────────────────────────────────
 export default function CatalogFilters({
-  provider,
-  onProviderChange,
   selectedStyles,
   onStyleToggle,
   selectedBuildTypes,
   onBuildTypeToggle,
-  studioOptions = [],
-  selectedStudios = [],
-  onStudioToggle,
   favoritesOnly,
   onFavoritesToggle,
   canFavorite,
@@ -163,34 +158,6 @@ export default function CatalogFilters({
             </span>
           </button>
         )}
-      </div>
-
-      {/* Provider type */}
-      <div className="py-3 border-b border-white/[0.07]">
-        <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2.5">
-          Provider
-        </p>
-        <div className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-black/20 border border-white/[0.08]">
-          {[
-            { value: "all", label: "Both" },
-            { value: "builders", label: "Builders" },
-            { value: "studios", label: "Studios" },
-          ].map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => onProviderChange(option.value)}
-              aria-pressed={provider === option.value}
-              className={`rounded-lg px-2 py-2 text-xs font-semibold transition-all ${
-                provider === option.value
-                  ? "bg-[#4ade80] text-black shadow-[0_0_12px_rgba(74,222,128,0.25)]"
-                  : "text-gray-400 hover:text-white hover:bg-white/5"
-              }`}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
       </div>
 
       {/* Favorites — signed-in users only */}
@@ -228,22 +195,6 @@ export default function CatalogFilters({
           />
         ))}
       </FilterGroup>
-
-      {/* Studios (migration 0026) — only shown when partner studios have builders
-          in the feed. */}
-      {studioOptions.length > 0 && (
-        <FilterGroup label="Studios" defaultOpen={false}>
-          {studioOptions.map((s) => (
-            <FilterCheckbox
-              key={s.slug}
-              label={s.name}
-              icon="studio"
-              checked={selectedStudios.includes(s.slug)}
-              onChange={() => onStudioToggle(s.slug)}
-            />
-          ))}
-        </FilterGroup>
-      )}
     </div>
   );
 }

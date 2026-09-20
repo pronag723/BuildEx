@@ -23,18 +23,9 @@ export const DEFAULT_SORT = "featured";
 
 // ─── Pure filter / sort helpers (easy to move server-side) ──────────────────
 export function filterBuilders(builders, filters) {
-  const {
-    query = "",
-    styles = [],
-    buildTypes = [],
-    studios = [],
-    provider = "all",
-  } = filters;
+  const { query = "", styles = [], buildTypes = [] } = filters;
 
   return builders.filter((b) => {
-    const isStudioProvider = b.provider_type === "studio";
-    if (provider === "studios" && !isStudioProvider) return false;
-    if (provider === "builders" && isStudioProvider) return false;
     if (query) {
       const q = query.toLowerCase();
       const match =
@@ -47,14 +38,8 @@ export function filterBuilders(builders, filters) {
       if (!match) return false;
     }
 
-    if (!isStudioProvider && styles.length > 0 && !styles.some((s) => b.styles.includes(s))) return false;
-    if (!isStudioProvider && buildTypes.length > 0 && !buildTypes.some((t) => b.build_types.includes(t))) return false;
-    // Studio filter (migration 0026): match the builder's studio slug.
-    if (
-      studios.length > 0 &&
-      !(isStudioProvider && studios.includes(b.slug)) &&
-      !(b.studio && studios.includes(b.studio.slug))
-    ) return false;
+    if (styles.length > 0 && !styles.some((s) => b.styles.includes(s))) return false;
+    if (buildTypes.length > 0 && !buildTypes.some((t) => b.build_types.includes(t))) return false;
 
     return true;
   });

@@ -1,5 +1,15 @@
 "use client";
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Public builder profile.
+//
+// The page has one job: show the work. Everything the old marketplace profile
+// carried — rate cards, the rank ring, ratings, reviews, the hire CTA, the
+// tools and formats sidebar — is gone, so the layout is a single column with a
+// wide portfolio gallery under a compact identity header. The only action is
+// "Message", which opens a chat thread with the builder.
+// ─────────────────────────────────────────────────────────────────────────────
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -7,7 +17,7 @@ import { createPortal } from "react-dom";
 import CatalogNavbar from "../../../components/CatalogNavbar";
 import CatalogMobileMenu from "../../../components/CatalogMobileMenu";
 import SiteFooter from "../../../../home/components/SiteFooter";
-import { publicAsset, withBase } from "../../../../home/utils";
+import { publicAsset } from "../../../../home/utils";
 import Avatar from "../../../../../lib/ui/Avatar";
 import { useAuthGate } from "../../../../../lib/auth/useAuthGate";
 import SocialLinks from "../../../components/SocialLinks";
@@ -16,13 +26,6 @@ import { useFavorites } from "../../../../../lib/favorites/FavoritesContext";
 import { useScrollLock } from "../../../../../lib/useScrollLock";
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
-function IconCheck({ className = "w-4 h-4" }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <polyline points="20 6 9 17 4 12" />
-    </svg>
-  );
-}
 function IconChevron({ className = "w-4 h-4" }) {
   return (
     <svg className={className} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -37,170 +40,90 @@ function IconExpand({ className = "w-4 h-4" }) {
     </svg>
   );
 }
-function IconChat({ className = "w-5 h-5" }) {
+function IconHeart({ className = "w-4 h-4", filled = false }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+    <svg className={className} viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
     </svg>
   );
 }
-// ─── Portfolio carousel ──────────────────────────────────────────────────────
-function PortfolioCarousel({ items }) {
-  const [index, setIndex] = useState(0);
-  const [lightboxIndex, setLightboxIndex] = useState(null);
+
+// ─── Portfolio gallery ───────────────────────────────────────────────────────
+// A wide grid instead of the old sidebar-sized carousel: the first build runs
+// the full width, the rest sit two-up on desktop and stack on mobile. Any tile
+// opens the full-screen viewer, which keeps its own keyboard navigation.
+function PortfolioGallery({ items }) {
+  const [viewerIndex, setViewerIndex] = useState(null);
   const count = items.length;
 
-  const go = (dir) => setIndex((i) => (i + dir + count) % count);
-  const goLightbox = useCallback((dir) => {
-    setLightboxIndex((current) => (current + dir + count) % count);
-  }, [count]);
+  const step = useCallback(
+    (dir) => setViewerIndex((current) => (current + dir + count) % count),
+    [count]
+  );
 
-  useScrollLock(lightboxIndex != null);
+  useScrollLock(viewerIndex != null);
 
   useEffect(() => {
-    if (lightboxIndex == null) return undefined;
+    if (viewerIndex == null) return undefined;
     const onKeyDown = (event) => {
-      if (event.key === "Escape") setLightboxIndex(null);
-      if (event.key === "ArrowLeft" && count > 1) goLightbox(-1);
-      if (event.key === "ArrowRight" && count > 1) goLightbox(1);
+      if (event.key === "Escape") setViewerIndex(null);
+      if (event.key === "ArrowLeft" && count > 1) step(-1);
+      if (event.key === "ArrowRight" && count > 1) step(1);
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [lightboxIndex, count, goLightbox]);
+  }, [viewerIndex, count, step]);
 
-  const lightboxImage = lightboxIndex == null ? null : items[lightboxIndex];
+  const viewerImage = viewerIndex == null ? null : items[viewerIndex];
 
   return (
     <>
-    <div className="group/media relative rounded-3xl overflow-hidden glass">
-      <div
-        className="flex transition-transform duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]"
-        style={{ transform: `translateX(-${index * 100}%)` }}
-      >
-        {items.map((item, itemIndex) => (
-          <button key={item.id} type="button" onClick={() => setLightboxIndex(itemIndex)} className="group/photo relative w-full flex-shrink-0 aspect-[16/9] cursor-zoom-in overflow-hidden text-left" aria-label={`Open ${item.title || "portfolio image"} full screen`}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5">
+        {items.map((item, index) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => setViewerIndex(index)}
+            aria-label={`Open ${item.title || "portfolio image"} full screen`}
+            className={`group/photo relative overflow-hidden rounded-3xl glass cursor-zoom-in text-left ${
+              index === 0
+                ? "md:col-span-2 aspect-[4/3] sm:aspect-[16/9] md:aspect-[21/9]"
+                : "aspect-[4/3]"
+            }`}
+          >
             <img
               src={publicAsset(item.thumbnail)}
               alt={item.title}
-              className="w-full h-full object-cover"
-              loading="lazy"
+              className="h-full w-full object-cover transition-transform duration-[600ms] ease-[cubic-bezier(0.4,0,0.2,1)] group-hover/photo:scale-[1.04]"
+              loading={index === 0 ? "eager" : "lazy"}
               decoding="async"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
-            <span className="absolute right-4 top-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/55 px-3 py-2 text-xs font-semibold text-white opacity-0 backdrop-blur-md transition-all group-hover/photo:opacity-100 group-focus-visible/photo:opacity-100"><IconExpand />View full screen</span>
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover/photo:opacity-100" />
+            <span className="absolute right-4 top-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/55 px-3 py-2 text-xs font-semibold text-white opacity-0 backdrop-blur-md transition-all group-hover/photo:opacity-100 group-focus-visible/photo:opacity-100">
+              <IconExpand />
+              View full screen
+            </span>
           </button>
         ))}
       </div>
 
-      {count > 1 && (
-        <>
-          <button
-            type="button"
-            aria-label="Previous build"
-            onClick={() => go(-1)}
-            className="carousel-arrow absolute left-3 top-1/2 -translate-y-1/2 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-[#4ade80]/25 text-white border border-[#4ade80]/50 backdrop-blur-md shadow-[0_2px_10px_rgba(0,0,0,0.3)] hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.55)] transition-all duration-200"
-          >
-            <IconChevron className="w-5 h-5 rotate-180" />
-          </button>
-          <button
-            type="button"
-            aria-label="Next build"
-            onClick={() => go(1)}
-            className="carousel-arrow absolute right-3 top-1/2 -translate-y-1/2 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-[#4ade80]/25 text-white border border-[#4ade80]/50 backdrop-blur-md shadow-[0_2px_10px_rgba(0,0,0,0.3)] hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.55)] transition-all duration-200"
-          >
-            <IconChevron className="w-5 h-5" />
-          </button>
-
-          {/* Slide dots */}
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2">
-            {items.map((item, i) => (
-              <button
-                key={item.id}
-                type="button"
-                aria-label={`Go to build ${i + 1}`}
-                onClick={() => setIndex(i)}
-                className={`h-2 rounded-full transition-all duration-200 ${
-                  i === index ? "w-6 bg-[#4ade80]" : "w-2 bg-white/50 hover:bg-white/80"
-                }`}
-              />
-            ))}
+      {viewerImage && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[400] flex items-center justify-center bg-black/90 p-3 backdrop-blur-xl sm:p-8" role="dialog" aria-modal="true" aria-label="Full-screen portfolio photo" onClick={() => setViewerIndex(null)}>
+          <button type="button" onClick={() => setViewerIndex(null)} className="absolute right-4 top-4 z-20 flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-black/60 text-2xl text-white transition hover:border-[#4ade80]/60 hover:text-[#4ade80]" aria-label="Close full-screen photo">×</button>
+          <div className="relative flex h-full w-full items-center justify-center" onClick={(event) => event.stopPropagation()}>
+            <img src={publicAsset(viewerImage.thumbnail)} alt={viewerImage.title || "Portfolio image"} className="max-h-full max-w-full rounded-2xl object-contain shadow-2xl" />
+            {count > 1 && (
+              <>
+                <button type="button" onClick={() => step(-1)} className="absolute left-1 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-[#4ade80]/45 bg-black/65 text-white backdrop-blur-md transition hover:bg-[#4ade80] hover:text-black sm:left-4" aria-label="Previous full-screen photo"><IconChevron className="h-6 w-6 rotate-180" /></button>
+                <button type="button" onClick={() => step(1)} className="absolute right-1 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-[#4ade80]/45 bg-black/65 text-white backdrop-blur-md transition hover:bg-[#4ade80] hover:text-black sm:right-4" aria-label="Next full-screen photo"><IconChevron className="h-6 w-6" /></button>
+              </>
+            )}
+            <span className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full border border-white/10 bg-black/60 px-3 py-1.5 text-xs text-white/70 backdrop-blur-md">{viewerIndex + 1} / {count}</span>
           </div>
-        </>
+        </div>,
+        document.body,
       )}
-    </div>
-    {lightboxImage && typeof document !== "undefined" && createPortal(
-      <div className="fixed inset-0 z-[400] flex items-center justify-center bg-black/90 p-3 backdrop-blur-xl sm:p-8" role="dialog" aria-modal="true" aria-label="Full-screen portfolio photo" onClick={() => setLightboxIndex(null)}>
-        <button type="button" onClick={() => setLightboxIndex(null)} className="absolute right-4 top-4 z-20 flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-black/60 text-2xl text-white transition hover:border-[#4ade80]/60 hover:text-[#4ade80]" aria-label="Close full-screen photo">×</button>
-        <div className="relative flex h-full w-full items-center justify-center" onClick={(event) => event.stopPropagation()}>
-          <img src={publicAsset(lightboxImage.thumbnail)} alt={lightboxImage.title || "Portfolio image"} className="max-h-full max-w-full rounded-2xl object-contain shadow-2xl" />
-          {count > 1 && <>
-            <button type="button" onClick={() => goLightbox(-1)} className="absolute left-1 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-[#4ade80]/45 bg-black/65 text-white backdrop-blur-md transition hover:bg-[#4ade80] hover:text-black sm:left-4" aria-label="Previous full-screen photo"><IconChevron className="h-6 w-6 rotate-180" /></button>
-            <button type="button" onClick={() => goLightbox(1)} className="absolute right-1 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-[#4ade80]/45 bg-black/65 text-white backdrop-blur-md transition hover:bg-[#4ade80] hover:text-black sm:right-4" aria-label="Next full-screen photo"><IconChevron className="h-6 w-6" /></button>
-          </>}
-          <span className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full border border-white/10 bg-black/60 px-3 py-1.5 text-xs text-white/70 backdrop-blur-md">{lightboxIndex + 1} / {count}</span>
-        </div>
-      </div>,
-      document.body,
-    )}
     </>
-  );
-}
-
-// ─── Contact sidebar ─────────────────────────────────────────────────────────
-function ContactSidebar({ builder, onShowSoon, onContact }) {
-  return (
-    <div className="glass rounded-3xl p-6 builder-sidebar-sticky space-y-5">
-      {/* Avatar + header */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-shrink-0">
-          <Avatar
-            src={builder.avatar}
-            name={builder.display_name}
-            className="w-14 h-14 rounded-full ring-2 ring-[#4ade80]/30 text-xl"
-          />
-          {builder.online && (
-            <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-[#4ade80] border-2 border-[#1a1a1a] online-dot" />
-          )}
-        </div>
-        <div className="min-w-0">
-          <p className="font-bold text-base leading-tight">{builder.display_name}</p>
-          {builder.online ? (
-            <p className="text-xs text-[#4ade80] flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80] online-dot" />
-              Online now
-            </p>
-          ) : (
-            <p className="text-xs text-gray-500">Offline</p>
-          )}
-        </div>
-      </div>
-
-      {/* CTA */}
-      <button
-        type="button"
-        onClick={onContact}
-        className="w-full py-3.5 rounded-full border border-white/15 bg-white/5 text-gray-200 font-semibold text-base hover:bg-white/10 hover:border-white/30 transition-all flex items-center justify-center gap-2"
-      >
-        <IconChat className="w-4 h-4" />
-        Contact Builder
-      </button>
-
-      {/* Whatever links this builder chose to publish. */}
-      <SocialLinks contactLinks={builder.contact_links} className="justify-center" />
-
-      {/* Trust badges */}
-      <div className="pt-3 border-t border-white/[0.06] grid grid-cols-2 gap-2">
-        {[
-          { icon: "chat", label: "Discuss Anytime" },
-          { icon: "files", label: "Source Files" },
-        ].map(({ icon, label }) => (
-          <div key={label} className="flex items-center gap-1.5 text-[11px] text-gray-500">
-            <Icon name={icon} size={13} className="text-[#4ade80]/80" />
-            <span>{label}</span>
-          </div>
-        ))}
-      </div>
-    </div>
   );
 }
 
@@ -222,6 +145,10 @@ export default function BuilderProfilePage({ builder }) {
   const { canFavorite, isFavorite, toggleFavorite } = useFavorites();
   const favorited = isFavorite(builder.id, "builder");
 
+  const description = builder.about || builder.bio || "";
+  const styleTags = builder.specialties || [];
+  const portfolio = builder.portfolio || [];
+
   const showSoon = useCallback((msg) => {
     setToast(msg);
     setTimeout(() => setToast(null), 3500);
@@ -230,7 +157,7 @@ export default function BuilderProfilePage({ builder }) {
   // Open (or jump to) a chat thread with this builder. Auth-gated: unauthenticated
   // visitors are routed to /login first, then back here. The /chats page resolves
   // the @handle to the builder and starts the conversation.
-  const contactBuilder = useCallback(() => {
+  const messageBuilder = useCallback(() => {
     // Next prepends the deployment basePath to router.push automatically, so the
     // path must stay base-less here — wrapping it in withBase() would double the
     // prefix (/BuildEx/BuildEx/chats) and 404 on GitHub Pages.
@@ -242,16 +169,6 @@ export default function BuilderProfilePage({ builder }) {
       { redirectTo: target }
     );
   }, [gate, router, builder.username]);
-
-  const requireAuthThenSoon = useCallback(
-    (msg) => {
-      gate(() => {
-        setToast(msg);
-        setTimeout(() => setToast(null), 3500);
-      });
-    },
-    [gate]
-  );
 
   // Theme init
   useEffect(() => {
@@ -372,8 +289,8 @@ export default function BuilderProfilePage({ builder }) {
         </div>
       </div>
 
-      <main className="relative z-10 pt-24 lg:pt-28 pb-36 lg:pb-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <main className="relative z-10 pt-24 lg:pt-28 pb-32 lg:pb-20">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
 
           {/* Breadcrumb + back button */}
           <div className="flex items-center justify-between gap-4 mb-6 detail-fade-up flex-wrap">
@@ -399,18 +316,7 @@ export default function BuilderProfilePage({ builder }) {
                       : "border-white/15 text-gray-300 bg-white/5 hover:border-[#4ade80]/50 hover:text-[#4ade80]"
                   }`}
                 >
-                  <svg
-                    className="w-3.5 h-3.5"
-                    viewBox="0 0 24 24"
-                    fill={favorited ? "currentColor" : "none"}
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                  </svg>
+                  <IconHeart className="w-3.5 h-3.5" filled={favorited} />
                   {favorited ? "Saved" : "Save"}
                 </button>
               )}
@@ -424,7 +330,7 @@ export default function BuilderProfilePage({ builder }) {
             </div>
           </div>
 
-          {/* ── Hero header ───────────────────────────────────────────────── */}
+          {/* ── Identity header ───────────────────────────────────────────── */}
           <header className="glass rounded-3xl p-6 sm:p-8 mb-8 detail-fade-up">
             <div className="flex flex-col sm:flex-row gap-6 items-start">
               {/* Avatar */}
@@ -439,90 +345,95 @@ export default function BuilderProfilePage({ builder }) {
                 )}
               </div>
 
-              {/* Identity + stats */}
+              {/* Identity */}
               <div className="flex-1 min-w-0 text-center sm:text-left">
-                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-2">
-                  <h1 className="text-2xl sm:text-3xl font-extrabold leading-tight">
-                    {builder.display_name}
-                  </h1>
-                </div>
-                <p className="text-sm text-gray-500 mb-3">@{builder.username}</p>
-
-                {/* Meta bar */}
-                <SocialLinks
-                  contactLinks={builder.contact_links}
-                  className="justify-center sm:justify-start mb-4"
-                />
-
-                {/* Specialties */}
-                <div className="flex flex-wrap justify-center sm:justify-start gap-2">
-                  {builder.specialties.map((s) => (
-                    <span key={s} className="px-3 py-1 rounded-full text-xs bg-white/5 border border-white/10 text-gray-400">
-                      {s}
+                <h1 className="text-2xl sm:text-3xl font-extrabold leading-tight">
+                  {builder.display_name}
+                </h1>
+                <div className="mt-1 flex flex-wrap items-center justify-center sm:justify-start gap-x-3 gap-y-1 text-sm text-gray-500">
+                  <span>@{builder.username}</span>
+                  {builder.online ? (
+                    <span className="flex items-center gap-1.5 text-[#4ade80]">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80] online-dot" />
+                      Online now
                     </span>
-                  ))}
+                  ) : (
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-gray-500" />
+                      Offline
+                    </span>
+                  )}
+                </div>
+
+                {/* Description */}
+                {description && (
+                  <p className="mt-4 text-gray-400 leading-relaxed whitespace-pre-line">
+                    {description}
+                  </p>
+                )}
+
+                {/* Style tags */}
+                {styleTags.length > 0 && (
+                  <div className="mt-4 flex flex-wrap justify-center sm:justify-start gap-2">
+                    {styleTags.map((s) => (
+                      <span key={s} className="px-3 py-1 rounded-full text-xs bg-white/5 border border-white/10 text-gray-400">
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Message + whatever links this builder chose to publish */}
+                <div className="mt-6 flex flex-wrap items-center justify-center sm:justify-start gap-3">
+                  <button
+                    type="button"
+                    onClick={messageBuilder}
+                    className="hidden lg:inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#4ade80] text-black font-bold text-sm transition-all hover:scale-[1.02] hover:shadow-[0_0_24px_rgba(74,222,128,0.45)] active:scale-[0.99]"
+                  >
+                    <Icon name="chat" size={16} strokeWidth={2} />
+                    Message
+                  </button>
+                  <SocialLinks
+                    contactLinks={builder.contact_links}
+                    className="justify-center sm:justify-start"
+                  />
                 </div>
               </div>
             </div>
           </header>
 
-          {/* ── Two-column layout ──────────────────────────────────────────── */}
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] xl:grid-cols-[1fr_420px] gap-8 items-start">
-
-            {/* LEFT: Content */}
-            <div className="space-y-8 min-w-0">
-
-              {/* Portfolio gallery */}
-              <section className="reveal">
-                <div className="flex items-end justify-between mb-5">
-                  <h2 className="font-bold text-xl">Portfolio</h2>
-                  <span className="text-xs text-gray-500">
-                    {builder.portfolio.length} {builder.portfolio.length === 1 ? "build" : "builds"}
-                  </span>
-                </div>
-                {builder.portfolio.length === 0 ? (
-                  <div className="glass rounded-3xl p-12 text-center text-gray-500 text-sm">
-                    This builder hasn&apos;t added portfolio entries yet.
-                  </div>
-                ) : (
-                  <PortfolioCarousel items={builder.portfolio} />
-                )}
-              </section>
-
-              {/* About */}
-              <section className="reveal glass rounded-3xl p-6 lg:p-8">
-                <h2 className="font-bold text-xl mb-4">About</h2>
-                {(builder.about || builder.bio) ? (
-                  <p className="text-gray-400 leading-relaxed mb-6">{builder.about || builder.bio}</p>
-                ) : null}
-
-                <div className="grid grid-cols-1 gap-3 mt-6 pt-6 border-t border-white/[0.08]">
-                  <div className="text-center">
-                    <p className="text-xl font-bold">{new Date(builder.member_since).getFullYear()}</p>
-                    <p className="text-[10px] text-gray-500 uppercase tracking-wide">Member Since</p>
-                  </div>
-                </div>
-              </section>
+          {/* ── Portfolio — the main event ─────────────────────────────────── */}
+          <section className="reveal">
+            <div className="flex items-end justify-between mb-5">
+              <h2 className="font-bold text-xl">Portfolio</h2>
+              {portfolio.length > 0 && (
+                <span className="text-xs text-gray-500">
+                  {portfolio.length} {portfolio.length === 1 ? "build" : "builds"}
+                </span>
+              )}
             </div>
-
-            {/* RIGHT: Sticky contact sidebar */}
-            <div className="hidden lg:block lg:sticky lg:top-24 lg:self-start">
-              <ContactSidebar builder={builder} onShowSoon={requireAuthThenSoon} onContact={contactBuilder} />
-            </div>
-          </div>
+            {portfolio.length === 0 ? (
+              <div className="glass rounded-3xl p-12 flex flex-col items-center gap-3 text-center text-gray-500 text-sm">
+                <Icon name="image" size={28} strokeWidth={1.5} className="text-gray-600" />
+                This builder hasn&apos;t added portfolio entries yet.
+              </div>
+            ) : (
+              <PortfolioGallery items={portfolio} />
+            )}
+          </section>
         </div>
       </main>
 
-      {/* Mobile sticky bottom bar */}
+      {/* Mobile / tablet sticky message bar */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[150] glass border-t border-white/10 safe-bottom px-4 pt-3 pb-4">
-        <div className="flex items-center gap-3 max-w-lg mx-auto">
+        <div className="max-w-lg mx-auto">
           <button
             type="button"
-            onClick={contactBuilder}
-            className="flex-1 py-3 px-4 rounded-full border border-white/15 bg-white/5 text-gray-200 font-semibold text-sm hover:bg-white/10 hover:border-white/30 transition-all flex items-center justify-center gap-1.5"
+            onClick={messageBuilder}
+            className="w-full py-3 px-4 rounded-full bg-[#4ade80] text-black font-bold text-sm transition-all active:scale-[0.99] flex items-center justify-center gap-2"
           >
-            <IconChat className="w-4 h-4" />
-            Contact Builder
+            <Icon name="chat" size={16} strokeWidth={2} />
+            Message {builder.display_name}
           </button>
         </div>
       </div>

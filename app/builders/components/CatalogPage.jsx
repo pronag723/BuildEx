@@ -59,10 +59,6 @@ export default function CatalogPage() {
   const query = params.get("q") || "";
   const selectedStyles = useMemo(() => parseArray(params.get("style")), [params]);
   const selectedBuildTypes = useMemo(() => parseArray(params.get("type")), [params]);
-  const selectedStudios = useMemo(() => parseArray(params.get("studio")), [params]);
-  const provider = ["builders", "studios"].includes(params.get("provider"))
-    ? params.get("provider")
-    : "all";
   const favoritesOnly = params.get("fav") === "1";
   const sort = params.get("sort") || DEFAULT_SORT;
 
@@ -285,41 +281,10 @@ export default function CatalogPage() {
     [favoritesOnly, updateURL]
   );
 
-  const handleStudioToggle = useCallback(
-    (slug) => {
-      const next = selectedStudios.includes(slug)
-        ? selectedStudios.filter((s) => s !== slug)
-        : [...selectedStudios, slug];
-      updateURL({ studio: serializeArray(next) });
-    },
-    [selectedStudios, updateURL]
-  );
-
   const handleSortChange = useCallback(
     (value) => updateURL({ sort: value === DEFAULT_SORT ? null : value }),
     [updateURL]
   );
-
-  const handleProviderChange = useCallback(
-    (value) => updateURL({ provider: value === "all" ? null : value }),
-    [updateURL]
-  );
-
-  // Studio filter options, derived from the loaded feed so only studios that
-  // actually have visible builders appear (and the list stays in sync with the
-  // data without a second query). Unique by slug, alphabetical.
-  const studioOptions = useMemo(() => {
-    const bySlug = new Map();
-    for (const b of builders) {
-      if (b.provider_type === "studio" && b.slug && !bySlug.has(b.slug)) {
-        bySlug.set(b.slug, { slug: b.slug, name: b.display_name });
-      }
-      if (b.studio && b.studio.slug && !bySlug.has(b.studio.slug)) {
-        bySlug.set(b.studio.slug, { slug: b.studio.slug, name: b.studio.name });
-      }
-    }
-    return Array.from(bySlug.values()).sort((a, b) => a.name.localeCompare(b.name));
-  }, [builders]);
 
   const handleClearAll = useCallback(() => {
     window.history.replaceState(window.history.state, "", "/builders");
@@ -337,16 +302,12 @@ export default function CatalogPage() {
       query,
       styles: selectedStyles,
       buildTypes: selectedBuildTypes,
-      studios: selectedStudios,
-      provider,
     });
     const scoped = effectiveFavoritesOnly
-      ? filtered.filter((b) =>
-          favoriteIds.has(`${b.provider_type === "studio" ? "studio" : "builder"}:${b.id}`)
-        )
+      ? filtered.filter((b) => favoriteIds.has(`builder:${b.id}`))
       : filtered;
     return sortBuilders(scoped, sort, feedSeed);
-  }, [builders, query, selectedStyles, selectedBuildTypes, selectedStudios, provider, sort, feedSeed, effectiveFavoritesOnly, favoriteIds]);
+  }, [builders, query, selectedStyles, selectedBuildTypes, sort, feedSeed, effectiveFavoritesOnly, favoriteIds]);
 
   const visibleBuilders = useMemo(
     () => filteredBuilders.slice(0, pageCount * ITEMS_PER_PAGE),
@@ -354,8 +315,8 @@ export default function CatalogPage() {
   );
   // Key for triggering card re-animation when filters change
   const animKey = useMemo(
-    () => `${query}|${selectedStyles}|${selectedBuildTypes}|${selectedStudios}|${provider}|${effectiveFavoritesOnly}|${sort}|${feedSeed}`,
-    [query, selectedStyles, selectedBuildTypes, selectedStudios, provider, effectiveFavoritesOnly, sort, feedSeed]
+    () => `${query}|${selectedStyles}|${selectedBuildTypes}|${effectiveFavoritesOnly}|${sort}|${feedSeed}`,
+    [query, selectedStyles, selectedBuildTypes, effectiveFavoritesOnly, sort, feedSeed]
   );
 
   // Active filter count (for mobile button badge)
@@ -363,25 +324,18 @@ export default function CatalogPage() {
     let n = 0;
     if (selectedStyles.length) n++;
     if (selectedBuildTypes.length) n++;
-    if (selectedStudios.length) n++;
-    if (provider !== "all") n++;
     if (effectiveFavoritesOnly) n++;
     return n;
-  }, [selectedStyles, selectedBuildTypes, selectedStudios, provider, effectiveFavoritesOnly]);
+  }, [selectedStyles, selectedBuildTypes, effectiveFavoritesOnly]);
 
   const isLight = theme === "light";
 
   // Shared filter props passed to both sidebar and modal
   const filterProps = {
-    provider,
-    onProviderChange: handleProviderChange,
     selectedStyles,
     onStyleToggle: handleStyleToggle,
     selectedBuildTypes,
     onBuildTypeToggle: handleBuildTypeToggle,
-    studioOptions,
-    selectedStudios,
-    onStudioToggle: handleStudioToggle,
     favoritesOnly,
     onFavoritesToggle: handleFavoritesToggle,
     canFavorite,
@@ -419,10 +373,11 @@ export default function CatalogPage() {
           <div className="max-w-7xl mx-auto px-6">
             <div className="catalog-header-content">
               <h1 className="catalog-heading reveal text-4xl sm:text-5xl font-extrabold tracking-tight leading-tight mb-3">
-                Discover Elite <span className="text-[#4ade80]">Minecraft</span> Builders
+                Find a <span className="text-[#4ade80]">Minecraft</span> Builder
               </h1>
               <p className="catalog-header-description reveal text-gray-400 text-base sm:text-lg max-w-xl">
-                Browse talented creators and explore their portfolios.
+                A directory of builders and their portfolios. Browse the work,
+                then message anyone here directly to talk about your project.
               </p>
             </div>
           </div>
@@ -485,7 +440,7 @@ export default function CatalogPage() {
                     <span className="text-white font-semibold">
                       {filteredBuilders.length}
                     </span>{" "}
-                    {filteredBuilders.length === 1 ? "provider" : "providers"} found
+                    {filteredBuilders.length === 1 ? "builder" : "builders"} found
                     {query && (
                       <span className="ml-2">
                         for{" "}
