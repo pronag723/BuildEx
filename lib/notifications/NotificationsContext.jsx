@@ -20,6 +20,10 @@ import {
 // bell can render a badge and dropdown from anywhere in the app. Mirrors
 // lib/chat/UnreadContext.jsx (initial fetch + Realtime live updates + refresh
 // on tab focus).
+//
+// Since Stage 6 the feed carries one type — a new chat message (see
+// lib/notifications/api.js). The shape stays generic: a notification is a title,
+// a body and a link, and nothing here knows what produced it.
 const NotificationsContext = createContext({
   notifications: [],
   unreadCount: 0,
@@ -27,7 +31,6 @@ const NotificationsContext = createContext({
   refresh: async () => {},
   markRead: async () => {},
   markAllRead: async () => {},
-  markReadByLink: async () => {},
   clearAll: async () => {},
 });
 
@@ -68,20 +71,26 @@ export function NotificationsProvider({ children }) {
     refresh();
   }, [refresh]);
 
-  // Any incoming notification for me prepends live. If it points at the page
-  // the user is ALREADY viewing, mark it read immediately so the bell badge
-  // doesn't light (and stick) for something they're actively looking at.
+  // Any notification of mine lands live. New rows prepend; a row I already hold
+  // is replaced in place — the 0100 trigger updates an unread notification when
+  // a second message arrives in the same thread instead of stacking a new one,
+  // so the dropdown has to follow the update, not just the insert.
+  //
+  // If it points at the page the user is ALREADY viewing, mark it read
+  // immediately so the bell badge doesn't light (and stick) for a message they
+  // are watching arrive. That is what keeps the dot off your own open thread.
   useEffect(() => {
     if (status !== "authenticated" || !meId) return undefined;
     const unsub = subscribeToNotifications((row) => {
       const onItsPage = linksMatch(row.link, currentRelativeUrl());
-      setNotifications((prev) => {
-        if (prev.some((n) => n.id === row.id)) return prev;
-        const incoming = onItsPage
-          ? { ...row, read_at: row.read_at || new Date().toISOString() }
-          : row;
-        return [incoming, ...prev];
-      });
+      const incoming = onItsPage
+        ? { ...row, read_at: row.read_at || new Date().toISOString() }
+        : row;
+      setNotifications((prev) =>
+        prev.some((n) => n.id === row.id)
+          ? prev.map((n) => (n.id === row.id ? { ...n, ...incoming } : n))
+          : [incoming, ...prev]
+      );
       if (onItsPage && !row.read_at) markNotificationRead(row.id);
     });
     return unsub;
@@ -107,23 +116,6 @@ export function NotificationsProvider({ children }) {
       )
     );
     await markNotificationRead(id);
-  }, []);
-
-  // Mark read every unread notification whose link matches `link`. Used by pages
-  // (e.g. the order detail view) to clear notifications for the page the user is
-  // now on — covers arriving via in-app navigation, not just the bell click.
-  const markReadByLink = useCallback(async (link) => {
-    if (!link) return;
-    let ids = [];
-    setNotifications((prev) => {
-      ids = prev.filter((n) => !n.read_at && linksMatch(n.link, link)).map((n) => n.id);
-      if (ids.length === 0) return prev;
-      const now = new Date().toISOString();
-      return prev.map((n) =>
-        ids.includes(n.id) ? { ...n, read_at: n.read_at || now } : n
-      );
-    });
-    await Promise.all(ids.map((id) => markNotificationRead(id)));
   }, []);
 
   const markAllRead = useCallback(async () => {
@@ -156,7 +148,6 @@ export function NotificationsProvider({ children }) {
         refresh,
         markRead,
         markAllRead,
-        markReadByLink,
         clearAll,
       }}
     >

@@ -11,8 +11,10 @@ import CatalogMobileMenu from "../../builders/components/CatalogMobileMenu";
 import {
   fetchMessages,
   getOrCreateConversation,
+  haveIReportedConversation,
   listConversations,
   markConversationRead,
+  reportConversation,
   resolveProfileByUsername,
   sendMessage,
   sendImageMessage,
@@ -230,6 +232,9 @@ export default function ChatsPage() {
   const [messages, setMessages] = useState([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [sending, setSending] = useState(false);
+  // Whether the open thread already has a report from me, so the header can say
+  // "Reported" instead of offering the action a second time.
+  const [threadReported, setThreadReported] = useState(false);
 
   // 'list' | 'thread' — only matters on mobile (both panes show side-by-side ≥lg)
   const [mobileView, setMobileView] = useState("list");
@@ -344,6 +349,20 @@ export default function ChatsPage() {
     };
   }, [activeConvId, meId, refreshUnread]);
 
+  // Has this thread already been reported by me? Resets to false first so the
+  // previous thread's answer can never flash on the new one.
+  useEffect(() => {
+    setThreadReported(false);
+    if (!activeConvId) return undefined;
+    let cancelled = false;
+    haveIReportedConversation(activeConvId).then((yes) => {
+      if (!cancelled) setThreadReported(yes);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeConvId]);
+
   // ── Live-refresh the inbox as messages land in any of my threads ────────────
   useEffect(() => {
     if (status !== "authenticated" || !meId) return undefined;
@@ -367,9 +386,14 @@ export default function ChatsPage() {
   useEffect(() => () => clearTimeout(noticeTimer.current), []);
 
   // ── Send (creates the thread lazily on the very first message) ──────────────
+  // Returns { error } so the composer can put a rejected message back in the
+  // box. That matters now that get_or_create_conversation can legitimately say
+  // no (0100's per-hour / per-day limit on opening new threads): losing what you
+  // typed to a rate limit you didn't know existed is its own small injury. The
+  // RPC's message is written for a person, so it goes to the toast as-is.
   const handleSend = useCallback(
     async (body) => {
-      if (!activePeer || !meId || sending) return;
+      if (!activePeer || !meId || sending) return { error: null };
       setSending(true);
       try {
         let convId = activeConvId;
@@ -377,7 +401,7 @@ export default function ChatsPage() {
           const { conversationId, error } = await getOrCreateConversation(activePeer.id);
           if (error || !conversationId) {
             showNotice(error?.message || "Couldn't start this conversation. Please try again.");
-            return;
+            return { error: error || new Error("No conversation") };
           }
           convId = conversationId;
           setActiveConvId(convId);
@@ -387,8 +411,8 @@ export default function ChatsPage() {
 
         const { message, error } = await sendMessage(convId, meId, body);
         if (error || !message) {
-          showNotice("Your message didn't send. Please try again.");
-          return;
+          showNotice(error?.message || "Your message didn't send. Please try again.");
+          return { error: error || new Error("Not sent") };
         }
         setMessages((prev) =>
           prev.some((m) => m.id === message.id) ? prev : [...prev, message]
@@ -396,6 +420,7 @@ export default function ChatsPage() {
 
         const { conversations: rows } = await listConversations();
         setConversations(rows);
+        return { error: null };
       } finally {
         setSending(false);
       }
@@ -425,7 +450,7 @@ export default function ChatsPage() {
 
         const { message, error } = await sendImageMessage(convId, meId, file);
         if (error || !message) {
-          showNotice("Your photo didn't send. Please try again.");
+          showNotice(error?.message || "Your photo didn't send. Please try again.");
           return;
         }
         setMessages((prev) =>
@@ -439,6 +464,28 @@ export default function ChatsPage() {
       }
     },
     [activePeer, meId, sending, activeConvId, replaceUrl, showNotice]
+  );
+
+  // Report the open thread. The RPC's errors are written for a person to read
+  // (already reported, daily cap, empty reason), so they go straight to the
+  // toast; the dialog stays open on failure and closes on success.
+  const handleReport = useCallback(
+    async (reason) => {
+      if (!activeConvId) {
+        const error = new Error("Send a message first, then you can report this conversation.");
+        showNotice(error.message);
+        return { error };
+      }
+      const { error } = await reportConversation(activeConvId, reason);
+      if (error) {
+        showNotice(error.message || "We couldn't send that report. Please try again.");
+        return { error };
+      }
+      setThreadReported(true);
+      showNotice("Thanks — our team will review this conversation.");
+      return { error: null };
+    },
+    [activeConvId, showNotice]
   );
 
   const handleSelect = useCallback(
@@ -553,8 +600,10 @@ export default function ChatsPage() {
                       sending={sending}
                       isDraft={isDraft}
                       conversationMeta={activeConversationMeta}
+                      reported={threadReported}
                       onSend={handleSend}
                       onSendImage={handleSendImage}
+                      onReport={handleReport}
                       onBack={() => {
                         setMobileView("list");
                       }}

@@ -34,6 +34,15 @@ function IconBack({ className = "w-5 h-5" }) {
   );
 }
 
+function IconFlag({ className = "w-5 h-5" }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V4s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+      <path d="M4 22v-7" />
+    </svg>
+  );
+}
+
 function IconShield({ className = "w-4 h-4" }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -43,16 +52,19 @@ function IconShield({ className = "w-4 h-4" }) {
   );
 }
 
-// Pinned at the very top of every thread: tells both parties the conversation
-// can be reviewed by BuildEx if a dispute is opened.
-function ConflictNotice() {
+// Pinned at the very top of every thread. The old version of this notice
+// promised that BuildEx would review the conversation to settle a dispute — a
+// promise the payments layer used to back and no longer can. What it says now is
+// what is actually true: the arrangement is theirs, and abuse gets reported.
+function SafetyNotice() {
   return (
     <div className="flex items-start gap-2.5 mb-4 px-3.5 py-2.5 rounded-2xl bg-[#4ade80]/[0.07] border border-[#4ade80]/20 text-gray-400">
       <IconShield className="w-4 h-4 mt-0.5 flex-shrink-0 text-[#4ade80]" />
       <p className="text-[11px] leading-relaxed">
-        Keep deals inside BuildEx. In the event of a dispute, this conversation
-        can be reviewed by our team to help resolve conflicts — so keep important
-        agreements in writing here.
+        BuildEx is a directory — any price, deadline or payment is arranged
+        between the two of you, and we are not a party to it. Take the usual care
+        with someone you have just met. If this conversation is abusive or a
+        scam, report it and our team will take a look.
       </p>
     </div>
   );
@@ -116,19 +128,24 @@ export default function MessageThread({
   sending,
   isDraft,
   conversationMeta,
+  reported,
   onSend,
   onSendImage,
+  onReport,
   onBack,
 }) {
   const [draft, setDraft] = useState("");
   const [lightboxUrl, setLightboxUrl] = useState(null);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const [reporting, setReporting] = useState(false);
   const scrollRef = useRef(null);
   const taRef = useRef(null);
   const fileRef = useRef(null);
 
-  // Lock page scroll while the image lightbox is open so the thread behind the
-  // dimmed overlay can't scroll.
-  useScrollLock(!!lightboxUrl);
+  // Lock page scroll while the image lightbox or the report dialog is open so the
+  // thread behind the dimmed overlay can't scroll.
+  useScrollLock(!!lightboxUrl || reportOpen);
 
   // Stick to the bottom as messages arrive / the thread switches.
   useEffect(() => {
@@ -136,17 +153,43 @@ export default function MessageThread({
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages, loading, peer?.id]);
 
-  // Reset the composer when switching threads.
+  // Reset the composer — and any half-written report — when switching threads.
   useEffect(() => {
     setDraft("");
+    setReportOpen(false);
+    setReportReason("");
   }, [peer?.id, isDraft]);
 
-  function submit() {
+  // A report needs a thread that exists in the database, so it is offered once
+  // the first message has been sent, never on an unsent draft.
+  const canReport = !isDraft && typeof onReport === "function";
+
+  async function submitReport() {
+    const reason = reportReason.trim();
+    if (!reason || reporting) return;
+    setReporting(true);
+    try {
+      const { error } = (await onReport(reason)) || {};
+      if (!error) {
+        setReportOpen(false);
+        setReportReason("");
+      }
+    } finally {
+      setReporting(false);
+    }
+  }
+
+  // Clear the box optimistically so the thread feels instant, but put the text
+  // back if the send was refused — a new conversation can now be turned down by
+  // the rate limit in migration 0100, and the toast explaining that is no
+  // consolation for a message you have to retype.
+  async function submit() {
     const body = draft.trim();
     if (!body || sending) return;
     setDraft("");
     if (taRef.current) taRef.current.style.height = "auto";
-    onSend(body);
+    const { error } = (await onSend(body)) || {};
+    if (error) setDraft((current) => (current ? current : body));
   }
 
   function onKeyDown(e) {
@@ -239,11 +282,28 @@ export default function MessageThread({
             )
           )}
         </div>
+
+        {canReport && (
+          <button
+            type="button"
+            onClick={() => !reported && setReportOpen(true)}
+            disabled={reported}
+            className={`ml-auto flex-shrink-0 flex items-center gap-1.5 h-9 px-3 rounded-xl border text-xs font-medium transition-colors ${
+              reported
+                ? "border-white/10 text-gray-500 cursor-default"
+                : "border-white/10 text-gray-400 hover:border-red-400/40 hover:text-red-300 hover:bg-red-500/10"
+            }`}
+            title={reported ? "You have reported this conversation" : "Report this conversation"}
+          >
+            <IconFlag className="w-4 h-4" />
+            <span className="hidden sm:inline">{reported ? "Reported" : "Report"}</span>
+          </button>
+        )}
       </div>
 
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-5 space-y-1 min-h-0 hide-scrollbar">
-        {!loading && <ConflictNotice />}
+        {!loading && <SafetyNotice />}
         {loading ? (
           <div className="h-full flex items-center justify-center">
             <div className="w-8 h-8 rounded-full border-2 border-[#4ade80] border-t-transparent animate-spin" />
@@ -370,7 +430,7 @@ export default function MessageThread({
       <div className="border-t border-white/10 p-3 flex-shrink-0">
         {!canWrite && (
           <p className="mb-2 text-center text-xs text-amber-300">
-            This assignment is archived. You can read messages through your release time, but cannot send new ones.
+            You can read this conversation, but can no longer send messages in it.
           </p>
         )}
         <div className="flex items-end gap-2">
@@ -417,6 +477,58 @@ export default function MessageThread({
           </button>
         </div>
       </div>
+
+      {reportOpen && (
+        <div
+          className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Report conversation"
+          onClick={() => !reporting && setReportOpen(false)}
+        >
+          <div
+            className="glass rounded-3xl w-full max-w-md p-5 border border-white/10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-2.5 mb-2">
+              <span className="w-9 h-9 rounded-2xl bg-red-500/10 border border-red-400/30 flex items-center justify-center text-red-300 flex-shrink-0">
+                <IconFlag className="w-4 h-4" />
+              </span>
+              <h2 className="font-bold text-base">Report this conversation</h2>
+            </div>
+            <p className="text-xs text-gray-400 leading-relaxed mb-3">
+              Tell us what is wrong — spam, a scam, harassment, anything that does not
+              belong here. Our team can read this thread when reviewing the report.
+            </p>
+            <textarea
+              value={reportReason}
+              onChange={(e) => setReportReason(e.target.value.slice(0, 2000))}
+              rows={4}
+              autoFocus
+              placeholder="What happened?"
+              className="w-full resize-none bg-white/5 border border-white/10 focus:border-[#4ade80]/50 rounded-2xl px-4 py-3 text-sm outline-none transition-colors placeholder:text-gray-500"
+            />
+            <div className="flex items-center justify-end gap-2 mt-4">
+              <button
+                type="button"
+                onClick={() => setReportOpen(false)}
+                disabled={reporting}
+                className="h-10 px-4 rounded-2xl border border-white/10 text-sm font-medium text-gray-300 hover:bg-white/10 transition-colors disabled:opacity-40"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={submitReport}
+                disabled={!reportReason.trim() || reporting}
+                className="h-10 px-4 rounded-2xl bg-red-500/90 hover:bg-red-500 text-white text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {reporting ? "Sending…" : "Send report"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {lightboxUrl && (
         <div
