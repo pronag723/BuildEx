@@ -1,94 +1,177 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// BuildEx — Legal documents
+//
+// BuildEx is a directory. It lists builders who chose to publish a profile,
+// shows their work and their own contact links, and carries messages between
+// them and the people who want to hire them. It does not process payments, is
+// not a party to any agreement between a client and a builder, and takes no
+// responsibility for how a deal turns out. Every document here has to say that
+// and nothing more generous.
+//
+// The payment policy, the seller terms and the ready-made build licence were
+// removed with the features they described. The database keeps the old
+// acceptance and refund records — those are history, not promises.
+//
+// These are written in plain, conservative English by people who are not
+// lawyers. They are deliberately modest about what BuildEx offers and make no
+// attempt at jurisdiction-specific drafting. Have a lawyer read them before
+// relying on them.
+// ─────────────────────────────────────────────────────────────────────────────
+
 import { LEGAL_EFFECTIVE_DATE, LEGAL_VERSIONS } from "../../lib/legal/constants";
 
-const mandatoryRights = "Nothing in this policy excludes rights or remedies that applicable law does not allow BuildEx or a seller to exclude.";
+const mandatoryRights = "Nothing in this document removes a right or remedy that applicable law does not allow to be removed.";
+
+const notAParty = "BuildEx is not a party to any agreement between a client and a builder.";
 
 export const legalDocuments = {
   terms: {
     title: "Terms of Use",
     version: LEGAL_VERSIONS.terms,
-    summary: "The rules for accounts, marketplace transactions, platform use, and the relationship between buyers, sellers, and BuildEx.",
+    summary: "The rules for using BuildEx, and the limits of what BuildEx is: a directory of builders, not a party to the work you arrange through it.",
     sections: [
-      ["Who may use BuildEx", ["You must be at least 13 and legally able to enter this agreement. If local law requires parental consent or a higher age, you may use BuildEx only with that consent. You must give accurate information, protect your account, and promptly report unauthorized access."]],
-      ["Marketplace role", ["Builders and studios are independent sellers. BuildEx supplies the marketplace, protected-payment administration, file-release tools, communications, and dispute review; BuildEx is not the builder, buyer, employer, partner, or agent of either party except to the limited extent expressly stated.", "A seller is responsible for its listing, promises, work, taxes, permissions, and legal compliance. BuildEx may moderate the marketplace and decide platform disputes, but does not guarantee a seller's identity, skills, availability, or results."]],
-      ["Orders and payments", ["Prices, cryptocurrency, network, fees, and the applicable seller are shown at checkout. Network fees, price volatility, confirmation times, wallet errors, and third-party provider availability are risks of crypto payments. An order is not paid until BuildEx receives reliable provider confirmation.", "Ready-made purchases and custom commissions follow the Payment, Final-Sale and Dispute Policy. Custom funds are protected until completion, buyer confirmation, or a dispute decision; this service is not represented as a licensed escrow service."]],
-      ["Ownership", ["A buyer receives custom-build rights only after full payment, subject to third-party and pre-existing materials. A ready-made build remains owned by its seller and is provided under the Ready-Made Build License. Minecraft and third-party assets remain owned by their respective owners."]],
-      ["Acceptable use", ["Do not commit fraud, evade fees, manipulate reviews, harass others, upload malware, scrape or disrupt the service, infringe rights, sell stolen work, bypass access controls, or use BuildEx for unlawful activity. Do not move an introduced transaction off-platform to avoid commissions."]],
-      ["Moderation and suspension", ["BuildEx may remove content, restrict features, hold a transaction for review, suspend an account, or terminate access when reasonably necessary for safety, legal compliance, provider requirements, policy enforcement, or protection of users. Where appropriate, users may appeal through support."]],
-      ["Disclaimers and liability", ["The platform is provided on an 'as available' basis. To the maximum extent permitted by law, BuildEx is not liable for indirect, incidental, special, consequential, or lost-profit damages, or for seller content and conduct. BuildEx's aggregate platform liability for a claim will not exceed the platform fees paid by that claimant during the six months before the event giving rise to the claim.", mandatoryRights]],
-      ["Changes and contact", ["Material changes will be versioned and, where required, presented for renewed acceptance. Continued use after the effective date constitutes acceptance only where law permits. Questions may be sent to mcbuildex@gmail.com. Operator identity and governing-law details appear in the Legal Notice."]]
-    ]
-  },
-  payments: {
-    title: "Payment, Final-Sale and Dispute Policy",
-    version: LEGAL_VERSIONS.payments,
-    summary: "Separate purchase, final-sale, and remedy rules for ready-made digital builds and commissioned custom builds.",
-    sections: [
-      ["Ready-made builds: final sale", ["Before payment, the listing and checkout identify the build, seller, price, Minecraft edition/version, file format, approximate size, included content, dependencies, preview, and license. The buyer requests immediate digital access and acknowledges that the purchase becomes final once access is supplied.", "After access is supplied, there is no change-of-mind refund for disliking an accurately represented build, selecting the wrong clearly disclosed edition, or lacking ordinary tools needed to use ZIP or world files.", "Support remains available for missing access, duplicate payment, corrupt or materially unusable files, material misdescription, undisclosed incompatibility, infringement, fraud, and mandatory legal remedies. A seller may not materially replace the purchase-specific file version after payment."]],
-      ["EU digital-content acknowledgement", ["Where applicable, the buyer expressly requests performance and immediate delivery before the withdrawal period ends and acknowledges that the statutory withdrawal right is lost when digital performance begins, to the extent permitted by law."]],
-      ["Custom builds: documented scope", ["The enforceable scope is the checkout brief, selected size and style, agreed price, and amendments clearly agreed in the order chat. Uncommunicated expectations are not part of the scope.", "A buyer may open a support dispute within seven calendar days after delivery. The appeal must identify a material difference from the documented scope and provide relevant evidence."]],
-      ["Custom-build outcomes", ["BuildEx reviews the brief, agreed chat amendments, rates or listing, delivered file, preview, and evidence from both parties. Version 1 supports only a full release to the builder or a full buyer refund; no partial award is available.", "A refund is not available for changed preferences, uncommunicated requirements, minor subjective aesthetic differences within scope, buyer modifications, or incompatibility disclosed before purchase. BuildEx records and communicates its reasoned decision."]],
-      ["Refund processing", ["A refund is complete only after the payment provider or authorized manual process confirms the outbound transfer. BuildEx records the provider reference, asset/network, amount, timestamps, and any failure. A database label alone is not proof that funds were returned.", mandatoryRights]]
-    ]
-  },
-  sellers: {
-    title: "Builder and Studio Terms",
-    version: LEGAL_VERSIONS.sellers,
-    summary: "Additional obligations for independent builders, studios, owners, and managed team members.",
-    sections: [
-      ["Independent seller status", ["Each builder or studio is an independent seller, not a BuildEx employee. Sellers control how work is produced and are responsible for taxes, registrations, insurance, and compliance applicable to their business."]],
-      ["Listings and delivery", ["Sellers must describe services and ready-made files accurately, disclose compatibility and dependencies, use truthful images and previews, meet agreed deadlines, keep order communications on-platform, and deliver safe, usable files. Material substitutions require the buyer's documented agreement."]],
-      ["Authority and intellectual property", ["A seller warrants that it created or is authorized to sell and license every submitted build, image, description, and asset; that delivery will not infringe another person's rights; and that third-party or pre-existing materials are disclosed with their license limits."]],
-      ["Fees, payouts, and taxes", ["The checkout and seller interface disclose applicable commissions. Sellers authorize deductions, reversals, and reserves required for refunds, disputes, fraud, or provider corrections. Sellers must provide a compatible payout wallet and bear loss caused by an incorrect address or network where law permits."]],
-      ["Studios", ["A studio owner is responsible for team access, permissions, client commitments, work allocation, and payouts to members. Adding a team member does not make BuildEx that person's employer. Owners must promptly remove access that is no longer authorized."]],
-      ["Enforcement", ["BuildEx may unpublish inaccurate listings, preserve evidence, delay a payout during review, remove infringing material, or suspend a seller. Repeated infringement, fraud, or evasion may result in permanent removal."]]
-    ]
-  },
-  "ready-build-license": {
-    title: "Ready-Made Build License",
-    version: LEGAL_VERSIONS.readyBuildLicense,
-    summary: "The standard non-exclusive license included with every ready-made BuildEx purchase.",
-    sections: [
-      ["License grant", ["After confirmed payment, the seller grants the buyer a worldwide, perpetual, non-exclusive, non-transferable license to download, use, display, and modify the purchased build in the buyer's Minecraft worlds and projects, including monetized servers and media, unless a listing clearly grants broader rights."]],
-      ["Restrictions", ["The buyer may not resell, redistribute, share, sublicense, upload, or provide the original or modified build as a standalone downloadable product; may not claim authorship of the original build; and may not remove ownership notices included with the file."]],
-      ["Ownership and third-party rights", ["The seller retains ownership of the build. This license does not transfer Minecraft, textures, mods, plugins, or other third-party materials, which remain subject to their own terms. The listing must disclose material dependencies."]],
-      ["Breach and remedies", ["The license ends if the buyer materially breaches these restrictions and does not cure a curable breach after notice. Mandatory consumer rights and lawful backup copies are unaffected."]]
+      ["What BuildEx is", [
+        "BuildEx is a directory. Minecraft builders publish a profile with their own portfolio, the styles they work in, and the ways they want to be contacted. Anyone can browse those profiles, and signed-in users can send a builder a message here.",
+        "That is the whole of the service. BuildEx introduces people to each other. Everything that follows an introduction — what gets built, for how much, by when, and how it is paid for — is arranged directly between the client and the builder.",
+        notAParty
+      ]],
+      ["No payments through BuildEx", [
+        "BuildEx does not process, hold, escrow, transfer, release, or refund money, in any currency, at any time. There is no checkout, no wallet, no commission, and no platform fee. No payment for any build ever passes through BuildEx.",
+        "If you pay a builder, you pay them directly, by whatever method the two of you agree, and you carry that risk yourselves. BuildEx cannot reverse, recover, refund or trace such a payment, because BuildEx never sees it and holds no funds.",
+        "Before paying anyone, satisfy yourself about who they are and agree the terms in writing between you."
+      ]],
+      ["BuildEx does not check or endorse builders", [
+        "Profiles are self-published. The display name, portfolio images, description, styles and contact links on a profile were entered by that user, not by BuildEx.",
+        "BuildEx does not verify a builder's identity, age, location, skill, experience, availability, authorship of the work they show, or their willingness or ability to finish a job. Being listed here is not a recommendation, an endorsement, a certification, or a guarantee of anything.",
+        "Judge a builder by their work, by what they tell you, and by any independent checks you choose to make."
+      ]],
+      ["Your agreement is with the builder", [
+        "Scope, price, deadlines, revisions, delivery, file formats, and who owns or may use the finished build are for the client and the builder to agree between themselves. Put the agreement in writing where you can.",
+        `${notAParty} BuildEx is not the employer, agent, partner, representative, broker or guarantor of either side.`,
+        "BuildEx does not mediate, arbitrate, investigate or decide disputes about work, payment or delivery, and offers no compensation scheme for a deal that goes wrong. If a disagreement cannot be settled between you, it is a matter between you, subject to whatever rights the law gives you against each other."
+      ]],
+      ["Who may use BuildEx", [
+        "You must be at least 13 and legally able to agree to these terms. If the law where you live requires a parent's or guardian's consent, or sets a higher age, you may use BuildEx only on that basis.",
+        "Give accurate information, keep your account secure, and tell us promptly at mcbuildex@gmail.com if you think someone else has used it. You are responsible for what happens through your account."
+      ]],
+      ["Your content", [
+        "You keep ownership of what you upload — your avatar, portfolio images, profile text and messages. By publishing them on BuildEx you give BuildEx permission to store, display and distribute them for the purpose of running the directory, and to show them in the ordinary way search engines and link previews display a public page.",
+        "You must have the right to publish what you upload. Do not upload someone else's builds, screenshots or renders as your own, and do not upload anything you are not permitted to share.",
+        "You can edit or remove your content, or delete your account, from your account page. Deleting an account removes the profile and its images; copies may persist for a time in backups, and messages already sent remain visible to the person you sent them to."
+      ]],
+      ["Acceptable use", [
+        "Do not defraud or deceive other users, impersonate anyone, harass, threaten or abuse people, send spam or unsolicited advertising, publish other people's private information, upload malware or harmful files, sell or pass off work that is not yours, scrape or overload the service, attempt to bypass access controls or security, or use BuildEx for anything unlawful.",
+        "Contact links on a profile must be genuine ways to reach that user. Using them to send people to phishing pages, malware, or unrelated commercial offers is not allowed."
+      ]],
+      ["Moderation and suspension", [
+        "BuildEx may hide or remove a profile, portfolio image, message or account, or restrict access to features, where that is reasonably necessary to enforce these terms, to comply with the law, or to protect users. Reports can be sent from a conversation or by email to mcbuildex@gmail.com.",
+        "Moderation is housekeeping for the directory. It is not a remedy for a deal that went badly, and removing an account does not give anyone their money back. You may ask us to reconsider a decision by writing to mcbuildex@gmail.com."
+      ]],
+      ["Availability and disclaimers", [
+        "BuildEx is provided free of charge, as it is and as available. It may be changed, interrupted or discontinued at any time, and nothing here promises that it will be available, complete, accurate or error-free.",
+        "To the fullest extent the law allows, BuildEx gives no warranties about the service or about any user of it, and is not responsible for the conduct of any user, for any content a user publishes, or for any loss arising out of a dealing between a client and a builder — including work that is not delivered, not as described, or paid for and never received.",
+        mandatoryRights
+      ]],
+      ["Limitation of liability", [
+        "To the fullest extent the law allows, BuildEx is not liable for indirect, incidental, special or consequential loss, or for lost profits, lost data, lost opportunities or lost goodwill.",
+        "BuildEx is a free service and receives no payment from either side of a deal. Any liability it does have is limited to the fullest extent the law allows.",
+        mandatoryRights
+      ]],
+      ["Changes and contact", [
+        "These terms are versioned. If they change materially, the new version and its effective date will be published here, and where the law requires it we will ask for acceptance again. Continuing to use BuildEx after a change means you accept it, to the extent the law permits.",
+        "Questions, complaints and legal notices: mcbuildex@gmail.com. Contact and publication details are in the Legal & Contact Notice."
+      ]]
     ]
   },
   privacy: {
     title: "Privacy and Storage Policy",
     version: LEGAL_VERSIONS.privacy,
-    summary: "What BuildEx collects, why it is used, where it is shared, and the choices available to users.",
+    summary: "What BuildEx collects, why, who else can see it, and how to get it changed or deleted.",
     sections: [
-      ["Information collected", ["BuildEx processes OAuth identifiers and email, public profiles, Minecraft usernames, portfolios, listings, studios, favorites, reviews, chats, briefs, uploads, deliverables and previews, payment and wallet records, disputes, moderation records, device/security logs, and functional browser storage."]],
-      ["Purposes and legal bases", ["Information is used to create accounts, publish profiles, perform contracts, process and protect transactions, operate chat and delivery, prevent abuse, resolve disputes, comply with law, and improve reliable platform operation. Depending on location, processing rests on contract, legitimate interests, consent, or legal obligations."]],
-      ["Public information", ["Profiles, usernames, portfolios, listings, studio pages, reviews, and selected activity are public. Chats, order files, payment details, and disputes are restricted to authorized participants, staff, and service providers as needed."]],
-      ["Providers and transfers", ["Data may be handled by Supabase, Discord, Google, NOWPayments or FD Transfers, hosting and security providers, and professional advisers. These parties may process data in other countries under applicable transfer safeguards and their own policies."]],
-      ["Retention and deletion", ["Account and content data is retained while needed for the service and then deleted or de-identified under operational schedules. BuildEx may preserve transaction, tax, fraud, dispute, and legal records for required limitation or retention periods. Public blockchain transaction records are permanent and cannot be erased by BuildEx."]],
-      ["Your choices", ["Subject to local law, request access, correction, export, deletion, restriction, objection, or withdrawal of consent through mcbuildex@gmail.com. You may also complain to your data-protection authority. Identity verification may be required before fulfilling a request."]],
-      ["Cookies and security", ["BuildEx currently uses functional storage needed for authentication, preferences, and service operation. No non-essential analytics or advertising cookies are represented as active. If that changes, consent controls will be introduced where required. No system is perfectly secure; report suspected incidents promptly."]]
+      ["What is collected", [
+        "When you sign in with Google or Discord, BuildEx receives an account identifier, your email address, and the display name and picture attached to that account. It does not receive your password.",
+        "If you publish a builder profile, BuildEx stores what you enter: your handle, display name, description, styles and build types, the contact links you choose to publish, your avatar and banner, and your portfolio images.",
+        "BuildEx also stores the messages you send through the site, the builders you favourite, reports you submit, notifications generated for you, and a timestamp of when you were last active, which is what drives the online indicator. Ordinary technical logs are produced by our hosting and database providers."
+      ]],
+      ["Why it is used", [
+        "To create and run your account, to publish your profile if you have one, to deliver your messages and notifications, to show accurate online status, to enforce the Terms of Use and moderate abuse, and to keep the service working and secure.",
+        "Depending on where you live, the legal basis for this is the contract between you and BuildEx, our legitimate interest in running a safe directory, your consent where you chose to publish something, or a legal obligation.",
+        "BuildEx does not sell personal data and does not use it for advertising or profiling."
+      ]],
+      ["What is public", [
+        "A builder profile is public to anyone on the internet: handle, display name, description, styles, build types, avatar, banner, portfolio images, the contact links you published, and whether you were recently active.",
+        "Publishing a Discord handle, Telegram username or any other contact link makes it public. Only publish contact details you are willing for strangers to see and use.",
+        "Messages are visible to the people in that conversation, and to a moderator if the conversation is reported. Your email address is not shown on your profile."
+      ]],
+      ["Who else handles it", [
+        "Supabase hosts the database, authentication and file storage. Google and Discord provide sign-in. The site is served by our web host. These providers process data on our behalf, may do so in other countries, and have their own privacy policies.",
+        "Data may also be disclosed where the law requires it, or where it is necessary to investigate abuse or protect someone's safety."
+      ]],
+      ["Keeping and deleting", [
+        "Account and profile data is kept while the account exists. Deleting your account from the account page removes your profile, your portfolio images and your uploaded files, and is not reversible.",
+        "Messages you have already sent stay in the recipient's conversation. Moderation records and reports may be kept for as long as needed to deal with repeat abuse and to comply with the law. Backups are overwritten on an ordinary schedule.",
+        "Records of legal acceptances — which version of these documents an account accepted, and when — are kept as evidence that consent was given."
+      ]],
+      ["Your choices", [
+        "You can edit or delete your profile and its images at any time from your account page, and delete your account there too.",
+        "Subject to local law, you may also ask for access to your data, correction, a copy, deletion, restriction, or to object to processing, by writing to mcbuildex@gmail.com. We may need to confirm who you are first. You can complain to your local data-protection authority.",
+        mandatoryRights
+      ]],
+      ["Cookies and security", [
+        "BuildEx uses browser storage only for things the site needs to work: your sign-in session, your light or dark theme choice, and a few interface preferences. There are no advertising or analytics cookies. If that ever changes, a consent control will be added where the law requires one.",
+        "Access to data is restricted at the database level so that users can only read and change what is theirs, and public profiles are the only thing served publicly. No system is perfectly secure; if you think an account or the service has been compromised, write to mcbuildex@gmail.com."
+      ]]
     ]
   },
   community: {
     title: "Community and Copyright Policy",
     version: LEGAL_VERSIONS.community,
-    summary: "Content standards, safety reporting, moderation, copyright procedures, and the Minecraft relationship disclaimer.",
+    summary: "Content standards, how to report a problem, how copyright complaints work, and the Minecraft disclaimer.",
     sections: [
-      ["Community rules", ["Do not harass, threaten, discriminate, scam, impersonate, manipulate reviews, send spam, solicit unsafe off-platform payments, expose private information, upload malware, or publish unlawful, sexualized-minor, hateful, or dangerously deceptive content."]],
-      ["Reporting and moderation", ["Report scams, stolen builds, harassment, unsafe content, privacy violations, and underage-account concerns to mcbuildex@gmail.com with links and evidence. BuildEx may investigate, preserve evidence, restrict visibility, remove content, warn users, suspend accounts, or refer urgent matters to relevant authorities. Affected users may request an appeal."]],
-      ["Copyright complaints", ["A rights holder may email mcbuildex@gmail.com with identification of the protected work, the allegedly infringing material and its location, contact details, a good-faith statement, an accuracy-and-authority statement, and a physical or electronic signature. BuildEx may forward the notice to the uploader and remove or restrict the content.", "A counter-notice should identify the removed material, state under penalty of perjury that removal resulted from mistake or misidentification, provide contact details and appropriate jurisdictional consent, and include a signature. BuildEx may restore material when legally permitted. Repeat infringers may be terminated."]],
-      ["Minecraft disclaimer", ["BuildEx is an unofficial marketplace and is not affiliated with, endorsed by, sponsored by, or approved by Mojang Studios or Microsoft. Minecraft names, marks, and assets belong to their respective owners. Users must follow the Minecraft Usage Guidelines, End User License Agreement, and other applicable rules."]]
+      ["Community rules", [
+        "Do not harass, threaten or abuse people, discriminate, impersonate someone else, scam or defraud, send spam, publish private information about anyone, upload malware, or post unlawful content, content that sexualises minors, hateful content, or content designed to deceive people into harm.",
+        "Do not publish someone else's builds, renders or screenshots as your own work. A portfolio is a claim of authorship — make it a true one."
+      ]],
+      ["Staying safe with people you meet here", [
+        "BuildEx does not check who anyone is, and does not hold or handle money, so the ordinary precautions apply: look at the work, ask questions, agree terms in writing, be wary of anyone in a hurry, and use a payment method you trust and understand. BuildEx cannot recover a payment or intervene in a dispute.",
+        "Report scams, stolen builds, harassment, unsafe content, privacy problems and suspected underage accounts from the conversation itself, or by emailing mcbuildex@gmail.com with links and evidence."
+      ]],
+      ["Reporting and moderation", [
+        "Reports are reviewed by a moderator, who can see the reported conversation. A moderator may hide a profile or an image, restrict or remove an account, or refer something urgent to the relevant authorities.",
+        "Moderation is about what is published here and how people behave here. It cannot settle a disagreement about work or money. If you think a decision about your account was wrong, write to mcbuildex@gmail.com and ask for it to be looked at again."
+      ]],
+      ["Copyright complaints", [
+        "If you own work that someone has published here without permission, email mcbuildex@gmail.com identifying the work, where the infringing copy is on BuildEx, your contact details, a statement that you believe in good faith that the use is not authorised, a statement that the information is accurate and that you are the owner or authorised to act for them, and your signature.",
+        "We may pass the notice to the person who uploaded the material and remove or hide it. If your material was removed by mistake, reply with a counter-notice identifying it, stating why you believe the removal was a mistake, and giving your contact details and signature; we may restore it where we are legally free to. Accounts that repeatedly infringe may be removed."
+      ]],
+      ["Minecraft disclaimer", [
+        "BuildEx is an unofficial fan directory and is not affiliated with, endorsed by, sponsored by, or approved by Mojang Studios or Microsoft. Minecraft names, marks and assets belong to their respective owners. Users must follow the Minecraft Usage Guidelines, End User Licence Agreement and any other applicable rules."
+      ]]
     ]
   },
   "legal-notice": {
     title: "Legal & Contact Notice",
-    version: "1.0",
-    summary: "Official platform, contact, electronic-notice, and publication information for BuildEx.",
+    version: LEGAL_VERSIONS.notice,
+    summary: "Who runs BuildEx, how to reach us, and how notices are given.",
     sections: [
-      ["Platform", ["BuildEx operates buildex.builders as an online marketplace for commissioning and licensing Minecraft builds. Builders and studios offer their work as independent sellers, and BuildEx provides the marketplace services described in the Terms of Use."]],
-      ["Official contacts", ["General support: mcbuildex@gmail.com", "Legal notices: mcbuildex@gmail.com", "Privacy requests: mcbuildex@gmail.com", "Copyright notices: mcbuildex@gmail.com"]],
-      ["Electronic notices", ["Notices from BuildEx may be delivered through the platform, to the email associated with an account, or through another contact method a user provides. A notice is considered received when it is made available through the applicable channel, subject to mandatory law. Users are responsible for keeping their contact information current."]],
-      ["Governing terms", ["The Terms of Use and any transaction-specific terms govern use of BuildEx. Mandatory consumer protections and any rights that cannot lawfully be waived remain in effect. Applicable law and forum are determined under valid transaction terms and the conflict-of-law rules that apply to the parties and claim."]],
-      ["Publication information", [`This notice is version 1.0 and is effective ${LEGAL_EFFECTIVE_DATE}. Material updates will be dated and versioned in the Legal Center.`]]
+      ["The site", [
+        "BuildEx operates buildex.builders as a free, public directory of Minecraft builders. Builders publish their own profiles and are independent of BuildEx.",
+        `BuildEx does not sell anything, does not take payment for anything, and does not act for either side of a deal arranged through it. ${notAParty}`
+      ]],
+      ["Contact", [
+        "General and support: mcbuildex@gmail.com",
+        "Legal notices: mcbuildex@gmail.com",
+        "Privacy requests: mcbuildex@gmail.com",
+        "Copyright notices: mcbuildex@gmail.com"
+      ]],
+      ["Notices", [
+        "We may contact you through the site or at the email address on your account. A notice counts as received when it has been made available through one of those channels, so far as the law allows. Keep your contact details current.",
+        "Notices to BuildEx should go to mcbuildex@gmail.com."
+      ]],
+      ["Governing documents", [
+        "Use of BuildEx is governed by the Terms of Use, together with the Privacy and Storage Policy and the Community and Copyright Policy. Consumer protections and any other rights that cannot lawfully be waived are unaffected.",
+        `This notice is version ${LEGAL_VERSIONS.notice} and is effective ${LEGAL_EFFECTIVE_DATE}. Material updates will be dated and versioned in the Legal Center.`
+      ]]
     ]
   }
 };

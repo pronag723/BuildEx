@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
-import { publicAsset, withBase } from "../../home/utils";
+import { publicAsset } from "../../home/utils";
 import { useFavorites } from "../../../lib/favorites/FavoritesContext";
 
 function ArrowIcon({ className = "w-4 h-4" }) {

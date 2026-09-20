@@ -1,793 +1,133 @@
-# BuildEx — Minecraft Builder Marketplace
-
-> A freelance marketplace platform connecting Minecraft server owners with professional builders. Commission custom spawns, lobbies, hubs and world decorations through a secure, escrow-based payment system.
-
-![Next.js](https://img.shields.io/badge/Next.js-14-black?style=flat-square&logo=next.js)
-![React](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind-3-38BDF8?style=flat-square&logo=tailwindcss)
-![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=flat-square&logo=supabase)
-![NOWPayments](https://img.shields.io/badge/NOWPayments-Crypto_Payments-10B981?style=flat-square)
-
----
-
-## Table of Contents
-
-- [Overview](#overview)
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Design System](#design-system)
-- [Database Schema](#database-schema)
-- [Pages and Routes](#pages-and-routes)
-- [Components](#components)
-- [API Routes](#api-routes)
-- [Business Logic](#business-logic)
-- [Authentication](#authentication)
-- [Payments and Escrow](#payments-and-escrow)
-- [Builder Rank System](#builder-rank-system)
-- [Getting Started](#getting-started)
-- [Environment Variables](#environment-variables)
-- [Development Roadmap](#development-roadmap)
-
----
-
-## Overview
-
-BuildEx is a niche freelance marketplace built specifically for the Minecraft community. Server owners post projects and receive bids from vetted builders. Payments are held in escrow until the build is approved — protecting both parties. Builders earn a rank as they complete more projects, which reduces their platform commission and increases their visibility.
-
-The platform was designed with a dark glass aesthetic inspired by modern gaming portals, using frosted glass surfaces, animated green gradients, and smooth scroll-reveal animations throughout.
-
----
-
-## Features
-
-### Landing Page
-- Full-screen hero section with animated floating cards showing live platform data
-- Left-aligned headline with right-side visual cluster (featured builder card, bid notification, online indicator, escrow status)
-- Animated moving green gradient that responds to scroll position
-- Auto-scrolling horizontal belt of top builder projects (pauses on hover)
-- Scroll-reveal animations on all sections
-- Dark / light theme toggle with localStorage persistence
-- Animated stat counters (count-up on scroll into view)
-- Fully responsive: mobile hamburger menu, tablet and desktop layouts
-- How It Works section with 3-step explainer
-- Testimonials grid from real community members
-- Sticky frosted glass navbar
-
-### Catalog / Offer Feed
-- Paginated grid of active builder offers
-- Sidebar filters: style, build type, price range, rating, rank
-- URL-encoded filter state (shareable and SEO-indexable links)
-- Search bar with instant results
-- Sort by: newest, highest rated, price low→high, price high→low
-- Offer cards showing thumbnail, builder name + rank badge, starting price, rating, tags
-- Hover overlay with "View offer" CTA
-
-### Offer Detail Page
-- Full image gallery with thumbnail navigation
-- Complete offer description, scope, delivery timeline, revision policy
-- Sticky builder sidebar with mini-profile, package selector and price breakdown
-- Price breakdown showing: builder price + BuildEx fee (based on rank) = total you pay
-- "Order now" CTA — requires authentication
-
-### Builder Profiles
-- Public profile page at `/builders/profile/[username]`
-- Profile banner with dark green gradient background
-- Avatar with rank badge (color-coded by tier) positioned at bottom-right corner
-- Online availability indicator (pulsing green dot)
-- Five stat pills: average rating, projects completed, repeat client rate, response time, on-time delivery rate
-- Tabbed content: Portfolio / Reviews / About
-- Portfolio grid of completed builds with hover overlay
-- Reviews tab with rating breakdown bar chart and individual review cards
-- Sidebar cards: starting prices, rank progress, skills chart, tools and formats
-- "Hire" and "Message" action buttons
-
-### Builder Dashboard
-- Protected route — builders only
-- Overview page: earnings summary, active orders, recent reviews, quick actions
-- **Offer management:**
-  - Table of all offers with status, view count, order count, and actions
-  - Create new offer via 4-step guided form
-  - Edit and duplicate existing offers
-  - Pause/resume offers without losing data
-- **Order management:**
-  - Incoming order queue with status indicators
-  - Accept or decline pending orders
-  - Mark order as delivered
-  - View order requirements and communicate with buyer
-- **Profile settings:**
-  - Edit display name, bio, specialties, availability
-  - Manage portfolio images
-  - Builder balance, USDT withdrawal destination, and withdrawal history
-
-### Offer Creation (Multi-Step Form)
-- **Step 1 — Basics:** title, style category, build type, tags
-- **Step 2 — Scope:** description (min 100 chars), starting price, delivery days, number of revisions
-- **Step 3 — Media:** drag-and-drop image upload (min 3, max 10), direct upload to Supabase Storage, real-time progress per file, drag-to-reorder (first image = catalog thumbnail)
-- **Step 4 — Review:** live preview of how the offer card looks in the catalog, publish button
-- Auto-save as draft on every step transition
-- Zod validation on all fields with inline error messages
-- Cannot publish without at least 3 images
-
-### Order System
-- Buyer fills in project requirements and proceeds to checkout
-- Live-minimum USDT-BSC, USDT-Polygon, or USDT-Solana checkout created by a Supabase Edge Function
-- A signature-verified NOWPayments webhook marks the order paid
-- Builder delivers schematic files via order thread
-- Buyer approves: earnings become available in the builder balance
-- Builder requests a partial USDT-BSC withdrawal; approved requests are sent in a weekly custody batch
-- If buyer declines delivery: enters revision cycle
-- Dispute flow: funds held while manual review takes place
-- One review per completed order (unlocked only after completion)
-
-### Messaging
-- Per-order message thread between buyer and builder
-- Real-time updates via Supabase Realtime subscriptions
-- File attachments for schematic delivery
-
-### Review System
-- Star rating (1–5) + written review
-- Reviews only unlockable after order reaches `completed` status (prevents fake reviews)
-- Builder profile shows aggregate rating and per-star breakdown bar chart
-- Each review links back to the specific project
-
-### Authentication
-- Discord OAuth as primary login (one click, no form filling)
-- Email + password as fallback
-- Role selection on first login: Buyer / Builder / Both
-- Session persistence via Supabase JWT with refresh tokens
-- Protected routes redirect to `/login` automatically
-
----
-
-## Tech Stack
-
-| Layer | Technology | Purpose |
-|---|---|---|
-| Framework | Next.js 14 (App Router) | SSR, routing, API routes |
-| Language | JavaScript + JSX | Components and logic |
-| Styling | Tailwind CSS + globals.css | Utility classes + custom design tokens |
-| Database | PostgreSQL via Supabase | All persistent data |
-| Auth | Supabase Auth + Discord OAuth | User sessions |
-| File Storage | Supabase Storage | Portfolio images, schematic files |
-| Payments | NOWPayments + Supabase Edge Functions | Buyer checkout, payout ledger, and manual USDT withdrawals |
-| Forms | React Hook Form + Zod | Form state and validation |
-| Notifications | react-hot-toast | In-app toast messages |
-| Icons | lucide-react | UI icons |
-| Real-time | Supabase Realtime | Live order messages |
-
----
-
-## Project Structure
-
-```
-buildex/
-├── src/
-│   ├── app/
-│   │   ├── layout.js                    # Root HTML shell, metadata, fonts
-│   │   ├── page.jsx                     # Homepage (landing page)
-│   │   ├── globals.css                  # Full design system and custom CSS
-│   │   │
-│   │   ├── home/                        # Homepage-specific code
-│   │   │   ├── data.js                  # navItems, projects, steps, testimonials
-│   │   │   ├── utils.js                 # smoothScrollTo, showSoon helpers
-│   │   │   └── components/
-│   │   │       ├── Navbar.jsx
-│   │   │       ├── MobileMenu.jsx
-│   │   │       ├── HeroSection.jsx
-│   │   │       ├── ProjectsSection.jsx
-│   │   │       ├── HowItWorksSection.jsx
-│   │   │       ├── WhyBuildExSection.jsx
-│   │   │       └── SiteFooter.jsx
-│   │   │
-│   │   ├── login/page.jsx               # Login page
-│   │   ├── signup/page.jsx              # Registration page
-│   │   │                                # (OAuth lands on /auth/callback, which forwards you back)
-│   │   │
-│   │   ├── builders/
-│   │   │   ├── page.jsx                 # Offer catalog (server-rendered)
-│   │   │   ├── [offerId]/page.jsx       # Offer detail page
-│   │   │   └── profile/
-│   │   │       └── [username]/page.jsx  # Public builder profile
-│   │   │
-│   │   ├── checkout/
-│   │   │   └── [offerId]/page.jsx       # Hosted payment checkout
-│   │   │
-│   │   ├── orders/
-│   │   │   ├── page.jsx                 # All orders (buyer and builder)
-│   │   │   └── [orderId]/page.jsx       # Order detail + messaging
-│   │   │
-│   │   ├── dashboard/
-│   │   │   ├── layout.jsx               # Dashboard shell with sidebar
-│   │   │   ├── page.jsx                 # Overview / stats
-│   │   │   ├── offers/
-│   │   │   │   ├── page.jsx             # Offer management table
-│   │   │   │   ├── new/page.jsx         # Create offer (multi-step)
-│   │   │   │   └── [offerId]/edit/page.jsx
-│   │   │   └── orders/page.jsx          # Incoming orders
-│   │   │
-│   │   └── api/
-│   │       ├── checkout/
-│   │       │   └── create-intent/route.js
-│   │       ├── orders/
-│   │       │   └── [orderId]/
-│   │       │       ├── accept/route.js
-│   │       │       ├── complete/route.js
-│   │       │       └── messages/route.js
-│   │       ├── offers/
-│   │       │   └── [offerId]/route.js
-│   │       ├── stripe/
-│   │       │   └── connect/
-│   │       │       ├── onboard/route.js
-│   │       │       └── status/route.js
-│   │       └── webhooks/
-│   │           └── stripe/route.js
-│   │
-│   ├── components/
-│   │   ├── ui/                          # Shared primitives
-│   │   │   ├── Button.jsx
-│   │   │   ├── Input.jsx
-│   │   │   ├── Textarea.jsx
-│   │   │   ├── Select.jsx
-│   │   │   ├── Modal.jsx
-│   │   │   ├── Badge.jsx
-│   │   │   ├── Avatar.jsx
-│   │   │   ├── RatingStars.jsx
-│   │   │   ├── Spinner.jsx
-│   │   │   └── EmptyState.jsx
-│   │   │
-│   │   ├── catalog/                     # Catalog page components
-│   │   │   ├── OfferGrid.jsx
-│   │   │   ├── OfferCard.jsx
-│   │   │   ├── CatalogFilters.jsx
-│   │   │   ├── CatalogSearch.jsx
-│   │   │   └── CatalogSort.jsx
-│   │   │
-│   │   ├── offer/                       # Offer detail page components
-│   │   │   ├── OfferGallery.jsx
-│   │   │   ├── OfferDetails.jsx
-│   │   │   ├── BuilderSidebar.jsx
-│   │   │   └── OrderForm.jsx
-│   │   │
-│   │   ├── profile/                     # Builder profile components
-│   │   │   ├── ProfileHero.jsx
-│   │   │   ├── ProfileStats.jsx
-│   │   │   ├── ProfileTabs.jsx
-│   │   │   ├── PortfolioGrid.jsx
-│   │   │   ├── ReviewsList.jsx
-│   │   │   ├── ReviewCard.jsx
-│   │   │   └── RankProgress.jsx
-│   │   │
-│   │   ├── dashboard/                   # Dashboard components
-│   │   │   ├── DashboardSidebar.jsx
-│   │   │   ├── OffersTable.jsx
-│   │   │   ├── OrdersTable.jsx
-│   │   │   └── OfferForm/
-│   │   │       ├── OfferFormShell.jsx
-│   │   │       ├── Step1Basics.jsx
-│   │   │       ├── Step2Scope.jsx
-│   │   │       ├── Step3Media.jsx
-│   │   │       └── Step4Review.jsx
-│   │   │
-│   │   └── orders/                      # Order flow components
-│   │       ├── CheckoutForm.jsx
-│   │       ├── PriceBreakdown.jsx
-│   │       ├── OrderTimeline.jsx
-│   │       ├── OrderMessages.jsx
-│   │       └── OrderActions.jsx
-│   │
-│   ├── context/
-│   │   └── AuthContext.jsx              # User session context
-│   │
-│   └── lib/
-│       ├── supabase/
-│       │   ├── client.js                # Browser Supabase client
-│       │   ├── server.js                # Server Component client
-│       │   └── middleware.js            # Middleware client
-│       ├── payments/                    # NOWPayments client helpers
-│       ├── auth.js                      # getCurrentUser, requireAuth helpers
-│       └── commission.js                # Fee calculation logic
-│
-├── middleware.js                        # Route protection
-├── tailwind.config.js
-├── next.config.js
-└── .env.local
-```
-
----
-
-## Design System
-
-All visual styles are defined in `src/app/globals.css`. New components must use existing classes and never redefine them.
-
-### Colors
-
-| Token | Dark theme | Light theme | Usage |
-|---|---|---|---|
-| Background | `#171717` | `#e7e6e4` | Page background |
-| Surface | `#222222` | `#ffffff` | Card backgrounds |
-| Primary accent | `#4ade80` | `#4ade80` | Buttons, highlights, icons |
-| Green dim | `rgba(74,222,128,0.1)` | same | Tag backgrounds |
-| Green border | `rgba(74,222,128,0.2)` | same | Tag borders, card borders on hover |
-| Text | `#f0f0f0` | `#0f172a` | Primary text |
-| Subtext | `#888888` | `#475569` | Secondary text |
-| Muted | `#505050` | `#94a3b8` | Labels, metadata |
-
-### CSS Classes (defined in globals.css)
-
-```css
-/* Frosted glass surface — use on all cards, modals, nav */
-.glass { background: rgba(39,39,39,0.65); backdrop-filter: blur(28px); border: 1px solid rgba(255,255,255,0.12); }
-
-/* Animated green glow — use on primary action buttons */
-.green-glow { box-shadow: 0 0 15px -3px rgba(74,222,128,0.4); animation: gentlePulse 2.4s infinite; }
-
-/* Card hover effect — lift + green border */
-.card-hover { transition: all 0.4s cubic-bezier(0.4,0,0.2,1); }
-.card-hover:hover { transform: translateY(-6px); box-shadow: 0 0 25px rgba(74,222,128,0.3); border-color: rgba(74,222,128,0.5); }
-
-/* Scroll reveal — add .active class via IntersectionObserver */
-.reveal { opacity: 0; transform: translateY(30px); transition: opacity 0.8s ease-out, transform 0.8s ease-out; }
-.reveal.active { opacity: 1; transform: translateY(0); }
-
-/* Floating bob animation */
-.floating-card { animation: floatBase 3s ease-in-out infinite; }
-
-/* Ghost button */
-.ghost-btn { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12); }
-
-/* Animated moving gradient background */
-.gradient-background { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: -1; }
-```
-
-### Typography
-
-| Element | Font | Weight | Class |
-|---|---|---|---|
-| Logo | Space Grotesk | 700–800 | `logo-font` |
-| Page headings | Space Grotesk | 700–800 | `font-bold tracking-tighter` |
-| Section headings | Inter | 600 | `text-4xl font-semibold` |
-| Body text | Inter | 400 | `text-gray-400` |
-| Labels / metadata | Inter | 500 | `text-sm text-gray-400` |
-
-### Component Conventions
-
-- **Buttons:** always `rounded-full` (pill shape), never square or `rounded-lg`
-- **Cards:** `rounded-3xl` for large cards, `rounded-2xl` for smaller panels
-- **Tags / badges:** `rounded-full px-3 py-1 text-xs font-medium`
-- **Section spacing:** `py-24` vertical padding, `max-w-7xl mx-auto px-6` container
-- **Page padding:** `pt-24` top padding to clear the fixed navbar
-
----
-
-## Database Schema
-
-All tables live in Supabase PostgreSQL with Row Level Security enabled.
-
-### `profiles`
-Extends `auth.users`. Created automatically on first login.
-
-| Column | Type | Description |
-|---|---|---|
-| `id` | uuid (PK) | References `auth.users.id` |
-| `username` | text (unique) | Public URL slug |
-| `display_name` | text | Shown everywhere in UI |
-| `avatar_url` | text | Supabase Storage URL |
-| `discord_id` | text (unique) | From Discord OAuth |
-| `role` | text | `buyer` / `builder` / `both` |
-| `minecraft_username` | text | Optional |
-| `bio` | text | Profile description |
-| `created_at` | timestamptz | Auto |
-
-### `builder_profiles`
-One-to-one with `profiles` for builder-specific data.
-
-| Column | Type | Description |
-|---|---|---|
-| `id` | uuid (PK) | References `profiles.id` |
-| `rank` | text | `newcomer` / `builder` / `craftsman` / `architect` / `master` |
-| `specialties` | text[] | Array of style tags |
-| `response_time_hours` | int | Avg response time |
-| `projects_completed` | int | Completed order count |
-| `avg_rating` | numeric(3,2) | Calculated from reviews |
-| `repeat_client_rate` | int | Percentage |
-| `on_time_rate` | int | Percentage |
-| `is_available` | boolean | Accepting new orders |
-| `payout_method` | text | Builder USDT withdrawal network |
-
-### `offers`
-A builder's listed service (like a Fiverr gig).
-
-| Column | Type | Description |
-|---|---|---|
-| `id` | uuid (PK) | |
-| `builder_id` | uuid (FK) | References `profiles.id` |
-| `title` | text | 10–80 chars |
-| `description` | text | 100–2000 chars |
-| `style` | text | `medieval` / `scifi` / `fantasy` / `organic` / `modern` / `pvp` / `hub` / `other` |
-| `build_type` | text | `spawn` / `lobby` / `hub` / `arena` / `decoration` / `village` / `kingdom` / `other` |
-| `starting_price` | int | In cents (e.g. 5000 = $50.00) |
-| `delivery_days` | int | 1–90 |
-| `revisions` | int | 0–10 |
-| `status` | text | `draft` / `active` / `paused` |
-| `view_count` | int | Incremented on page view |
-| `order_count` | int | Completed orders |
-
-### `offer_images`
-Portfolio images attached to an offer.
-
-| Column | Type | Description |
-|---|---|---|
-| `id` | uuid (PK) | |
-| `offer_id` | uuid (FK) | References `offers.id` (cascade delete) |
-| `url` | text | Supabase Storage public URL |
-| `position` | int | Display order (0 = thumbnail) |
-
-### `orders`
-
-| Column | Type | Description |
-|---|---|---|
-| `id` | uuid (PK) | |
-| `offer_id` | uuid (FK) | |
-| `buyer_id` | uuid (FK) | |
-| `builder_id` | uuid (FK) | |
-| `total_price` | int | What buyer paid (cents) |
-| `platform_fee` | int | BuildEx cut (cents) |
-| `builder_earnings` | int | What builder receives (cents) |
-| `status` | text | See order statuses below |
-| `invoice_id` | text | NOWPayments invoice identifier |
-| `delivery_deadline` | timestamptz | |
-| `requirements` | text | Buyer's build brief |
-
-**Order statuses:** `pending_acceptance` → `active` → `in_revision` → `completed` / `disputed` / `cancelled` / `refunded`
-
-### `reviews`
-One review per completed order.
-
-| Column | Type | Description |
-|---|---|---|
-| `id` | uuid (PK) | |
-| `order_id` | uuid (FK, unique) | One review per order |
-| `reviewer_id` | uuid (FK) | Who wrote it |
-| `builder_id` | uuid (FK) | Who it's about |
-| `rating` | int | 1–5 |
-| `body` | text | Written review |
-
-### `messages`
-Per-order message thread.
-
-| Column | Type | Description |
-|---|---|---|
-| `id` | uuid (PK) | |
-| `order_id` | uuid (FK) | |
-| `sender_id` | uuid (FK) | |
-| `body` | text | |
-| `created_at` | timestamptz | |
-
----
-
-## Pages and Routes
-
-| Route | Type | Auth | Description |
-|---|---|---|---|
-| `/` | Client | No | Landing page |
-| `/login` | Client | No | Login with Discord or email |
-| `/signup` | Client | No | Register + role selection |
-| `/auth/callback` | Client | No | OAuth landing — forwards you back where you were |
-| `/onboarding/builder/*` | Client | Yes | Builder profile setup (opt-in from /account) |
-| `/builders` | Server | No | Offer catalog with filters |
-| `/builders/[offerId]` | Server | No | Offer detail + order CTA |
-| `/builders/profile/[username]` | Server | No | Public builder profile |
-| `/order` | Client | Yes | Order placement and hosted checkout |
-| `/orders` | Client | Yes | All user's orders |
-| `/orders/[orderId]` | Client | Yes | Order detail + messages |
-| `/dashboard` | Client | Builder | Stats overview |
-| `/dashboard/offers` | Client | Builder | Manage offers |
-| `/dashboard/offers/new` | Client | Builder | Create offer |
-| `/dashboard/offers/[id]/edit` | Client | Builder | Edit offer |
-| `/dashboard/orders` | Client | Builder | Incoming orders |
-
----
-
-## API Routes
-
-| Endpoint | Method | Auth | Description |
-|---|---|---|---|
-| `payment-options` Edge Function | POST | Buyer | Return eligible live USDT rails |
-| `create-invoice` Edge Function | POST | Buyer | Create NOWPayments invoice |
-| `create-payout` Edge Function | POST | Admin | Create an idempotent custody payout batch |
-| `verify-payout` Edge Function | POST | Admin | Confirm a payout batch with 2FA |
-| `reconcile-payout` Edge Function | POST | Admin | Record terminal payout state |
-| `/api/orders/[id]/accept` | POST | Builder | Accept order, capture funds |
-| `/api/orders/[id]/complete` | POST | Buyer | Approve delivery, credit builder balance |
-| `/api/orders/[id]/messages` | GET/POST | Participant | Read/send messages |
-| `/api/offers/[id]` | PATCH/DELETE | Builder | Update or delete own offer |
-| `/api/stripe/connect/status` | GET | Builder | Check onboarding status |
-| `payment-webhook` Edge Function | POST | NOWPayments | Handle signed payment events |
-
----
-
-## Business Logic
-
-### Commission Calculation
-
-Commission is snapshotted when the order is placed and deducted from the listed
-order price. Provider fees come from BuildEx's share, never from the builder's
-snapshotted net earnings.
-
-```
-Listed price:        $200
-Builder rank:        Master (9% commission)
-Buyer pays:          $200
-Builder earns:       $182
-BuildEx gross share: $18 (before provider costs)
-```
-
-Commission rates:
-
-| Rank | Commission | Requirement |
-|---|---|---|
-| Rookie | 18% | Starting rank |
-| Advanced | 15% | 5+ completed orders and rating above 4.0 |
-| Expert | 12% | 12+ completed orders and rating above 4.5 |
-| Master | 9% | 22+ completed orders and rating above 4.8 |
-
-### Rank Calculation
-
-Rank is recomputed from completed-order and review metrics by the authoritative
-database functions.
-
----
-
-## Authentication
-
-Discord and Google OAuth are the two supported login providers. Both go through Supabase Auth using the PKCE flow.
-
-**Flow:**
-1. User clicks "Log in" / "Join as Builder" / any auth-gated CTA → routed to `/login`
-2. User picks Discord or Google → Supabase redirects to the provider
-3. Provider returns to `/auth/callback?code=…&redirect=…`
-4. The `AuthProvider` mounted in the root layout creates the Supabase client with `detectSessionInUrl: true`, which auto-exchanges the `?code=` for a session and then runs `ensureProfile()` to create a `profiles` row on first login (auto-populated from OAuth metadata: display name, avatar, username slug, `discord_id` when applicable)
-5. `/auth/callback` sends the user to the `?redirect=` target they came from (or `/`). There is no registration step — the row `ensureProfile()` creates, with `role: null`, is a complete, usable visitor account: they can browse, favorite and message builders immediately.
-
-**Becoming a builder is a separate, explicit opt-in.** A signed-in user with no
-`builder_profiles` row sees a "Create a builder profile" call to action on
-`/account`; that link is the only entrance to `/onboarding/builder/*`. Throughout
-the app, "is this user a builder?" is answered by the existence of a
-`builder_profiles` row — never by `profiles.role`, which is a legacy column that
-older accounts still carry `client` / `both` / `studio` values in.
-
-**Protected routes** are guarded **client-side** via the `useRequireAuth()` hook and the `<AuthGuard>` wrapper component in `lib/auth/`. This project ships as a static export (`output: "export"`), so Next.js middleware does not run at request time — client-side guards are functionally equivalent and run as soon as the page hydrates.
-
-**Auth-gated CTAs** (Order, Hire, Message, Post a Project, Request Quote) use the `useAuthGate()` hook. Signed-in users get the action; signed-out users are redirected to `/login?redirect=<current-path>` and returned to the same spot after login.
-
-**Session management** uses Supabase's PKCE flow with short-lived JWTs and automatic refresh. Sessions persist in `localStorage` under the key `buildex-auth`. The `AuthProvider` (mounted in `app/layout.js`) listens to `onAuthStateChange` so every component re-renders the moment a session changes.
-
-### Wiring up your Supabase project
-
-1. Create a project at [supabase.com](https://supabase.com).
-2. In **Authentication → Providers**, enable **Discord** and **Google**. For each provider, set the redirect URL in the provider's developer console to:
-   ```
-   <YOUR_SUPABASE_URL>/auth/v1/callback
-   ```
-3. In **Authentication → URL Configuration → Redirect URLs**, allow your local + production OAuth landing URLs:
-   ```
-   http://localhost:3000/auth/callback
-   https://your-domain.com/auth/callback
-   ```
-   ⚠ This changed when sign-in became one click. The landing page used to be
-   `/onboarding`; if an existing project still only allows that path, Supabase
-   will ignore the requested redirect and drop users on the Site URL instead —
-   they end up signed in, but on the homepage rather than the page they came
-   from. Add the `/auth/callback` entries before deploying.
-4. Copy your Project URL and `anon` public key into `.env.local` (see `.env.example`).
-   For production OAuth branding, enable a Supabase custom domain such as
-   `auth.buildex.builders`, keep the original project callback registered during
-   rollout, and add `https://auth.buildex.builders/auth/v1/callback` to both the
-   Google and Discord OAuth applications. Set each provider's public app name
-   and logo to **BuildEx**, verify the Google OAuth brand, then use the custom
-   domain as `NEXT_PUBLIC_SUPABASE_URL`. This replaces the raw project hostname
-   shown in the provider account chooser.
-5. Create the `profiles` table per the schema above. Minimum SQL to get login working:
-   ```sql
-   create table profiles (
-     id uuid primary key references auth.users on delete cascade,
-     username text unique,
-     display_name text,
-     avatar_url text,
-     discord_id text unique,
-     role text,
-     bio text,
-     minecraft_username text,
-     created_at timestamptz default now()
-   );
-   alter table profiles enable row level security;
-   create policy "profiles are viewable" on profiles for select using (true);
-   create policy "users insert own profile" on profiles for insert with check (auth.uid() = id);
-   create policy "users update own profile" on profiles for update using (auth.uid() = id);
-   ```
-6. Restart `npm run dev` after editing `.env.local`. The login page will swap from its "not configured" banner to working OAuth buttons.
-
----
-
-## Payments and Escrow
-
-BuildEx uses **NOWPayments hosted stablecoin invoices** for incoming payments and
-weekly **USDT-BSC custody mass payouts** for builder withdrawals. The marketplace
-floor is $5; live provider minimums decide which networks can be offered.
-
-**Full payment lifecycle:**
-
-```
-1. Buyer places an order and opens a NOWPayments hosted invoice
-      ↓
-2. NOWPayments sends a signed IPN after settlement
-      ↓
-3. The webhook verifies amount, currency, terminal status, and signature
-      ↓
-4. Builder delivers; buyer confirms completion
-      ↓
-5. Snapshotted builder earnings become available in Account → Payouts
-      ↓
-6. Builder requests a partial USDT withdrawal (minimum $20)
-      ↓
-7. Admin reviews the destination and approves the request
-      ↓
-8. Admin creates the weekly custody mass-payout batch and confirms it with 2FA
-      ↓
-9. BuildEx reconciles the provider result; failures restore available balance
-```
-
-Disputes resolved in the builder's favor credit earnings; refunds do not. Requested
-funds are reserved immediately and return to available balance on cancellation,
-rejection, or provider payout failure. BuildEx absorbs processing and batch
-network fees inside its commission. See
-[`docs/payments-supabase-setup.md`](docs/payments-supabase-setup.md) for production setup.
-
----
-
-## Builder Rank System
-
-Ranks are displayed as badges throughout the platform — on profile pages, offer cards, in the catalog, and in the checkout price breakdown. Higher rank = lower fee for buyers = more orders for builders.
-
-| Rank | Badge Color | Icon | Commission |
-|---|---|---|---|
-| Rookie | Gray `#94a3b8` | ⬜ | 18% |
-| Advanced | Blue `#60a5fa` | 🟦 | 15% |
-| Expert | Purple `#a78bfa` | 🟣 | 12% |
-| Master | Green `#4ade80` | 🏆 | 9% |
-
-The Master badge has an additional CSS pulse animation (`badgePulse` keyframe).
-
----
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18+
-- A Supabase project (free tier works)
-- A NOWPayments account with Custody and Mass Payouts enabled
-- Discord application for OAuth (free)
-
-### Installation
+# BuildEx
+
+A directory of Minecraft builders.
+
+Builders publish a profile with their portfolio, the styles they work in and the
+ways they want to be contacted. Anyone can browse those profiles; signed-in
+users can message a builder here. That is the whole product.
+
+**BuildEx takes no payment, holds no money, vets nobody and is not a party to
+any deal.** Everything after the introduction — scope, price, deadline, payment —
+is arranged directly between the client and the builder. The landing page and
+`app/legal/documents.js` both say so, and `tests/legal-launch.test.mjs` fails the
+build if the copy starts claiming otherwise.
+
+An earlier version of this site had orders, escrowed payments, commissions,
+ranks, reviews, ready-made build sales and studios. All of it was removed. If
+you find a reference to any of it, it is a leftover — please delete it.
+
+## Stack
+
+- **Next.js 16** (App Router) with `output: "export"` — the whole site is static
+  HTML. There is no server and no API route at runtime, so anything privileged
+  goes through a Supabase security-definer RPC.
+- **React 19**, **Tailwind CSS 3**, **lucide-react** for icons (no emoji — see
+  `lib/icons.jsx`).
+- **Supabase** for auth (Google and Discord OAuth), Postgres, Storage and
+  realtime chat. Row-level security is the access boundary, not the UI.
+- Deployed to **GitHub Pages** by `.github/workflows/deploy.yml` on push to
+  `main`.
+
+## Running it
 
 ```bash
-# Clone the repository
-git clone https://github.com/your-username/buildex.git
-cd buildex
-
-# Install dependencies
 npm install
-
-# Create environment file
-cp .env.example .env.local
-# Fill in all values (see Environment Variables section)
-
-# Run database migrations
-# Paste the SQL from /supabase/migrations/ into your Supabase SQL editor
-
-# Start the development server
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to see the landing page.
+Create `.env.local` first:
 
----
-
-## Environment Variables
-
-Create `.env.local` in the project root:
-
-```env
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=https://auth.buildex.builders
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-
-# Base path when deploying under a sub-path (e.g. GitHub Pages /BuildEx).
-# Leave empty for local dev / root deploys.
+```
+NEXT_PUBLIC_SUPABASE_URL=https://<project>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>
 NEXT_PUBLIC_BASE_PATH=
 ```
 
-**Supabase keys:** Found in your project's Settings → API.
+`NEXT_PUBLIC_BASE_PATH` is for serving under a subpath (e.g. `/BuildEx` on
+GitHub Pages). Leave it empty for local work. Never hardcode a leading path in a
+href — wrap it with `withBase()` from `app/home/utils.js`.
 
-> ⚠️ **Static export — public bundle only.** BuildEx builds with `output: "export"`
-> (no server, no API routes). Only `NEXT_PUBLIC_*` variables exist at runtime and
-> they are **baked into the client bundle that ships to every visitor**. Never put
-> a secret here — no `SUPABASE_SERVICE_ROLE_KEY`, no payment secret keys, no
-> webhook secrets. The anon key is safe to expose *because* all access is gated by
-> Postgres RLS + `SECURITY DEFINER` RPCs (see `supabase/migrations/`).
->
-> Any server-side secret (the service-role key, the NOWPayments API key and
-> IPN signing secret for the pending payment stage) belongs only in a Supabase
-> Edge Function's environment — never in this repo's build.
+Other scripts:
 
----
+```bash
+npm run build   # static export into out/
+npm test        # node --test over tests/*.test.mjs
+```
 
-## Development Roadmap
+## Database
 
-### Phase 1 — Foundation ✅
-- [x] Next.js project setup with Tailwind CSS
-- [x] Global design system (glass, gradients, animations)
-- [x] Landing page with all sections
-- [x] Responsive mobile / tablet / desktop layouts
-- [x] Dark / light theme with localStorage persistence
-- [x] Mobile hamburger menu
+SQL lives in `supabase/migrations/`, numbered and idempotent. Paste each file
+into the Supabase SQL editor in order. `supabase/migrations/README.md` is a
+historical ledger — migrations 0008–0094 build features that later migrations
+(0095–0097) decommission, so read them as history, not as a description of the
+current schema.
 
-### Phase 2 — Auth 🔄
-- [ ] Supabase project setup and database migrations
-- [ ] Discord OAuth login
-- [ ] Email/password registration
-- [ ] Role selection on first login
-- [ ] Auth middleware for protected routes
-- [ ] AuthContext for session access across app
+Migrations 0095 onward are the ones that matter now:
 
-### Phase 3 — Catalog
-- [ ] Shared UI component library (Button, Input, Modal, Badge, etc.)
-- [ ] `/builders` catalog page with OfferCard grid
-- [ ] Sidebar filters with URL state
-- [ ] Search and sort
-- [ ] `/builders/[offerId]` offer detail page
-- [ ] Price breakdown component with commission calculation
+| # | What it does |
+|---|---|
+| 0095 | Removes the payment, order, payout and dispute layer |
+| 0096 | Removes reviews and ranks |
+| 0097 | Removes studios and role-based registration |
+| 0098–0099 | Builder contact / social links (`builder_profiles.contact_links`) |
+| 0100 | Chat abuse controls: rate limits and `conversation_reports` |
+| 0101 | Moderation: `builder_profiles.is_hidden` enforced in RLS |
 
-### Phase 4 — Builder Profiles
-- [ ] `/builders/profile/[username]` page
-- [ ] Portfolio grid, reviews, about tabs
-- [ ] Rank badge system with color coding
-- [ ] Stats pills and skills sidebar
+Sign-in needs your Supabase project's **Redirect URLs** to include
+`<site>/auth/callback/`, or one-click sign-in lands nowhere.
 
-### Phase 5 — Dashboard
-- [ ] Protected dashboard layout with sidebar nav
-- [ ] Offer management table
-- [ ] 4-step offer creation form
-- [ ] Supabase Storage image upload with progress
-- [ ] Offer editing and status management
+`supabase/functions/delete-account` is the only Edge Function still in use.
 
-### Phase 6 — Orders and Payments
-- [x] NOWPayments hosted checkout
-- [x] Builder balance and withdrawal requests
-- [ ] Server-side PaymentIntent with manual capture
-- [ ] Order acceptance and fund capture
-- [ ] Delivery and approval flow
-- [x] Admin-reviewed weekly USDT-BSC custody batches
-- [ ] Webhook handler for async events
+## Routes
 
-### Phase 7 — Trust and Retention
-- [ ] Review system (post-completion only)
-- [ ] Per-order message thread with Supabase Realtime
-- [ ] Dispute flow
-- [ ] Rank recalculation cron job
-- [ ] Email notifications (Resend / SendGrid)
-- [ ] Builder dashboard analytics
+| Route | What it is |
+|---|---|
+| `/` | Landing page (`app/home/`) |
+| `/builders` | The directory: search, style / build-type filters, favourites |
+| `/builders/profile/?u=<handle>` | A builder's public profile |
+| `/chats` | Conversations |
+| `/account` | Your profile; where you opt in to becoming a builder |
+| `/onboarding/builder/{identity,styles,portfolio}` | The three-step builder setup |
+| `/login`, `/auth/callback` | OAuth sign-in |
+| `/admin` | Moderator console — gated by `profiles.is_admin`, enforced in the RPCs |
+| `/legal`, `/legal/<slug>` | Terms, privacy, community & copyright, legal notice |
 
----
+Static export means `/builders/profile/[username]` cannot serve arbitrary
+handles, so the real profile page is the query-param route
+`/builders/profile/?u=<handle>`, which fetches the builder client-side.
 
-## License
+## How the code is arranged
 
-MIT — see [LICENSE](LICENSE) for details.
+```
+app/
+  home/          landing page sections + data.js (all landing copy lives there)
+  builders/      directory, filters, profile pages, fetchBuilders
+  onboarding/    the three builder setup steps + the gate that resumes them
+  chats/  account/  admin/  auth/  legal/
+lib/
+  auth/          AuthContext, profile bootstrap, redirects, guards
+  onboarding/    api.js (writes), state.js (step machine), contactLinks.js
+  chat/  favorites/  notifications/  presence/  admin/  legal/
+  supabase/      browser client + storage URL rewriting
+  icons.jsx      the icon registry; data files store string keys
+```
 
----
+Two rules worth knowing before you change anything:
 
-## Contact
+1. **"Is this person a builder?" is the existence of a `builder_profiles` row.**
+   Never `profiles.role` — that column is legacy and existing accounts still
+   carry stale values in it.
+2. **Decommission, never delete, in the database.** Removed features leave their
+   tables and records behind; migrations revoke grants and drop triggers instead
+   of dropping data.
 
-Built by the BuildEx team. For questions or partnership inquiries, join the [Discord server](https://discord.gg/buildex) or open an issue on GitHub.
+## Conventions
+
+- Contact links are validated in `lib/onboarding/contactLinks.js` *and* by a SQL
+  `CHECK` constraint. They are typed by one user and rendered on a public page,
+  so keep the two in step.
+- Copy that makes a claim about what BuildEx does belongs in
+  `app/home/data.js` or `app/legal/documents.js`, and has to be true of the code.
+- The legal documents are written in plain English by people who are not
+  lawyers. They are deliberately conservative. Have a lawyer read them before
+  relying on them.

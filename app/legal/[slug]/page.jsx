@@ -76,7 +76,7 @@ export default async function LegalDocumentPage({ params }) {
             </div>
 
             <div className="mt-16 flex flex-col gap-5 rounded-3xl border border-[#4ade80]/20 bg-[#4ade80]/[0.055] p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
-              <div><h2 className="text-lg font-bold text-white">Questions about this document?</h2><p className="mt-2 text-sm leading-6 text-gray-400">Our legal team can help clarify how this policy applies to BuildEx.</p></div>
+              <div><h2 className="text-lg font-bold text-white">Questions about this document?</h2><p className="mt-2 text-sm leading-6 text-gray-400">Ask us and we will explain how it applies.</p></div>
               <a href="mailto:mcbuildex@gmail.com" className="inline-flex shrink-0 items-center gap-2 font-semibold text-[#86efac] transition hover:text-[#4ade80]"><Mail size={17} aria-hidden="true" /> mcbuildex@gmail.com</a>
             </div>
           </article>

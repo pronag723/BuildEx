@@ -36,10 +36,19 @@ export default function ProjectsSection({ onAnchorClick }) {
   return (
     <section id="projects" className="py-32 reveal">
       <div className="w-full px-6">
-        <div className="flex items-center justify-between mb-10 max-w-7xl mx-auto">
-          <h2 className="text-4xl font-semibold">
-            Top <span className="text-[#4ade80]">Builder&apos;s</span> Projects
-          </h2>
+        <div className="flex flex-col gap-3 mb-10 max-w-7xl mx-auto lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <h2 className="text-4xl font-semibold">
+              The kind of thing <span className="text-[#4ade80]">people build</span>
+            </h2>
+            {/* These are example builds, not listings. Saying so is the whole
+                reason this line exists — the cards carry no builder, no rating
+                and no price, because we have none to show. */}
+            <p className="mt-3 text-sm text-gray-500 max-w-xl">
+              Example Minecraft builds, here to set the tone. Real portfolios —
+              by the builders who made them — are on their profiles.
+            </p>
+          </div>
           {/* Desktop link — visibility lives on this DIV, not the <a>. A flex
               child <a> ignores its own `hidden` utility, which is what caused the
               link to leak onto mobile and show twice. */}

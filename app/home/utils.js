@@ -42,7 +42,3 @@ export function smoothScrollTo(target, duration = 800) {
 
   requestAnimationFrame(animation);
 }
-
-export function showSoon(message) {
-  window.alert(message);
-}

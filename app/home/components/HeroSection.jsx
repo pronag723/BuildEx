@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { withBase } from "../utils";
+import { DIRECTORY_DISCLAIMER } from "../data";
 import { fetchBuilders } from "../../builders/data/fetchBuilders";
-import { Stars } from "../../../lib/icons";
+import { Icon } from "../../../lib/icons";
 
 export default function HeroSection({ heroVisualRef, onAnchorClick }) {
   // Real builder-presence figure for the floating badge. We reuse fetchBuilders
@@ -24,7 +25,7 @@ export default function HeroSection({ heroVisualRef, onAnchorClick }) {
         );
       } else if (list.length > 0) {
         setBadgeLabel(
-          `${list.length} builder${list.length === 1 ? "" : "s"} available`
+          `${list.length} builder${list.length === 1 ? "" : "s"} listed`
         );
       } else {
         setBadgeLabel(null);
@@ -44,16 +45,16 @@ export default function HeroSection({ heroVisualRef, onAnchorClick }) {
         <div className="space-y-8 hero-text-space text-center lg:text-left">
           <div className="inline-flex items-center gap-2 glass px-5 py-2 rounded-full text-sm hero-badge">
             <span className="w-2 h-2 bg-[#4ade80] rounded-full animate-pulse flex-shrink-0" />
-            Connecting server owners with elite Minecraft builders
+            A directory of Minecraft builders
           </div>
           <h1 className="hero-h1 font-bold leading-tight tracking-tighter">
-            <span className="block">The&nbsp;place&nbsp;where</span>
-            <span className="block text-[#4ade80]">great servers</span>
-            <span className="block">get built</span>
+            <span className="block">Find&nbsp;the&nbsp;builder</span>
+            <span className="block text-[#4ade80]">behind the build</span>
+            <span className="block">you want</span>
           </h1>
           <p className="hero-body text-gray-400 max-w-md mx-auto lg:mx-0">
-            Hire skilled Minecraft builders or find paid work building epic
-            spawns, hubs, maps, and custom decorations.
+            Browse builder profiles, look at the work they have actually made,
+            and contact them yourself — on Discord, on Telegram, or here.
           </p>
           <div className="flex flex-wrap gap-4 justify-center lg:justify-start">
             <a
@@ -61,58 +62,72 @@ export default function HeroSection({ heroVisualRef, onAnchorClick }) {
               onClick={(event) => onAnchorClick(event, "/builders")}
               className="hero-btn-primary px-8 py-4 bg-[#4ade80] text-black font-semibold rounded-full hover:scale-105 transition-all green-glow inline-block text-center"
             >
-              Find Builders
+              Browse Builders
+            </a>
+            <a
+              href="#how-it-works"
+              onClick={(event) => onAnchorClick(event, "#how-it-works")}
+              className="hero-btn-primary px-8 py-4 border border-white/20 hover:border-white/40 font-semibold rounded-full transition-all inline-block text-center"
+            >
+              How it works
             </a>
           </div>
+          {/* The one claim-free statement everything else on this page has to
+              agree with. It sits above the fold on purpose. */}
+          <p className="text-xs leading-relaxed text-gray-500 max-w-md mx-auto lg:mx-0">
+            {DIRECTORY_DISCLAIMER}
+          </p>
         </div>
 
         <div ref={heroVisualRef} className="relative hero-visual" id="heroVisual">
+          {/* Illustrations of the two things the site does: show you a profile,
+              and hand you the builder's own contact links. No names, prices or
+              fees — there is nothing here to invent. */}
           <div className="glass rounded-3xl p-6 w-80 floating-card card-hover absolute -right-8 top-12 shadow-2xl border border-white/10">
             <div className="flex items-center gap-3 mb-4">
-              <img
-                src="https://picsum.photos/id/1015/64/64"
-                alt="Builder"
-                className="w-12 h-12 rounded-2xl object-cover minecraft-img"
-                loading="lazy"
-                decoding="async"
-              />
+              <span className="icon-tile text-[#4ade80] flex-shrink-0">
+                <Icon name="user" size={22} strokeWidth={1.6} />
+              </span>
               <div>
-                <div className="font-semibold">PixelForge</div>
-                <div className="text-xs text-[#4ade80] flex items-center gap-1">
-                  <Stars count={1} size={11} /> Master Builder
-                </div>
+                <div className="font-semibold">Builder profile</div>
+                <div className="text-xs text-gray-400">Portfolio · styles · links</div>
               </div>
             </div>
-            <div className="text-sm text-gray-300 mb-4">Modern Fantasy Spawn</div>
-            <div className="flex justify-between items-center">
-              <div>
-                <div className="text-[#4ade80] font-semibold">$850</div>
-                <div className="text-xs text-emerald-400">+8% fee (Master)</div>
+            <div className="text-sm text-gray-300 mb-4">
+              See the builds before you say a word.
+            </div>
+            <div className="flex justify-between items-center gap-3">
+              <div className="flex gap-1.5 flex-wrap">
+                <span className="text-[11px] px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-gray-300">
+                  Fantasy
+                </span>
+                <span className="text-[11px] px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-gray-300">
+                  Medieval
+                </span>
               </div>
-              <button
-                type="button"
-                className="text-xs bg-white/10 hover:bg-white/20 px-4 py-2 rounded-full transition-colors"
-              >
-                View Build
-              </button>
+              <span className="text-xs bg-white/10 px-4 py-2 rounded-full whitespace-nowrap">
+                Message
+              </span>
             </div>
           </div>
 
           <div className="glass rounded-3xl p-5 floating-card card-hover absolute -left-6 bottom-24 w-72 shadow-2xl border border-white/10">
-            <div className="text-xs uppercase tracking-widest text-gray-400 mb-2">
-              Latest Bid
+            <div className="text-xs uppercase tracking-widest text-gray-400 mb-3">
+              Reach them directly
             </div>
-            <div className="flex justify-between items-end">
-              <div>
-                <div className="font-medium">$620</div>
-                <div className="text-xs text-emerald-400">by Architect • 4h ago</div>
-              </div>
-              <button
-                type="button"
-                className="text-xs bg-[#4ade80] hover:bg-[#22c55e] text-black px-4 py-2 rounded-full transition-all font-medium"
-              >
-                Accept
-              </button>
+            <div className="flex flex-wrap gap-2">
+              <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-gray-200">
+                <Icon name="chat" size={13} /> Discord
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-gray-200">
+                <Icon name="send" size={13} /> Telegram
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-[#4ade80]/15 border border-[#4ade80]/30 text-[#4ade80]">
+                <Icon name="chat" size={13} /> On BuildEx
+              </span>
+            </div>
+            <div className="mt-3 text-[11px] text-gray-500">
+              Whatever you agree is between the two of you.
             </div>
           </div>
 
@@ -131,7 +146,7 @@ export default function HeroSection({ heroVisualRef, onAnchorClick }) {
       <a
         href="#projects"
         className="hero-next-link"
-        aria-label="Scroll to projects"
+        aria-label="Scroll to the build showcase"
         onClick={(event) => onAnchorClick(event, "#projects")}
       >
         <svg

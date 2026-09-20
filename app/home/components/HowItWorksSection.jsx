@@ -1,6 +1,6 @@
 "use client";
 
-import { steps } from "../data";
+import { DIRECTORY_DISCLAIMER, steps } from "../data";
 import { Icon } from "../../../lib/icons";
 
 export default function HowItWorksSection() {
@@ -12,8 +12,8 @@ export default function HowItWorksSection() {
             How Build<span className="text-[#4ade80]">Ex</span> Works
           </h2>
           <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-            Browse the builder feed, find the right creator, and message them
-            directly - simple, straightforward, and built for Minecraft.
+            Browse the profiles, look at the work, message the builder. Everything
+            after the introduction is between the two of you.
           </p>
         </div>
 
@@ -33,6 +33,17 @@ export default function HowItWorksSection() {
             </div>
           ))}
           <div className="hidden lg:block absolute top-1/2 left-1/3 right-1/3 h-px bg-gradient-to-r from-transparent via-[#4ade80]/30 to-transparent" />
+        </div>
+
+        {/* Repeated verbatim from the hero. Someone who scrolled straight to the
+            steps still has to pass it before they reach a builder. */}
+        <div className="mt-12 mx-auto max-w-3xl glass rounded-3xl px-6 py-5 flex items-start gap-4 reveal">
+          <span className="icon-tile text-[#4ade80] flex-shrink-0">
+            <Icon name="info" size={20} strokeWidth={1.6} />
+          </span>
+          <p className="text-sm leading-relaxed text-gray-400">
+            {DIRECTORY_DISCLAIMER}
+          </p>
         </div>
       </div>
     </section>

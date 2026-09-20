@@ -31,9 +31,17 @@ import { isOnline } from "../../../lib/presence/api";
 // not-yet-applied column never 400s the whole query. The dormant columns it
 // drags back over the wire — rank, rates, studio_id, profile_type — are simply
 // not mapped.
+//
+// The FK is named explicitly, and must stay named. Migration 0101 added
+// `builder_profiles.hidden_by references profiles(id)`, which gave the two
+// tables a SECOND relationship. A bare `builder_profiles!inner(*)` then became
+// ambiguous and PostgREST answered every feed query with 300 / PGRST201 — the
+// directory silently showed zero builders. `!builder_profiles_id_fkey` picks
+// the profile↔builder relationship; `!inner` still makes it the "is this a
+// builder?" test.
 export const PROFILE_SELECT =
   "id, username, display_name, avatar_url, bio, role, created_at, last_seen_at, onboarding_completed_at, " +
-  "builder:builder_profiles!inner(*), " +
+  "builder:builder_profiles!builder_profiles_id_fkey!inner(*), " +
   "portfolio:portfolio_images(id, url, position, alt)";
 
 // Portfolio images → the lightweight items BuilderCard renders in its carousel.

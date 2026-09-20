@@ -7,7 +7,6 @@ import { createPortal } from "react-dom";
 import { useAuth } from "../../../lib/auth/AuthContext";
 import { useUnread } from "../../../lib/chat/UnreadContext";
 import NotificationsBell from "../../notifications/components/NotificationsBell";
-import { withBase } from "../../home/utils";
 import { Icon } from "../../../lib/icons";
 
 function IconUser({ className = "w-4 h-4" }) {

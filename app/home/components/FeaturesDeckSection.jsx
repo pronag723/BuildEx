@@ -4,62 +4,48 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Icon } from "../../../lib/icons";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// BuildEx — Homepage "Features" deck
-// A swipeable stack of cards (drag / arrows / dots / keyboard) showcasing the
-// platform's standout features. Each card carries a lightweight, in-app CSS/SVG
+// BuildEx — Homepage "What you get" deck
+// A swipeable stack of cards (drag / arrows / dots / keyboard) describing what
+// the site actually does. Each card carries a lightweight, in-app CSS/SVG
 // MOCKUP of the feature rather than a screenshot, so it always matches the live
 // design system (green #4ade80, .glass surfaces, Inter / Space Grotesk).
+//
+// Every claim here has to be something the code does. Ranks, reviews, fees and
+// protected payments were removed from the product, so they are gone from this
+// deck too.
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ── Per-feature stylized mockups (pure presentation) ────────────────────────
 
-// Rank ladder — rookie → master with the falling commission rate.
-function RankMock() {
-  const tiers = [
-    { label: "Rookie", pct: "15%", w: 34 },
-    { label: "Advanced", pct: "12%", w: 56 },
-    { label: "Expert", pct: "8%", w: 78 },
-    { label: "Master", pct: "5%", w: 100 },
-  ];
+// Portfolio — a builder's own images, shown as a thumbnail grid.
+function PortfolioMock() {
   return (
-    <div className="fd-mock fd-mock-rank">
-      {tiers.map((t, i) => (
-        <div className="fd-rank-row" key={t.label}>
-          <span className="fd-rank-name">{t.label}</span>
-          <span className="fd-rank-bar">
-            <span
-              className={`fd-rank-fill ${i === tiers.length - 1 ? "fd-rank-top" : ""}`}
-              style={{ width: `${t.w}%` }}
-            />
-          </span>
-          <span className="fd-rank-pct">{t.pct}</span>
-        </div>
-      ))}
+    <div className="fd-mock fd-mock-portfolio">
+      <div className="fd-shot fd-shot-wide" />
+      <div className="fd-shot" />
+      <div className="fd-shot" />
+      <div className="fd-shot" />
+      <div className="fd-shot" />
     </div>
   );
 }
 
-// Verified reviews — a compact review card with a star row.
-function ReviewMock() {
+// Contact links — the buttons a builder chooses to publish on their profile.
+function ContactMock() {
   return (
-    <div className="fd-mock fd-mock-review">
-      <div className="fd-review-head">
-        <span className="fd-avatar">E</span>
-        <div>
-          <div className="fd-review-name">EmberCraft</div>
-          <div className="fd-stars">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Icon key={i} name="star" size={13} className="fd-star" />
-            ))}
-          </div>
-        </div>
-        <span className="fd-verified">
-          <Icon name="check" size={12} /> Verified order
-        </span>
-      </div>
-      <p className="fd-review-body">
-        “Hired straight from the feed and the spawn turned out incredible.”
-      </p>
+    <div className="fd-mock fd-mock-contact">
+      <span className="fd-contact-pill">
+        <Icon name="chat" size={12} /> Discord
+      </span>
+      <span className="fd-contact-pill">
+        <Icon name="send" size={12} /> Telegram
+      </span>
+      <span className="fd-contact-pill">
+        <Icon name="play" size={12} /> YouTube
+      </span>
+      <span className="fd-contact-pill fd-contact-pill-active">
+        <Icon name="link" size={12} /> Their site
+      </span>
     </div>
   );
 }
@@ -76,27 +62,27 @@ function ChatMock() {
 
 const FEATURES = [
   {
-    key: "ranks",
-    icon: "trophy",
-    title: "Earned Ranking System",
-    body: "Builders climb from Rookie to Master through real completed orders and ratings — higher ranks pay lower fees.",
-    bullets: ["Ranks from real metrics", "Lower commission per tier", "Rewards proven quality"],
-    Mock: RankMock,
+    key: "portfolios",
+    icon: "image",
+    title: "Portfolios, not promises",
+    body: "Every profile is the builder's own work, uploaded by them and shown full size. Look at it before you talk to anyone.",
+    bullets: ["Full-size portfolio images", "Filter by style and build type", "Nothing scored or ranked by us"],
+    Mock: PortfolioMock,
   },
   {
-    key: "reviews",
-    icon: "star",
-    title: "Verified Reviews",
-    body: "Every review comes from a real, completed order — so the ratings you see are ones you can trust.",
-    bullets: ["Order-gated reviews", "One review per order", "Honest, real feedback"],
-    Mock: ReviewMock,
+    key: "contact",
+    icon: "link",
+    title: "Contact on their terms",
+    body: "Builders publish the ways they want to be reached — Discord, Telegram, YouTube, their own site. You take it from there.",
+    bullets: ["Their own handles and links", "Checked for safe link formats", "No middleman in the conversation"],
+    Mock: ContactMock,
   },
   {
     key: "chat",
     icon: "chat",
-    title: "Live Chat",
-    body: "Message builders directly and share files and photos while you work out the details.",
-    bullets: ["Direct messaging", "Paste & send photos", "Read receipts"],
+    title: "Or message here",
+    body: "Prefer to keep first contact on the site? BuildEx chat carries text and photos while you work out what you need.",
+    bullets: ["Direct messaging", "Paste & send photos", "Report a conversation"],
     Mock: ChatMock,
   },
 ];
@@ -146,14 +132,14 @@ export default function FeaturesDeckSection() {
         <div className="text-center mb-14">
           <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs bg-[#4ade80]/10 border border-[#4ade80]/30 text-[#4ade80] font-medium mb-4">
             <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80]" />
-            Why BuildEx
+            What you get
           </span>
           <h2 className="text-4xl font-semibold mb-4">
-            Built for serious <span className="text-[#4ade80]">creators</span>
+            What you actually <span className="text-[#4ade80]">get</span>
           </h2>
           <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-            Swipe through the features that make hiring and selling Minecraft
-            builds safe, transparent, and effortless.
+            Swipe through what the site does — and what it deliberately leaves
+            to you and the builder.
           </p>
         </div>
 
@@ -162,7 +148,7 @@ export default function FeaturesDeckSection() {
             className="features-deck"
             role="group"
             aria-roledescription="carousel"
-            aria-label="BuildEx features"
+            aria-label="What BuildEx gives you"
           >
             {FEATURES.map((f, i) => {
               const pos = (i - active + n) % n; // 0 = front

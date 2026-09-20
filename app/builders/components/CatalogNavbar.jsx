@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { withBase } from "../../home/utils";
 import { isNavActive, catalogNavItems } from "./navItems";
 import AuthNavControls from "../../auth/components/AuthNavControls";
 import { Icon } from "../../../lib/icons";

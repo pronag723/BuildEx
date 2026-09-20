@@ -1,117 +1,58 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// BuildEx — Landing page content
+//
+// HONESTY RULE. BuildEx is a directory. It does not process payments, hold
+// funds, vet or verify builders, or take any part in a deal. Nothing on this
+// page may say or imply otherwise — see app/legal/documents.js, which is the
+// promise this copy has to match.
+// ─────────────────────────────────────────────────────────────────────────────
+
 export const navItems = [
   { href: "/builders", label: "Browse Builders" },
-  { href: "#projects", label: "Top Projects" },
+  { href: "#projects", label: "Showcase" },
   { href: "#how-it-works", label: "How It Works" },
-  { href: "#features", label: "Features" },
-  { href: "#why-buildex", label: "Why Buildex" }
+  { href: "#features", label: "What You Get" },
+  { href: "#why-buildex", label: "What We Are" }
 ];
 
+// Example Minecraft builds, shown to set the tone of the site. These are
+// illustrations, NOT portfolio work by builders listed here — the section
+// heading says so, and the cards deliberately carry no builder name, rating or
+// price. Real work lives on the real profiles at /builders.
 export const projects = [
-  {
-    image: "/projects/dark-fantasy-castle.jpg",
-    alt: "Dark fantasy Minecraft castle build",
-    rank: "Master",
-    title: "Dark Fantasy Castle",
-    builder: "PixelForge",
-    rating: "4.98"
-  },
-  {
-    image: "/projects/spawn-anarchy-1.jpg",
-    alt: "Minecraft anarchy spawn build",
-    rank: "Architect",
-    title: "Spawn Anarchy",
-    builder: "BlockVortex",
-    rating: "4.95"
-  },
-  {
-    image: "/projects/spawn-anarchy-2.jpg",
-    alt: "Minecraft anarchy spawn build design",
-    rank: "Craftsman",
-    title: "Spawn Anarchy",
-    builder: "CraftEmpire",
-    rating: "4.87"
-  },
-  {
-    image: "/projects/throne-hall-1.jpg",
-    alt: "Medieval throne hall interior Minecraft build",
-    title: "Throne Hall",
-    builder: "CrownCraft",
-    rating: "4.96"
-  },
-  {
-    image: "/projects/japan-house.jpg",
-    alt: "Traditional Japanese house Minecraft build",
-    rank: "Master",
-    title: "Japan House",
-    builder: "ZenBlocks",
-    rating: "4.94"
-  },
-  {
-    image: "/projects/gray-citadel.jpg",
-    alt: "Gray stone citadel Minecraft build",
-    title: "Gray Citadel",
-    builder: "SummitBuilds",
-    rating: "4.82"
-  },
-  {
-    image: "/projects/throne-hall-2.jpg",
-    alt: "Royal throne hall Minecraft interior",
-    rank: "Master",
-    title: "Throne Hall",
-    builder: "NatureCraft",
-    rating: "4.91"
-  }
+  { image: "/projects/dark-fantasy-castle.jpg", alt: "Dark fantasy Minecraft castle build", title: "Dark Fantasy Castle" },
+  { image: "/projects/spawn-anarchy-1.jpg", alt: "Minecraft anarchy spawn build", title: "Spawn" },
+  { image: "/projects/spawn-anarchy-2.jpg", alt: "Minecraft anarchy spawn build design", title: "Spawn Courtyard" },
+  { image: "/projects/throne-hall-1.jpg", alt: "Medieval throne hall interior Minecraft build", title: "Throne Hall" },
+  { image: "/projects/japan-house.jpg", alt: "Traditional Japanese house Minecraft build", title: "Japan House" },
+  { image: "/projects/gray-citadel.jpg", alt: "Gray stone citadel Minecraft build", title: "Gray Citadel" },
+  { image: "/projects/throne-hall-2.jpg", alt: "Royal throne hall Minecraft interior", title: "Great Hall" }
 ];
 
 export const steps = [
   {
     icon: "search",
-    title: "1. Browse the Feed",
+    title: "1. Browse the profiles",
     body:
-      "Explore a live feed of verified Minecraft builders. Filter by style and specialty, and view real portfolios before you reach out."
+      "Open the directory and filter by style or build type. Every profile is a builder's own portfolio, uploaded and written by them."
   },
   {
-    icon: "handshake",
-    title: "2. Reach Out Directly",
+    icon: "send",
+    title: "2. Contact them directly",
     body:
-      "Found the right builder? Message them directly and work out the scope, the timeline and the details between you.",
+      "Use the Discord, Telegram or other links a builder publishes on their profile — or message them here on BuildEx.",
     className: "relative md:-mt-4"
   },
   {
-    icon: "chat",
-    title: "3. Keep It Simple",
+    icon: "handshake",
+    title: "3. Arrange it between you",
     body:
-      "BuildEx introduces you and gets out of the way. Everything after the first message is between you and the builder."
+      "Scope, price, deadline and payment are agreed directly with the builder. BuildEx introduces you and stays out of the rest."
   }
 ];
 
-export const testimonials = [
-  {
-    image: "/avatars/reviewer-1.svg",
-    name: "EmberCraft",
-    role: "Server Owner, AetherMC",
-    body:
-      '"I found a builder in the feed and messaged them the same day. Our new spawn is stunning and players keep asking who made it."'
-  },
-  {
-    image: "/avatars/reviewer-2.svg",
-    name: "VoxelVera",
-    role: "Master Builder",
-    body:
-      "\"BuildEx is where my clients find me. They reach out directly, and my portfolio does the rest of the talking.\""
-  },
-  {
-    image: "/avatars/reviewer-3.svg",
-    name: "NovaForge",
-    role: "Network Admin, SkyRealms",
-    body:
-      '"Being able to see full portfolios before messaging anyone made finding the right builder effortless."'
-  },
-  {
-    image: "/avatars/reviewer-4.svg",
-    name: "QuartzKing",
-    role: "Game Studio Lead",
-    body:
-      "\"I needed a custom hub map and found the right builder within minutes of browsing the feed. The whole process felt smooth and professional.\""
-  }
-];
+// The single sentence this whole site has to be able to stand behind. Shown
+// under the hero CTA and again under the steps, so nobody can reach a builder
+// without having read it.
+export const DIRECTORY_DISCLAIMER =
+  "BuildEx is a directory. All arrangements and payments happen directly between the client and the builder — BuildEx is not involved in them, does not hold or handle money, and does not vet, verify or guarantee anyone listed here.";

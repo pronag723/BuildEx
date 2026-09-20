@@ -4,16 +4,16 @@ import RouteTracker from "./builders/components/RouteTracker";
 
 export const metadata = {
   metadataBase: new URL("https://buildex.builders"),
-  title: "BuildEx - Minecraft Builder Marketplace",
+  title: "BuildEx — Find Minecraft Builders",
   description:
-    "Hire skilled Minecraft builders or find paid work building spawns, hubs, maps, and decorations.",
+    "Browse Minecraft builder profiles, see their work, and contact them directly. BuildEx is a directory — arrangements and payments are between you and the builder.",
   alternates: {
     canonical: "/"
   },
   openGraph: {
-    title: "BuildEx - Minecraft Builder Marketplace",
+    title: "BuildEx — Find Minecraft Builders",
     description:
-      "Hire skilled Minecraft builders or find paid work building spawns, hubs, maps, and decorations.",
+      "Browse Minecraft builder profiles, see their work, and contact them directly. BuildEx is a directory — arrangements and payments are between you and the builder.",
     url: "https://buildex.builders",
     siteName: "BuildEx",
     type: "website"

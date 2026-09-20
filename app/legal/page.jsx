@@ -3,29 +3,23 @@ import { Suspense } from "react";
 import {
   ArrowUpRight,
   BadgeCheck,
-  Blocks,
   Copyright,
   FileText,
   Landmark,
   LockKeyhole,
-  Scale,
-  UsersRound,
-  WalletCards
+  Scale
 } from "lucide-react";
 import LegalReturnLink from "./LegalReturnLink";
 import { LEGAL_EFFECTIVE, legalDocuments, legalSlugs } from "./documents";
 
 export const metadata = {
   title: "Legal Center | BuildEx",
-  description: "Official BuildEx terms, marketplace policies, licenses, privacy information, and legal notices.",
+  description: "The BuildEx terms of use, privacy policy, community and copyright policy, and legal notice.",
   alternates: { canonical: "/legal/" }
 };
 
 const documentIcons = {
   terms: Scale,
-  payments: WalletCards,
-  sellers: UsersRound,
-  "ready-build-license": Blocks,
   privacy: LockKeyhole,
   community: Copyright,
   "legal-notice": Landmark
@@ -48,7 +42,7 @@ export default function LegalIndexPage() {
             </div>
             <h1 className="text-4xl font-black tracking-[-0.04em] text-white sm:text-5xl lg:text-6xl">BuildEx Legal Center</h1>
             <p className="mt-5 max-w-2xl text-base leading-7 text-gray-400 sm:text-lg">
-              The terms and policies that govern BuildEx accounts, marketplace transactions, builders, digital content, and privacy.
+              The terms and policies that govern BuildEx accounts, profiles, messages and privacy. BuildEx is a directory: it takes no payment and is not a party to any agreement between a client and a builder.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-white/10 pt-6 text-sm text-gray-400">
               <span className="inline-flex items-center gap-2 text-gray-200"><FileText size={16} className="text-[#4ade80]" aria-hidden="true" />{legalSlugs.length} documents</span>
@@ -92,7 +86,7 @@ export default function LegalIndexPage() {
         <section className="mt-12 flex flex-col gap-5 rounded-3xl border border-white/10 bg-white/[0.03] p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
           <div>
             <h2 className="text-lg font-bold text-white">Need help with a policy?</h2>
-            <p className="mt-2 text-sm leading-6 text-gray-400">Contact the BuildEx legal team and include the document name in your message.</p>
+            <p className="mt-2 text-sm leading-6 text-gray-400">Email us and name the document you are asking about.</p>
           </div>
           <a href="mailto:mcbuildex@gmail.com" className="inline-flex shrink-0 items-center justify-center rounded-xl bg-[#4ade80] px-5 py-3 text-sm font-bold text-[#07120a] transition hover:bg-[#86efac]">mcbuildex@gmail.com</a>
         </section>
