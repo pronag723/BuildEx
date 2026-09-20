@@ -2,6 +2,10 @@
 
 import { builderSteps } from "../../../lib/onboarding/state";
 
+// Matches `.step-dot { width: 28px }` in globals.css — the label row measures
+// against the dots, so the two have to agree.
+const DOT_PX = 28;
+
 /**
  * Visual step indicator across the top of every onboarding step.
  * Renders a row of dots (current / completed / upcoming) connected by a
@@ -72,25 +76,42 @@ export default function StepHeader({ currentStep }) {
         })}
       </div>
 
-      <div className="hidden sm:flex justify-between mt-3 px-1">
-        {steps.map((s, i) => (
-          <span
-            key={s.path}
-            className={`text-[11px] font-medium tracking-wide transition-colors ${
-              i === currentIdx
-                ? "text-[#4ade80]"
-                : i < currentIdx
-                ? "text-gray-300"
-                : "text-gray-500"
-            }`}
-            style={{
-              flex: i < steps.length - 1 ? "1 1 0" : "0 0 auto",
-              textAlign: i === 0 ? "left" : i === steps.length - 1 ? "right" : "center",
-            }}
-          >
-            {s.label}
-          </span>
-        ))}
+      {/* Labels are positioned against the dots, not laid out as their own
+          flex row. The track's items are [dot + bar] pairs, so a dot sits at
+          the LEFT edge of its box — a label centered inside that same box
+          lands between two dots instead of under one. Each dot is
+          DOT_PX wide and the row is `n - 1` equal gaps, so dot i's centre is
+          `i/(n-1)` of the way across the space the dots span, plus half a dot.
+          The first and last labels hug the edges so they can't overflow. */}
+      <div className="hidden sm:block relative mt-3 h-4">
+        {steps.map((s, i) => {
+          const isFirst = i === 0;
+          const isLast = i === steps.length - 1;
+          const position = isFirst
+            ? { left: 0, textAlign: "left" }
+            : isLast
+            ? { right: 0, textAlign: "right" }
+            : {
+                left: `calc(${i / (steps.length - 1)} * (100% - ${DOT_PX}px) + ${DOT_PX / 2}px)`,
+                transform: "translateX(-50%)",
+                textAlign: "center",
+              };
+          return (
+            <span
+              key={s.path}
+              className={`absolute top-0 whitespace-nowrap text-[11px] font-medium tracking-wide transition-colors ${
+                i === currentIdx
+                  ? "text-[#4ade80]"
+                  : i < currentIdx
+                  ? "text-gray-300"
+                  : "text-gray-500"
+              }`}
+              style={position}
+            >
+              {s.label}
+            </span>
+          );
+        })}
       </div>
     </div>
   );

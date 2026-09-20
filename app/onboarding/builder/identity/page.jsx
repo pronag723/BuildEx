@@ -19,15 +19,15 @@ import {
   DISPLAY_NAME_MAX,
   DISPLAY_NAME_MIN,
 } from "../../../../lib/onboarding/constants";
-import {
-  contactLinkError,
-  readContactLinks,
-} from "../../../../lib/onboarding/contactLinks";
+import { readContactLinks } from "../../../../lib/onboarding/contactLinks";
 import OnboardingShell from "../../components/OnboardingShell";
 import OnboardingGate from "../../components/OnboardingGate";
 import OnboardingFooter from "../../components/OnboardingFooter";
 import AvatarUploader from "../../components/AvatarUploader";
-import ContactLinkField from "../../components/ContactLinkField";
+import ContactLinkField, {
+  emptyLinkRows,
+  linkRowsValid,
+} from "../../components/ContactLinkField";
 import HandleInput from "../../components/HandleInput";
 
 export default function BuilderIdentityPage() {
@@ -44,15 +44,18 @@ function BuilderIdentityStep({ state }) {
   const router = useRouter();
   const { user, refresh, updateProfile } = useAuth();
   const p = state.profile || {};
-  const savedContact = readContactLinks(state.builderProfile?.contact_links);
+  const savedLinks = readContactLinks(state.builderProfile?.contact_links);
 
   const [displayName, setDisplayName] = useState(p.display_name || "");
   const [handle, setHandle] = useState(p.username || "");
   const [handleValid, setHandleValid] = useState(Boolean(p.username));
   const [avatarUrl, setAvatarUrl] = useState(p.avatar_url || null);
   const [bio, setBio] = useState(p.bio || "");
-  const [contactType, setContactType] = useState(savedContact.type || "discord");
-  const [contactValue, setContactValue] = useState(savedContact.value || "");
+  const [linkRows, setLinkRows] = useState(
+    savedLinks.length
+      ? savedLinks.map(({ type, value }) => ({ type, value }))
+      : emptyLinkRows()
+  );
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
 
@@ -69,11 +72,9 @@ function BuilderIdentityStep({ state }) {
   const trimmedName = displayName.trim();
   const nameValid =
     trimmedName.length >= DISPLAY_NAME_MIN && trimmedName.length <= DISPLAY_NAME_MAX;
-  // The contact link is optional, but a half-typed one must not be saved.
-  const contactProblem = contactValue.trim()
-    ? contactLinkError(contactType, contactValue)
-    : null;
-  const canContinue = nameValid && handleValid && !!handle && !contactProblem;
+  // Links are optional, but a half-typed one must not be saved.
+  const linksOk = linkRowsValid(linkRows);
+  const canContinue = nameValid && handleValid && !!handle && linksOk;
 
   async function handleContinue() {
     if (!canContinue) return;
@@ -87,8 +88,7 @@ function BuilderIdentityStep({ state }) {
       handle,
       avatarUrl,
       bio: bio.trim() || null,
-      contactLinkType: contactType,
-      contactLinkValue: contactValue.trim(),
+      contactLinks: linkRows,
       // Signup: the builder_profiles row must exist for steps 2 and 3.
       ensureBuilderRow: true,
     });
@@ -230,12 +230,10 @@ function BuilderIdentityStep({ state }) {
         {/* Contact link */}
         <div className="glass onb-card onb-fade-in onb-fade-in-4">
           <ContactLinkField
-            type={contactType}
-            value={contactValue}
-            onTypeChange={setContactType}
-            onValueChange={setContactValue}
-            label="Where else can clients reach you?"
-            hint="Shown publicly on your profile. Leave it empty to keep BuildEx messages the only way in."
+            rows={linkRows}
+            onChange={setLinkRows}
+            label="Where else can clients find you?"
+            hint="Optional. These show as buttons on your public profile — Discord, YouTube, your site, whatever you use."
           />
         </div>
 
@@ -254,8 +252,8 @@ function BuilderIdentityStep({ state }) {
         helper={
           canContinue
             ? null
-            : contactProblem
-            ? "Fix or clear your contact link to continue"
+            : !linksOk
+            ? "Fix or clear your links to continue"
             : "Add your name and pick a unique @nickname to continue"
         }
       />

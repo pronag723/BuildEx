@@ -3013,6 +3013,76 @@ body {
   font-family: inherit;
 }
 
+/* Platform picker in the contact/social links editor. A native <select> so
+   the mobile picker and keyboard behaviour come for free; the extra left
+   padding makes room for the decorative platform icon in front of it. */
+.contact-link-select {
+  width: auto;
+  min-width: 148px;
+  padding-left: 36px;
+  padding-right: 32px;
+  font-size: 14px;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, rgba(255, 255, 255, 0.45) 50%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.45) 50%, transparent 50%);
+  background-position: calc(100% - 17px) 50%, calc(100% - 12px) 50%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  cursor: pointer;
+}
+.contact-link-select option {
+  background: #14161a;
+  color: #fff;
+}
+:root.light .contact-link-select option {
+  background: #fff;
+  color: #14161a;
+}
+@media (max-width: 520px) {
+  .contact-link-row > div {
+    flex-wrap: wrap;
+  }
+  .contact-link-select {
+    min-width: 132px;
+  }
+}
+
+/* A builder's public links, rendered as buttons on their profile. */
+.social-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 100%;
+  padding: 7px 13px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: none;
+  transition: color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease,
+    transform 0.2s ease;
+}
+a.social-link-btn:hover {
+  color: #4ade80;
+  border-color: rgba(74, 222, 128, 0.45);
+  background: rgba(74, 222, 128, 0.1);
+  transform: translateY(-1px);
+}
+.social-link-btn > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+:root.light .social-link-btn {
+  border-color: rgba(0, 0, 0, 0.12);
+  background: rgba(0, 0, 0, 0.04);
+  color: rgba(0, 0, 0, 0.7);
+}
+
 /* Hero-style display-name input: large, prominent, sets the tone of the page */
 .onb-hero-name-input {
   font-family: "Space Grotesk", "Inter", system-ui, sans-serif;

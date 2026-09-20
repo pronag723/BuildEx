@@ -18,13 +18,7 @@ import {
   DISPLAY_NAME_MIN,
   STYLES,
 } from "../../lib/onboarding/constants";
-import {
-  contactLinkError,
-  contactLinkHref,
-  contactLinkText,
-  contactLinkTypeMeta,
-  readContactLinks,
-} from "../../lib/onboarding/contactLinks";
+import { readContactLinks } from "../../lib/onboarding/contactLinks";
 import { BUILDER_ONBOARDING_START } from "../../lib/onboarding/state";
 import { withBase } from "../home/utils";
 import { Icon } from "../../lib/icons";
@@ -33,7 +27,11 @@ import CatalogMobileMenu from "../builders/components/CatalogMobileMenu";
 import SiteFooter from "../home/components/SiteFooter";
 import AvatarUploader from "../onboarding/components/AvatarUploader";
 import ChipGrid from "../onboarding/components/ChipGrid";
-import ContactLinkField from "../onboarding/components/ContactLinkField";
+import ContactLinkField, {
+  emptyLinkRows,
+  linkRowsValid,
+} from "../onboarding/components/ContactLinkField";
+import SocialLinks from "../builders/components/SocialLinks";
 import HandleInput from "../onboarding/components/HandleInput";
 import PortfolioUploader from "../onboarding/components/PortfolioUploader";
 import Link from "next/link";
@@ -565,33 +563,31 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
   const [displayName, setDisplayName] = useState(profile?.display_name || "");
   const [handle, setHandle] = useState(profile?.username || "");
   const [handleValid, setHandleValid] = useState(Boolean(profile?.username));
-  const savedContact = readContactLinks(builderProfile?.contact_links);
-  const [contactType, setContactType] = useState(savedContact.type || "discord");
-  const [contactValue, setContactValue] = useState(savedContact.value || "");
+  const savedLinks = readContactLinks(builderProfile?.contact_links);
+  const [linkRows, setLinkRows] = useState(
+    savedLinks.length
+      ? savedLinks.map(({ type, value }) => ({ type, value }))
+      : emptyLinkRows()
+  );
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
   const trimmedName = displayName.trim();
   const nameValid =
     trimmedName.length >= DISPLAY_NAME_MIN && trimmedName.length <= DISPLAY_NAME_MAX;
-  const contactProblem = contactValue.trim()
-    ? contactLinkError(contactType, contactValue)
-    : null;
-  const canSave = nameValid && handleValid && !!handle && !contactProblem;
+  const linksOk = linkRowsValid(linkRows);
+  const canSave = nameValid && handleValid && !!handle && linksOk;
 
   const specialties = builderProfile?.specialties || [];
-  const savedContactMeta = savedContact.type ? contactLinkTypeMeta(savedContact.type) : null;
-  const savedContactHref = savedContact.type
-    ? contactLinkHref(savedContact.type, savedContact.value)
-    : null;
 
   function startEdit() {
     setAvatarUrl(profile?.avatar_url || null);
     setDisplayName(profile?.display_name || "");
     setHandle(profile?.username || "");
     setHandleValid(Boolean(profile?.username));
-    const contact = readContactLinks(builderProfile?.contact_links);
-    setContactType(contact.type || "discord");
-    setContactValue(contact.value || "");
+    const links = readContactLinks(builderProfile?.contact_links);
+    setLinkRows(
+      links.length ? links.map(({ type, value }) => ({ type, value })) : emptyLinkRows()
+    );
     setError(null);
     setEditing(true);
   }
@@ -610,10 +606,7 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
       handle,
       avatarUrl,
     };
-    if (isBuilder) {
-      payload.contactLinkType = contactType;
-      payload.contactLinkValue = contactValue.trim();
-    }
+    if (isBuilder) payload.contactLinks = linkRows;
     const { error: err } = await saveBuilderIdentity(supabase, user.id, payload);
     setSaving(false);
     if (err) {
@@ -704,12 +697,10 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
               />
               {isBuilder && (
                 <ContactLinkField
-                  type={contactType}
-                  value={contactValue}
-                  onTypeChange={setContactType}
-                  onValueChange={setContactValue}
-                  label="Where else can clients reach you?"
-                  hint="Shown publicly on your profile. Clear it to remove it."
+                  rows={linkRows}
+                  onChange={setLinkRows}
+                  label="Your links"
+                  hint="Shown as buttons on your public profile. Clear a field to remove it."
                 />
               )}
             </div>
@@ -731,29 +722,11 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
             <p className="text-sm text-gray-500 mb-3 break-all">@{profile.username}</p>
           )}
 
-          {isBuilder && savedContactMeta && (
-            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-5 gap-y-2 text-sm text-gray-400 mb-4">
-              <span className="inline-flex items-center gap-1.5 min-w-0">
-                <Icon name={savedContactMeta.icon} size={14} className="text-gray-500 flex-shrink-0" />
-                {/* Rendered as text unless the stored value really is an https
-                    URL; contactLinkHref returns null for a bare handle so a
-                    handle can never become an anchor. */}
-                {savedContactHref ? (
-                  <a
-                    href={savedContactHref}
-                    target="_blank"
-                    rel="noopener noreferrer nofollow"
-                    className="truncate hover:text-[#4ade80] transition-colors"
-                  >
-                    {contactLinkText(savedContact.type, savedContact.value)}
-                  </a>
-                ) : (
-                  <span className="truncate">
-                    {contactLinkText(savedContact.type, savedContact.value)}
-                  </span>
-                )}
-              </span>
-            </div>
+          {isBuilder && savedLinks.length > 0 && (
+            <SocialLinks
+              contactLinks={builderProfile?.contact_links}
+              className="justify-center sm:justify-start mb-4"
+            />
           )}
 
           {isBuilder && specialties.length > 0 && (

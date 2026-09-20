@@ -10,55 +10,12 @@ import SiteFooter from "../../../../home/components/SiteFooter";
 import { publicAsset, withBase } from "../../../../home/utils";
 import Avatar from "../../../../../lib/ui/Avatar";
 import { useAuthGate } from "../../../../../lib/auth/useAuthGate";
-import {
-  contactLinkHref,
-  contactLinkText,
-  contactLinkTypeMeta,
-} from "../../../../../lib/onboarding/contactLinks";
+import SocialLinks from "../../../components/SocialLinks";
 import { Icon } from "../../../../../lib/icons";
 import { useFavorites } from "../../../../../lib/favorites/FavoritesContext";
 import { useScrollLock } from "../../../../../lib/useScrollLock";
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
-// ─── Contact link ─────────────────────────────────────────────────────────────
-// The one off-platform contact a builder may publish. This value is typed by
-// the builder and shown to every visitor, so it is treated as hostile input:
-// fetchBuilders has already run it back through the validator, and
-// contactLinkHref returns a URL ONLY for a value that really is a plain
-// https:// URL. A bare handle gets no anchor at all, and the anchor we do
-// render is marked noopener/noreferrer/nofollow so it carries no referrer,
-// no window handle and no ranking signal off the site.
-function ContactLinkLine({ contact, center = false }) {
-  if (!contact?.type) return null;
-  const meta = contactLinkTypeMeta(contact.type);
-  const href = contactLinkHref(contact.type, contact.value);
-  const text = contactLinkText(contact.type, contact.value);
-  if (!meta || !text) return null;
-
-  return (
-    <span
-      className={`flex items-center gap-1.5 text-xs text-gray-400 min-w-0 ${
-        center ? "justify-center" : ""
-      }`}
-    >
-      <Icon name={meta.icon} size={13} className="text-gray-500 flex-shrink-0" />
-      <span className="sr-only">{meta.label}: </span>
-      {href ? (
-        <a
-          href={href}
-          target="_blank"
-          rel="noopener noreferrer nofollow"
-          className="truncate hover:text-[#4ade80] transition-colors"
-        >
-          {text}
-        </a>
-      ) : (
-        <span className="truncate">{text}</span>
-      )}
-    </span>
-  );
-}
-
 function IconCheck({ className = "w-4 h-4" }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -228,8 +185,8 @@ function ContactSidebar({ builder, onShowSoon, onContact }) {
         Contact Builder
       </button>
 
-      {/* The one off-platform contact this builder chose to publish. */}
-      <ContactLinkLine contact={builder.contact_link} center />
+      {/* Whatever links this builder chose to publish. */}
+      <SocialLinks contactLinks={builder.contact_links} className="justify-center" />
 
       {/* Trust badges */}
       <div className="pt-3 border-t border-white/[0.06] grid grid-cols-2 gap-2">
@@ -492,11 +449,10 @@ export default function BuilderProfilePage({ builder }) {
                 <p className="text-sm text-gray-500 mb-3">@{builder.username}</p>
 
                 {/* Meta bar */}
-                {builder.contact_link && (
-                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-5 gap-y-2 text-sm text-gray-400 mb-4">
-                    <ContactLinkLine contact={builder.contact_link} />
-                  </div>
-                )}
+                <SocialLinks
+                  contactLinks={builder.contact_links}
+                  className="justify-center sm:justify-start mb-4"
+                />
 
                 {/* Specialties */}
                 <div className="flex flex-wrap justify-center sm:justify-start gap-2">

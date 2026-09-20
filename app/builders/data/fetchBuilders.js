@@ -16,7 +16,6 @@
 
 import { getSupabaseClient } from "../../../lib/supabase/client";
 import { rewriteStorageUrl } from "../../../lib/supabase/storageUrl";
-import { readContactLinks } from "../../../lib/onboarding/contactLinks";
 import { isOnline } from "../../../lib/presence/api";
 
 // Columns shared by the feed query and the single-profile query.
@@ -126,16 +125,16 @@ export async function fetchBuilders() {
 function mapProfileRow(row) {
   const base = mapRow(row);
   const bp = row.builder || {};
-  // readContactLinks re-validates the stored jsonb and drops anything that is
-  // not a bare handle or a plain https:// URL, so a row written before the
-  // CHECK constraint existed can never reach the page as a live link.
-  const contact = readContactLinks(bp.contact_links);
   return {
     ...base,
     // profiles is publicly readable under RLS, so exposing the uuid here is no
     // different from selecting it directly.
     id: row.id,
-    contact_link: contact.type ? contact : null,
+    // Passed through raw. <SocialLinks> runs it through readContactLinks,
+    // which re-validates every entry and drops anything that is not a known
+    // handle or a plain https:// URL on that platform's own host — so a row
+    // written before the CHECK constraint existed can never become a link.
+    contact_links: bp.contact_links || null,
     member_since: base.member_since || new Date().toISOString(),
   };
 }

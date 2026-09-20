@@ -21,6 +21,7 @@ import {
   Folder, Lightbulb, Blocks, Info, PartyPopper, Check, X, FileText,
   // flow / misc
   Search, Wallet, Hammer, Target, Sun, Moon, Star, LogOut, Send, AtSign,
+  CirclePlay, Video, Music,
 } from "lucide-react";
 
 // Semantic key → lucide component. Keys are referenced from the data files.
@@ -91,9 +92,14 @@ export const ICONS = {
   moon: Moon,
   star: Star,
   logout: LogOut,
-  // contact links (builder_profiles.contact_links)
-  send: Send,
-  at: AtSign,
+  // contact / social links (builder_profiles.contact_links). lucide ships no
+  // brand marks, so each platform borrows the closest semantic glyph — one
+  // coherent family beats eight mismatched logos.
+  send: Send,       // Telegram
+  at: AtSign,       // X / Twitter
+  play: CirclePlay, // YouTube
+  video: Video,     // Twitch
+  music: Music,     // TikTok
 
   // ── Legacy aliases ──────────────────────────────────────────────────────
   // Pricing-tier icons were once persisted as emoji in the DB (builder_profiles
