@@ -2,13 +2,14 @@ import { Suspense } from "react";
 import AdminPage from "./components/AdminPage";
 
 export const metadata = {
-  title: "Admin · Disputes | BuildEx",
-  description: "Resolve open disputes on BuildEx.",
+  title: "Admin · Moderation | BuildEx",
+  description: "Moderate builder profiles, portfolio images and chat reports.",
 };
 
-// Admin-only dispute queue. Gating is enforced server-side: the
-// list_open_disputes / resolve_dispute RPCs both re-check profiles.is_admin,
-// so a non-admin who reaches this route simply sees an empty, inert page.
+// Admin-only moderation console. Gating is enforced server-side: every
+// admin_* RPC it calls re-checks profiles.is_admin through _require_admin(),
+// so a non-admin who reaches this route sees an inert page and gets nothing
+// back from the database either way.
 export default function Page() {
   return (
     <Suspense

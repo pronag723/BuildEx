@@ -22,6 +22,8 @@ import {
   // flow / misc
   Search, Wallet, Hammer, Target, Sun, Moon, Star, LogOut, Send, AtSign,
   CirclePlay, Video, Music,
+  // moderation console
+  Eye, EyeOff, Trash2, ExternalLink, Flag, User, RefreshCw,
 } from "lucide-react";
 
 // Semantic key → lucide component. Keys are referenced from the data files.
@@ -100,6 +102,15 @@ export const ICONS = {
   play: CirclePlay, // YouTube
   video: Video,     // Twitch
   music: Music,     // TikTok
+
+  // ── Moderation console ───────────────────────────────────────────────────
+  eye: Eye,
+  eyeOff: EyeOff,
+  trash: Trash2,
+  external: ExternalLink,
+  flag: Flag,
+  user: User,
+  refresh: RefreshCw,
 
   // ── Legacy aliases ──────────────────────────────────────────────────────
   // Pricing-tier icons were once persisted as emoji in the DB (builder_profiles

@@ -12,6 +12,11 @@
 //     "is this a builder?" test — profiles.role is legacy and not consulted.
 //   • Builders whose availability is "busy" (the red end of the slider) are
 //     hidden from the feed entirely, per product spec.
+//   • Builders a moderator has taken down (builder_profiles.is_hidden, migration
+//     0101) are excluded here AND by the RLS policy on builder_profiles. The
+//     filter below is the fast path; the policy is the guarantee — without it,
+//     "hidden" would only mean "absent from one query", and PostgREST is a
+//     public API.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { getSupabaseClient } from "../../../lib/supabase/client";
@@ -50,7 +55,12 @@ function mapPortfolio(rows) {
 // A builder is hidden from the feed when their availability slider is on red.
 // `availability_status === "busy"` is the source of truth; `is_available` is a
 // mirror kept in sync by the account page, checked as a fallback.
+// A moderator takedown also removes the builder, and that check is deliberately
+// duplicated here: RLS already dropped the row, and the query below already
+// filtered on it, but a feed card is the one place where a leak would be
+// visible to everyone at once.
 function isHiddenFromFeed(builderProfile) {
+  if (builderProfile?.is_hidden === true) return true;
   const status = builderProfile?.availability_status || "available";
   if (status === "busy") return true;
   if (builderProfile?.is_available === false) return true;
@@ -103,11 +113,23 @@ export async function fetchBuilders() {
   // `role` filter: role is a legacy column that visitors leave null and older
   // accounts carry stale values in, so filtering on it would silently hide
   // real builders.
-  const { data, error } = await supabase
-    .from("profiles")
-    .select(PROFILE_SELECT)
-    .not("onboarding_completed_at", "is", null)
-    .not("username", "is", null);
+  // `builder.is_hidden = false` filters on the EMBEDDED resource, which only
+  // works because the join is `!inner`. It needs migration 0101; against an
+  // older database PostgREST answers 42703 (undefined column) and the retry
+  // below drops the filter, keeping the file's migration-tolerance contract.
+  // Nothing is lost by the retry: the RLS policy from the same migration is
+  // what actually hides the row, and an older database has nothing to hide.
+  const base = () =>
+    supabase
+      .from("profiles")
+      .select(PROFILE_SELECT)
+      .not("onboarding_completed_at", "is", null)
+      .not("username", "is", null);
+
+  let { data, error } = await base().eq("builder.is_hidden", false);
+  if (error?.code === "42703") {
+    ({ data, error } = await base());
+  }
 
   const builders = error
     ? []
@@ -142,6 +164,13 @@ function mapProfileRow(row) {
 // Looks a builder up by @handle (case-insensitive). Direct profile views are
 // allowed regardless of availability — the "busy hides from feed" rule applies
 // to the listing, not to someone following a direct link.
+//
+// A moderator takedown is different, and there is deliberately no is_hidden
+// filter here. The RLS policy on builder_profiles (0101) already withholds the
+// row from everyone but the builder and an admin, and the `!inner` join turns
+// that into a clean "not found" — so a logged-out visitor with the direct link
+// gets <BuilderNotFound>, while the builder can still open their own page and
+// see that nothing was deleted. Filtering in the query would take that away.
 export async function fetchBuilderByUsername(username) {
   const supabase = getSupabaseClient();
   if (!supabase || !username) return { builder: null, error: null };
