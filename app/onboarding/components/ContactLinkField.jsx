@@ -72,8 +72,12 @@ export default function ContactLinkField({
           const error = trimmed ? contactLinkError(row.type, trimmed) : null;
           return (
             <div key={`${row.type}-${i}`} className="contact-link-row">
-              <div className="flex items-stretch gap-2">
-                <div className="relative flex-shrink-0">
+              {/* A grid rather than a flex row: on a phone the picker and the
+                  value squeezed each other down to a few characters apiece, so
+                  narrow screens put the picker on its own line above the
+                  value, and `sm` and up keep the single row. */}
+              <div className="contact-link-grid">
+                <div className="contact-link-cell-type relative">
                   {/* A native select keeps the keyboard and mobile pickers
                       working; the icon in front of it is decorative. */}
                   <Icon
@@ -110,7 +114,7 @@ export default function ContactLinkField({
                   maxLength={CONTACT_LINK_MAX}
                   aria-label={`${meta.label} link`}
                   aria-invalid={Boolean(error)}
-                  className={`onb-input flex-1 min-w-0 ${error ? "is-error" : trimmed ? "is-success" : ""}`}
+                  className={`onb-input contact-link-cell-value min-w-0 ${error ? "is-error" : trimmed ? "is-success" : ""}`}
                 />
 
                 {list.length > 1 && (
@@ -119,7 +123,7 @@ export default function ContactLinkField({
                     onClick={() => removeRow(i)}
                     aria-label={`Remove ${meta.label} link`}
                     title="Remove"
-                    className="flex-shrink-0 w-10 rounded-xl border border-white/10 text-gray-500 hover:text-red-300 hover:border-red-400/40 transition-colors flex items-center justify-center"
+                    className="contact-link-cell-remove w-10 rounded-xl border border-white/10 text-gray-500 hover:text-red-300 hover:border-red-400/40 transition-colors flex items-center justify-center"
                   >
                     <Icon name="close" size={15} />
                   </button>

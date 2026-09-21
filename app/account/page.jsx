@@ -99,7 +99,7 @@ function SectionTabs({ section, setSection }) {
   const idx = Math.max(0, sections.findIndex((s) => s.key === section));
   return (
     <div
-      className="account-section-tabs relative grid p-1 rounded-full bg-white/[0.04] border border-white/10 mb-8 detail-fade-up"
+      className="account-section-tabs relative grid p-1 rounded-full bg-white/[0.04] border border-white/10 mb-6 sm:mb-8 detail-fade-up"
       style={{ gridTemplateColumns: `repeat(${sections.length}, minmax(0, 1fr))` }}
       role="tablist"
       aria-label="Account sections"
@@ -171,7 +171,7 @@ function AboutSection({ profile, onSaved }) {
   }
 
   return (
-    <section className="reveal glass rounded-3xl p-6 lg:p-8">
+    <section className="reveal glass rounded-3xl p-4 sm:p-6 lg:p-8">
       <SectionHeader
         title="About"
         editing={editing}
@@ -246,7 +246,7 @@ function StylesSection({ builderProfile, onSaved }) {
   const savedSpecs = builderProfile?.specialties || [];
 
   return (
-    <section className="reveal glass rounded-3xl p-6 lg:p-8">
+    <section className="reveal glass rounded-3xl p-4 sm:p-6 lg:p-8">
       <SectionHeader
         title="Styles"
         editing={editing}
@@ -332,7 +332,7 @@ function PortfolioSection({ portfolioCount, onSaved }) {
       </div>
 
       {editing ? (
-        <div className="glass rounded-3xl p-6 lg:p-8">
+        <div className="glass rounded-3xl p-4 sm:p-6 lg:p-8">
           <PortfolioUploader
             userId={user?.id}
             onCountChange={() => {
@@ -348,9 +348,9 @@ function PortfolioSection({ portfolioCount, onSaved }) {
           )}
         </div>
       ) : loading ? (
-        <div className="glass rounded-3xl p-12 text-center text-gray-500 text-sm">Loading…</div>
+        <div className="glass rounded-3xl p-8 sm:p-12 text-center text-gray-500 text-sm">Loading…</div>
       ) : images.length === 0 ? (
-        <div className="glass rounded-3xl p-12 text-center text-gray-500 text-sm">
+        <div className="glass rounded-3xl p-8 sm:p-12 text-center text-gray-500 text-sm">
           No builds in your portfolio yet. Click <strong>Manage portfolio</strong> to add some.
         </div>
       ) : (
@@ -431,7 +431,7 @@ function AccountActionsSection() {
   }, [confirmOpen, deleting]);
 
   return (
-    <section className="reveal glass rounded-3xl p-6 lg:p-8">
+    <section className="reveal glass rounded-3xl p-4 sm:p-6 lg:p-8">
       <h2 className="font-bold text-xl mb-1">Account</h2>
       <p className="text-xs text-gray-500 mb-5">Quick links and account controls.</p>
 
@@ -488,7 +488,7 @@ function AccountActionsSection() {
             className="absolute inset-0 bg-black/75 backdrop-blur-md"
             onClick={closeConfirm}
           />
-          <div className="relative glass rounded-3xl p-6 sm:p-8 w-full max-w-md detail-fade-up shadow-2xl">
+          <div className="relative glass rounded-3xl p-5 sm:p-8 w-full max-w-md detail-fade-up shadow-2xl">
             <div className="w-12 h-12 rounded-2xl bg-red-500/15 border border-red-400/30 flex items-center justify-center mb-4">
               <svg viewBox="0 0 24 24" className="w-6 h-6 text-red-300" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                 <path d="M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" strokeLinecap="round" strokeLinejoin="round" />
@@ -626,8 +626,8 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
   }
 
   return (
-    <header className="glass rounded-3xl p-6 sm:p-8 mb-8 detail-fade-up">
-      <div className="flex flex-col sm:flex-row gap-6 items-start">
+    <header className="glass rounded-3xl p-4 sm:p-8 mb-6 sm:mb-8 detail-fade-up">
+      <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 items-start">
         {/* Avatar */}
         <div className="relative flex-shrink-0 mx-auto sm:mx-0">
           {editing ? (
@@ -646,12 +646,12 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
                 <img
                   src={profile.avatar_url}
                   alt={profile.display_name || ""}
-                  className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl object-cover ring-2 ring-[#4ade80]/30 shadow-xl"
+                  className="w-20 h-20 sm:w-28 sm:h-28 rounded-3xl object-cover ring-2 ring-[#4ade80]/30 shadow-xl"
                   loading="lazy"
                   decoding="async"
                 />
               ) : (
-                <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-[#4ade80]/15 border border-[#4ade80]/40 ring-2 ring-[#4ade80]/30 flex items-center justify-center text-[#4ade80] font-bold text-4xl">
+                <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-3xl bg-[#4ade80]/15 border border-[#4ade80]/40 ring-2 ring-[#4ade80]/30 flex items-center justify-center text-[#4ade80] font-bold text-3xl sm:text-4xl">
                   {(profile?.display_name || "B").charAt(0).toUpperCase()}
                 </div>
               )}
@@ -703,7 +703,7 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
           ) : (
             <>
           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2 gap-y-1.5 mb-1.5">
-            <h2 className="text-2xl sm:text-3xl font-extrabold leading-tight break-words min-w-0">
+            <h2 className="text-xl sm:text-3xl font-extrabold leading-tight break-words min-w-0">
               {profile?.display_name || "Your name"}
             </h2>
             {isBuilder && (
@@ -810,7 +810,7 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
 // they have a builder_profiles row; this card is what creates one.
 function BecomeABuilderCard() {
   return (
-    <section className="reveal glass rounded-3xl p-6 lg:p-8 border border-[#4ade80]/20">
+    <section className="reveal glass rounded-3xl p-4 sm:p-6 lg:p-8 border border-[#4ade80]/20">
       <p className="text-xs uppercase tracking-[0.18em] text-[#4ade80]/80">Build for others</p>
       <h2 className="font-bold text-xl mt-1">Create a builder profile</h2>
       <p className="text-sm text-gray-500 mt-2 max-w-2xl leading-relaxed">

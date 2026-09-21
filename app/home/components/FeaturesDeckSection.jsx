@@ -127,9 +127,9 @@ export default function FeaturesDeckSection() {
   };
 
   return (
-    <section id="features" className="py-24 reveal">
+    <section id="features" className="py-16 sm:py-24 reveal">
       <div className="max-w-7xl mx-auto px-6">
-        <div className="text-center mb-14">
+        <div className="text-center mb-9 sm:mb-14">
           <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs bg-[#4ade80]/10 border border-[#4ade80]/30 text-[#4ade80] font-medium mb-4">
             <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80]" />
             What you get
@@ -180,11 +180,11 @@ export default function FeaturesDeckSection() {
                     <Mock />
                   </div>
                   <div className="features-card-body">
-                    <span className="icon-tile icon-tile-lg text-[#4ade80] mb-4">
+                    <span className="icon-tile icon-tile-lg text-[#4ade80] mb-3 sm:mb-4">
                       <Icon name={f.icon} size={28} strokeWidth={1.5} />
                     </span>
-                    <h3 className="text-2xl font-semibold mb-2">{f.title}</h3>
-                    <p className="text-gray-400 leading-relaxed mb-4">{f.body}</p>
+                    <h3 className="text-lg sm:text-2xl font-semibold mb-2">{f.title}</h3>
+                    <p className="text-sm sm:text-base text-gray-400 leading-relaxed mb-3 sm:mb-4">{f.body}</p>
                     <ul className="features-bullets">
                       {f.bullets.map((b) => (
                         <li key={b}>
@@ -201,7 +201,7 @@ export default function FeaturesDeckSection() {
         </div>
 
         {/* Controls */}
-        <div className="flex items-center justify-center gap-5 mt-16">
+        <div className="flex items-center justify-center gap-5 mt-9 sm:mt-16">
           <button
             type="button"
             onClick={() => go(-1)}

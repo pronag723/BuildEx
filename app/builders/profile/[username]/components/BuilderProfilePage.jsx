@@ -365,11 +365,11 @@ export default function BuilderProfilePage({ builder }) {
         </div>
       </div>
 
-      <main className="relative z-10 pt-24 lg:pt-28 pb-36 lg:pb-20">
+      <main className="relative z-10 pt-20 sm:pt-24 lg:pt-28 pb-28 sm:pb-36 lg:pb-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
           {/* Breadcrumb + back button */}
-          <div className="flex items-center justify-between gap-4 mb-6 detail-fade-up flex-wrap">
+          <div className="flex items-center justify-between gap-3 mb-4 sm:mb-6 detail-fade-up flex-wrap">
             <nav className="flex items-center gap-1.5 text-sm text-gray-500 flex-wrap" aria-label="Breadcrumb">
               {/* "Home" and "Builders" were separate crumbs until the feed
                   became the site root; they now point at the same page. */}
@@ -422,14 +422,14 @@ export default function BuilderProfilePage({ builder }) {
               empty box before you reached anything the builder made; the
               identity row now sits directly on the page so the portfolio is
               the first surface you see. */}
-          <header className="mb-8 detail-fade-up">
-            <div className="flex flex-col sm:flex-row gap-5 sm:gap-6 items-center sm:items-start">
+          <header className="mb-6 sm:mb-8 detail-fade-up">
+            <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 items-center sm:items-start">
               {/* Avatar */}
               <div className="relative flex-shrink-0">
                 <Avatar
                   src={builder.avatar}
                   name={builder.display_name}
-                  className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl ring-2 ring-[#4ade80]/30 shadow-xl text-3xl"
+                  className="w-16 h-16 sm:w-24 sm:h-24 rounded-3xl ring-2 ring-[#4ade80]/30 shadow-xl text-2xl sm:text-3xl"
                 />
                 {builder.online && (
                   <span className="absolute bottom-1 right-1 w-5 h-5 rounded-full bg-[#4ade80] border-[3px] border-[#1a1a1a] online-dot" />
@@ -438,7 +438,7 @@ export default function BuilderProfilePage({ builder }) {
 
               {/* Identity */}
               <div className="flex-1 min-w-0 text-center sm:text-left">
-                <h1 className="text-2xl sm:text-3xl font-extrabold leading-tight">
+                <h1 className="text-xl sm:text-3xl font-extrabold leading-tight">
                   {builder.display_name}
                 </h1>
 
@@ -457,9 +457,9 @@ export default function BuilderProfilePage({ builder }) {
 
                 {/* Specialties */}
                 {builder.specialties.length > 0 && (
-                  <div className="mt-3 flex flex-wrap justify-center sm:justify-start gap-2">
+                  <div className="mt-2.5 flex flex-wrap justify-center sm:justify-start gap-1.5 sm:gap-2">
                     {builder.specialties.map((s) => (
-                      <span key={s} className="px-3 py-1 rounded-full text-xs bg-white/5 border border-white/10 text-gray-400">
+                      <span key={s} className="px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[11px] sm:text-xs bg-white/5 border border-white/10 text-gray-400">
                         {s}
                       </span>
                     ))}
@@ -471,23 +471,23 @@ export default function BuilderProfilePage({ builder }) {
                     hidden. Exactly one is visible at any viewport. */}
                 <SocialLinks
                   contactLinks={builder.contact_links}
-                  className="justify-center sm:justify-start mt-4 lg:hidden"
+                  className="justify-center sm:justify-start mt-3.5 lg:hidden"
                 />
               </div>
             </div>
           </header>
 
           {/* ── Two-column layout ──────────────────────────────────────────── */}
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] xl:grid-cols-[1fr_420px] gap-8 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] xl:grid-cols-[1fr_420px] gap-6 lg:gap-8 items-start">
 
             {/* LEFT: Content */}
-            <div className="space-y-8 min-w-0">
+            <div className="space-y-6 sm:space-y-8 min-w-0">
 
               {/* Portfolio gallery — the count moved into the heading row, and
                   the carousel lost its `glass` frame: the images are the
                   content and a border around them just adds another box. */}
               <section className="reveal">
-                <h2 className="font-bold text-xl mb-4">
+                <h2 className="font-bold text-lg sm:text-xl mb-3 sm:mb-4">
                   Portfolio
                   {builder.portfolio.length > 0 && (
                     <span className="ml-2 text-sm font-normal text-gray-500">
@@ -497,7 +497,7 @@ export default function BuilderProfilePage({ builder }) {
                   )}
                 </h2>
                 {builder.portfolio.length === 0 ? (
-                  <div className="rounded-3xl border border-dashed border-white/10 p-12 text-center text-gray-500 text-sm">
+                  <div className="rounded-3xl border border-dashed border-white/10 p-8 sm:p-12 text-center text-gray-500 text-sm">
                     This builder hasn&apos;t added portfolio entries yet.
                   </div>
                 ) : (
@@ -510,8 +510,8 @@ export default function BuilderProfilePage({ builder }) {
                   page used to stack. */}
               {(builder.about || builder.bio) && (
                 <section className="reveal">
-                  <h2 className="font-bold text-xl mb-3">About</h2>
-                  <p className="text-gray-400 leading-relaxed">
+                  <h2 className="font-bold text-lg sm:text-xl mb-2.5 sm:mb-3">About</h2>
+                  <p className="text-sm sm:text-base text-gray-400 leading-relaxed">
                     {builder.about || builder.bio}
                   </p>
                 </section>
@@ -527,12 +527,12 @@ export default function BuilderProfilePage({ builder }) {
       </main>
 
       {/* Mobile sticky bottom bar */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[150] glass border-t border-white/10 safe-bottom px-4 pt-3 pb-4">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[150] glass border-t border-white/10 safe-bottom px-4 pt-2.5 pb-3 sm:pt-3 sm:pb-4">
         <div className="flex items-center gap-3 max-w-lg mx-auto">
           <button
             type="button"
             onClick={contactBuilder}
-            className="flex-1 py-3 px-4 rounded-full border border-white/15 bg-white/5 text-gray-200 font-semibold text-sm hover:bg-white/10 hover:border-white/30 transition-all flex items-center justify-center gap-1.5"
+            className="flex-1 py-2.5 sm:py-3 px-4 rounded-full border border-white/15 bg-white/5 text-gray-200 font-semibold text-sm hover:bg-white/10 hover:border-white/30 transition-all flex items-center justify-center gap-1.5"
           >
             <IconChat className="w-4 h-4" />
             Contact Builder

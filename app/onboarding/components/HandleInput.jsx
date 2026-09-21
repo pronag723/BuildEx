@@ -161,17 +161,21 @@ export default function HandleInput({
           )}
         </span>
       </div>
-      <div className="mt-2 flex items-start justify-between gap-3 text-xs">
-        <p id={`${id}-hint`} className="text-gray-500 leading-snug">
+      {/* Wraps rather than squeezing: on a phone the hint and the availability
+          message were fighting over the same line, each down to two or three
+          words per row. The status drops onto its own line instead. */}
+      <div className="mt-2 flex flex-wrap items-start justify-between gap-x-3 gap-y-1 text-xs">
+        <p id={`${id}-hint`} className="text-gray-500 leading-snug min-w-0 basis-56 grow">
           {hint}
         </p>
         <span
           className={
-            state.status === "error"
+            "flex-shrink-0 " +
+            (state.status === "error"
               ? "text-red-300"
               : state.status === "success"
               ? "text-[#4ade80]"
-              : "text-gray-500"
+              : "text-gray-500")
           }
         >
           {state.message}

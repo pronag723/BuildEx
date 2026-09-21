@@ -17,10 +17,14 @@ export default function Navbar({
     <nav className="fixed top-3.5 left-1/2 -translate-x-1/2 z-50 w-full nav-wrapper px-6">
       <div className="glass nav-pill flex items-center justify-between shadow-2xl">
         <div className="flex items-center gap-3 flex-shrink-0">
+          {/* The logo is the way back to the feed from anywhere on the site,
+              so it points at "/" rather than scrolling this page to its own
+              hero the way it used to. */}
           <a
-            href="#hero"
+            href={withBase("/")}
+            aria-label="BuildEx — back to the builder feed"
             className="flex items-center gap-1.5 no-underline"
-            onClick={(event) => onAnchorClick(event, "#hero")}
+            onClick={(event) => onAnchorClick(event, "/")}
           >
             <span className="text-2xl font-bold tracking-tight logo-font nav-logo-text">
               Build

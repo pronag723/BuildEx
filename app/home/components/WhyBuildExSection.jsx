@@ -24,8 +24,8 @@ const DOES_NOT = [
 function ClaimList({ tone, title, items }) {
   const isPositive = tone === "positive";
   return (
-    <div className="p-6 sm:p-8">
-      <div className="flex items-center gap-2.5 mb-5">
+    <div className="p-5 sm:p-8">
+      <div className="flex items-center gap-2.5 mb-4 sm:mb-5">
         <Icon
           name={isPositive ? "check" : "close"}
           size={18}
@@ -36,7 +36,7 @@ function ClaimList({ tone, title, items }) {
         />
         <h3 className="text-base font-semibold">{title}</h3>
       </div>
-      <ul className="space-y-2.5">
+      <ul className="space-y-2 sm:space-y-2.5">
         {items.map((item) => (
           <li
             key={item}
@@ -57,9 +57,9 @@ function ClaimList({ tone, title, items }) {
 
 export default function WhyBuildExSection({ onAnchorClick }) {
   return (
-    <section id="why-buildex" className="py-24 reveal">
+    <section id="why-buildex" className="py-16 sm:py-24 reveal">
       <div className="max-w-5xl mx-auto px-6">
-        <h2 className="text-4xl font-semibold text-center mb-10">
+        <h2 className="text-4xl font-semibold text-center mb-7 sm:mb-10">
           {/* The space after </span> is written as an explicit {" "} because the
               JSX transform drops a plain leading space on a text segment that
               also contains an HTML entity — this heading rendered as
@@ -81,11 +81,11 @@ export default function WhyBuildExSection({ onAnchorClick }) {
           />
         </div>
 
-        <div className="mt-10 text-center">
+        <div className="mt-7 sm:mt-10 text-center">
           <a
             href={withBase("/")}
             onClick={(event) => onAnchorClick?.(event, "/")}
-            className="inline-block px-8 py-4 bg-[#4ade80] text-black font-semibold rounded-full hover:scale-105 transition-all green-glow"
+            className="inline-block px-7 py-3 sm:px-8 sm:py-4 bg-[#4ade80] text-black font-semibold rounded-full hover:scale-105 transition-all green-glow"
           >
             Browse Builders
           </a>

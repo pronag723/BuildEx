@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { isNavActive, catalogNavItems } from "./navItems";
+import { isNavActive, catalogNavItemsFor } from "./navItems";
 import AuthNavControls from "../../auth/components/AuthNavControls";
+import { useAuth } from "../../../lib/auth/AuthContext";
+import { useUnread } from "../../../lib/chat/UnreadContext";
 import { Icon } from "../../../lib/icons";
 
 export default function CatalogNavbar({
@@ -14,12 +16,15 @@ export default function CatalogNavbar({
   onShowSoon,
 }) {
   const pathname = usePathname();
+  const { status } = useAuth();
+  const { hasUnread } = useUnread();
+  const navItems = catalogNavItemsFor(status === "authenticated");
 
   return (
     <nav className="catalog-navbar fixed top-3.5 left-1/2 -translate-x-1/2 z-[80] w-full nav-wrapper px-6">
       <div className="glass nav-pill flex items-center justify-between shadow-2xl">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-1.5 no-underline flex-shrink-0">
+        <Link href="/" aria-label="BuildEx — back to the builder feed" className="flex items-center gap-1.5 no-underline flex-shrink-0">
           <span className="text-2xl font-bold tracking-tight logo-font nav-logo-text">
             Build<span className="text-[#4ade80] font-extrabold">Ex</span>
           </span>
@@ -27,7 +32,7 @@ export default function CatalogNavbar({
 
         {/* Desktop nav links */}
         <div className="hidden lg:flex items-center nav-links-gap nav-text font-medium">
-          {catalogNavItems.map((item) => (
+          {navItems.map((item) => (
             <Link
               key={item.label}
               href={item.path}
@@ -36,6 +41,12 @@ export default function CatalogNavbar({
               }`}
             >
               {item.label}
+              {item.path === "/chats" && hasUnread && (
+                <span
+                  className="ml-1.5 inline-block w-1.5 h-1.5 rounded-full bg-red-500 align-middle"
+                  aria-label="Unread messages"
+                />
+              )}
             </Link>
           ))}
         </div>

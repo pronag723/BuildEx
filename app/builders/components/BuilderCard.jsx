@@ -89,7 +89,7 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
     >
       {/* ── Portfolio carousel (full-bleed, swipeable thumbnails) ──────── */}
       <div
-        className="group/media card-carousel relative h-64 sm:h-72 flex-shrink-0 overflow-hidden bg-black/40"
+        className="group/media card-carousel relative h-48 sm:h-72 flex-shrink-0 overflow-hidden bg-black/40"
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
       >
@@ -144,7 +144,7 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
               type="button"
               aria-label="Previous build"
               onClick={(e) => go(e, -1)}
-              className="carousel-arrow absolute left-3 top-1/2 -translate-y-1/2 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-[#4ade80]/25 text-white border border-[#4ade80]/50 backdrop-blur-md shadow-[0_2px_10px_rgba(0,0,0,0.3)] hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.55)] transition-all duration-200"
+              className="carousel-arrow absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 z-10 w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-full bg-[#4ade80]/25 text-white border border-[#4ade80]/50 backdrop-blur-md shadow-[0_2px_10px_rgba(0,0,0,0.3)] hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.55)] transition-all duration-200"
             >
               <ChevronIcon className="w-5 h-5 rotate-180" />
             </button>
@@ -152,7 +152,7 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
               type="button"
               aria-label="Next build"
               onClick={(e) => go(e, 1)}
-              className="carousel-arrow absolute right-3 top-1/2 -translate-y-1/2 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-[#4ade80]/25 text-white border border-[#4ade80]/50 backdrop-blur-md shadow-[0_2px_10px_rgba(0,0,0,0.3)] hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.55)] transition-all duration-200"
+              className="carousel-arrow absolute right-2.5 sm:right-3 top-1/2 -translate-y-1/2 z-10 w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-full bg-[#4ade80]/25 text-white border border-[#4ade80]/50 backdrop-blur-md shadow-[0_2px_10px_rgba(0,0,0,0.3)] hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.55)] transition-all duration-200"
             >
               <ChevronIcon className="w-5 h-5" />
             </button>
@@ -194,7 +194,7 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
               aria-pressed={favorited}
               aria-label={favorited ? "Remove from favorites" : "Add to favorites"}
               title={favorited ? "Remove from favorites" : "Add to favorites"}
-              className={`w-9 h-9 flex items-center justify-center rounded-full backdrop-blur-md border transition-all duration-200 ${
+              className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-full backdrop-blur-md border transition-all duration-200 ${
                 favorited
                   ? "bg-[#4ade80] text-black border-[#4ade80] shadow-[0_0_16px_rgba(74,222,128,0.5)]"
                   : "bg-black/60 text-white border-white/15 hover:border-[#4ade80]/60 hover:text-[#4ade80] card-fav-btn"
@@ -203,7 +203,7 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
               <HeartIcon className="w-4 h-4" filled={favorited} />
             </button>
           )}
-          <div className="px-2.5 py-1 rounded-full text-xs bg-black/60 text-white/70 backdrop-blur-sm border border-white/10">
+          <div className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[11px] sm:text-xs bg-black/60 text-white/70 backdrop-blur-sm border border-white/10">
             {builder.portfolio.length} {builder.portfolio.length === 1 ? "build" : "builds"} in portfolio
           </div>
         </div>
@@ -211,28 +211,28 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
 
       {/* ── Builder info ──────────────────────────────────────── */}
       <div
-        className="p-5 flex flex-col gap-3 flex-1"
+        className="p-3.5 sm:p-5 flex flex-col gap-2.5 sm:gap-3 flex-1"
         onMouseEnter={() => setInfoHover(true)}
         onMouseLeave={() => setInfoHover(false)}
       >
         {/* Header */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3">
           {builder.avatar ? (
             <img
               src={builder.avatar}
               alt={builder.display_name}
-              className="w-11 h-11 rounded-full object-cover ring-2 ring-[#4ade80]/25 flex-shrink-0"
+              className="w-9 h-9 sm:w-11 sm:h-11 rounded-full object-cover ring-2 ring-[#4ade80]/25 flex-shrink-0"
               loading="lazy"
               decoding="async"
             />
           ) : (
-            <div className="w-11 h-11 rounded-full bg-[#4ade80]/15 border border-[#4ade80]/30 ring-2 ring-[#4ade80]/25 flex-shrink-0 flex items-center justify-center text-[#4ade80] font-bold">
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-[#4ade80]/15 border border-[#4ade80]/30 ring-2 ring-[#4ade80]/25 flex-shrink-0 flex items-center justify-center text-[#4ade80] font-bold">
               {(builder.display_name || "B").charAt(0).toUpperCase()}
             </div>
           )}
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <p className="text-base font-bold truncate leading-tight min-w-0">
+              <p className="text-sm sm:text-base font-bold truncate leading-tight min-w-0">
                 {builder.display_name}
               </p>
             </div>
@@ -261,14 +261,14 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
 
         {/* Bio one-liner */}
         {builder.bio && (
-          <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed">
+          <p className="text-xs text-gray-400 line-clamp-1 sm:line-clamp-2 leading-relaxed">
             {builder.bio}
           </p>
         )}
 
         {/* Footer — CTA */}
-        <div className="mt-auto pt-3 border-t border-white/[0.08] flex items-center justify-end gap-3">
-          <span className="offer-card-view-btn inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#4ade80]/12 border border-[#4ade80]/30 text-[#4ade80] text-xs font-semibold transition-all duration-200 group-hover:bg-[#4ade80] group-hover:text-black group-hover:shadow-[0_0_18px_rgba(74,222,128,0.45)] group-hover:border-[#4ade80]">
+        <div className="mt-auto pt-2.5 sm:pt-3 border-t border-white/[0.08] flex items-center justify-end gap-3">
+          <span className="offer-card-view-btn inline-flex items-center gap-1.5 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full bg-[#4ade80]/12 border border-[#4ade80]/30 text-[#4ade80] text-xs font-semibold transition-all duration-200 group-hover:bg-[#4ade80] group-hover:text-black group-hover:shadow-[0_0_18px_rgba(74,222,128,0.45)] group-hover:border-[#4ade80]">
             View Profile
             <ArrowIcon className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
           </span>

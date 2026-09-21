@@ -382,13 +382,13 @@ export default function CatalogPage() {
 
       <main>
         {/* ── Page header ─────────────────────────────────────────────────── */}
-        <section className="catalog-page-header pt-32 pb-10">
+        <section className="catalog-page-header pt-24 pb-6 sm:pt-32 sm:pb-10">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="catalog-header-content">
               {/* The paragraph that used to sit under this heading explained
                   what a directory is. This is the landing page now — the work
                   below says it better than a sentence could. */}
-              <h1 className="catalog-heading reveal text-4xl sm:text-5xl font-extrabold tracking-tight leading-tight">
+              <h1 className="catalog-heading reveal text-3xl sm:text-5xl font-extrabold tracking-tight leading-tight">
                 Find a <span className="text-[#4ade80]">Minecraft</span> Builder
               </h1>
             </div>
@@ -396,7 +396,7 @@ export default function CatalogPage() {
         </section>
 
         {/* ── Catalog body ─────────────────────────────────────────────────── */}
-        <section className="pb-24">
+        <section className="pb-16 sm:pb-24">
           {/* The `<div><div className="min-w-0">` pair that used to wrap this
               was the left column of a two-column catalog whose filter sidebar
               was removed; filters live in the drawer now, so the wrapper had
@@ -406,7 +406,7 @@ export default function CatalogPage() {
                 {/* Toolbar — relative + z-30 so the sort dropdown panel
                     paints above the card grid below (the .reveal class
                     creates a stacking context via transform). */}
-                <div className="flex flex-col sm:flex-row gap-3 mb-5 reveal relative z-30 isolate">
+                <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 mb-4 sm:mb-5 reveal relative z-30 isolate">
                   <CatalogSearch query={query} onQueryChange={handleQueryChange} />
                   {/* Wraps rather than clipping: this row used to be
                       flex-shrink-0 and overflowed a 375px viewport, taking the
@@ -450,7 +450,7 @@ export default function CatalogPage() {
                 </div>
 
                 {/* Results meta row */}
-                <div className="flex items-center justify-between mb-6 reveal">
+                <div className="flex items-center justify-between mb-3.5 sm:mb-6 reveal">
                   <p className="text-sm text-gray-400">
                     <span className="text-white font-semibold">
                       {filteredBuilders.length}

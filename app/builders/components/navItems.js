@@ -7,11 +7,22 @@
 
 // The feed is the site root; the explanatory page it replaced now lives at
 // /about, and its sections are anchors on that page.
+//
+// `auth: true` marks an item that only exists for a signed-in visitor — see
+// catalogNavItemsFor() below. Without it the bar held three links and looked
+// half-empty next to the controls on the right.
 export const catalogNavItems = [
   { path: "/", label: "Builders" },
-  { path: "/about", label: "About" },
+  { path: "/chats", label: "Messages", auth: true },
+  { path: "/about#projects", label: "Showcase" },
   { path: "/about#how-it-works", label: "How It Works" },
+  { path: "/about", label: "About" },
 ];
+
+/** The nav a visitor should see. `signedIn` unlocks the account-only entries. */
+export function catalogNavItemsFor(signedIn) {
+  return catalogNavItems.filter((item) => !item.auth || signedIn);
+}
 
 export function isNavActive(pathname, path) {
   if (!pathname || !path) return false;

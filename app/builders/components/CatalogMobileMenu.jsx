@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { isNavActive, catalogNavItems } from "./navItems";
+import { isNavActive, catalogNavItemsFor } from "./navItems";
 import { AuthMobileControls } from "../../auth/components/AuthNavControls";
+import { useAuth } from "../../../lib/auth/AuthContext";
 
 export default function CatalogMobileMenu({
   mobileMenuOpen,
@@ -11,6 +12,8 @@ export default function CatalogMobileMenu({
   onShowSoon,
 }) {
   const pathname = usePathname();
+  const { status } = useAuth();
+  const navItems = catalogNavItemsFor(status === "authenticated");
 
   return (
     <div
@@ -25,7 +28,7 @@ export default function CatalogMobileMenu({
         onClick={() => setMobileMenuOpen(false)}
       />
       <div className="relative glass rounded-3xl p-8 flex flex-col gap-2 mobile-menu-panel">
-        {catalogNavItems.map((item) => (
+        {navItems.map((item) => (
           <Link
             key={item.label}
             href={item.path}
