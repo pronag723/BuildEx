@@ -26,7 +26,7 @@ export default function CatalogSearch({ query, onQueryChange }) {
         onChange={(e) => onQueryChange(e.target.value)}
         placeholder="Search by name, handle or style…"
         className="w-full glass rounded-2xl pl-11 pr-10 py-3 text-sm focus:outline-none focus:border-[#4ade80]/40 focus:ring-1 focus:ring-[#4ade80]/15 transition-all placeholder:text-gray-500"
-        aria-label="Search offers"
+        aria-label="Search builders"
       />
 
       {/* Clear button */}

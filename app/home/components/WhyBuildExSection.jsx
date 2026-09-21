@@ -21,28 +21,30 @@ const DOES_NOT = [
   "Join in, mediate or take responsibility for any deal you make with a builder.",
 ];
 
-function ClaimList({ tone, icon, title, items }) {
+function ClaimList({ tone, title, items }) {
   const isPositive = tone === "positive";
   return (
-    <div className="glass rounded-3xl p-8 reveal card-hover">
-      <div className="flex items-center gap-3 mb-6">
-        <span
-          className={`icon-tile flex-shrink-0 ${
-            isPositive ? "text-[#4ade80]" : "text-gray-400"
+    <div className="p-6 sm:p-8">
+      <div className="flex items-center gap-2.5 mb-5">
+        <Icon
+          name={isPositive ? "check" : "close"}
+          size={18}
+          strokeWidth={2.2}
+          className={`flex-shrink-0 ${
+            isPositive ? "text-[#4ade80]" : "text-gray-500"
           }`}
-        >
-          <Icon name={icon} size={20} strokeWidth={1.6} />
-        </span>
-        <h3 className="text-xl font-semibold">{title}</h3>
+        />
+        <h3 className="text-base font-semibold">{title}</h3>
       </div>
-      <ul className="space-y-4">
+      <ul className="space-y-2.5">
         {items.map((item) => (
-          <li key={item} className="flex items-start gap-3 text-gray-300 leading-relaxed">
-            <Icon
-              name={isPositive ? "check" : "close"}
-              size={17}
-              className={`mt-1 flex-shrink-0 ${
-                isPositive ? "text-[#4ade80]" : "text-gray-500"
+          <li
+            key={item}
+            className="flex items-start gap-2.5 text-sm text-gray-400 leading-relaxed"
+          >
+            <span
+              className={`mt-[7px] h-1 w-1 flex-shrink-0 rounded-full ${
+                isPositive ? "bg-[#4ade80]" : "bg-gray-600"
               }`}
             />
             <span>{item}</span>
@@ -53,45 +55,37 @@ function ClaimList({ tone, icon, title, items }) {
   );
 }
 
-export default function WhyBuildExSection() {
+export default function WhyBuildExSection({ onAnchorClick }) {
   return (
     <section id="why-buildex" className="py-24 reveal">
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl font-semibold mb-4">
-            What Build<span className="text-[#4ade80]">Ex</span> is — and isn&apos;t
-          </h2>
-          <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-            Worth knowing before you message anyone, so there are no surprises
-            later.
-          </p>
-        </div>
+      <div className="max-w-5xl mx-auto px-6">
+        <h2 className="text-4xl font-semibold text-center mb-10">
+          {/* The space after </span> is written as an explicit {" "} because the
+              JSX transform drops a plain leading space on a text segment that
+              also contains an HTML entity — this heading rendered as
+              "BuildExis — and isn't" for as long as the &apos; has been here. */}
+          What Build<span className="text-[#4ade80]">Ex</span>{" "}
+          is — and isn&apos;t
+        </h2>
 
-        <div className="grid lg:grid-cols-2 gap-6">
-          <ClaimList
-            tone="positive"
-            icon="check"
-            title="What BuildEx does"
-            items={DOES}
-          />
+        {/* One panel split by a shared divider, rather than two separate cards.
+            The old version was two `glass rounded-3xl p-8` boxes in a grid that
+            CSS had forced to three columns, leaving a phantom empty column on
+            every desktop screen. */}
+        <div className="glass rounded-3xl overflow-hidden grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-white/[0.07]">
+          <ClaimList tone="positive" title="What BuildEx does" items={DOES} />
           <ClaimList
             tone="negative"
-            icon="close"
             title="What BuildEx does not do"
             items={DOES_NOT}
           />
         </div>
 
-        <div className="mt-10 glass rounded-3xl p-8 text-center reveal">
-          <p className="text-gray-300 leading-relaxed max-w-2xl mx-auto">
-            So look at the work, ask your questions, agree the scope and the
-            price in writing with the builder, and use a payment method you both
-            trust. If something goes wrong in a chat here you can report it — but
-            the deal itself is yours.
-          </p>
+        <div className="mt-10 text-center">
           <a
-            href={withBase("/builders")}
-            className="inline-block mt-7 px-8 py-4 bg-[#4ade80] text-black font-semibold rounded-full hover:scale-105 transition-all green-glow"
+            href={withBase("/")}
+            onClick={(event) => onAnchorClick?.(event, "/")}
+            className="inline-block px-8 py-4 bg-[#4ade80] text-black font-semibold rounded-full hover:scale-105 transition-all green-glow"
           >
             Browse Builders
           </a>

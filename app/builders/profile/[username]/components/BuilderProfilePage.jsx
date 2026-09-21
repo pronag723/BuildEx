@@ -71,7 +71,7 @@ function PortfolioCarousel({ items }) {
 
   return (
     <>
-    <div className="group/media relative rounded-3xl overflow-hidden glass">
+    <div className="group/media relative rounded-3xl overflow-hidden bg-black/20">
       <div
         className="flex transition-transform duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]"
         style={{ transform: `translateX(-${index * 100}%)` }}
@@ -148,7 +148,7 @@ function PortfolioCarousel({ items }) {
 // ─── Contact sidebar ─────────────────────────────────────────────────────────
 function ContactSidebar({ builder, onShowSoon, onContact }) {
   return (
-    <div className="glass rounded-3xl p-6 builder-sidebar-sticky space-y-5">
+    <div className="glass rounded-3xl p-5 builder-sidebar-sticky space-y-4">
       {/* Avatar + header */}
       <div className="flex items-center gap-3">
         <div className="relative flex-shrink-0">
@@ -184,23 +184,15 @@ function ContactSidebar({ builder, onShowSoon, onContact }) {
         Contact Builder
       </button>
 
-      {/* Whatever links this builder chose to publish. Empty for a builder who
-          has added none, which is why the hint explains the gap rather than
-          leaving a blank panel. */}
+      {/* Whatever links this builder chose to publish; nothing at all when they
+          published none. The badges that used to sit here ("Source Files",
+          "Discuss Anytime") promised things about a builder's delivery that
+          BuildEx cannot know, and are not coming back. The disclaimer that
+          replaced them is not here either — it lives once, in the footer. */}
       <SocialLinks
         contactLinks={builder.contact_links}
         className="justify-center"
-        emptyHint="This builder hasn't added any contact links yet — message them here instead."
       />
-
-      {/* The badges that used to sit here ("Source Files", "Discuss Anytime")
-          promised things about a builder's delivery that BuildEx cannot know or
-          guarantee. A directory does not vouch for anyone, so what replaces them
-          is the one thing that is actually true of every profile here. */}
-      <p className="pt-3 border-t border-white/[0.06] text-[11px] leading-relaxed text-gray-500">
-        Anything you agree — scope, price, deadline — is arranged directly with
-        the builder. BuildEx is not part of it.
-      </p>
     </div>
   );
 }
@@ -379,9 +371,9 @@ export default function BuilderProfilePage({ builder }) {
           {/* Breadcrumb + back button */}
           <div className="flex items-center justify-between gap-4 mb-6 detail-fade-up flex-wrap">
             <nav className="flex items-center gap-1.5 text-sm text-gray-500 flex-wrap" aria-label="Breadcrumb">
-              <Link href="/" className="hover:text-[#4ade80] transition-colors">Home</Link>
-              <IconChevron className="w-3 h-3 opacity-50" />
-              <Link href="/builders" className="hover:text-[#4ade80] transition-colors">
+              {/* "Home" and "Builders" were separate crumbs until the feed
+                  became the site root; they now point at the same page. */}
+              <Link href="/" className="hover:text-[#4ade80] transition-colors">
                 Builders
               </Link>
               <IconChevron className="w-3 h-3 opacity-50" />
@@ -416,7 +408,7 @@ export default function BuilderProfilePage({ builder }) {
                 </button>
               )}
               <Link
-                href="/builders"
+                href="/"
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold border border-[#4ade80]/30 text-[#4ade80] bg-[#4ade80]/10 hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.35)] transition-all"
               >
                 <IconChevron className="w-3 h-3 rotate-180" />
@@ -425,44 +417,62 @@ export default function BuilderProfilePage({ builder }) {
             </div>
           </div>
 
-          {/* ── Hero header ───────────────────────────────────────────────── */}
-          <header className="glass rounded-3xl p-6 sm:p-8 mb-8 detail-fade-up">
-            <div className="flex flex-col sm:flex-row gap-6 items-start">
+          {/* ── Hero header ─────────────────────────────────────────────────
+              Deliberately NOT a glass card. The page used to open with a big
+              empty box before you reached anything the builder made; the
+              identity row now sits directly on the page so the portfolio is
+              the first surface you see. */}
+          <header className="mb-8 detail-fade-up">
+            <div className="flex flex-col sm:flex-row gap-5 sm:gap-6 items-center sm:items-start">
               {/* Avatar */}
-              <div className="relative flex-shrink-0 mx-auto sm:mx-0">
+              <div className="relative flex-shrink-0">
                 <Avatar
                   src={builder.avatar}
                   name={builder.display_name}
-                  className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl ring-2 ring-[#4ade80]/30 shadow-xl text-4xl"
+                  className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl ring-2 ring-[#4ade80]/30 shadow-xl text-3xl"
                 />
                 {builder.online && (
                   <span className="absolute bottom-1 right-1 w-5 h-5 rounded-full bg-[#4ade80] border-[3px] border-[#1a1a1a] online-dot" />
                 )}
               </div>
 
-              {/* Identity + stats */}
+              {/* Identity */}
               <div className="flex-1 min-w-0 text-center sm:text-left">
-                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-2">
-                  <h1 className="text-2xl sm:text-3xl font-extrabold leading-tight">
-                    {builder.display_name}
-                  </h1>
-                </div>
-                <p className="text-sm text-gray-500 mb-3">@{builder.username}</p>
+                <h1 className="text-2xl sm:text-3xl font-extrabold leading-tight">
+                  {builder.display_name}
+                </h1>
 
-                {/* Meta bar */}
-                <SocialLinks
-                  contactLinks={builder.contact_links}
-                  className="justify-center sm:justify-start mb-4"
-                />
+                {/* The "Member Since" year used to be a bordered one-cell grid
+                    of its own inside the About card. It is a single number —
+                    it belongs on this line. */}
+                <p className="mt-1 text-sm text-gray-500">
+                  @{builder.username}
+                  {builder.member_since && (
+                    <span className="text-gray-600">
+                      {" · "}Member since{" "}
+                      {new Date(builder.member_since).getFullYear()}
+                    </span>
+                  )}
+                </p>
 
                 {/* Specialties */}
-                <div className="flex flex-wrap justify-center sm:justify-start gap-2">
-                  {builder.specialties.map((s) => (
-                    <span key={s} className="px-3 py-1 rounded-full text-xs bg-white/5 border border-white/10 text-gray-400">
-                      {s}
-                    </span>
-                  ))}
-                </div>
+                {builder.specialties.length > 0 && (
+                  <div className="mt-3 flex flex-wrap justify-center sm:justify-start gap-2">
+                    {builder.specialties.map((s) => (
+                      <span key={s} className="px-3 py-1 rounded-full text-xs bg-white/5 border border-white/10 text-gray-400">
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Contact links render in the sticky sidebar from `lg` up, so
+                    this copy only exists for the widths where the sidebar is
+                    hidden. Exactly one is visible at any viewport. */}
+                <SocialLinks
+                  contactLinks={builder.contact_links}
+                  className="justify-center sm:justify-start mt-4 lg:hidden"
+                />
               </div>
             </div>
           </header>
@@ -473,16 +483,21 @@ export default function BuilderProfilePage({ builder }) {
             {/* LEFT: Content */}
             <div className="space-y-8 min-w-0">
 
-              {/* Portfolio gallery */}
+              {/* Portfolio gallery — the count moved into the heading row, and
+                  the carousel lost its `glass` frame: the images are the
+                  content and a border around them just adds another box. */}
               <section className="reveal">
-                <div className="flex items-end justify-between mb-5">
-                  <h2 className="font-bold text-xl">Portfolio</h2>
-                  <span className="text-xs text-gray-500">
-                    {builder.portfolio.length} {builder.portfolio.length === 1 ? "build" : "builds"}
-                  </span>
-                </div>
+                <h2 className="font-bold text-xl mb-4">
+                  Portfolio
+                  {builder.portfolio.length > 0 && (
+                    <span className="ml-2 text-sm font-normal text-gray-500">
+                      {builder.portfolio.length}{" "}
+                      {builder.portfolio.length === 1 ? "build" : "builds"}
+                    </span>
+                  )}
+                </h2>
                 {builder.portfolio.length === 0 ? (
-                  <div className="glass rounded-3xl p-12 text-center text-gray-500 text-sm">
+                  <div className="rounded-3xl border border-dashed border-white/10 p-12 text-center text-gray-500 text-sm">
                     This builder hasn&apos;t added portfolio entries yet.
                   </div>
                 ) : (
@@ -490,20 +505,17 @@ export default function BuilderProfilePage({ builder }) {
                 )}
               </section>
 
-              {/* About */}
-              <section className="reveal glass rounded-3xl p-6 lg:p-8">
-                <h2 className="font-bold text-xl mb-4">About</h2>
-                {(builder.about || builder.bio) ? (
-                  <p className="text-gray-400 leading-relaxed mb-6">{builder.about || builder.bio}</p>
-                ) : null}
-
-                <div className="grid grid-cols-1 gap-3 mt-6 pt-6 border-t border-white/[0.08]">
-                  <div className="text-center">
-                    <p className="text-xl font-bold">{new Date(builder.member_since).getFullYear()}</p>
-                    <p className="text-[10px] text-gray-500 uppercase tracking-wide">Member Since</p>
-                  </div>
-                </div>
-              </section>
+              {/* About — no card, and nothing at all when there is no bio. An
+                  empty "About" box was the emptiest of the four boxes this
+                  page used to stack. */}
+              {(builder.about || builder.bio) && (
+                <section className="reveal">
+                  <h2 className="font-bold text-xl mb-3">About</h2>
+                  <p className="text-gray-400 leading-relaxed">
+                    {builder.about || builder.bio}
+                  </p>
+                </section>
+              )}
             </div>
 
             {/* RIGHT: Sticky contact sidebar */}

@@ -1,7 +1,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // BuildEx — Catalog feed ordering
 //
-// The /builders catalog defaults to a *randomised* order so every builder gets
+// The builder catalog defaults to a *randomised* order so every builder gets
 // equal exposure instead of being ranked by registration date (which always
 // buried experienced builders who joined early). The one rule: the order must
 // stay put when a visitor opens a builder's profile and comes back — otherwise
@@ -25,8 +25,15 @@
 
 const KEEP_KEY = "buildex:feed-keep-order";
 const SEED_KEY = "buildex:feed-seed";
-const FEED_PATH = "/builders";
+// The feed lives at the site root. `/builders` is the legacy URL, kept as a
+// redirect — it stays in this list so the redirect hop itself is not mistaken
+// for "the visitor went somewhere else" and does not clear the keep flag.
+const FEED_PATHS = ["/", "/builders"];
 const PROFILE_PREFIX = "/builders/profile";
+
+function isFeedPath(pathname) {
+  return FEED_PATHS.some((p) => pathname === p || pathname === p + "/");
+}
 
 // ── Seeded PRNG (mulberry32) ────────────────────────────────────────────────
 // Tiny, fast, deterministic 32-bit generator. Same seed ⇒ same sequence.
@@ -65,7 +72,7 @@ export function recordNav(pathname) {
       // Visitor is on a builder profile — if they head back to the feed, keep
       // the current order.
       sessionStorage.setItem(KEEP_KEY, "1");
-    } else if (pathname === FEED_PATH || pathname === FEED_PATH + "/") {
+    } else if (isFeedPath(pathname)) {
       // The feed itself — leave the flag alone; the catalog consumes it on mount.
     } else {
       // Any other destination ends the profile round-trip; next feed visit is

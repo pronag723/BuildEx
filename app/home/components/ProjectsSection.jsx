@@ -36,44 +36,28 @@ export default function ProjectsSection({ onAnchorClick }) {
   return (
     <section id="projects" className="py-32 reveal">
       <div className="w-full px-6">
-        <div className="flex flex-col gap-3 mb-10 max-w-7xl mx-auto lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <h2 className="text-4xl font-semibold">
-              The kind of thing <span className="text-[#4ade80]">people build</span>
-            </h2>
-            {/* These are example builds, not listings. Saying so is the whole
-                reason this line exists — the cards carry no builder, no rating
-                and no price, because we have none to show. */}
-            <p className="mt-3 text-sm text-gray-500 max-w-xl">
-              Example Minecraft builds, here to set the tone. Real portfolios —
-              by the builders who made them — are on their profiles.
-            </p>
-          </div>
-          {/* Desktop link — visibility lives on this DIV, not the <a>. A flex
-              child <a> ignores its own `hidden` utility, which is what caused the
-              link to leak onto mobile and show twice. */}
-          <div className="hidden lg:block">
+        {/* One link, not two. This used to be a `hidden lg:block` wrapper plus a
+            separate `lg:hidden` copy below, because a flex-child <a> ignores its
+            own `hidden` utility — wrapping it in a plain div fixes that without
+            needing a second element. */}
+        <div className="flex flex-col gap-3 mb-10 max-w-7xl mx-auto sm:flex-row sm:items-end sm:justify-between">
+          <h2 className="text-4xl font-semibold">
+            The kind of thing <span className="text-[#4ade80]">people build</span>
+          </h2>
+          <div className="shrink-0">
             <a
-              href={withBase("/builders")}
+              href={withBase("/")}
               className="text-[#4ade80] hover:underline text-sm inline-flex items-center gap-2"
-              onClick={(event) => onAnchorClick(event, "/builders")}
+              onClick={(event) => onAnchorClick(event, "/")}
             >
               View all builders →
             </a>
           </div>
         </div>
 
-        <div className="lg:hidden text-center mb-6">
-          <a
-            href={withBase("/builders")}
-            className="text-[#4ade80] hover:underline text-sm inline-flex items-center gap-2"
-            onClick={(event) => onAnchorClick(event, "/builders")}
-          >
-            View all builders →
-          </a>
-        </div>
-
-        <div className="overflow-hidden min-h-[500px] flex items-center fade-edges">
+        {/* min-h-[500px] used to sit here; at phone widths the cards are only
+            ~250px tall, so it left half a screen of dead space. */}
+        <div className="overflow-hidden flex items-center fade-edges">
           <div
             className="flex gap-6 project-scroll whitespace-nowrap w-max"
             onMouseDown={(event) => event.preventDefault()}

@@ -4,33 +4,9 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Shared marketplace form controls. Kept small so they inherit the site's glass UI. */
-.field {
-  width: 100%;
-  padding: .72rem .9rem;
-  border-radius: .8rem;
-  color: #fff;
-  background: rgba(0,0,0,.22);
-  border: 1px solid rgba(255,255,255,.12);
-  outline: none;
-}
-.field:focus { border-color: rgba(74,222,128,.65); box-shadow: 0 0 0 3px rgba(74,222,128,.12); }
-.pill-button { padding: .55rem .9rem; border-radius: 9999px; font-size: .75rem; font-weight: 700; color: #4ade80; background: rgba(74,222,128,.1); border: 1px solid rgba(74,222,128,.25); transition: background .2s, transform .2s; }
-.pill-button:hover { background: rgba(74,222,128,.18); transform: translateY(-1px); }
-.ready-build-price-invalid,
-.ready-build-price-invalid:focus {
-  border-color: rgba(248, 113, 113, .9) !important;
-  box-shadow: 0 0 0 3px rgba(248, 113, 113, .12) !important;
-}
-.ready-build-editor-overlay {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(74, 222, 128, .45) #0a0e0b;
-}
-.ready-build-editor-overlay::-webkit-scrollbar { width: 10px; }
-.ready-build-editor-overlay::-webkit-scrollbar-track { background: #0a0e0b; }
-.ready-build-editor-overlay::-webkit-scrollbar-thumb { background: rgba(74, 222, 128, .45); border: 2px solid #0a0e0b; border-radius: 999px; }
-.ready-build-editor-overlay::-webkit-scrollbar-thumb:hover { background: rgba(74, 222, 128, .7); }
-@media (prefers-reduced-motion: reduce) { .catalog-chip { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+/* .field, .pill-button, .ready-build-* and .catalog-chip lived here. All were
+   left behind by removed features (the marketplace forms, ready-made builds,
+   the old catalog chips) and had no markup referencing them. */
 
 /* =============================================
    BUILDEX - Lighter Dark + Side Gradients + Light Hover Glow
@@ -57,45 +33,6 @@
 
 textarea::-webkit-scrollbar-button {
   display: none;
-}
-
-/* Studio settings use deliberately quiet controls: browser-provided spinner,
-   calendar and dropdown glyphs add visual noise inside the compact fields. */
-.studio-control {
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  background-image: none;
-}
-
-.studio-control::-webkit-inner-spin-button,
-.studio-control::-webkit-outer-spin-button,
-.studio-control::-webkit-list-button {
-  display: none;
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-input.studio-control[type="number"] {
-  -moz-appearance: textfield;
-}
-
-input.studio-control[type="date"] {
-  color-scheme: dark;
-}
-
-.light input.studio-control[type="date"] {
-  color-scheme: light;
-}
-
-input.studio-control[type="date"]::-webkit-calendar-picker-indicator {
-  opacity: 0.55;
-  cursor: pointer;
-  transition: opacity 0.2s ease;
-}
-
-input.studio-control[type="date"]:hover::-webkit-calendar-picker-indicator {
-  opacity: 0.9;
 }
 
 /* Dark, slim scrollbars for textareas + any element opting in with .bx-scroll.
@@ -185,128 +122,26 @@ button.carousel-arrow:active {
   touch-action: pan-y;
 }
 
-/* Studio team controls share the same responsive, tactile feedback as the
-   marketplace CTAs while keeping destructive actions visually restrained. */
-.team-action-button {
-  transition-property: transform, color, background-color, border-color, box-shadow, opacity;
-  transition-duration: 260ms;
-  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.team-action-button:hover:not(:disabled) {
-  transform: translateY(-2px);
-}
-
-.team-action-button:active:not(:disabled) {
-  transform: translateY(0) scale(0.98);
-  transition-duration: 90ms;
-}
-
-.team-action-button:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.2);
-}
-
-.team-filter-trigger,
-.team-filter-option {
-  transition:
-    color 220ms ease,
-    background-color 220ms ease,
-    border-color 220ms ease,
-    box-shadow 260ms ease,
-    transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.team-filter-trigger:hover {
-  transform: translateY(-1px);
-}
-
-.team-filter-options {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transform: translateY(-8px) scale(0.98);
-  transform-origin: top center;
-  transition:
-    opacity 180ms ease,
-    visibility 0s linear 180ms,
-    transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.team-filter-options[data-open="true"] {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
-  transform: translateY(0) scale(1);
-  transition-delay: 0s;
-}
-
-.team-filter-option:hover {
-  transform: translateX(2px);
-}
-
-.team-member-card {
-  transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1), border-color 260ms ease, background-color 260ms ease, box-shadow 320ms ease;
-}
-
-.team-member-card:hover {
-  transform: translateY(-3px);
-  border-color: rgba(74, 222, 128, 0.3);
-  background-color: rgba(74, 222, 128, 0.035);
-  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.16);
-}
-
+/* The .team-* rules that sat here styled the studio team console, removed with
+   the studios feature. .carousel-progress-indicator shared their
+   reduced-motion rule and is still in use, so it keeps one of its own. */
 @media (prefers-reduced-motion: reduce) {
-  .carousel-progress-indicator,
-  .team-action-button,
-  .team-filter-trigger,
-  .team-filter-option,
-  .team-filter-options,
-  .team-member-card {
+  .carousel-progress-indicator {
     transition-duration: 1ms;
   }
-
-  .team-action-button:hover:not(:disabled),
-  .team-filter-trigger:hover,
-  .team-filter-option:hover,
-  .team-member-card:hover {
-    transform: none;
-  }
 }
 
-.studio-profile-hero {
-  position: relative;
-  overflow: hidden;
-  isolation: isolate;
-}
-
-.studio-profile-hero::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto;
-  height: 112px;
-  background: radial-gradient(circle at 15% 0%, rgba(74, 222, 128, 0.28), transparent 58%), linear-gradient(110deg, rgba(74, 222, 128, 0.1), transparent 62%);
-  pointer-events: none;
-  z-index: -1;
-}
-
-.account-section-tabs,
-.studio-availability-switch {
+.account-section-tabs {
   min-height: 48px;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
 }
 
-.account-section-tab:hover:not([aria-selected="true"]),
-.studio-availability-switch button:hover:not(:disabled) {
+.account-section-tab:hover:not([aria-selected="true"]) {
   transform: translateY(-1px);
 }
 
 .account-section-tab[aria-selected="true"] {
   text-shadow: 0 0 14px rgba(255, 255, 255, 0.16);
-}
-
-.studio-availability-indicator {
-  will-change: transform, background-color, box-shadow;
 }
 
 .logo-font {
@@ -453,9 +288,19 @@ body {
 .light .text-gray-500 { color: #64748b; } /* slate-500 */
 .light .text-gray-600 { color: #475569; } /* slate-600 */
 
-/* Exception: the homepage footer keeps its dark bg (bg-black/70) in light
-   mode, so its muted text must stay light rather than darken. */
-.light .site-footer .text-gray-400 { color: rgba(255, 255, 255, 0.6); }
+/* Exception: the footer keeps its dark bg (bg-black/70) in light mode, so its
+   muted text must stay light rather than darken. Every gray the footer uses
+   needs covering — the blanket .light remaps above would otherwise turn them
+   into dark slate on a near-black bar.
+
+   `footer.site-footer` rather than `.site-footer`: the feed and profile pages
+   render this inside `.catalog-root`, which has its own `.light .catalog-root
+   .text-gray-*` remaps at IDENTICAL specificity further down the file. Those
+   were winning on source order alone and painting slate-700 text on the black
+   bar. The element selector puts this exception above them for good. */
+.light footer.site-footer .text-gray-300 { color: rgba(255, 255, 255, 0.82); }
+.light footer.site-footer .text-gray-400 { color: rgba(255, 255, 255, 0.6); }
+.light footer.site-footer .text-gray-500 { color: rgba(255, 255, 255, 0.48); }
 
 /* ==================== GLASS EFFECT ==================== */
 .glass {
@@ -775,13 +620,16 @@ body {
 /* ==================== SECTION HEADINGS ==================== */
 #projects h2,
 #how-it-works h2,
-#why-buildex h2 {
+#why-buildex h2,
+#features h2 {
   font-weight: 800;
   letter-spacing: -0.02em;
 }
 
+/* The `margin-left: clamp(16px, 5vw, 70px)` that used to sit here nudged the
+   showcase heading up to 70px right of everything else on the page, which is
+   half of why it never lined up with the cards below it. */
 #projects h2 {
-  margin-left: clamp(16px, 5vw, 70px);
   font-size: clamp(1.5rem, 5vw, 2.5rem);
 }
 
@@ -1075,7 +923,8 @@ body {
   }
 
   #how-it-works h2,
-  #why-buildex h2 {
+  #why-buildex h2,
+  #features h2 {
     font-size: clamp(1.5rem, 4vw, 2.25rem);
   }
 
@@ -1162,17 +1011,14 @@ body {
   }
 
   #how-it-works h2,
-  #why-buildex h2 {
+  #why-buildex h2,
+  #features h2 {
     font-size: clamp(1.4rem, 6vw, 2rem);
   }
 
-  #why-buildex .grid {
-    grid-template-columns: 1fr !important;
-  }
-
-  #why-buildex .md\:col-span-3 {
-    grid-column: span 1 !important;
-  }
+  /* `.md\:col-span-3` was dropped from the markup long ago; the grid-template
+     override went with the ID-selector cleanup further down this file. The
+     section's own `grid-cols-1` already gives one column here. */
 
   #how-it-works .glass.rounded-3xl,
   #why-buildex .glass.rounded-3xl {
@@ -1321,6 +1167,16 @@ body {
   gap: clamp(12px, 2vw, 24px);
   touch-action: pan-y;
   user-select: none;
+  /* The marquee is full-bleed on purpose (it runs off the right edge), but its
+     heading sits in a max-w-7xl container. Without this inset the first card
+     started at the viewport gutter while the heading started ~300px further
+     right on a wide screen.
+
+     `100%` rather than `100vw`: both this track and the heading live inside the
+     same px-6 wrapper, and 100vw includes the scrollbar width that the wrapper
+     has already had taken off it — using vw here left the track 31px adrift at
+     1600px. 80rem is max-w-7xl, matching the heading's own container. */
+  padding-left: max(0px, calc((100% - 80rem) / 2));
 }
 
 @media (max-width: 640px) {
@@ -1337,44 +1193,16 @@ body {
   }
 }
 
+/* The #why-buildex and #how-it-works grid overrides that used to live here are
+   gone. They were ID selectors (specificity 1,1,0) beating the Tailwind classes
+   on the elements themselves (0,1,0), and they had drifted out of sync with the
+   markup: #why-buildex was forced to repeat(3, 1fr) for a section with exactly
+   two children, so it rendered two cards and a phantom empty column, and
+   #how-it-works was pinned to a single column unconditionally, overriding its
+   own sm:grid-cols-2. The grid-template now comes from the JSX alone. */
 @media (min-width: 768px) and (max-width: 1023px) {
-  #why-buildex .grid {
-    grid-template-columns: 1fr;
-    max-width: 600px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-}
-
-@media (min-width: 1024px) {
-  #why-buildex .grid {
-    grid-template-columns: repeat(3, 1fr);
-    max-width: none;
-  }
-}
-
-#how-it-works .grid {
-  grid-template-columns: 1fr;
-}
-
-@media (min-width: 768px) and (max-width: 1023px) {
-  #how-it-works .grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1.5rem;
-  }
-
-  #how-it-works .grid > :nth-child(3) {
-    grid-column: span 2;
-  }
-
   #how-it-works .md\:-mt-4 {
     margin-top: 0 !important;
-  }
-}
-
-@media (min-width: 1024px) {
-  #how-it-works .grid {
-    grid-template-columns: repeat(3, 1fr);
   }
 }
 
@@ -1384,46 +1212,12 @@ body {
   }
 }
 
-@media (max-width: 1023px) {
-  #projects .flex.items-center.justify-between {
-    justify-content: center !important;
-  }
-
-  #projects .flex.items-center.justify-between h2 {
-    text-align: center;
-    margin-left: 0;
-    margin-right: 0;
-  }
-
-  #projects .flex.items-center.justify-between a {
-    display: none;
-  }
-
-  #projects h2 {
-    margin-left: 0;
-  }
-}
-
-.mobile-view-all-wrapper {
-  text-align: center;
-  width: 100%;
-  display: flex;
-  justify-content: center;
-}
-
-.mobile-view-all-wrapper a {
-  margin-right: 0 !important;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-}
-
-@media (min-width: 1024px) {
-  .mobile-view-all-wrapper {
-    display: none !important;
-  }
-}
+/* The #projects header overrides and .mobile-view-all-wrapper block that used
+   to sit here are gone with the markup they propped up. The showcase heading no
+   longer matches `.flex.items-center.justify-between`, and the "View all
+   builders" link is now a single responsive element instead of a desktop copy
+   plus a hidden mobile duplicate — so the rule that hid one of them has nothing
+   left to hide. */
 
 @media (max-width: 767px) {
   .nav-pill {
@@ -1654,12 +1448,6 @@ body {
 .bg-\[\#4ade80\] .smart-link { border-color: rgba(0, 0, 0, 0.25); background: rgba(0, 0, 0, 0.1); color: #052e16; }
 .light .smart-link { color: #166534; background: rgba(34, 197, 94, 0.1); border-color: rgba(22, 101, 52, 0.25); }
 
-
-/* ── Quick-filter chip ─────────────────────────────────────────────────────── */
-.catalog-chip {
-  backdrop-filter: blur(8px);
-}
-
 /* ── Sidebar scrollbar ─────────────────────────────────────────────────────── */
 .catalog-sidebar {
   scrollbar-width: thin;
@@ -1852,20 +1640,22 @@ body {
   perspective: 1400px;
 }
 
+/* The deck used to be `position: relative` with a hard `min-height: 580px`
+   below 768px and absolutely-positioned cards. Because the cards were taken out
+   of flow they contributed no height, so the fixed number was the only thing
+   holding the deck open — and any card whose text ran past it was clipped by
+   `overflow: hidden` rather than scrolled.
+
+   Stacking them in a single grid cell instead keeps the z-index/transform
+   shuffle exactly as it was, while letting the tallest card set the height. */
 .features-deck {
   position: relative;
-  min-height: 580px;
-}
-
-@media (min-width: 768px) {
-  .features-deck {
-    min-height: 380px;
-  }
+  display: grid;
+  min-height: 320px;
 }
 
 .features-card {
-  position: absolute;
-  inset: 0;
+  grid-area: 1 / 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -2170,273 +1960,6 @@ body {
   background: rgba(74, 222, 128, 0.45);
 }
 
-/* Studio surfaces share the builder-profile visual system, with denser cards
-   and tactile horizontal galleries for portfolios. */
-.studio-panel {
-  position: relative;
-  overflow: visible;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.025),
-    0 18px 60px -42px rgba(0, 0, 0, 0.75);
-}
-
-.studio-panel::before {
-  content: "";
-  position: absolute;
-  left: 1.75rem;
-  right: 1.75rem;
-  top: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(74, 222, 128, 0.28), transparent);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.studio-panel:hover::before {
-  opacity: 1;
-}
-
-.studio-stat-card {
-  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
-}
-
-.studio-stat-card:hover {
-  transform: translateY(-2px);
-  border-color: rgba(74, 222, 128, 0.28);
-  box-shadow: 0 12px 32px -22px rgba(74, 222, 128, 0.4);
-}
-
-.studio-portfolio-rail,
-.studio-public-portfolio {
-  overscroll-behavior-inline: contain;
-  touch-action: pan-x pan-y;
-  scroll-behavior: smooth;
-  scrollbar-color: rgba(74, 222, 128, 0.32) transparent;
-}
-
-.studio-public-portfolio.is-dragging {
-  cursor: grabbing;
-  scroll-snap-type: none;
-  scroll-behavior: auto;
-}
-
-.studio-portfolio-card {
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
-}
-
-.studio-portfolio-card:hover {
-  border-color: rgba(74, 222, 128, 0.42);
-  box-shadow:
-    0 18px 42px -18px rgba(0, 0, 0, 0.72),
-    0 0 24px -10px rgba(74, 222, 128, 0.38);
-}
-
-.studio-portfolio-fade,
-.studio-public-portfolio-shell {
-  position: relative;
-}
-
-.studio-portfolio-fade::after,
-.studio-public-portfolio-shell::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 1rem;
-  width: 42px;
-  pointer-events: none;
-  background: linear-gradient(90deg, transparent, rgba(25, 29, 26, 0.8));
-  border-radius: 0 1rem 1rem 0;
-}
-
-.studio-network-menu {
-  animation: studioMenuIn 0.18s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-}
-
-@keyframes studioMenuIn {
-  from { opacity: 0; transform: translateY(-6px) scale(0.985); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-.studio-assignment-backdrop {
-  animation: studioBackdropIn 0.38s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-}
-
-.studio-assignment-dialog {
-  animation: studioDialogIn 0.56s cubic-bezier(0.16, 1, 0.3, 1) both;
-  transform-origin: center 42%;
-  will-change: opacity, transform;
-}
-
-.studio-order-row {
-  animation: studioOrderIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
-  animation-delay: calc(var(--order-index, 0) * 45ms);
-  transition:
-    border-color 0.3s cubic-bezier(0.2, 0.75, 0.25, 1),
-    background-color 0.3s cubic-bezier(0.2, 0.75, 0.25, 1),
-    color 0.3s cubic-bezier(0.2, 0.75, 0.25, 1),
-    box-shadow 0.3s cubic-bezier(0.2, 0.75, 0.25, 1);
-}
-
-.studio-builder-option {
-  animation: studioBuilderIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
-  animation-delay: calc(var(--builder-index, 0) * 28ms + 150ms);
-  transition:
-    border-color 0.3s cubic-bezier(0.2, 0.75, 0.25, 1),
-    background-color 0.3s cubic-bezier(0.2, 0.75, 0.25, 1),
-    color 0.3s cubic-bezier(0.2, 0.75, 0.25, 1),
-    opacity 0.3s cubic-bezier(0.2, 0.75, 0.25, 1),
-    box-shadow 0.3s cubic-bezier(0.2, 0.75, 0.25, 1);
-}
-
-:where(.studio-order-row, .studio-builder-option, .studio-assignment-dialog)
-  :where(button, a, [class*="rounded"], svg) {
-  transition-property:
-    color,
-    background-color,
-    border-color,
-    border-radius,
-    box-shadow,
-    opacity,
-    transform;
-  transition-duration: 0.28s;
-  transition-timing-function: cubic-bezier(0.2, 0.75, 0.25, 1);
-}
-
-.studio-pressable {
-  transition:
-    transform 0.16s cubic-bezier(0.2, 0.75, 0.25, 1),
-    background-color 0.28s cubic-bezier(0.2, 0.75, 0.25, 1),
-    border-color 0.28s cubic-bezier(0.2, 0.75, 0.25, 1),
-    border-radius 0.28s cubic-bezier(0.2, 0.75, 0.25, 1),
-    box-shadow 0.28s cubic-bezier(0.2, 0.75, 0.25, 1),
-    color 0.28s cubic-bezier(0.2, 0.75, 0.25, 1),
-    opacity 0.28s cubic-bezier(0.2, 0.75, 0.25, 1);
-  transform: translateY(0) scale(1);
-  transform-origin: center;
-}
-
-.studio-pressable:active:not(:disabled) {
-  transform: translateY(1px) scale(0.975);
-  transition-duration: 70ms;
-}
-
-.studio-confirm-layer {
-  animation: studioBackdropIn 0.28s ease-out both;
-}
-
-.studio-confirm-card {
-  animation: studioConfirmIn 0.44s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-.studio-builder-list {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(74, 222, 128, 0.28) transparent;
-}
-
-.studio-builder-list::-webkit-scrollbar {
-  width: 6px;
-}
-
-.studio-builder-list::-webkit-scrollbar-thumb {
-  background: rgba(74, 222, 128, 0.28);
-  border-radius: 999px;
-}
-
-@keyframes studioBackdropIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes studioDialogIn {
-  from { opacity: 0; transform: translateY(22px) scale(0.988); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-@keyframes studioOrderIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes studioBuilderIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes studioConfirmIn {
-  from { opacity: 0; transform: translateY(14px) scale(0.97); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-.light .studio-portfolio-fade::after,
-.light .studio-public-portfolio-shell::after {
-  background: linear-gradient(90deg, transparent, rgba(243, 244, 242, 0.82));
-}
-
-.light .studio-network-menu {
-  background: rgba(255, 255, 255, 0.96);
-  border-color: rgba(15, 23, 42, 0.13);
-}
-
-.light .studio-control {
-  background: rgba(255, 255, 255, 0.72);
-  border-color: rgba(15, 23, 42, 0.14);
-  color: #0f172a;
-}
-
-.light .studio-control::placeholder {
-  color: rgba(15, 23, 42, 0.42);
-}
-
-.light .studio-control:hover {
-  border-color: rgba(15, 23, 42, 0.25);
-}
-
-.light .studio-control:focus {
-  border-color: rgba(34, 197, 94, 0.65);
-}
-
-.light .studio-assignment-dialog {
-  background: rgba(249, 250, 249, 0.98);
-  border-color: rgba(15, 23, 42, 0.12);
-}
-
-.light .studio-confirm-card {
-  background: #ffffff;
-  border-color: rgba(15, 23, 42, 0.12);
-}
-
-@media (max-width: 640px) {
-  .studio-panel {
-    border-radius: 1.35rem;
-  }
-  .studio-portfolio-fade::after,
-  .studio-public-portfolio-shell::after {
-    width: 24px;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .studio-portfolio-card,
-  .studio-stat-card,
-  .studio-network-menu,
-  .studio-order-row,
-  .studio-assignment-backdrop,
-  .studio-assignment-dialog,
-  .studio-builder-option,
-  .studio-confirm-layer,
-  .studio-confirm-card,
-  .studio-pressable {
-    animation: none;
-    transition: none;
-  }
-
-  :where(.studio-order-row, .studio-builder-option, .studio-assignment-dialog)
-    :where(button, a, [class*="rounded"], svg) {
-    transition: none;
-  }
-}
-
 .portfolio-card {
   width: clamp(280px, 32vw, 380px);
 }
@@ -2585,105 +2108,6 @@ body {
   background: rgba(15, 23, 42, 0.08);
 }
 
-/* ─── Role selection cards ────────────────────────────────────────────────── */
-.role-card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 24px;
-  border-radius: 24px;
-  text-align: left;
-  height: 100%;
-  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-              border-color 0.3s ease,
-              box-shadow 0.3s ease,
-              background 0.3s ease;
-  cursor: pointer;
-  overflow: hidden;
-  isolation: isolate;
-}
-.role-card::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background: radial-gradient(
-    circle at var(--role-x, 50%) var(--role-y, 0%),
-    rgba(74, 222, 128, 0.22),
-    transparent 60%
-  );
-  opacity: 0;
-  transition: opacity 0.4s ease;
-}
-.role-card:hover::before,
-.role-card.is-selected::before {
-  opacity: 1;
-}
-.role-card:hover {
-  transform: translateY(-6px);
-  border-color: rgba(74, 222, 128, 0.45);
-  box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.3),
-              0 28px 60px rgba(0, 0, 0, 0.5),
-              0 0 28px rgba(74, 222, 128, 0.2);
-}
-.role-card.is-selected {
-  border-color: #4ade80;
-  box-shadow: 0 0 0 1px #4ade80,
-              0 0 32px rgba(74, 222, 128, 0.32);
-  transform: translateY(-4px);
-}
-.role-card .role-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 14px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(74, 222, 128, 0.12);
-  border: 1px solid rgba(74, 222, 128, 0.28);
-  color: #4ade80;
-  font-size: 22px;
-  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-              background 0.3s ease;
-}
-.role-card:hover .role-icon,
-.role-card.is-selected .role-icon {
-  transform: rotate(-6deg) scale(1.05);
-  background: rgba(74, 222, 128, 0.18);
-}
-.role-card .role-check {
-  position: absolute;
-  top: 18px;
-  right: 18px;
-  width: 28px;
-  height: 28px;
-  border-radius: 9999px;
-  background: #4ade80;
-  color: #0a0a0a;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transform: scale(0.6);
-  transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 0 14px rgba(74, 222, 128, 0.5);
-}
-.role-card.is-selected .role-check {
-  opacity: 1;
-  transform: scale(1);
-}
-.light .role-card:hover {
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12),
-              0 0 0 1px rgba(74, 222, 128, 0.6),
-              0 0 30px rgba(74, 222, 128, 0.28);
-}
-.light .role-card.is-selected {
-  box-shadow: 0 0 0 1px #4ade80,
-              0 0 32px rgba(74, 222, 128, 0.32),
-              0 20px 40px rgba(0, 0, 0, 0.1);
-}
-
 /* ─── Selectable chips (styles, build types, project types, interests) ────── */
 .chip {
   display: inline-flex;
@@ -2699,7 +2123,10 @@ body {
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   user-select: none;
-  white-space: nowrap;
+  /* `white-space: nowrap` used to live here. A chip cannot shrink below its
+     text, so a long label ("Custom Commission") could push past a 375px
+     viewport. Allowing the label to wrap keeps the pill inside the screen. */
+  max-width: 100%;
 }
 .chip-icon {
   flex-shrink: 0;
@@ -3290,15 +2717,8 @@ a.social-link-btn:hover {
 
 /* ─── Onboarding responsive ───────────────────────────────────────────────── */
 @media (max-width: 767px) {
-  .role-card { padding: 20px; border-radius: 22px; gap: 12px; }
-  .role-card .role-icon { width: 40px; height: 40px; font-size: 20px; border-radius: 12px; }
   .step-dot { width: 24px; height: 24px; font-size: 11px; }
   .upload-tile.banner-tile { aspect-ratio: 5 / 2; }
-}
-
-/* On tall, large screens keep cards visible above the fold */
-@media (min-height: 800px) and (min-width: 1024px) {
-  .role-card { padding: 22px; gap: 12px; }
 }
 
 @media (min-width: 1800px) {

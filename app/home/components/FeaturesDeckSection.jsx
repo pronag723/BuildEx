@@ -134,13 +134,9 @@ export default function FeaturesDeckSection() {
             <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80]" />
             What you get
           </span>
-          <h2 className="text-4xl font-semibold mb-4">
+          <h2 className="text-4xl font-semibold">
             What you actually <span className="text-[#4ade80]">get</span>
           </h2>
-          <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-            Swipe through what the site does — and what it deliberately leaves
-            to you and the builder.
-          </p>
         </div>
 
         <div className="features-deck-wrap">

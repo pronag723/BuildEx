@@ -5,7 +5,7 @@ export default function robots() {
     rules: [
       {
         userAgent: "*",
-        allow: ["/", "/builders/", "/builders/profile/"],
+        allow: ["/", "/about/", "/builders/", "/builders/profile/"],
         disallow: [
           "/account/",
           "/admin/",

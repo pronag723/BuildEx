@@ -7,8 +7,10 @@
 // promise this copy has to match.
 // ─────────────────────────────────────────────────────────────────────────────
 
+// The nav for /about. The feed is the site root now, so "Builders" is a route
+// and everything else is an in-page anchor on this one page.
 export const navItems = [
-  { href: "/builders", label: "Browse Builders" },
+  { href: "/", label: "Builders" },
   { href: "#projects", label: "Showcase" },
   { href: "#how-it-works", label: "How It Works" },
   { href: "#features", label: "What You Get" },

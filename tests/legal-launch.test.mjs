@@ -66,17 +66,23 @@ test("the terms say what BuildEx is, and what it is not responsible for", () => 
   assert.match(legalDocs, /does not mediate, arbitrate, investigate or decide disputes/);
 });
 
-// Someone must be able to read, on the landing page itself, that the deal is
-// not with us — not only by clicking through to the terms.
-test("the landing page states that deals and payments are direct", () => {
+// Someone must be able to read, in the UI itself, that the deal is not with
+// us — not only by clicking through to the terms.
+//
+// This used to require the disclaimer in BOTH the hero and the How It Works
+// section. Those two copies were removed in the interface pass: the hero and
+// the steps were carrying the same paragraph twice on one page, and the feed
+// (not that page) is the landing page now, so neither copy was guaranteed to
+// be seen at all. It moved to the site footer instead, which renders on the
+// feed, /about, profiles, chats, account and the legal pages — so the sentence
+// is now on EVERY page rather than two sections of one. Keep it that way: if
+// the footer stops rendering it, this must fail.
+test("the site states that deals and payments are direct", () => {
   const data = HOME_COPY.find(([path]) => path === "app/home/data.js")[1];
   assert.match(data, /All arrangements and payments happen directly between the client and the builder/);
 
-  const hero = HOME_COPY.find(([path]) => path.endsWith("HeroSection.jsx"))[1];
-  const steps = HOME_COPY.find(([path]) => path.endsWith("HowItWorksSection.jsx"))[1];
-  for (const source of [hero, steps]) {
-    assert.match(source, /DIRECTORY_DISCLAIMER/);
-  }
+  const footer = HOME_COPY.find(([path]) => path.endsWith("SiteFooter.jsx"))[1];
+  assert.match(footer, /DIRECTORY_DISCLAIMER/);
 });
 
 test("the landing page makes no payment, protection or vetting claim", () => {

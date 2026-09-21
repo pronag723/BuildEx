@@ -16,14 +16,13 @@
 import { Icon } from "../../../lib/icons";
 import { readContactLinks } from "../../../lib/onboarding/contactLinks";
 
-export default function SocialLinks({ contactLinks, className = "", emptyHint = null }) {
+export default function SocialLinks({ contactLinks, className = "" }) {
   const links = readContactLinks(contactLinks);
 
-  if (links.length === 0) {
-    return emptyHint ? (
-      <p className="text-sm text-gray-500 italic">{emptyHint}</p>
-    ) : null;
-  }
+  // A builder with no published links renders nothing at all. The `emptyHint`
+  // prop that used to print an apology here went with the rest of the
+  // explanatory copy — an absent row of buttons needs no caption.
+  if (links.length === 0) return null;
 
   return (
     <div className={`flex flex-wrap gap-2 ${className}`}>

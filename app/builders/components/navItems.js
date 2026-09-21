@@ -5,12 +5,12 @@
 // state. This replaces the old hardcoded `active: true` on "Browse Builders",
 // which incorrectly stayed highlighted on every page (e.g. /account).
 
+// The feed is the site root; the explanatory page it replaced now lives at
+// /about, and its sections are anchors on that page.
 export const catalogNavItems = [
-  { path: "/", label: "Home" },
-  { path: "/builders", label: "Browse Builders" },
-  { path: "/#how-it-works", label: "How It Works" },
-  { path: "/#features", label: "What You Get" },
-  { path: "/#why-buildex", label: "What We Are" },
+  { path: "/", label: "Builders" },
+  { path: "/about", label: "About" },
+  { path: "/about#how-it-works", label: "How It Works" },
 ];
 
 export function isNavActive(pathname, path) {

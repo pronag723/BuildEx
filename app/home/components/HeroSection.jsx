@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { withBase } from "../utils";
-import { DIRECTORY_DISCLAIMER } from "../data";
 import { fetchBuilders } from "../../builders/data/fetchBuilders";
 import { Icon } from "../../../lib/icons";
 
@@ -58,8 +57,8 @@ export default function HeroSection({ heroVisualRef, onAnchorClick }) {
           </p>
           <div className="flex flex-wrap gap-4 justify-center lg:justify-start">
             <a
-              href={withBase("/builders")}
-              onClick={(event) => onAnchorClick(event, "/builders")}
+              href={withBase("/")}
+              onClick={(event) => onAnchorClick(event, "/")}
               className="hero-btn-primary px-8 py-4 bg-[#4ade80] text-black font-semibold rounded-full hover:scale-105 transition-all green-glow inline-block text-center"
             >
               Browse Builders
@@ -72,11 +71,6 @@ export default function HeroSection({ heroVisualRef, onAnchorClick }) {
               How it works
             </a>
           </div>
-          {/* The one claim-free statement everything else on this page has to
-              agree with. It sits above the fold on purpose. */}
-          <p className="text-xs leading-relaxed text-gray-500 max-w-md mx-auto lg:mx-0">
-            {DIRECTORY_DISCLAIMER}
-          </p>
         </div>
 
         <div ref={heroVisualRef} className="relative hero-visual" id="heroVisual">
@@ -125,9 +119,6 @@ export default function HeroSection({ heroVisualRef, onAnchorClick }) {
               <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-[#4ade80]/15 border border-[#4ade80]/30 text-[#4ade80]">
                 <Icon name="chat" size={13} /> On BuildEx
               </span>
-            </div>
-            <div className="mt-3 text-[11px] text-gray-500">
-              Whatever you agree is between the two of you.
             </div>
           </div>
 

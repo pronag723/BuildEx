@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import CatalogFilters from "./CatalogFilters";
+import { useScrollLock } from "../../../lib/useScrollLock";
 
 export default function FiltersMobileModal({
   open,
@@ -12,17 +13,16 @@ export default function FiltersMobileModal({
   const closeButtonRef = useRef(null);
   const previousFocusRef = useRef(null);
 
-  // Lock body scroll while open
+  // Lock body scroll while open. This used to set body.overflow inline and
+  // reset it to "" on close, which unlocked the page even when another overlay
+  // (a portfolio lightbox) still had it locked. The shared hook ref-counts.
+  useScrollLock(open);
+
   useEffect(() => {
-    document.body.style.overflow = open ? "hidden" : "";
-    if (open) {
-      previousFocusRef.current = document.activeElement;
-      closeButtonRef.current?.focus();
-    }
-    return () => {
-      document.body.style.overflow = "";
-      if (open) previousFocusRef.current?.focus();
-    };
+    if (!open) return undefined;
+    previousFocusRef.current = document.activeElement;
+    closeButtonRef.current?.focus();
+    return () => previousFocusRef.current?.focus();
   }, [open]);
 
   // Close on Escape key

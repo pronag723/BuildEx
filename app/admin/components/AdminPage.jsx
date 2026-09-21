@@ -126,7 +126,7 @@ export default function AdminPage() {
         setMobileMenuOpen={setMobileMenuOpen}
       />
 
-      <main className="relative z-10 flex-1 px-4 pt-28 pb-20">
+      <main className="relative z-10 flex-1 px-4 sm:px-6 lg:px-8 pt-28 pb-20">
         <div className="max-w-4xl mx-auto">
           {!ready ? <Spinner /> : !isAdmin ? <NotAuthorized /> : <Console />}
         </div>
@@ -154,7 +154,7 @@ function NotAuthorized() {
         This page is reserved for the BuildEx team.
       </p>
       <Link
-        href="/builders"
+        href="/"
         className="inline-block mt-5 px-4 py-2 rounded-full text-xs font-semibold border border-[#4ade80]/30 text-[#4ade80] bg-[#4ade80]/10 hover:bg-[#4ade80] hover:text-black transition-all"
       >
         Browse builders
@@ -400,7 +400,7 @@ function BuilderRow({ builder: b, onPatch }) {
       }`}
     >
       <div className="px-4 py-4 sm:px-5">
-        <div className="flex items-start gap-3">
+        <div className="flex flex-wrap items-start gap-3">
           <Avatar url={b.avatar_url} name={name} />
 
           <div className="min-w-0 flex-1">
@@ -419,7 +419,7 @@ function BuilderRow({ builder: b, onPatch }) {
             </p>
           </div>
 
-          <div className="flex items-center gap-1.5 flex-shrink-0">
+          <div className="flex w-full items-center gap-1.5 sm:w-auto sm:flex-shrink-0">
             <Link
               href={profileHref(b.username)}
               target="_blank"
@@ -1000,7 +1000,7 @@ function UsersSection() {
       ) : (
         <div className="glass rounded-2xl divide-y divide-white/[0.07] overflow-hidden">
           {users.map((u) => (
-            <div key={u.id} className="flex items-center gap-3 px-4 py-3">
+            <div key={u.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
               <Avatar url={u.avatar_url} name={u.display_name || u.username} size={34} />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-gray-200 truncate">
@@ -1010,7 +1010,7 @@ function UsersSection() {
                   {u.username ? `@${u.username}` : "no handle yet"}
                 </p>
               </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="flex flex-wrap items-center gap-2 sm:flex-shrink-0">
                 {u.is_admin && (
                   <span className="rounded-full border border-sky-400/30 bg-sky-400/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-sky-300">
                     Admin

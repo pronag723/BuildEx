@@ -520,7 +520,7 @@ export default function ChatsPage() {
         <div className="max-w-6xl mx-auto">
           <div
             ref={containerRef}
-            className="glass rounded-3xl overflow-hidden flex h-[calc(100dvh-7.5rem)] min-h-[480px]"
+            className="glass rounded-3xl overflow-hidden flex h-[calc(100dvh-7.5rem)] min-h-[360px] sm:min-h-[480px]"
           >
             {!authReady ? (
               <div className="flex-1 flex items-center justify-center">

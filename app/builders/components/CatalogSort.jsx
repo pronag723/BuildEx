@@ -27,14 +27,15 @@ const Icon = {
   ),
 };
 
-// ─── Per-option metadata (icon, accent colour, description) ──────────────────
+// ─── Per-option metadata (icon, accent colour) ───────────────────────────────
+// The per-option `desc` strings ("A fresh mix every visit", "Newest builders
+// first") are gone — the labels already say that.
 const SORT_META = {
   featured: {
     Icon: Icon.shuffle,
     text: "text-[#4ade80]",
     bg: "bg-emerald-500/10",
     ring: "ring-emerald-500/25",
-    desc: "A fresh mix every visit",
     badge: "Default",
   },
   newest: {
@@ -42,7 +43,6 @@ const SORT_META = {
     text: "text-sky-400",
     bg: "bg-sky-500/10",
     ring: "ring-sky-500/25",
-    desc: "Newest builders first",
   },
 };
 
@@ -75,13 +75,16 @@ export default function CatalogSort({ sort, onSortChange }) {
 
   return (
     <div ref={containerRef} className="relative flex-shrink-0 z-50">
-      {/* ── Trigger button ──────────────────────────────────────────────────── */}
+      {/* ── Trigger button ────────────────────────────────────────────────────
+          min-w used to be a flat 210px, which overflowed a 375px viewport once
+          the Filters button sat beside it in a flex-shrink-0 row. It only
+          applies from `sm` up now. */}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className={`flex items-center gap-2.5 glass rounded-2xl pl-2 pr-3 py-2 text-sm font-medium transition-all duration-200 whitespace-nowrap min-w-[210px] ${
+        className={`flex items-center gap-2.5 glass rounded-2xl pl-2 pr-3 py-2 text-sm font-medium transition-all duration-200 whitespace-nowrap min-w-0 sm:min-w-[190px] ${
           open
             ? "border-[#4ade80]/40 shadow-[0_0_22px_rgba(74,222,128,0.12)]"
             : "hover:border-white/25"
@@ -94,13 +97,10 @@ export default function CatalogSort({ sort, onSortChange }) {
           <CurrentIcon className="w-3.5 h-3.5" />
         </span>
 
-        {/* Label */}
-        <span className="flex-1 text-left flex flex-col leading-tight">
-          <span className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">
-            Sort by
-          </span>
-          <span className="text-sm">{current.label}</span>
-        </span>
+        {/* Label. The "Sort by" eyebrow that used to stack above the value is
+            gone — the panel's own header already says it, and dropping it lets
+            the trigger shrink to one line on a phone. */}
+        <span className="flex-1 text-left text-sm truncate">{current.label}</span>
 
         {/* Chevron */}
         <Icon.chevron
@@ -122,11 +122,10 @@ export default function CatalogSort({ sort, onSortChange }) {
       >
         <div className="glass rounded-2xl overflow-hidden shadow-2xl border border-white/10">
           {/* Header */}
-          <div className="px-4 pt-3 pb-2.5 border-b border-white/[0.07] flex items-center justify-between">
+          <div className="px-4 pt-3 pb-2.5 border-b border-white/[0.07]">
             <p className="text-[10px] uppercase tracking-widest text-gray-500 font-semibold">
               Sort builders by
             </p>
-            <span className="text-[10px] text-gray-600">{SORT_OPTIONS.length} options</span>
           </div>
 
           {/* Options */}
@@ -159,25 +158,20 @@ export default function CatalogSort({ sort, onSortChange }) {
                     <OptIcon className="w-4 h-4" />
                   </span>
 
-                  {/* Label + description */}
-                  <span className="flex-1 min-w-0 flex flex-col leading-tight">
-                    <span className="flex items-center gap-1.5">
-                      <span
-                        className={`text-sm font-semibold transition-colors ${
-                          active ? "text-white" : "text-gray-200"
-                        }`}
-                      >
-                        {opt.label}
+                  {/* Label */}
+                  <span className="flex-1 min-w-0 flex items-center gap-1.5">
+                    <span
+                      className={`text-sm font-semibold transition-colors ${
+                        active ? "text-white" : "text-gray-200"
+                      }`}
+                    >
+                      {opt.label}
+                    </span>
+                    {meta.badge && (
+                      <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-amber-400/15 text-amber-300 border border-amber-400/25">
+                        {meta.badge}
                       </span>
-                      {meta.badge && (
-                        <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-amber-400/15 text-amber-300 border border-amber-400/25">
-                          {meta.badge}
-                        </span>
-                      )}
-                    </span>
-                    <span className="text-[11px] text-gray-500 mt-0.5 truncate">
-                      {meta.desc}
-                    </span>
+                    )}
                   </span>
 
                   {/* Active check */}

@@ -435,18 +435,14 @@ function AccountActionsSection() {
       <h2 className="font-bold text-xl mb-1">Account</h2>
       <p className="text-xs text-gray-500 mb-5">Quick links and account controls.</p>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <a
-          href={withBase("/builders")}
-          className="py-3 px-4 text-sm font-medium rounded-2xl border border-white/15 hover:border-white/40 transition-all ghost-btn text-center"
-        >
-          Browse builders
-        </a>
+      {/* "Browse builders" and "Back to home" used to be two tiles; the feed is
+          the site root now, so they were the same destination twice. */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <a
           href={withBase("/")}
           className="py-3 px-4 text-sm font-medium rounded-2xl border border-white/15 hover:border-white/40 transition-all ghost-btn text-center"
         >
-          Back to home
+          Browse builders
         </a>
         <button
           type="button"
@@ -722,11 +718,33 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
             <p className="text-sm text-gray-500 mb-3 break-all">@{profile.username}</p>
           )}
 
-          {isBuilder && savedLinks.length > 0 && (
-            <SocialLinks
-              contactLinks={builderProfile?.contact_links}
-              className="justify-center sm:justify-start mb-4"
-            />
+          {/* Links used to render ONLY when at least one was saved, which meant
+              a builder who had added none saw nothing here at all — no label,
+              no hint — and had no way to discover the feature short of opening
+              Edit and scrolling past the name and handle fields. The section is
+              always present for a builder now, with an empty state that says
+              where to add them. */}
+          {isBuilder && (
+            <div className="mb-4">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                Your links
+              </p>
+              {savedLinks.length > 0 ? (
+                <SocialLinks
+                  contactLinks={builderProfile?.contact_links}
+                  className="justify-center sm:justify-start"
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={startEdit}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-white/20 px-3.5 py-1.5 text-xs font-medium text-gray-400 transition hover:border-[#4ade80]/50 hover:text-[#4ade80]"
+                >
+                  <Icon name="link" size={13} />
+                  Add Discord, Telegram, YouTube and more
+                </button>
+              )}
+            </div>
           )}
 
           {isBuilder && specialties.length > 0 && (

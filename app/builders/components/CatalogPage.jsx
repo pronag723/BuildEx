@@ -11,6 +11,7 @@ import {
 import { fetchBuilders } from "../data/fetchBuilders";
 import { resolveFeedSeed } from "../data/feedOrder";
 import { useFavorites } from "../../../lib/favorites/FavoritesContext";
+import { useScrollLock } from "../../../lib/useScrollLock";
 
 import CatalogNavbar from "./CatalogNavbar";
 import CatalogMobileMenu from "./CatalogMobileMenu";
@@ -35,6 +36,21 @@ function serializeArray(arr) {
 function readParamsFromLocation() {
   if (typeof window === "undefined") return new URLSearchParams();
   return new URLSearchParams(window.location.search);
+}
+
+// The path a filter change should write back to.
+//
+// The feed now lives at `/` (with `/builders` kept as a redirect), so this can
+// no longer be the hardcoded `/builders` it used to be — ticking a filter on
+// the homepage would have bounced the URL onto the legacy path.
+//
+// It reads window.location rather than usePathname() on purpose:
+// replaceState() resolves its argument against the document, and
+// usePathname() strips the deployment basePath, so `/` would drop the
+// `/BuildEx` prefix on GitHub Pages and rewrite the URL out of the app.
+function currentFeedPath() {
+  if (typeof window === "undefined") return "/";
+  return window.location.pathname;
 }
 
 // ─── Main client page ─────────────────────────────────────────────────────────
@@ -197,10 +213,7 @@ export default function CatalogPage() {
   }, []);
 
   // ── Mobile menu / keyboard cleanup ─────────────────────────────────────────
-  useEffect(() => {
-    document.body.style.overflow = mobileMenuOpen ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
-  }, [mobileMenuOpen]);
+  useScrollLock(mobileMenuOpen);
 
   useEffect(() => {
     function onKey(e) {
@@ -244,7 +257,7 @@ export default function CatalogPage() {
       });
 
       const qs = next.toString();
-      const url = `/builders${qs ? `?${qs}` : ""}`;
+      const url = `${currentFeedPath()}${qs ? `?${qs}` : ""}`;
       window.history.replaceState(window.history.state, "", url);
       return next;
     });
@@ -287,7 +300,7 @@ export default function CatalogPage() {
   );
 
   const handleClearAll = useCallback(() => {
-    window.history.replaceState(window.history.state, "", "/builders");
+    window.history.replaceState(window.history.state, "", currentFeedPath());
     setParams(new URLSearchParams());
   }, []);
 
@@ -370,33 +383,35 @@ export default function CatalogPage() {
       <main>
         {/* ── Page header ─────────────────────────────────────────────────── */}
         <section className="catalog-page-header pt-32 pb-10">
-          <div className="max-w-7xl mx-auto px-6">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="catalog-header-content">
-              <h1 className="catalog-heading reveal text-4xl sm:text-5xl font-extrabold tracking-tight leading-tight mb-3">
+              {/* The paragraph that used to sit under this heading explained
+                  what a directory is. This is the landing page now — the work
+                  below says it better than a sentence could. */}
+              <h1 className="catalog-heading reveal text-4xl sm:text-5xl font-extrabold tracking-tight leading-tight">
                 Find a <span className="text-[#4ade80]">Minecraft</span> Builder
               </h1>
-              <p className="catalog-header-description reveal text-gray-400 text-base sm:text-lg max-w-xl">
-                A directory of builders and their portfolios. Browse the work,
-                then message anyone here directly to talk about your project.
-              </p>
             </div>
           </div>
         </section>
 
         {/* ── Catalog body ─────────────────────────────────────────────────── */}
         <section className="pb-24">
-          <div className="max-w-7xl mx-auto px-6">
-            <div>
+          {/* The `<div><div className="min-w-0">` pair that used to wrap this
+              was the left column of a two-column catalog whose filter sidebar
+              was removed; filters live in the drawer now, so the wrapper had
+              nothing left to sit beside. */}
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-              {/* ── Main content ─────────────────────────────────────────── */}
-              <div className="min-w-0">
-
-                {/* Toolbar — relative + z-40 so the sort dropdown panel
-                    paints above the offer grid below (the .reveal class
+                {/* Toolbar — relative + z-30 so the sort dropdown panel
+                    paints above the card grid below (the .reveal class
                     creates a stacking context via transform). */}
                 <div className="flex flex-col sm:flex-row gap-3 mb-5 reveal relative z-30 isolate">
                   <CatalogSearch query={query} onQueryChange={handleQueryChange} />
-                  <div className="flex gap-2 flex-shrink-0">
+                  {/* Wraps rather than clipping: this row used to be
+                      flex-shrink-0 and overflowed a 375px viewport, taking the
+                      active-filter badge with it (body is overflow-x-hidden). */}
+                  <div className="flex gap-2 flex-wrap sm:flex-nowrap sm:flex-shrink-0">
                     <CatalogSort sort={sort} onSortChange={handleSortChange} />
 
                     {/* Mobile filter button */}
@@ -489,8 +504,6 @@ export default function CatalogPage() {
                     />
                   </>
                 )}
-              </div>
-            </div>
           </div>
         </section>
       </main>
