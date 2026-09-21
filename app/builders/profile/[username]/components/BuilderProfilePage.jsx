@@ -6,8 +6,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import CatalogNavbar from "../../../components/CatalogNavbar";
 import CatalogMobileMenu from "../../../components/CatalogMobileMenu";
-import SiteFooter from "../../../../home/components/SiteFooter";
-import { publicAsset, withBase } from "../../../../home/utils";
+import { publicAsset } from "../../../../home/utils";
 import Avatar from "../../../../../lib/ui/Avatar";
 import { useAuthGate } from "../../../../../lib/auth/useAuthGate";
 import SocialLinks from "../../../components/SocialLinks";
@@ -15,13 +14,6 @@ import { useFavorites } from "../../../../../lib/favorites/FavoritesContext";
 import { useScrollLock } from "../../../../../lib/useScrollLock";
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
-function IconCheck({ className = "w-4 h-4" }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <polyline points="20 6 9 17 4 12" />
-    </svg>
-  );
-}
 function IconChevron({ className = "w-4 h-4" }) {
   return (
     <svg className={className} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -146,7 +138,7 @@ function PortfolioCarousel({ items }) {
 }
 
 // ─── Contact sidebar ─────────────────────────────────────────────────────────
-function ContactSidebar({ builder, onShowSoon, onContact }) {
+function ContactSidebar({ builder, onContact }) {
   return (
     <div className="glass rounded-3xl p-5 builder-sidebar-sticky space-y-4">
       {/* Avatar + header */}
@@ -174,11 +166,13 @@ function ContactSidebar({ builder, onShowSoon, onContact }) {
         </div>
       </div>
 
-      {/* CTA */}
+      {/* CTA. Dark-secondary until the revamp, because "Order Now" sat above it
+          in green. Orders are gone — messaging the builder is the only thing
+          this page asks anyone to do, so it reads as the primary action. */}
       <button
         type="button"
         onClick={onContact}
-        className="w-full py-3.5 rounded-full border border-white/15 bg-white/5 text-gray-200 font-semibold text-base hover:bg-white/10 hover:border-white/30 transition-all flex items-center justify-center gap-2"
+        className="w-full py-3.5 rounded-full bg-[#4ade80] text-black font-bold text-base green-glow hover:bg-[#22c55e] transition-all flex items-center justify-center gap-2"
       >
         <IconChat className="w-4 h-4" />
         Contact Builder
@@ -235,16 +229,6 @@ export default function BuilderProfilePage({ builder }) {
       { redirectTo: target }
     );
   }, [gate, router, builder.username]);
-
-  const requireAuthThenSoon = useCallback(
-    (msg) => {
-      gate(() => {
-        setToast(msg);
-        setTimeout(() => setToast(null), 3500);
-      });
-    },
-    [gate]
-  );
 
   // Theme init
   useEffect(() => {
@@ -365,28 +349,28 @@ export default function BuilderProfilePage({ builder }) {
         </div>
       </div>
 
-      <main className="relative z-10 pt-20 sm:pt-24 lg:pt-28 pb-28 sm:pb-36 lg:pb-20">
+      <main className="relative z-10 pt-20 sm:pt-24 lg:pt-28 pb-24 sm:pb-28 lg:pb-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
           {/* Breadcrumb + back button */}
-          <div className="flex items-center justify-between gap-3 mb-4 sm:mb-6 detail-fade-up flex-wrap">
-            <nav className="flex items-center gap-1.5 text-sm text-gray-500 flex-wrap" aria-label="Breadcrumb">
+          <div className="flex items-center justify-between gap-2 sm:gap-3 mb-4 sm:mb-6 detail-fade-up">
+            <nav className="flex min-w-0 items-center gap-1.5 text-xs sm:text-sm text-gray-500" aria-label="Breadcrumb">
               {/* "Home" and "Builders" were separate crumbs until the feed
                   became the site root; they now point at the same page. */}
-              <Link href="/" className="hover:text-[#4ade80] transition-colors">
+              <Link href="/" className="flex-shrink-0 hover:text-[#4ade80] transition-colors">
                 Builders
               </Link>
-              <IconChevron className="w-3 h-3 opacity-50" />
-              <span className="truncate max-w-[200px] sm:max-w-xs" aria-current="page">{builder.display_name}</span>
+              <IconChevron className="w-3 h-3 flex-shrink-0 opacity-50" />
+              <span className="truncate" aria-current="page">{builder.display_name}</span>
             </nav>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-shrink-0 items-center gap-2">
               {canFavorite && builder.id && (
                 <button
                   type="button"
                   onClick={() => toggleFavorite(builder.id, "builder")}
                   aria-pressed={favorited}
                   aria-label={favorited ? "Remove from favorites" : "Add to favorites"}
-                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold border transition-all ${
+                  className={`inline-flex items-center gap-2 rounded-full px-3 py-2 sm:px-4 text-xs font-semibold border transition-all ${
                     favorited
                       ? "bg-[#4ade80] text-black border-[#4ade80] shadow-[0_0_18px_rgba(74,222,128,0.4)]"
                       : "border-white/15 text-gray-300 bg-white/5 hover:border-[#4ade80]/50 hover:text-[#4ade80]"
@@ -404,15 +388,15 @@ export default function BuilderProfilePage({ builder }) {
                   >
                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                   </svg>
-                  {favorited ? "Saved" : "Save"}
+                  <span className="hidden xs:inline">{favorited ? "Saved" : "Save"}</span>
                 </button>
               )}
               <Link
                 href="/"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold border border-[#4ade80]/30 text-[#4ade80] bg-[#4ade80]/10 hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.35)] transition-all"
+                className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full px-3 py-2 sm:px-4 text-xs font-semibold border border-[#4ade80]/30 text-[#4ade80] bg-[#4ade80]/10 hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.35)] transition-all"
               >
-                <IconChevron className="w-3 h-3 rotate-180" />
-                Back to Builders
+                <IconChevron className="w-3 h-3 flex-shrink-0 rotate-180" />
+                <span className="whitespace-nowrap">Back<span className="hidden xs:inline"> to Builders</span></span>
               </Link>
             </div>
           </div>
@@ -520,7 +504,7 @@ export default function BuilderProfilePage({ builder }) {
 
             {/* RIGHT: Sticky contact sidebar */}
             <div className="hidden lg:block lg:sticky lg:top-24 lg:self-start">
-              <ContactSidebar builder={builder} onShowSoon={requireAuthThenSoon} onContact={contactBuilder} />
+              <ContactSidebar builder={builder} onContact={contactBuilder} />
             </div>
           </div>
         </div>
@@ -532,7 +516,7 @@ export default function BuilderProfilePage({ builder }) {
           <button
             type="button"
             onClick={contactBuilder}
-            className="flex-1 py-2.5 sm:py-3 px-4 rounded-full border border-white/15 bg-white/5 text-gray-200 font-semibold text-sm hover:bg-white/10 hover:border-white/30 transition-all flex items-center justify-center gap-1.5"
+            className="flex-1 py-2.5 sm:py-3 px-4 rounded-full bg-[#4ade80] text-black font-bold text-sm green-glow hover:bg-[#22c55e] transition-all flex items-center justify-center gap-1.5"
           >
             <IconChat className="w-4 h-4" />
             Contact Builder
@@ -540,7 +524,6 @@ export default function BuilderProfilePage({ builder }) {
         </div>
       </div>
 
-      <SiteFooter />
     </div>
   );
 }

@@ -18,7 +18,7 @@ import {
   // app surfaces (chat / admin / profile / onboarding)
   ShieldCheck, MessageCircle, Calendar, Blocks, Info, Check, X,
   // flow / misc
-  Search, Sun, Moon, LogOut,
+  Search, Sun, Moon, LogOut, ChevronDown,
   // contact / social links
   Send, AtSign, CirclePlay, Video, Music,
   // moderation console
@@ -57,6 +57,7 @@ export const ICONS = {
   sun: Sun,
   moon: Moon,
   logout: LogOut,
+  chevronDown: ChevronDown,
   // contact / social links (builder_profiles.contact_links). lucide ships no
   // brand marks, so each platform borrows the closest semantic glyph — one
   // coherent family beats eight mismatched logos.

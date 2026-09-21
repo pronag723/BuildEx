@@ -49,6 +49,10 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
   const { canFavorite, isFavorite, toggleFavorite } = useFavorites();
   const favorited = isFavorite(builder.id, "builder");
 
+  // Below `sm` the card has room for two specialty chips, above it three — so
+  // the "+N" badge is a different number on each side of that breakpoint.
+  const narrowOverflow = Math.max(0, builder.specialties.length - 2);
+
   const go = (e, dir) => {
     // Keep arrow clicks inside the carousel — never follow the card's link.
     e.preventDefault();
@@ -89,12 +93,12 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
     >
       {/* ── Portfolio carousel (full-bleed, swipeable thumbnails) ──────── */}
       <div
-        className="group/media card-carousel relative h-48 sm:h-72 flex-shrink-0 overflow-hidden bg-black/40"
+        className="group/media card-carousel relative h-32 xs:h-40 sm:h-72 flex-shrink-0 overflow-hidden bg-black/40"
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
       >
         {count === 0 ? (
-          <div className="w-full h-full bg-white/[0.03] flex items-center justify-center text-gray-600 text-sm">
+          <div className="w-full h-full bg-white/[0.03] flex items-center justify-center px-2 text-center text-gray-600 text-[11px] sm:text-sm">
             Portfolio coming soon
           </div>
         ) : (
@@ -144,17 +148,17 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
               type="button"
               aria-label="Previous build"
               onClick={(e) => go(e, -1)}
-              className="carousel-arrow absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 z-10 w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-full bg-[#4ade80]/25 text-white border border-[#4ade80]/50 backdrop-blur-md shadow-[0_2px_10px_rgba(0,0,0,0.3)] hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.55)] transition-all duration-200"
+              className="carousel-arrow absolute left-1.5 xs:left-2.5 sm:left-3 top-1/2 -translate-y-1/2 z-10 w-7 h-7 xs:w-8 xs:h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-full bg-[#4ade80]/25 text-white border border-[#4ade80]/50 backdrop-blur-md shadow-[0_2px_10px_rgba(0,0,0,0.3)] hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.55)] transition-all duration-200"
             >
-              <ChevronIcon className="w-5 h-5 rotate-180" />
+              <ChevronIcon className="w-4 h-4 sm:w-5 sm:h-5 rotate-180" />
             </button>
             <button
               type="button"
               aria-label="Next build"
               onClick={(e) => go(e, 1)}
-              className="carousel-arrow absolute right-2.5 sm:right-3 top-1/2 -translate-y-1/2 z-10 w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-full bg-[#4ade80]/25 text-white border border-[#4ade80]/50 backdrop-blur-md shadow-[0_2px_10px_rgba(0,0,0,0.3)] hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.55)] transition-all duration-200"
+              className="carousel-arrow absolute right-1.5 xs:right-2.5 sm:right-3 top-1/2 -translate-y-1/2 z-10 w-7 h-7 xs:w-8 xs:h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-full bg-[#4ade80]/25 text-white border border-[#4ade80]/50 backdrop-blur-md shadow-[0_2px_10px_rgba(0,0,0,0.3)] hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.55)] transition-all duration-200"
             >
-              <ChevronIcon className="w-5 h-5" />
+              <ChevronIcon className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
 
             {/* Slide dots */}
@@ -179,14 +183,14 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
         {/* Presence — top left, and only when the builder is actually online
             (a real heartbeat on profiles.last_seen_at, see lib/presence). */}
         {builder.online && (
-          <div className="absolute top-3 left-3 z-10 px-2.5 py-1 rounded-full text-xs bg-black/60 text-[#4ade80] backdrop-blur-sm border border-[#4ade80]/30 flex items-center gap-1.5">
+          <div className="absolute top-2 left-2 sm:top-3 sm:left-3 z-10 px-1.5 py-1 xs:px-2.5 rounded-full text-[11px] sm:text-xs bg-black/60 text-[#4ade80] backdrop-blur-sm border border-[#4ade80]/30 flex items-center gap-1.5" title="Online now">
             <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80] online-dot" />
-            Online
+            <span className="hidden xs:inline">Online</span>
           </div>
         )}
 
         {/* Top-right cluster — favorite toggle + portfolio count */}
-        <div className="absolute top-3 right-3 z-20 flex items-center gap-2">
+        <div className="absolute top-2 right-2 sm:top-3 sm:right-3 z-20 flex items-center gap-1.5 sm:gap-2">
           {canFavorite && (
             <button
               type="button"
@@ -194,65 +198,73 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
               aria-pressed={favorited}
               aria-label={favorited ? "Remove from favorites" : "Add to favorites"}
               title={favorited ? "Remove from favorites" : "Add to favorites"}
-              className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-full backdrop-blur-md border transition-all duration-200 ${
+              className={`w-7 h-7 xs:w-8 xs:h-8 sm:w-9 sm:h-9 flex-shrink-0 flex items-center justify-center rounded-full backdrop-blur-md border transition-all duration-200 ${
                 favorited
                   ? "bg-[#4ade80] text-black border-[#4ade80] shadow-[0_0_16px_rgba(74,222,128,0.5)]"
                   : "bg-black/60 text-white border-white/15 hover:border-[#4ade80]/60 hover:text-[#4ade80] card-fav-btn"
               }`}
             >
-              <HeartIcon className="w-4 h-4" filled={favorited} />
+              <HeartIcon className="w-3.5 h-3.5 xs:w-4 xs:h-4" filled={favorited} />
             </button>
           )}
-          <div className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[11px] sm:text-xs bg-black/60 text-white/70 backdrop-blur-sm border border-white/10">
-            {builder.portfolio.length} {builder.portfolio.length === 1 ? "build" : "builds"} in portfolio
+          <div className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[10px] xs:text-[11px] sm:text-xs bg-black/60 text-white/70 backdrop-blur-sm border border-white/10 whitespace-nowrap">
+            {builder.portfolio.length} {builder.portfolio.length === 1 ? "build" : "builds"}
+            <span className="hidden sm:inline"> in portfolio</span>
           </div>
         </div>
       </div>
 
       {/* ── Builder info ──────────────────────────────────────── */}
       <div
-        className="p-3.5 sm:p-5 flex flex-col gap-2.5 sm:gap-3 flex-1"
+        className="p-2.5 xs:p-3.5 sm:p-5 flex flex-col gap-2 xs:gap-2.5 sm:gap-3 flex-1"
         onMouseEnter={() => setInfoHover(true)}
         onMouseLeave={() => setInfoHover(false)}
       >
         {/* Header */}
-        <div className="flex items-center gap-2.5 sm:gap-3">
+        <div className="flex items-center gap-2 xs:gap-2.5 sm:gap-3">
           {builder.avatar ? (
             <img
               src={builder.avatar}
               alt={builder.display_name}
-              className="w-9 h-9 sm:w-11 sm:h-11 rounded-full object-cover ring-2 ring-[#4ade80]/25 flex-shrink-0"
+              className="w-8 h-8 xs:w-9 xs:h-9 sm:w-11 sm:h-11 rounded-full object-cover ring-2 ring-[#4ade80]/25 flex-shrink-0"
               loading="lazy"
               decoding="async"
             />
           ) : (
-            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-[#4ade80]/15 border border-[#4ade80]/30 ring-2 ring-[#4ade80]/25 flex-shrink-0 flex items-center justify-center text-[#4ade80] font-bold">
+            <div className="w-8 h-8 xs:w-9 xs:h-9 sm:w-11 sm:h-11 rounded-full bg-[#4ade80]/15 border border-[#4ade80]/30 ring-2 ring-[#4ade80]/25 flex-shrink-0 flex items-center justify-center text-[#4ade80] font-bold text-sm sm:text-base">
               {(builder.display_name || "B").charAt(0).toUpperCase()}
             </div>
           )}
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <p className="text-sm sm:text-base font-bold truncate leading-tight min-w-0">
+              <p className="text-[13px] xs:text-sm sm:text-base font-bold truncate leading-tight min-w-0">
                 {builder.display_name}
               </p>
             </div>
-            <p className="text-xs text-gray-500">@{builder.username}</p>
+            <p className="text-[11px] sm:text-xs text-gray-500 truncate">@{builder.username}</p>
           </div>
         </div>
 
         {/* Specialties */}
         {builder.specialties.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {builder.specialties.slice(0, 3).map((s) => (
+          <div className="flex flex-wrap gap-1 xs:gap-1.5">
+            {builder.specialties.slice(0, 3).map((s, i) => (
               <span
                 key={s}
-                className="px-2 py-0.5 text-[11px] rounded-full bg-white/5 border border-white/10 text-gray-400"
+                className={`px-1.5 xs:px-2 py-0.5 text-[10px] xs:text-[11px] rounded-full bg-white/5 border border-white/10 text-gray-400 ${
+                  i === 2 ? "hidden sm:inline-block" : ""
+                }`}
               >
                 {s}
               </span>
             ))}
+            {narrowOverflow > 0 && (
+              <span className="sm:hidden px-1.5 xs:px-2 py-0.5 text-[10px] xs:text-[11px] rounded-full bg-white/5 border border-white/10 text-gray-500">
+                +{narrowOverflow}
+              </span>
+            )}
             {builder.specialties.length > 3 && (
-              <span className="px-2 py-0.5 text-[11px] rounded-full bg-white/5 border border-white/10 text-gray-500">
+              <span className="hidden sm:inline-block px-2 py-0.5 text-[11px] rounded-full bg-white/5 border border-white/10 text-gray-500">
                 +{builder.specialties.length - 3}
               </span>
             )}
@@ -261,16 +273,22 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
 
         {/* Bio one-liner */}
         {builder.bio && (
-          <p className="text-xs text-gray-400 line-clamp-1 sm:line-clamp-2 leading-relaxed">
-            {builder.bio}
-          </p>
+          /* The wrapper carries the "not on the narrowest cards" rule. Putting
+             `hidden xs:block` on the paragraph itself would win over the
+             `display: -webkit-box` that line-clamp needs, and the bio would run
+             to its full length instead of clamping. */
+          <div className="hidden xs:block">
+            <p className="text-[11px] sm:text-xs text-gray-400 line-clamp-1 sm:line-clamp-2 leading-relaxed">
+              {builder.bio}
+            </p>
+          </div>
         )}
 
         {/* Footer — CTA */}
-        <div className="mt-auto pt-2.5 sm:pt-3 border-t border-white/[0.08] flex items-center justify-end gap-3">
-          <span className="offer-card-view-btn inline-flex items-center gap-1.5 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full bg-[#4ade80]/12 border border-[#4ade80]/30 text-[#4ade80] text-xs font-semibold transition-all duration-200 group-hover:bg-[#4ade80] group-hover:text-black group-hover:shadow-[0_0_18px_rgba(74,222,128,0.45)] group-hover:border-[#4ade80]">
+        <div className="mt-auto pt-2 xs:pt-2.5 sm:pt-3 border-t border-white/[0.08] flex items-center justify-center xs:justify-end gap-3">
+          <span className="offer-card-view-btn inline-flex items-center gap-1 xs:gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full whitespace-nowrap bg-[#4ade80]/12 border border-[#4ade80]/30 text-[#4ade80] text-[11px] xs:text-xs font-semibold transition-all duration-200 group-hover:bg-[#4ade80] group-hover:text-black group-hover:shadow-[0_0_18px_rgba(74,222,128,0.45)] group-hover:border-[#4ade80]">
             View Profile
-            <ArrowIcon className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
+            <ArrowIcon className="w-3 h-3 xs:w-3.5 xs:h-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
           </span>
         </div>
       </div>

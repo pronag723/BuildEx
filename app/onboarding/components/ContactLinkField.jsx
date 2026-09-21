@@ -11,6 +11,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { Icon } from "../../../lib/icons";
+import PlatformSelect from "./PlatformSelect";
 import {
   CONTACT_LINK_MAX,
   CONTACT_LINK_TYPES,
@@ -71,37 +72,28 @@ export default function ContactLinkField({
           const trimmed = String(row.value || "").trim();
           const error = trimmed ? contactLinkError(row.type, trimmed) : null;
           return (
-            <div key={`${row.type}-${i}`} className="contact-link-row">
+            // Keyed by position, not by platform. The key used to include
+            // row.type, so picking a different platform gave the row a new key
+            // and React threw the whole row away and built another one — which
+            // blew away the keyboard focus sitting on the picker mid-selection.
+            // Every value in a row comes from props, so the position is a safe
+            // identity even as rows are added and removed.
+            <div key={i} className="contact-link-row">
               {/* A grid rather than a flex row: on a phone the picker and the
                   value squeezed each other down to a few characters apiece, so
                   narrow screens put the picker on its own line above the
                   value, and `sm` and up keep the single row. */}
               <div className="contact-link-grid">
-                <div className="contact-link-cell-type relative">
-                  {/* A native select keeps the keyboard and mobile pickers
-                      working; the icon in front of it is decorative. */}
-                  <Icon
-                    name={meta.icon}
-                    size={14}
-                    className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                  />
-                  <select
-                    value={row.type}
-                    onChange={(e) => update(i, { type: e.target.value })}
-                    aria-label="Link type"
-                    className="onb-input contact-link-select"
-                  >
-                    {CONTACT_LINK_TYPES.map((t) => (
-                      <option
-                        key={t.key}
-                        value={t.key}
-                        disabled={t.key !== row.type && used.has(t.key)}
-                      >
-                        {t.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {/* A styled listbox rather than a native <select>: the OS menu
+                    a select opens cannot be themed, and it gave no sign of
+                    which platforms were already taken. See PlatformSelect. */}
+                <PlatformSelect
+                  className="contact-link-cell-type"
+                  value={row.type}
+                  options={CONTACT_LINK_TYPES}
+                  usedKeys={used}
+                  onChange={(type) => update(i, { type })}
+                />
 
                 <input
                   type="text"

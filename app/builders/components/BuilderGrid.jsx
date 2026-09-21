@@ -19,9 +19,12 @@ export default function BuilderGrid({ builders, animKey }) {
   }
 
   return (
+    /* Two per row on every width. A phone used to show one card at a time,
+       which turned browsing into scrolling past one builder per screen; the
+       card below is sized so the narrow column still reads. */
     <div
       key={animKey}
-      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-5"
+      className="grid grid-cols-2 lg:grid-cols-3 gap-2.5 xs:gap-3.5 sm:gap-5"
     >
       {builders.map((builder, index) => (
         <BuilderCard
