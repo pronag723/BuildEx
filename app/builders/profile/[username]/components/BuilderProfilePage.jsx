@@ -12,6 +12,8 @@ import { useAuthGate } from "../../../../../lib/auth/useAuthGate";
 import SocialLinks from "../../../components/SocialLinks";
 import { useFavorites } from "../../../../../lib/favorites/FavoritesContext";
 import { useScrollLock } from "../../../../../lib/useScrollLock";
+import { useT } from "../../../../../lib/i18n/LanguageProvider";
+import { styleChipLabel } from "../../../../../lib/i18n/labels.mjs";
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 function IconChevron({ className = "w-4 h-4" }) {
@@ -37,6 +39,7 @@ function IconChat({ className = "w-5 h-5" }) {
 }
 // ─── Portfolio carousel ──────────────────────────────────────────────────────
 function PortfolioCarousel({ items }) {
+  const t = useT();
   const [index, setIndex] = useState(0);
   const [lightboxIndex, setLightboxIndex] = useState(null);
   const count = items.length;
@@ -69,7 +72,7 @@ function PortfolioCarousel({ items }) {
         style={{ transform: `translateX(-${index * 100}%)` }}
       >
         {items.map((item, itemIndex) => (
-          <button key={item.id} type="button" onClick={() => setLightboxIndex(itemIndex)} className="group/photo relative w-full flex-shrink-0 aspect-[16/9] cursor-zoom-in overflow-hidden text-left" aria-label={`Open ${item.title || "portfolio image"} full screen`}>
+          <button key={item.id} type="button" onClick={() => setLightboxIndex(itemIndex)} className="group/photo relative w-full flex-shrink-0 aspect-[16/9] cursor-zoom-in overflow-hidden text-left" aria-label={t("profile.openFullScreen", { title: item.title || t("profile.portfolioImageAria") })}>
             <img
               src={publicAsset(item.thumbnail)}
               alt={item.title}
@@ -78,7 +81,7 @@ function PortfolioCarousel({ items }) {
               decoding="async"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
-            <span className="absolute right-4 top-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/55 px-3 py-2 text-xs font-semibold text-white opacity-0 backdrop-blur-md transition-all group-hover/photo:opacity-100 group-focus-visible/photo:opacity-100"><IconExpand />View full screen</span>
+            <span className="absolute right-4 top-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/55 px-3 py-2 text-xs font-semibold text-white opacity-0 backdrop-blur-md transition-all group-hover/photo:opacity-100 group-focus-visible/photo:opacity-100"><IconExpand />{t("profile.viewFullScreen")}</span>
           </button>
         ))}
       </div>
@@ -87,7 +90,7 @@ function PortfolioCarousel({ items }) {
         <>
           <button
             type="button"
-            aria-label="Previous build"
+            aria-label={t("card.previousBuild")}
             onClick={() => go(-1)}
             className="carousel-arrow absolute left-3 top-1/2 -translate-y-1/2 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-[#4ade80]/25 text-white border border-[#4ade80]/50 backdrop-blur-md shadow-[0_2px_10px_rgba(0,0,0,0.3)] hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.55)] transition-all duration-200"
           >
@@ -95,7 +98,7 @@ function PortfolioCarousel({ items }) {
           </button>
           <button
             type="button"
-            aria-label="Next build"
+            aria-label={t("card.nextBuild")}
             onClick={() => go(1)}
             className="carousel-arrow absolute right-3 top-1/2 -translate-y-1/2 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-[#4ade80]/25 text-white border border-[#4ade80]/50 backdrop-blur-md shadow-[0_2px_10px_rgba(0,0,0,0.3)] hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.55)] transition-all duration-200"
           >
@@ -108,7 +111,7 @@ function PortfolioCarousel({ items }) {
               <button
                 key={item.id}
                 type="button"
-                aria-label={`Go to build ${i + 1}`}
+                aria-label={t("profile.goToBuild", { n: i + 1 })}
                 onClick={() => setIndex(i)}
                 className={`h-2 rounded-full transition-all duration-200 ${
                   i === index ? "w-6 bg-[#4ade80]" : "w-2 bg-white/50 hover:bg-white/80"
@@ -120,13 +123,13 @@ function PortfolioCarousel({ items }) {
       )}
     </div>
     {lightboxImage && typeof document !== "undefined" && createPortal(
-      <div className="fixed inset-0 z-[400] flex items-center justify-center bg-black/90 p-3 backdrop-blur-xl sm:p-8" role="dialog" aria-modal="true" aria-label="Full-screen portfolio photo" onClick={() => setLightboxIndex(null)}>
-        <button type="button" onClick={() => setLightboxIndex(null)} className="absolute right-4 top-4 z-20 flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-black/60 text-2xl text-white transition hover:border-[#4ade80]/60 hover:text-[#4ade80]" aria-label="Close full-screen photo">×</button>
+      <div className="fixed inset-0 z-[400] flex items-center justify-center bg-black/90 p-3 backdrop-blur-xl sm:p-8" role="dialog" aria-modal="true" aria-label={t("profile.fullScreenPhoto")} onClick={() => setLightboxIndex(null)}>
+        <button type="button" onClick={() => setLightboxIndex(null)} className="absolute right-4 top-4 z-20 flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-black/60 text-2xl text-white transition hover:border-[#4ade80]/60 hover:text-[#4ade80]" aria-label={t("profile.closeFullScreen")}>×</button>
         <div className="relative flex h-full w-full items-center justify-center" onClick={(event) => event.stopPropagation()}>
-          <img src={publicAsset(lightboxImage.thumbnail)} alt={lightboxImage.title || "Portfolio image"} className="max-h-full max-w-full rounded-2xl object-contain shadow-2xl" />
+          <img src={publicAsset(lightboxImage.thumbnail)} alt={lightboxImage.title || t("profile.portfolioImage")} className="max-h-full max-w-full rounded-2xl object-contain shadow-2xl" />
           {count > 1 && <>
-            <button type="button" onClick={() => goLightbox(-1)} className="absolute left-1 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-[#4ade80]/45 bg-black/65 text-white backdrop-blur-md transition hover:bg-[#4ade80] hover:text-black sm:left-4" aria-label="Previous full-screen photo"><IconChevron className="h-6 w-6 rotate-180" /></button>
-            <button type="button" onClick={() => goLightbox(1)} className="absolute right-1 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-[#4ade80]/45 bg-black/65 text-white backdrop-blur-md transition hover:bg-[#4ade80] hover:text-black sm:right-4" aria-label="Next full-screen photo"><IconChevron className="h-6 w-6" /></button>
+            <button type="button" onClick={() => goLightbox(-1)} className="absolute left-1 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-[#4ade80]/45 bg-black/65 text-white backdrop-blur-md transition hover:bg-[#4ade80] hover:text-black sm:left-4" aria-label={t("profile.previousPhoto")}><IconChevron className="h-6 w-6 rotate-180" /></button>
+            <button type="button" onClick={() => goLightbox(1)} className="absolute right-1 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-[#4ade80]/45 bg-black/65 text-white backdrop-blur-md transition hover:bg-[#4ade80] hover:text-black sm:right-4" aria-label={t("profile.nextPhoto")}><IconChevron className="h-6 w-6" /></button>
           </>}
           <span className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full border border-white/10 bg-black/60 px-3 py-1.5 text-xs text-white/70 backdrop-blur-md">{lightboxIndex + 1} / {count}</span>
         </div>
@@ -139,6 +142,7 @@ function PortfolioCarousel({ items }) {
 
 // ─── Contact sidebar ─────────────────────────────────────────────────────────
 function ContactSidebar({ builder, onContact }) {
+  const t = useT();
   return (
     <div className="glass rounded-3xl p-5 builder-sidebar-sticky space-y-4">
       {/* Avatar + header */}
@@ -158,10 +162,10 @@ function ContactSidebar({ builder, onContact }) {
           {builder.online ? (
             <p className="text-xs text-[#4ade80] flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80] online-dot" />
-              Online now
+              {t("card.onlineNow")}
             </p>
           ) : (
-            <p className="text-xs text-gray-500">Offline</p>
+            <p className="text-xs text-gray-500">{t("profile.offline")}</p>
           )}
         </div>
       </div>
@@ -175,7 +179,7 @@ function ContactSidebar({ builder, onContact }) {
         className="w-full py-3.5 rounded-full bg-[#4ade80] text-black font-bold text-base green-glow hover:bg-[#22c55e] transition-all flex items-center justify-center gap-2"
       >
         <IconChat className="w-4 h-4" />
-        Contact Builder
+        {t("profile.contactBuilder")}
       </button>
 
       {/* Whatever links this builder chose to publish; nothing at all when they
@@ -193,6 +197,7 @@ function ContactSidebar({ builder, onContact }) {
 
 // ─── Main page ───────────────────────────────────────────────────────────────
 export default function BuilderProfilePage({ builder }) {
+  const t = useT();
   const [theme, setTheme] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [toast, setToast] = useState(null);
@@ -354,11 +359,11 @@ export default function BuilderProfilePage({ builder }) {
 
           {/* Breadcrumb + back button */}
           <div className="flex items-center justify-between gap-2 sm:gap-3 mb-4 sm:mb-6 detail-fade-up">
-            <nav className="flex min-w-0 items-center gap-1.5 text-xs sm:text-sm text-gray-500" aria-label="Breadcrumb">
+            <nav className="flex min-w-0 items-center gap-1.5 text-xs sm:text-sm text-gray-500" aria-label={t("profile.breadcrumb")}>
               {/* "Home" and "Builders" were separate crumbs until the feed
                   became the site root; they now point at the same page. */}
               <Link href="/" className="flex-shrink-0 hover:text-[#4ade80] transition-colors">
-                Builders
+                {t("nav.builders")}
               </Link>
               <IconChevron className="w-3 h-3 flex-shrink-0 opacity-50" />
               <span className="truncate" aria-current="page">{builder.display_name}</span>
@@ -369,7 +374,7 @@ export default function BuilderProfilePage({ builder }) {
                   type="button"
                   onClick={() => toggleFavorite(builder.id, "builder")}
                   aria-pressed={favorited}
-                  aria-label={favorited ? "Remove from favorites" : "Add to favorites"}
+                  aria-label={favorited ? t("card.removeFavorite") : t("card.addFavorite")}
                   className={`inline-flex items-center gap-2 rounded-full px-3 py-2 sm:px-4 text-xs font-semibold border transition-all ${
                     favorited
                       ? "bg-[#4ade80] text-black border-[#4ade80] shadow-[0_0_18px_rgba(74,222,128,0.4)]"
@@ -388,7 +393,7 @@ export default function BuilderProfilePage({ builder }) {
                   >
                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                   </svg>
-                  <span className="hidden xs:inline">{favorited ? "Saved" : "Save"}</span>
+                  <span className="hidden xs:inline">{favorited ? t("profile.saved") : t("profile.save")}</span>
                 </button>
               )}
               <Link
@@ -396,7 +401,7 @@ export default function BuilderProfilePage({ builder }) {
                 className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full px-3 py-2 sm:px-4 text-xs font-semibold border border-[#4ade80]/30 text-[#4ade80] bg-[#4ade80]/10 hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.35)] transition-all"
               >
                 <IconChevron className="w-3 h-3 flex-shrink-0 rotate-180" />
-                <span className="whitespace-nowrap">Back<span className="hidden xs:inline"> to Builders</span></span>
+                <span className="whitespace-nowrap">{t("profile.back")}<span className="hidden xs:inline">{t("profile.toBuilders")}</span></span>
               </Link>
             </div>
           </div>
@@ -433,8 +438,8 @@ export default function BuilderProfilePage({ builder }) {
                   @{builder.username}
                   {builder.member_since && (
                     <span className="text-gray-600">
-                      {" · "}Member since{" "}
-                      {new Date(builder.member_since).getFullYear()}
+                      {" · "}
+                      {t("profile.memberSince", { year: new Date(builder.member_since).getFullYear() })}
                     </span>
                   )}
                 </p>
@@ -444,7 +449,7 @@ export default function BuilderProfilePage({ builder }) {
                   <div className="mt-2.5 flex flex-wrap justify-center sm:justify-start gap-1.5 sm:gap-2">
                     {builder.specialties.map((s) => (
                       <span key={s} className="px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[11px] sm:text-xs bg-white/5 border border-white/10 text-gray-400">
-                        {s}
+                        {styleChipLabel(s, t.lang)}
                       </span>
                     ))}
                   </div>
@@ -472,17 +477,16 @@ export default function BuilderProfilePage({ builder }) {
                   content and a border around them just adds another box. */}
               <section className="reveal">
                 <h2 className="font-bold text-lg sm:text-xl mb-3 sm:mb-4">
-                  Portfolio
+                  {t("profile.portfolio")}
                   {builder.portfolio.length > 0 && (
                     <span className="ml-2 text-sm font-normal text-gray-500">
-                      {builder.portfolio.length}{" "}
-                      {builder.portfolio.length === 1 ? "build" : "builds"}
+                      {t("card.builds", { count: builder.portfolio.length })}
                     </span>
                   )}
                 </h2>
                 {builder.portfolio.length === 0 ? (
                   <div className="rounded-3xl border border-dashed border-white/10 p-8 sm:p-12 text-center text-gray-500 text-sm">
-                    This builder hasn&apos;t added portfolio entries yet.
+                    {t("profile.noPortfolio")}
                   </div>
                 ) : (
                   <PortfolioCarousel items={builder.portfolio} />
@@ -494,7 +498,7 @@ export default function BuilderProfilePage({ builder }) {
                   page used to stack. */}
               {(builder.about || builder.bio) && (
                 <section className="reveal">
-                  <h2 className="font-bold text-lg sm:text-xl mb-2.5 sm:mb-3">About</h2>
+                  <h2 className="font-bold text-lg sm:text-xl mb-2.5 sm:mb-3">{t("profile.about")}</h2>
                   <p className="text-sm sm:text-base text-gray-400 leading-relaxed">
                     {builder.about || builder.bio}
                   </p>
@@ -519,7 +523,7 @@ export default function BuilderProfilePage({ builder }) {
             className="flex-1 py-2.5 sm:py-3 px-4 rounded-full bg-[#4ade80] text-black font-bold text-sm green-glow hover:bg-[#22c55e] transition-all flex items-center justify-center gap-1.5"
           >
             <IconChat className="w-4 h-4" />
-            Contact Builder
+            {t("profile.contactBuilder")}
           </button>
         </div>
       </div>

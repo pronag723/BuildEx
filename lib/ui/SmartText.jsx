@@ -1,9 +1,11 @@
 "use client";
 
+import { useT } from "../i18n/LanguageProvider";
+
 const URL_RE = /((?:https?:\/\/|www\.)[^\s<]+)/gi;
 const TRAILING_PUNCTUATION_RE = /[),.;!?]+$/;
 
-function compactUrlLabel(rawUrl) {
+function compactUrlLabel(rawUrl, t) {
   try {
     const url = new URL(rawUrl.startsWith("www.") ? `https://${rawUrl}` : rawUrl);
     const host = url.hostname.replace(/^www\./, "");
@@ -11,9 +13,9 @@ function compactUrlLabel(rawUrl) {
     if (host === "buildex.builders") {
       if (url.pathname.startsWith("/builders/profile")) {
         const handle = url.searchParams.get("u");
-        return handle ? `BuildEx profile · @${handle}` : "BuildEx profile";
+        return handle ? t("common.smartProfileHandle", { handle }) : t("common.smartProfile");
       }
-      return "BuildEx link";
+      return t("common.smartLink");
     }
 
     const pathPart = decodeURIComponent(url.pathname)
@@ -29,6 +31,7 @@ function compactUrlLabel(rawUrl) {
 }
 
 export default function SmartText({ children, linkClassName = "" }) {
+  const t = useT();
   const text = String(children ?? "");
   const parts = text.split(URL_RE);
 
@@ -48,7 +51,7 @@ export default function SmartText({ children, linkClassName = "" }) {
           title={rawUrl}
           className={`smart-link ${linkClassName}`}
         >
-          <span className="smart-link-label">{compactUrlLabel(rawUrl)}</span>
+          <span className="smart-link-label">{compactUrlLabel(rawUrl, t)}</span>
           <span aria-hidden="true" className="smart-link-arrow">↗</span>
         </a>
         {punctuation}

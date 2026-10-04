@@ -2,21 +2,10 @@
 
 import { publicAsset } from "../../home/utils";
 import { Icon } from "../../../lib/icons";
-
+import { useT } from "../../../lib/i18n/LanguageProvider";
 // Compact "2m / 4h / Mon / Apr 3" stamp for the inbox rows.
-function relativeStamp(iso) {
-  if (!iso) return "";
-  const then = new Date(iso);
-  const diff = Date.now() - then.getTime();
-  const min = Math.floor(diff / 60000);
-  if (min < 1) return "now";
-  if (min < 60) return `${min}m`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h`;
-  const day = Math.floor(hr / 24);
-  if (day < 7) return then.toLocaleDateString("en-US", { weekday: "short" });
-  return then.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
+import { relativeStamp } from "../../../lib/i18n/format.mjs";
+import { translateServerText } from "../../../lib/i18n/serverText.mjs";
 
 function Avatar({ name, url, size = 48 }) {
   const initial = (name || "?").trim().charAt(0).toUpperCase();
@@ -43,6 +32,8 @@ export default function ConversationList({
   onSelect,
   compact = false,
 }) {
+  const t = useT();
+
   if (loading) {
     return (
       <div className="flex-1 flex flex-col gap-2 p-3">
@@ -74,10 +65,11 @@ export default function ConversationList({
         <div className="w-14 h-14 rounded-2xl bg-[#4ade80]/10 border border-[#4ade80]/30 flex items-center justify-center text-[#4ade80] mb-4">
           <Icon name="chat" size={24} />
         </div>
-        <p className="font-semibold text-sm mb-1">No conversations yet</p>
+        <p className="font-semibold text-sm mb-1">{t("chat.noConversations")}</p>
         <p className="text-xs text-gray-500 leading-relaxed max-w-[220px]">
-          Open a builder&apos;s profile and tap{" "}
-          <span className="text-[#4ade80] font-medium">Contact Builder</span> to start chatting.
+          {t.rich("chat.noConversationsHint", {
+            cta: <span className="text-[#4ade80] font-medium">{t("profile.contactBuilder")}</span>,
+          })}
         </p>
       </div>
     );
@@ -89,7 +81,7 @@ export default function ConversationList({
         const active = c.conversation_id === activeId;
         // A conversation partner may be hiring rather than building, so never
         // fall back to "Builder" — their @handle, then a neutral word.
-        const name = c.other_display_name || c.other_username || "Member";
+        const name = c.other_display_name || c.other_username || t("common.member");
         const unread = Number(c.unread_count) || 0;
         if (compact) {
           return (
@@ -132,7 +124,7 @@ export default function ConversationList({
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-sm truncate">{name}</span>
                 <span className="text-[10px] text-gray-500 ml-auto flex-shrink-0">
-                  {relativeStamp(c.last_message_at)}
+                  {relativeStamp(c.last_message_at, t.lang)}
                 </span>
               </div>
               <div className="flex items-center gap-2 mt-0.5">
@@ -141,7 +133,7 @@ export default function ConversationList({
                     unread > 0 ? "text-gray-200 font-medium" : "text-gray-500"
                   }`}
                 >
-                  {c.last_message_preview || "No messages yet"}
+                  {translateServerText(c.last_message_preview, t.lang) || t("chat.noMessages")}
                 </p>
                 {unread > 0 && (
                   <span className="flex-shrink-0 min-w-[18px] h-[18px] px-1 rounded-full bg-[#4ade80] text-black text-[10px] font-bold flex items-center justify-center">

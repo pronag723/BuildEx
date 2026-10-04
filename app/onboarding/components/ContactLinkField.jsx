@@ -10,14 +10,15 @@
 // constraint in the database — this component only surfaces the message.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { useMemo } from "react";
 import { Icon } from "../../../lib/icons";
 import PlatformSelect from "./PlatformSelect";
+import { useT } from "../../../lib/i18n/LanguageProvider";
 import {
   CONTACT_LINK_MAX,
   CONTACT_LINK_TYPES,
   CONTACT_LINKS_MAX,
   contactLinkError,
-  contactLinkTypeMeta,
 } from "../../../lib/onboarding/contactLinks";
 
 /** The row list a parent should start from when nothing is stored yet. */
@@ -35,9 +36,22 @@ export function linkRowsValid(rows) {
 export default function ContactLinkField({
   rows,
   onChange,
-  label = "Your links",
-  hint = "Optional. Shown as buttons on your public profile.",
+  label,
+  hint,
 }) {
+  const t = useT();
+  // The platform table with its label, placeholder and hint in the current
+  // language (brand names are the same in both).
+  const options = useMemo(
+    () =>
+      CONTACT_LINK_TYPES.map((o) => ({
+        ...o,
+        label: t(`platforms.${o.key}.label`),
+        placeholder: t(`platforms.${o.key}.placeholder`),
+        hint: t(`platforms.${o.key}.hint`),
+      })),
+    [t]
+  );
   const list = rows && rows.length ? rows : emptyLinkRows();
   const used = new Set(list.map((r) => r.type));
 
@@ -61,14 +75,14 @@ export default function ContactLinkField({
   return (
     <div>
       <div className="flex items-baseline justify-between mb-1 gap-3">
-        <div className="onb-label">{label}</div>
-        <span className="text-[11px] text-gray-500">Optional</span>
+        <div className="onb-label">{label ?? t("onboarding.links.label")}</div>
+        <span className="text-[11px] text-gray-500">{t("onboarding.links.optional")}</span>
       </div>
-      <p className="text-xs text-gray-500 mb-3 leading-snug">{hint}</p>
+      <p className="text-xs text-gray-500 mb-3 leading-snug">{hint ?? t("onboarding.links.hint")}</p>
 
       <div className="space-y-3">
         {list.map((row, i) => {
-          const meta = contactLinkTypeMeta(row.type) || CONTACT_LINK_TYPES[0];
+          const meta = options.find((o) => o.key === row.type) || options[0];
           const trimmed = String(row.value || "").trim();
           const error = trimmed ? contactLinkError(row.type, trimmed) : null;
           return (
@@ -90,7 +104,7 @@ export default function ContactLinkField({
                 <PlatformSelect
                   className="contact-link-cell-type"
                   value={row.type}
-                  options={CONTACT_LINK_TYPES}
+                  options={options}
                   usedKeys={used}
                   onChange={(type) => update(i, { type })}
                 />
@@ -104,7 +118,7 @@ export default function ContactLinkField({
                   onChange={(e) => update(i, { value: e.target.value.slice(0, CONTACT_LINK_MAX) })}
                   placeholder={meta.placeholder}
                   maxLength={CONTACT_LINK_MAX}
-                  aria-label={`${meta.label} link`}
+                  aria-label={t("onboarding.links.valueAria", { platform: meta.label })}
                   aria-invalid={Boolean(error)}
                   className={`onb-input contact-link-cell-value min-w-0 ${error ? "is-error" : trimmed ? "is-success" : ""}`}
                 />
@@ -113,8 +127,8 @@ export default function ContactLinkField({
                   <button
                     type="button"
                     onClick={() => removeRow(i)}
-                    aria-label={`Remove ${meta.label} link`}
-                    title="Remove"
+                    aria-label={t("onboarding.links.removeAria", { platform: meta.label })}
+                    title={t("onboarding.links.remove")}
                     className="contact-link-cell-remove w-10 rounded-xl border border-white/10 text-gray-500 hover:text-red-300 hover:border-red-400/40 transition-colors flex items-center justify-center"
                   >
                     <Icon name="close" size={15} />
@@ -136,7 +150,7 @@ export default function ContactLinkField({
           className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border border-white/10 bg-white/[0.04] text-gray-300 hover:text-white hover:border-[#4ade80]/40 hover:bg-[#4ade80]/10 transition-all"
         >
           <span className="text-base leading-none">+</span>
-          Add another link
+          {t("onboarding.links.add")}
         </button>
       )}
     </div>

@@ -12,6 +12,7 @@ import { fetchBuilders } from "../data/fetchBuilders";
 import { resolveFeedSeed } from "../data/feedOrder";
 import { useFavorites } from "../../../lib/favorites/FavoritesContext";
 import { useScrollLock } from "../../../lib/useScrollLock";
+import { useT } from "../../../lib/i18n/LanguageProvider";
 
 import CatalogNavbar from "./CatalogNavbar";
 import CatalogMobileMenu from "./CatalogMobileMenu";
@@ -56,6 +57,8 @@ function currentFeedPath() {
 // ─── Main client page ─────────────────────────────────────────────────────────
 
 export default function CatalogPage() {
+  const t = useT();
+
   // URL search params held as local state. Synced to history via replaceState.
   // We avoid `useSearchParams()` because it forces a Suspense boundary that
   // currently hangs the page in Next 16 + React 19 with `output: "export"`.
@@ -389,7 +392,9 @@ export default function CatalogPage() {
                   what a directory is. This is the landing page now — the work
                   below says it better than a sentence could. */}
               <h1 className="catalog-heading reveal text-3xl sm:text-5xl font-extrabold tracking-tight leading-tight">
-                Find a <span className="text-[#4ade80]">Minecraft</span> Builder
+                {t.rich("catalog.heading", {
+                  mc: <span className="text-[#4ade80]">Minecraft</span>,
+                })}
               </h1>
             </div>
           </div>
@@ -423,7 +428,7 @@ export default function CatalogPage() {
                           ? "border-[#4ade80]/40 bg-[#4ade80]/10 text-[#4ade80] shadow-[0_0_24px_rgba(74,222,128,0.08)]"
                           : "hover:border-white/30 hover:bg-white/[0.07]"
                       }`}
-                      aria-label="Open filters"
+                      aria-label={t("catalog.openFilters")}
                       aria-expanded={mobileFiltersOpen}
                       aria-controls="catalog-filter-drawer"
                     >
@@ -439,7 +444,7 @@ export default function CatalogPage() {
                       >
                         <path d="M3 5h14M6 10h8M9 15h2" />
                       </svg>
-                      Filters
+                      {t("catalog.filters")}
                       {activeFilterCount > 0 && (
                         <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-[#4ade80] text-black text-[10px] font-bold rounded-full flex items-center justify-center">
                           {activeFilterCount}
@@ -452,16 +457,23 @@ export default function CatalogPage() {
                 {/* Results meta row */}
                 <div className="flex items-center justify-between mb-3.5 sm:mb-6 reveal">
                   <p className="text-sm text-gray-400">
-                    <span className="text-white font-semibold">
-                      {filteredBuilders.length}
-                    </span>{" "}
-                    {filteredBuilders.length === 1 ? "builder" : "builders"} found
+                    {t.rich("catalog.found", {
+                      count: filteredBuilders.length,
+                      n: (
+                        <span className="text-white font-semibold">
+                          {filteredBuilders.length}
+                        </span>
+                      ),
+                    })}
                     {query && (
                       <span className="ml-2">
-                        for{" "}
-                        <span className="text-[#4ade80] font-medium">
-                          &ldquo;{query}&rdquo;
-                        </span>
+                        {t.rich("catalog.forQuery", {
+                          q: (
+                            <span className="text-[#4ade80] font-medium">
+                              &ldquo;{query}&rdquo;
+                            </span>
+                          ),
+                        })}
                       </span>
                     )}
                   </p>
@@ -470,14 +482,14 @@ export default function CatalogPage() {
                   {activeFilterCount > 0 && (
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-gray-500 hidden sm:block">
-                        {activeFilterCount} filter{activeFilterCount > 1 ? "s" : ""} active
+                        {t("catalog.filtersActive", { count: activeFilterCount })}
                       </span>
                       <button
                         type="button"
                         onClick={handleClearAll}
                         className="text-xs text-[#4ade80] hover:text-green-300 transition-colors font-medium"
                       >
-                        Clear all
+                        {t("catalog.clearAll")}
                       </button>
                     </div>
                   )}
@@ -487,7 +499,7 @@ export default function CatalogPage() {
                 {buildersLoading ? (
                   <div className="flex flex-col items-center justify-center py-24 text-center">
                     <div className="w-10 h-10 rounded-full border-2 border-[#4ade80] border-t-transparent animate-spin mb-4" />
-                    <p className="text-gray-400 text-sm">Loading builders…</p>
+                    <p className="text-gray-400 text-sm">{t("catalog.loading")}</p>
                   </div>
                 ) : (
                   <>

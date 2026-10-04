@@ -7,6 +7,7 @@ import {
   PORTFOLIO_ACCEPTED_MIME,
   PORTFOLIO_MAX_FILE_MB,
 } from "../../../lib/onboarding/constants";
+import { useT } from "../../../lib/i18n/LanguageProvider";
 
 export default function AvatarUploader({
   userId,
@@ -16,6 +17,7 @@ export default function AvatarUploader({
   onError,
   size = 120,
 }) {
+  const t = useT();
   const inputRef = useRef(null);
   const [progress, setProgress] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -24,16 +26,16 @@ export default function AvatarUploader({
     const file = files?.[0];
     if (!file) return;
     if (!PORTFOLIO_ACCEPTED_MIME.includes(file.type)) {
-      onError?.("Only PNG, JPG, WebP or GIF images are accepted.");
+      onError?.(t("onboarding.upload.badType"));
       return;
     }
     if (file.size > PORTFOLIO_MAX_FILE_MB * 1024 * 1024) {
-      onError?.(`Image must be under ${PORTFOLIO_MAX_FILE_MB} MB.`);
+      onError?.(t("onboarding.upload.tooLarge", { mb: PORTFOLIO_MAX_FILE_MB }));
       return;
     }
     const supabase = getSupabaseClient();
     if (!supabase || !userId) {
-      onError?.("Couldn't reach storage. Try again in a moment.");
+      onError?.(t("onboarding.upload.noStorage"));
       return;
     }
     setBusy(true);
@@ -42,7 +44,7 @@ export default function AvatarUploader({
     setBusy(false);
     setProgress(0);
     if (error) {
-      onError?.(error.message || "Upload failed.");
+      onError?.(error.message || t("onboarding.upload.failed"));
       return;
     }
     onChange?.(url);
@@ -67,7 +69,7 @@ export default function AvatarUploader({
         }}
         className={`upload-tile avatar-tile ${value ? "has-image" : ""}`}
         style={{ width: size, height: size }}
-        aria-label={value ? "Replace avatar" : "Upload avatar"}
+        aria-label={value ? t("onboarding.avatar.replace") : t("onboarding.avatar.upload")}
       >
         {value ? (
           <>
@@ -77,7 +79,7 @@ export default function AvatarUploader({
               type="button"
               onClick={clear}
               className="upload-clear-btn"
-              aria-label="Remove avatar"
+              aria-label={t("onboarding.avatar.remove")}
             >
               <svg viewBox="0 0 16 16" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M5 5l6 6M11 5l-6 6" />
@@ -93,7 +95,7 @@ export default function AvatarUploader({
               {fallbackInitial}
             </span>
             <span className="text-[10px] uppercase tracking-widest opacity-70">
-              {busy ? "Uploading…" : "Upload"}
+              {busy ? t("onboarding.upload.uploading") : t("onboarding.upload.upload")}
             </span>
           </>
         )}
@@ -117,7 +119,7 @@ export default function AvatarUploader({
         onChange={(e) => handleFiles(e.target.files)}
       />
       <p className="text-xs text-gray-500 text-center max-w-[180px] leading-snug">
-        Square PNG or JPG, up to {PORTFOLIO_MAX_FILE_MB} MB.
+        {t("onboarding.avatar.hint", { mb: PORTFOLIO_MAX_FILE_MB })}
       </p>
     </div>
   );

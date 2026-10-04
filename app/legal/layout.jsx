@@ -1,5 +1,6 @@
 import Link from "next/link";
 import SiteFooter from "../home/components/SiteFooter";
+import LegalHeaderControls from "./LegalHeaderControls";
 
 export default function LegalLayout({ children }) {
   return (
@@ -9,7 +10,7 @@ export default function LegalLayout({ children }) {
       <header className="relative z-20 border-b border-white/[0.07] bg-[#080b09]/80 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5 sm:px-8">
           <Link href="/" className="nav-logo-text !ml-0 text-xl font-bold tracking-tight text-white no-underline">Build<span className="font-extrabold text-[#4ade80]">Ex</span></Link>
-          <Link href="/legal/" className="rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-1.5 text-xs font-semibold text-gray-300 transition hover:border-[#4ade80]/30 hover:text-white">Legal Center</Link>
+          <LegalHeaderControls />
         </div>
       </header>
       {children}

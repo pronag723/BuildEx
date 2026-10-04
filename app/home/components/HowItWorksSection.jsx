@@ -2,19 +2,23 @@
 
 import { steps } from "../data";
 import { Icon } from "../../../lib/icons";
+import { useT } from "../../../lib/i18n/LanguageProvider";
 
 export default function HowItWorksSection() {
+  const t = useT();
   return (
     <section id="how-it-works" className="py-16 sm:py-24 reveal">
       <div className="max-w-7xl mx-auto px-6">
         <h2 className="text-4xl font-semibold text-center mb-8 sm:mb-12">
-          How Build<span className="text-[#4ade80]">Ex</span> Works
+          {t.rich("about.how.heading", {
+            brand: <>Build<span className="text-[#4ade80]">Ex</span></>,
+          })}
         </h2>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 relative">
           {steps.map((step) => (
             <div
-              key={step.title}
+              key={step.key}
               className={`glass rounded-3xl p-5 sm:p-8 text-center group how-step reveal card-hover ${
                 step.className || ""
               }`}
@@ -22,8 +26,8 @@ export default function HowItWorksSection() {
               <div className="icon-tile icon-tile-lg mx-auto mb-4 sm:mb-6 text-[#4ade80] group-hover:scale-105 transition-transform">
                 <Icon name={step.icon} size={32} strokeWidth={1.5} />
               </div>
-              <div className="text-lg sm:text-2xl font-semibold mb-2 sm:mb-3">{step.title}</div>
-              <p className="text-sm sm:text-base text-gray-400 leading-relaxed">{step.body}</p>
+              <div className="text-lg sm:text-2xl font-semibold mb-2 sm:mb-3">{t(`about.how.steps.${step.key}.title`)}</div>
+              <p className="text-sm sm:text-base text-gray-400 leading-relaxed">{t(`about.how.steps.${step.key}.body`)}</p>
             </div>
           ))}
           <div className="hidden lg:block absolute top-1/2 left-1/3 right-1/3 h-px bg-gradient-to-r from-transparent via-[#4ade80]/30 to-transparent" />

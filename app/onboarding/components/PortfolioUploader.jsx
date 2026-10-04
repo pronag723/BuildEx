@@ -14,6 +14,8 @@ import {
   PORTFOLIO_MAX_FILE_MB,
   PORTFOLIO_MAX_IMAGES,
 } from "../../../lib/onboarding/constants";
+import { useT } from "../../../lib/i18n/LanguageProvider";
+import { translate } from "../../../lib/i18n/translate.mjs";
 
 /**
  * Drag-and-drop portfolio image manager.
@@ -28,6 +30,7 @@ import {
  *   onCountChange     — called with the new total when images change
  */
 export default function PortfolioUploader({ userId, onCountChange, onError }) {
+  const t = useT();
   const inputRef = useRef(null);
   const [images, setImages] = useState([]); // saved images from DB
   const [pending, setPending] = useState([]); // [{ tmpId, name, preview, progress }]
@@ -44,7 +47,7 @@ export default function PortfolioUploader({ userId, onCountChange, onError }) {
     if (!supabase || !userId) return;
     const { images: rows, error } = await listPortfolioImages(supabase, userId);
     if (error) {
-      onError?.(error.message || "Failed to load portfolio.");
+      onError?.(error.message || translate("onboarding.portfolioUpload.loadFailed"));
       return;
     }
     setImages(rows);
@@ -69,11 +72,11 @@ export default function PortfolioUploader({ userId, onCountChange, onError }) {
 
   function fileToValid(file) {
     if (!PORTFOLIO_ACCEPTED_MIME.includes(file.type)) {
-      onError?.(`"${file.name}" isn't a supported image format.`);
+      onError?.(translate("onboarding.portfolioUpload.badType", { name: file.name }));
       return false;
     }
     if (file.size > PORTFOLIO_MAX_FILE_MB * 1024 * 1024) {
-      onError?.(`"${file.name}" is larger than ${PORTFOLIO_MAX_FILE_MB} MB.`);
+      onError?.(translate("onboarding.portfolioUpload.tooLarge", { name: file.name, mb: PORTFOLIO_MAX_FILE_MB }));
       return false;
     }
     return true;
@@ -87,7 +90,7 @@ export default function PortfolioUploader({ userId, onCountChange, onError }) {
     const supabase = getSupabaseClient();
     if (!supabase || !userId) {
       setPending((prev) => prev.filter((p) => p.tmpId !== tmpId));
-      onError?.("Couldn't reach storage.");
+      onError?.(translate("onboarding.portfolioUpload.noStorage"));
       URL.revokeObjectURL(preview);
       return;
     }
@@ -105,7 +108,7 @@ export default function PortfolioUploader({ userId, onCountChange, onError }) {
 
     if (uploadErr || !url) {
       setPending((prev) => prev.filter((p) => p.tmpId !== tmpId));
-      onError?.(uploadErr?.message || `Failed to upload "${file.name}".`);
+      onError?.(uploadErr?.message || translate("onboarding.portfolioUpload.uploadFailed", { name: file.name }));
       URL.revokeObjectURL(preview);
       return;
     }
@@ -121,7 +124,7 @@ export default function PortfolioUploader({ userId, onCountChange, onError }) {
     URL.revokeObjectURL(preview);
 
     if (dbErr || !image) {
-      onError?.(dbErr?.message || "Failed to save uploaded image.");
+      onError?.(dbErr?.message || translate("onboarding.portfolioUpload.saveFailed"));
       return;
     }
     setImages((prev) => [...prev, image]);
@@ -133,12 +136,12 @@ export default function PortfolioUploader({ userId, onCountChange, onError }) {
 
     const room = PORTFOLIO_MAX_IMAGES - images.length - pending.length;
     if (room <= 0) {
-      onError?.(`Maximum ${PORTFOLIO_MAX_IMAGES} portfolio images.`);
+      onError?.(translate("onboarding.portfolioUpload.max", { max: PORTFOLIO_MAX_IMAGES }));
       return;
     }
     const accepted = incoming.slice(0, room);
     if (incoming.length > accepted.length) {
-      onError?.(`Only the first ${accepted.length} fit — max ${PORTFOLIO_MAX_IMAGES}.`);
+      onError?.(translate("onboarding.portfolioUpload.onlyFirst", { n: accepted.length, max: PORTFOLIO_MAX_IMAGES }));
     }
 
     let position = (images[images.length - 1]?.position ?? -1) + 1;
@@ -159,7 +162,7 @@ export default function PortfolioUploader({ userId, onCountChange, onError }) {
     setImages(next);
     const { error } = await deletePortfolioImage(supabase, userId, id);
     if (error) {
-      onError?.(error.message || "Failed to delete image.");
+      onError?.(error.message || translate("onboarding.portfolioUpload.deleteFailed"));
       setImages(prevImages);
     }
   }
@@ -182,7 +185,7 @@ export default function PortfolioUploader({ userId, onCountChange, onError }) {
           userId,
           renumbered.map((img) => ({ id: img.id, position: img.position }))
         ).then(({ error }) => {
-          if (error) onError?.(error.message || "Failed to reorder.");
+          if (error) onError?.(error.message || translate("onboarding.portfolioUpload.reorderFailed"));
         });
       }
       return renumbered;
@@ -216,22 +219,22 @@ export default function PortfolioUploader({ userId, onCountChange, onError }) {
           handleFiles(e.dataTransfer.files);
         }}
         className={`upload-tile w-full py-10 ${dragOver ? "is-dragging" : ""}`}
-        aria-label="Upload portfolio images"
+        aria-label={t("onboarding.portfolioUpload.aria")}
       >
         <svg viewBox="0 0 24 24" className="w-9 h-9 text-[#4ade80] mb-2" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
           <polyline points="17 8 12 3 7 8" />
           <line x1="12" y1="3" x2="12" y2="15" />
         </svg>
-        <div className="text-base font-semibold">Drop images here or click to browse</div>
+        <div className="text-base font-semibold">{t("onboarding.portfolioUpload.drop")}</div>
         <p className="text-xs text-gray-500 mt-1">
-          PNG, JPG, WebP, GIF · up to {PORTFOLIO_MAX_FILE_MB} MB each · up to {PORTFOLIO_MAX_IMAGES} images
+          {t("onboarding.portfolioUpload.limits", { mb: PORTFOLIO_MAX_FILE_MB, max: PORTFOLIO_MAX_IMAGES })}
         </p>
         <p className="text-[11px] mt-3 text-gray-500">
           <span className={remaining > 0 ? "text-[#4ade80]" : "text-amber-300"}>
-            {remaining > 0 ? `${remaining} slot${remaining === 1 ? "" : "s"} left` : "Portfolio full"}
+            {remaining > 0 ? t("onboarding.portfolioUpload.slotsLeft", { count: remaining }) : t("onboarding.portfolioUpload.full")}
           </span>
-          {used > 0 && <span className="text-gray-600"> · {used}/{PORTFOLIO_MAX_IMAGES} used</span>}
+          {used > 0 && <span className="text-gray-600"> · {t("onboarding.portfolioUpload.used", { used, max: PORTFOLIO_MAX_IMAGES })}</span>}
         </p>
       </div>
 
@@ -250,10 +253,10 @@ export default function PortfolioUploader({ userId, onCountChange, onError }) {
           {images.map((img, i) => (
             <div key={img.id} className="portfolio-tile group">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={img.url} alt={img.alt || "Portfolio image"} loading="lazy" />
+              <img src={img.url} alt={img.alt || t("onboarding.portfolioUpload.imageAlt")} loading="lazy" />
               <div className="tile-actions">
                 {i === 0 ? (
-                  <span className="tile-badge">Cover</span>
+                  <span className="tile-badge">{t("onboarding.portfolioUpload.cover")}</span>
                 ) : (
                   <span />
                 )}
@@ -261,8 +264,8 @@ export default function PortfolioUploader({ userId, onCountChange, onError }) {
                   type="button"
                   onClick={() => handleDelete(img.id)}
                   className="tile-btn"
-                  aria-label="Remove image"
-                  title="Remove"
+                  aria-label={t("onboarding.portfolioUpload.removeImage")}
+                  title={t("onboarding.portfolioUpload.remove")}
                 >
                   <svg viewBox="0 0 16 16" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M3 5h10M6 5V3h4v2M5 5l1 9h4l1-9" />
@@ -275,8 +278,8 @@ export default function PortfolioUploader({ userId, onCountChange, onError }) {
                   onClick={() => move(img.id, -1)}
                   className="tile-btn"
                   disabled={i === 0}
-                  aria-label="Move left"
-                  title="Move left"
+                  aria-label={t("onboarding.portfolioUpload.moveLeft")}
+                  title={t("onboarding.portfolioUpload.moveLeft")}
                 >
                   <svg viewBox="0 0 16 16" className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M10 13L5 8l5-5" />
@@ -287,8 +290,8 @@ export default function PortfolioUploader({ userId, onCountChange, onError }) {
                   onClick={() => move(img.id, 1)}
                   className="tile-btn"
                   disabled={i === images.length - 1}
-                  aria-label="Move right"
-                  title="Move right"
+                  aria-label={t("onboarding.portfolioUpload.moveRight")}
+                  title={t("onboarding.portfolioUpload.moveRight")}
                 >
                   <svg viewBox="0 0 16 16" className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M6 3l5 5-5 5" />
@@ -313,7 +316,7 @@ export default function PortfolioUploader({ userId, onCountChange, onError }) {
       )}
 
       {loading && images.length === 0 && pending.length === 0 && (
-        <div className="text-center text-xs text-gray-500 mt-6">Loading portfolio…</div>
+        <div className="text-center text-xs text-gray-500 mt-6">{t("onboarding.portfolioUpload.loading")}</div>
       )}
     </div>
   );

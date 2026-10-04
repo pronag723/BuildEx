@@ -6,6 +6,8 @@ import SmartText from "../../../lib/ui/SmartText";
 import { isPublicBuilder } from "../../../lib/chat/api";
 import { publicAsset } from "../../home/utils";
 import { useScrollLock } from "../../../lib/useScrollLock";
+import { useT } from "../../../lib/i18n/LanguageProvider";
+import { formatDate, formatTime } from "../../../lib/i18n/format.mjs";
 
 function IconSend({ className = "w-5 h-5" }) {
   return (
@@ -57,14 +59,12 @@ function IconShield({ className = "w-4 h-4" }) {
 // promise the payments layer used to back and no longer can. What it says now is
 // what is actually true: the arrangement is theirs, and abuse gets reported.
 function SafetyNotice() {
+  const t = useT();
   return (
     <div className="flex items-start gap-2.5 mb-4 px-3.5 py-2.5 rounded-2xl bg-[#4ade80]/[0.07] border border-[#4ade80]/20 text-gray-400">
       <IconShield className="w-4 h-4 mt-0.5 flex-shrink-0 text-[#4ade80]" />
       <p className="text-[11px] leading-relaxed">
-        BuildEx is a directory — any price, deadline or payment is arranged
-        between the two of you, and we are not a party to it. Take the usual care
-        with someone you have just met. If this conversation is abusive or a
-        scam, report it and our team will take a look.
+        {t("chat.safetyNotice")}
       </p>
     </div>
   );
@@ -76,30 +76,31 @@ function SafetyNotice() {
 // stay in the database; here they degrade to a neutral muted line so an old
 // conversation still reads end to end and nothing crashes on their meta shape.
 function OrderEventMessage({ message }) {
+  const t = useT();
   return (
     <div className="flex justify-center my-3 px-2">
       <span className="inline-flex items-center gap-2 text-[11px] font-medium text-gray-500 bg-white/5 border border-white/10 rounded-full px-3 py-1">
-        <span>Order update</span>
-        <span className="text-gray-600">· {clockTime(message.created_at)}</span>
+        <span>{t("chat.orderUpdate")}</span>
+        <span className="text-gray-600">· {clockTime(message.created_at, t.lang)}</span>
       </span>
     </div>
   );
 }
 
-function clockTime(iso) {
+function clockTime(iso, lang) {
   if (!iso) return "";
-  return new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  return formatTime(iso, lang);
 }
 
-function dayLabel(iso) {
+function dayLabel(iso, t) {
   const d = new Date(iso);
   const today = new Date();
   const yest = new Date();
   yest.setDate(today.getDate() - 1);
   const sameDay = (a, b) => a.toDateString() === b.toDateString();
-  if (sameDay(d, today)) return "Today";
-  if (sameDay(d, yest)) return "Yesterday";
-  return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  if (sameDay(d, today)) return t("chat.today");
+  if (sameDay(d, yest)) return t("chat.yesterday");
+  return formatDate(iso, t.lang, { month: "long", day: "numeric", year: "numeric" });
 }
 
 function PeerAvatar({ name, url, size = 40 }) {
@@ -134,6 +135,7 @@ export default function MessageThread({
   onReport,
   onBack,
 }) {
+  const t = useT();
   const [draft, setDraft] = useState("");
   const [lightboxUrl, setLightboxUrl] = useState(null);
   const [reportOpen, setReportOpen] = useState(false);
@@ -235,7 +237,7 @@ export default function MessageThread({
   // The other side of a thread is a person, not necessarily a builder — they
   // may well be someone hiring. Fall back to their @handle, then to a neutral
   // word, never to "Builder".
-  const peerName = peer?.display_name || peer?.username || "Member";
+  const peerName = peer?.display_name || peer?.username || t("common.member");
   const canWrite = isDraft || conversationMeta?.can_write !== false;
 
   // Only builders have a page at /builders/profile, so only their @handle is a
@@ -262,7 +264,7 @@ export default function MessageThread({
           type="button"
           onClick={onBack}
           className="lg:hidden -ml-1 mr-1 w-9 h-9 flex items-center justify-center rounded-xl hover:bg-white/10 transition-colors"
-          aria-label="Back to conversations"
+          aria-label={t("chat.backToConversations")}
         >
           <IconBack className="w-5 h-5" />
         </button>
@@ -293,10 +295,10 @@ export default function MessageThread({
                 ? "border-white/10 text-gray-500 cursor-default"
                 : "border-white/10 text-gray-400 hover:border-red-400/40 hover:text-red-300 hover:bg-red-500/10"
             }`}
-            title={reported ? "You have reported this conversation" : "Report this conversation"}
+            title={reported ? t("chat.reportedTitle") : t("chat.reportTitle")}
           >
             <IconFlag className="w-4 h-4" />
-            <span className="hidden sm:inline">{reported ? "Reported" : "Report"}</span>
+            <span className="hidden sm:inline">{reported ? t("chat.reported") : t("chat.report")}</span>
           </button>
         )}
       </div>
@@ -316,7 +318,7 @@ export default function MessageThread({
               <p className="text-xs text-gray-500 mb-2">@{peer.username}</p>
             )}
             <p className="text-xs text-gray-500 max-w-[260px] leading-relaxed">
-              This is the start of your conversation. Say hello and describe the build you have in mind.
+              {t("chat.startOfConversation")}
             </p>
           </div>
         ) : (
@@ -334,7 +336,7 @@ export default function MessageThread({
                   {showDay && (
                     <div className="flex items-center justify-center my-4">
                       <span className="text-[10px] uppercase tracking-wide text-gray-500 bg-white/5 border border-white/10 rounded-full px-3 py-1">
-                        {dayLabel(m.created_at)}
+                        {dayLabel(m.created_at, t)}
                       </span>
                     </div>
                   )}
@@ -353,7 +355,7 @@ export default function MessageThread({
                 {showDay && (
                   <div className="flex items-center justify-center my-4">
                     <span className="text-[10px] uppercase tracking-wide text-gray-500 bg-white/5 border border-white/10 rounded-full px-3 py-1">
-                      {dayLabel(m.created_at)}
+                      {dayLabel(m.created_at, t)}
                     </span>
                   </div>
                 )}
@@ -373,12 +375,12 @@ export default function MessageThread({
                         type="button"
                         onClick={() => setLightboxUrl(publicAsset(m.meta.url))}
                         className="block w-full"
-                        aria-label="Open photo"
+                        aria-label={t("chat.openPhoto")}
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={publicAsset(m.meta.url)}
-                          alt={m.body || "Photo"}
+                          alt={m.body || t("chat.photo")}
                           className="rounded-xl max-h-72 w-auto object-cover"
                           loading="lazy"
                           decoding="async"
@@ -398,7 +400,7 @@ export default function MessageThread({
                           mine ? "text-black/50" : "text-gray-500"
                         }`}
                       >
-                        {clockTime(m.created_at)}
+                        {clockTime(m.created_at, t.lang)}
                       </span>
                     </div>
                   ) : (
@@ -415,7 +417,7 @@ export default function MessageThread({
                           mine ? "text-black/50" : "text-gray-500"
                         }`}
                       >
-                        {clockTime(m.created_at)}
+                        {clockTime(m.created_at, t.lang)}
                       </span>
                     </div>
                   )}
@@ -430,7 +432,7 @@ export default function MessageThread({
       <div className="border-t border-white/10 p-3 flex-shrink-0">
         {!canWrite && (
           <p className="mb-2 text-center text-xs text-amber-300">
-            You can read this conversation, but can no longer send messages in it.
+            {t("chat.readOnly")}
           </p>
         )}
         <div className="flex items-end gap-2">
@@ -446,8 +448,8 @@ export default function MessageThread({
             onClick={() => fileRef.current?.click()}
             disabled={sending || !canWrite}
             className="w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-2xl border border-white/10 text-gray-300 hover:bg-white/10 hover:text-[#4ade80] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-            aria-label="Send a photo"
-            title="Send a photo"
+            aria-label={t("chat.sendPhoto")}
+            title={t("chat.sendPhoto")}
           >
             <IconPhoto className="w-5 h-5" />
           </button>
@@ -459,7 +461,7 @@ export default function MessageThread({
             onPaste={onPaste}
             disabled={!canWrite}
             rows={1}
-            placeholder={`Message ${peerName}…`}
+            placeholder={t("chat.composerPlaceholder", { name: peerName })}
             className="flex-1 resize-none bg-white/5 border border-white/10 focus:border-[#4ade80]/50 rounded-2xl px-4 py-2.5 text-sm outline-none transition-colors placeholder:text-gray-500 max-h-[140px]"
           />
           <button
@@ -467,7 +469,7 @@ export default function MessageThread({
             onClick={submit}
             disabled={!draft.trim() || sending || !canWrite}
             className="w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-2xl bg-[#4ade80] text-black green-glow hover:bg-[#22c55e] transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-[#4ade80]"
-            aria-label="Send message"
+            aria-label={t("chat.sendMessage")}
           >
             {sending ? (
               <span className="w-4 h-4 rounded-full border-2 border-black/40 border-t-transparent animate-spin" />
@@ -483,7 +485,7 @@ export default function MessageThread({
           className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
           role="dialog"
           aria-modal="true"
-          aria-label="Report conversation"
+          aria-label={t("chat.reportDialogAria")}
           onClick={() => !reporting && setReportOpen(false)}
         >
           <div
@@ -494,18 +496,17 @@ export default function MessageThread({
               <span className="w-9 h-9 rounded-2xl bg-red-500/10 border border-red-400/30 flex items-center justify-center text-red-300 flex-shrink-0">
                 <IconFlag className="w-4 h-4" />
               </span>
-              <h2 className="font-bold text-base">Report this conversation</h2>
+              <h2 className="font-bold text-base">{t("chat.reportTitle")}</h2>
             </div>
             <p className="text-xs text-gray-400 leading-relaxed mb-3">
-              Tell us what is wrong — spam, a scam, harassment, anything that does not
-              belong here. Our team can read this thread when reviewing the report.
+              {t("chat.reportBody")}
             </p>
             <textarea
               value={reportReason}
               onChange={(e) => setReportReason(e.target.value.slice(0, 2000))}
               rows={4}
               autoFocus
-              placeholder="What happened?"
+              placeholder={t("chat.reportPlaceholder")}
               className="w-full resize-none bg-white/5 border border-white/10 focus:border-[#4ade80]/50 rounded-2xl px-4 py-3 text-sm outline-none transition-colors placeholder:text-gray-500"
             />
             <div className="flex items-center justify-end gap-2 mt-4">
@@ -515,7 +516,7 @@ export default function MessageThread({
                 disabled={reporting}
                 className="h-10 px-4 rounded-2xl border border-white/10 text-sm font-medium text-gray-300 hover:bg-white/10 transition-colors disabled:opacity-40"
               >
-                Cancel
+                {t("common.cancel")}
               </button>
               <button
                 type="button"
@@ -523,7 +524,7 @@ export default function MessageThread({
                 disabled={!reportReason.trim() || reporting}
                 className="h-10 px-4 rounded-2xl bg-red-500/90 hover:bg-red-500 text-white text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                {reporting ? "Sending…" : "Send report"}
+                {reporting ? t("chat.sending") : t("chat.sendReport")}
               </button>
             </div>
           </div>
@@ -540,7 +541,7 @@ export default function MessageThread({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={lightboxUrl}
-            alt="Photo"
+            alt={t("chat.photo")}
             className="max-w-full max-h-full rounded-2xl object-contain"
           />
         </div>

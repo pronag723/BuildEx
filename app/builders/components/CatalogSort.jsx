@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { SORT_OPTIONS } from "../data/builders";
+import { useT } from "../../../lib/i18n/LanguageProvider";
 
 // ─── Inline SVG icons ────────────────────────────────────────────────────────
 const Icon = {
@@ -36,7 +37,7 @@ const SORT_META = {
     text: "text-[#4ade80]",
     bg: "bg-emerald-500/10",
     ring: "ring-emerald-500/25",
-    badge: "Default",
+    badge: true, // "Default" — catalog.sort.default
   },
   newest: {
     Icon: Icon.sparkle,
@@ -47,6 +48,7 @@ const SORT_META = {
 };
 
 export default function CatalogSort({ sort, onSortChange }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const containerRef = useRef(null);
   const current = SORT_OPTIONS.find((o) => o.key === sort) || SORT_OPTIONS[0];
@@ -100,7 +102,7 @@ export default function CatalogSort({ sort, onSortChange }) {
         {/* Label. The "Sort by" eyebrow that used to stack above the value is
             gone — the panel's own header already says it, and dropping it lets
             the trigger shrink to one line on a phone. */}
-        <span className="flex-1 text-left text-sm truncate">{current.label}</span>
+        <span className="flex-1 text-left text-sm truncate">{t(`catalog.sort.${current.key}`)}</span>
 
         {/* Chevron */}
         <Icon.chevron
@@ -113,7 +115,7 @@ export default function CatalogSort({ sort, onSortChange }) {
       {/* ── Dropdown panel ──────────────────────────────────────────────────── */}
       <div
         role="listbox"
-        aria-label="Sort options"
+        aria-label={t("catalog.sort.aria")}
         className={`absolute left-0 right-auto min-[640px]:left-auto min-[640px]:right-0 top-[calc(100%+10px)] w-[280px] max-w-[calc(100vw-2rem)] z-50 transition-all duration-200 origin-top-left min-[640px]:origin-top-right ${
           open
             ? "opacity-100 scale-100 translate-y-0 pointer-events-auto"
@@ -124,7 +126,7 @@ export default function CatalogSort({ sort, onSortChange }) {
           {/* Header */}
           <div className="px-4 pt-3 pb-2.5 border-b border-white/[0.07]">
             <p className="text-[10px] uppercase tracking-widest text-gray-500 font-semibold">
-              Sort builders by
+              {t("catalog.sort.heading")}
             </p>
           </div>
 
@@ -158,18 +160,19 @@ export default function CatalogSort({ sort, onSortChange }) {
                     <OptIcon className="w-4 h-4" />
                   </span>
 
-                  {/* Label */}
-                  <span className="flex-1 min-w-0 flex items-center gap-1.5">
+                  {/* Label. Wraps so a longer translated badge drops under the
+                      label instead of running into the check mark. */}
+                  <span className="flex-1 min-w-0 flex flex-wrap items-center gap-x-1.5 gap-y-1">
                     <span
                       className={`text-sm font-semibold transition-colors ${
                         active ? "text-white" : "text-gray-200"
                       }`}
                     >
-                      {opt.label}
+                      {t(`catalog.sort.${opt.key}`)}
                     </span>
                     {meta.badge && (
-                      <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-amber-400/15 text-amber-300 border border-amber-400/25">
-                        {meta.badge}
+                      <span className="text-[9px] font-bold uppercase tracking-wider whitespace-nowrap px-1.5 py-0.5 rounded-full bg-amber-400/15 text-amber-300 border border-amber-400/25">
+                        {t("catalog.sort.default")}
                       </span>
                     )}
                   </span>

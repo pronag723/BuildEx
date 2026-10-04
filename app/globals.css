@@ -492,6 +492,143 @@ body {
   transform: translateX(28px) scale(0.9);
 }
 
+/* ==================== LANGUAGE SWITCH ====================
+   Sits beside the theme switch and borrows its track: same height, border,
+   fill and hover glow, so the header keeps its height. The two-segment pill
+   shows from 640px (`sm`) up; below it a single compact button that flips the
+   language takes its place. */
+.lang-switch-full {
+  display: none;
+}
+
+.lang-switch-compact {
+  display: inline-flex;
+}
+
+@media (min-width: 640px) {
+  .lang-switch-full {
+    display: inline-flex;
+  }
+
+  .lang-switch-compact {
+    display: none;
+  }
+}
+
+.lang-switch {
+  height: 28px;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.lang-switch:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 0 15px rgba(74, 222, 128, 0.3);
+}
+
+.lang-switch-option {
+  height: 100%;
+  min-width: 26px;
+  padding: 0 6px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.55);
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.lang-switch-option:hover {
+  color: #fff;
+}
+
+.lang-switch-option.is-active {
+  background: #4ade80;
+  color: #000;
+}
+
+.lang-switch-compact {
+  width: 36px;
+  justify-content: center;
+  padding: 0;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  color: #4ade80;
+}
+
+/* A signed-in header on a 360px phone carries the bell and avatar too; the
+   narrower button keeps the controls clear of the logo. */
+@media (max-width: 380px) {
+  .lang-switch-compact {
+    width: 30px;
+  }
+}
+
+.light .lang-switch {
+  background: rgba(15, 23, 42, 0.1);
+  border-color: rgba(15, 23, 42, 0.2);
+}
+
+.light .lang-switch:hover {
+  border-color: rgba(15, 23, 42, 0.35);
+  box-shadow: 0 0 15px rgba(15, 23, 42, 0.2);
+}
+
+.light .lang-switch-option {
+  color: rgba(15, 23, 42, 0.55);
+}
+
+.light .lang-switch-option:hover {
+  color: #0f172a;
+}
+
+.light .lang-switch-option.is-active {
+  background: #0f172a;
+  color: #fff;
+}
+
+.light .lang-switch-compact {
+  color: #0f172a;
+}
+
+/* On a header that stays dark in both themes (the legal pages). */
+.light .lang-switch.lang-switch-on-dark {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.light .lang-switch-on-dark .lang-switch-option {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.light .lang-switch-on-dark .lang-switch-option:hover {
+  color: #fff;
+}
+
+.light .lang-switch-on-dark .lang-switch-option.is-active {
+  background: #4ade80;
+  color: #000;
+}
+
+.light .lang-switch-compact.lang-switch-on-dark {
+  color: #4ade80;
+}
+
+/* Hidden until LanguageProvider has applied a stored Russian choice — see the
+   boot script in app/layout.js. visibility (not display) so nothing reflows. */
+html.i18n-pending body {
+  visibility: hidden;
+}
+
 /* ==================== BUTTON STYLES - LIGHT THEME ==================== */
 .light button.ghost-btn,
 .light .btn-ghost {
@@ -1263,6 +1400,10 @@ body {
 
   .theme-switch {
     width: 42px;
+    height: 24px;
+  }
+
+  .lang-switch {
     height: 24px;
   }
 

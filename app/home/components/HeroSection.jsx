@@ -4,13 +4,16 @@ import { useEffect, useState } from "react";
 import { withBase } from "../utils";
 import { fetchBuilders } from "../../builders/data/fetchBuilders";
 import { Icon } from "../../../lib/icons";
+import { useT } from "../../../lib/i18n/LanguageProvider";
 
 export default function HeroSection({ heroVisualRef, onAnchorClick }) {
   // Real builder-presence figure for the floating badge. We reuse fetchBuilders
   // (which already applies the busy/onboarding visibility rules and sets
   // `online` from last_seen_at) instead of writing a bespoke count query.
-  // `label` stays null until the fetch resolves so we never flash a fake number.
-  const [badgeLabel, setBadgeLabel] = useState(null);
+  // `badge` stays null until the fetch resolves so we never flash a fake number.
+  // It holds the count, not the sentence, so it re-renders in the new language.
+  const t = useT();
+  const [badge, setBadge] = useState(null);
 
   useEffect(() => {
     let alive = true;
@@ -19,15 +22,11 @@ export default function HeroSection({ heroVisualRef, onAnchorClick }) {
       const list = builders || [];
       const onlineCount = list.filter((b) => b.online).length;
       if (onlineCount > 0) {
-        setBadgeLabel(
-          `${onlineCount} builder${onlineCount === 1 ? "" : "s"} online now`
-        );
+        setBadge({ key: "about.hero.online", count: onlineCount });
       } else if (list.length > 0) {
-        setBadgeLabel(
-          `${list.length} builder${list.length === 1 ? "" : "s"} listed`
-        );
+        setBadge({ key: "about.hero.listed", count: list.length });
       } else {
-        setBadgeLabel(null);
+        setBadge(null);
       }
     });
     return () => {
@@ -44,16 +43,15 @@ export default function HeroSection({ heroVisualRef, onAnchorClick }) {
         <div className="space-y-8 hero-text-space text-center lg:text-left">
           <div className="inline-flex items-center gap-2 glass px-5 py-2 rounded-full text-sm hero-badge">
             <span className="w-2 h-2 bg-[#4ade80] rounded-full animate-pulse flex-shrink-0" />
-            A directory of Minecraft builders
+            {t("about.hero.badge")}
           </div>
           <h1 className="hero-h1 font-bold leading-tight tracking-tighter">
-            <span className="block">Find&nbsp;the&nbsp;builder</span>
-            <span className="block text-[#4ade80]">behind the build</span>
-            <span className="block">you want</span>
+            <span className="block">{t("about.hero.line1")}</span>
+            <span className="block text-[#4ade80]">{t("about.hero.line2")}</span>
+            <span className="block">{t("about.hero.line3")}</span>
           </h1>
           <p className="hero-body text-gray-400 max-w-md mx-auto lg:mx-0">
-            Browse builder profiles, look at the work they have actually made,
-            and contact them yourself — on Discord, on Telegram, or here.
+            {t("about.hero.body")}
           </p>
           <div className="flex flex-wrap gap-4 justify-center lg:justify-start">
             <a
@@ -61,14 +59,14 @@ export default function HeroSection({ heroVisualRef, onAnchorClick }) {
               onClick={(event) => onAnchorClick(event, "/")}
               className="hero-btn-primary px-8 py-4 bg-[#4ade80] text-black font-semibold rounded-full hover:scale-105 transition-all green-glow inline-block text-center"
             >
-              Browse Builders
+              {t("about.browseBuilders")}
             </a>
             <a
               href="#how-it-works"
               onClick={(event) => onAnchorClick(event, "#how-it-works")}
               className="hero-btn-primary px-8 py-4 border border-white/20 hover:border-white/40 font-semibold rounded-full transition-all inline-block text-center"
             >
-              How it works
+              {t("about.hero.howItWorks")}
             </a>
           </div>
         </div>
@@ -83,31 +81,31 @@ export default function HeroSection({ heroVisualRef, onAnchorClick }) {
                 <Icon name="user" size={22} strokeWidth={1.6} />
               </span>
               <div>
-                <div className="font-semibold">Builder profile</div>
-                <div className="text-xs text-gray-400">Portfolio · styles · links</div>
+                <div className="font-semibold">{t("about.hero.cardTitle")}</div>
+                <div className="text-xs text-gray-400">{t("about.hero.cardMeta")}</div>
               </div>
             </div>
             <div className="text-sm text-gray-300 mb-4">
-              See the builds before you say a word.
+              {t("about.hero.cardBody")}
             </div>
             <div className="flex justify-between items-center gap-3">
               <div className="flex gap-1.5 flex-wrap">
                 <span className="text-[11px] px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-gray-300">
-                  Fantasy
+                  {t("about.hero.chipA")}
                 </span>
                 <span className="text-[11px] px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-gray-300">
-                  Medieval
+                  {t("about.hero.chipB")}
                 </span>
               </div>
               <span className="text-xs bg-white/10 px-4 py-2 rounded-full whitespace-nowrap">
-                Message
+                {t("about.hero.message")}
               </span>
             </div>
           </div>
 
           <div className="glass rounded-3xl p-5 floating-card card-hover absolute -left-6 bottom-24 w-72 shadow-2xl border border-white/10">
             <div className="text-xs uppercase tracking-widest text-gray-400 mb-3">
-              Reach them directly
+              {t("about.hero.reach")}
             </div>
             <div className="flex flex-wrap gap-2">
               <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-gray-200">
@@ -117,18 +115,18 @@ export default function HeroSection({ heroVisualRef, onAnchorClick }) {
                 <Icon name="send" size={13} /> Telegram
               </span>
               <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-[#4ade80]/15 border border-[#4ade80]/30 text-[#4ade80]">
-                <Icon name="chat" size={13} /> On BuildEx
+                <Icon name="chat" size={13} /> {t("about.hero.onBuildEx")}
               </span>
             </div>
           </div>
 
-          {badgeLabel && (
+          {badge && (
             <div className="absolute -right-16 bottom-48 glass rounded-2xl px-6 py-3 text-[#4ade80] text-sm flex items-center gap-3 border border-[#4ade80]/30 floating-card card-hover">
               <span className="relative flex h-3 w-3">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#4ade80] opacity-75" />
                 <span className="relative inline-flex rounded-full h-3 w-3 bg-[#4ade80]" />
               </span>
-              <span>{badgeLabel}</span>
+              <span>{t(badge.key, { count: badge.count })}</span>
             </div>
           )}
         </div>
@@ -137,7 +135,7 @@ export default function HeroSection({ heroVisualRef, onAnchorClick }) {
       <a
         href="#projects"
         className="hero-next-link"
-        aria-label="Scroll to the build showcase"
+        aria-label={t("about.hero.scrollAria")}
         onClick={(event) => onAnchorClick(event, "#projects")}
       >
         <svg

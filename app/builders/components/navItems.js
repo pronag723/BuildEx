@@ -11,12 +11,15 @@
 // `auth: true` marks an item that only exists for a signed-in visitor — see
 // catalogNavItemsFor() below. Without it the bar held three links and looked
 // half-empty next to the controls on the right.
+//
+// `key` names the item's label in the `nav` dictionary namespace
+// (lib/i18n/messages/<lang>/nav.mjs); `label` is the English original.
 export const catalogNavItems = [
-  { path: "/", label: "Builders" },
-  { path: "/chats", label: "Messages", auth: true },
-  { path: "/about#projects", label: "Showcase" },
-  { path: "/about#how-it-works", label: "How It Works" },
-  { path: "/about", label: "About" },
+  { path: "/", key: "builders", label: "Builders" },
+  { path: "/chats", key: "messages", label: "Messages", auth: true },
+  { path: "/about#projects", key: "showcase", label: "Showcase" },
+  { path: "/about#how-it-works", key: "howItWorks", label: "How It Works" },
+  { path: "/about", key: "about", label: "About" },
 ];
 
 /** The nav a visitor should see. `signedIn` unlocks the account-only entries. */

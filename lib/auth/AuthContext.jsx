@@ -5,6 +5,7 @@ import { getSupabaseClient, isSupabaseConfigured } from "../supabase/client";
 import { displayInfoFromUser, ensureProfile } from "./profile";
 import { touchPresence } from "../presence/api";
 import { withBase } from "../../app/home/utils";
+import { translate } from "../i18n/translate.mjs";
 
 const AuthContext = createContext({
   status: "loading",
@@ -306,7 +307,7 @@ export function AuthProvider({ children }) {
   const signInWithProvider = useCallback(
     async (provider, opts = {}) => {
       if (!supabase) {
-        return { error: { message: "Auth is not configured. Add Supabase keys to .env.local." } };
+        return { error: { message: translate("auth.notConfiguredShort") } };
       }
       const redirectTo = buildOAuthRedirect(opts.redirect || null);
       const scopes = provider === "discord" ? "identify email" : undefined;

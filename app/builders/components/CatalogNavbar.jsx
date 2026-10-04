@@ -7,6 +7,8 @@ import AuthNavControls from "../../auth/components/AuthNavControls";
 import { useAuth } from "../../../lib/auth/AuthContext";
 import { useUnread } from "../../../lib/chat/UnreadContext";
 import { Icon } from "../../../lib/icons";
+import { useT } from "../../../lib/i18n/LanguageProvider";
+import LanguageSwitcher from "../../../lib/i18n/LanguageSwitcher";
 
 export default function CatalogNavbar({
   isLight,
@@ -19,12 +21,13 @@ export default function CatalogNavbar({
   const { status } = useAuth();
   const { hasUnread } = useUnread();
   const navItems = catalogNavItemsFor(status === "authenticated");
+  const t = useT();
 
   return (
     <nav className="catalog-navbar fixed top-3.5 left-1/2 -translate-x-1/2 z-[80] w-full nav-wrapper px-6">
       <div className="glass nav-pill flex items-center justify-between shadow-2xl">
         {/* Logo */}
-        <Link href="/" aria-label="BuildEx — back to the builder feed" className="flex items-center gap-1.5 no-underline flex-shrink-0">
+        <Link href="/" aria-label={t("common.logoHome")} className="flex items-center gap-1.5 no-underline flex-shrink-0">
           <span className="text-2xl font-bold tracking-tight logo-font nav-logo-text">
             Build<span className="text-[#4ade80] font-extrabold">Ex</span>
           </span>
@@ -34,17 +37,17 @@ export default function CatalogNavbar({
         <div className="hidden lg:flex items-center nav-links-gap nav-text font-medium">
           {navItems.map((item) => (
             <Link
-              key={item.label}
+              key={item.key}
               href={item.path}
               className={`nav-link hover:text-[#4ade80] transition-colors whitespace-nowrap ${
                 isNavActive(pathname, item.path) ? "active text-[#4ade80]" : ""
               }`}
             >
-              {item.label}
+              {t(`nav.${item.key}`)}
               {item.path === "/chats" && hasUnread && (
                 <span
                   className="ml-1.5 inline-block w-1.5 h-1.5 rounded-full bg-red-500 align-middle"
-                  aria-label="Unread messages"
+                  aria-label={t("common.unreadMessages")}
                 />
               )}
             </Link>
@@ -53,12 +56,14 @@ export default function CatalogNavbar({
 
         {/* Controls */}
         <div className="flex items-center nav-controls-gap flex-shrink-0">
+          <LanguageSwitcher />
+
           {/* Theme toggle */}
           <button
             id="theme-toggle"
             type="button"
             className="theme-switch relative w-14 h-7 flex items-center rounded-full transition-all duration-300 bg-white/10 border border-white/20 hover:border-white/40 flex-shrink-0"
-            aria-label="Toggle color theme"
+            aria-label={t("common.toggleTheme")}
             onClick={() =>
               setTheme((t) => (t === "light" ? "dark" : "light"))
             }
@@ -76,7 +81,7 @@ export default function CatalogNavbar({
             className={`lg:hidden flex flex-col justify-center items-center w-9 h-9 gap-1.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 transition-all ${
               mobileMenuOpen ? "active" : ""
             }`}
-            aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+            aria-label={mobileMenuOpen ? t("common.closeMenu") : t("common.openMenu")}
             onClick={() => setMobileMenuOpen((v) => !v)}
             id="burger-btn"
           >

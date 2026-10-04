@@ -29,6 +29,7 @@ import ContactLinkField, {
   linkRowsValid,
 } from "../../components/ContactLinkField";
 import HandleInput from "../../components/HandleInput";
+import { useT } from "../../../../lib/i18n/LanguageProvider";
 
 export default function BuilderIdentityPage() {
   return (
@@ -43,6 +44,7 @@ export default function BuilderIdentityPage() {
 function BuilderIdentityStep({ state }) {
   const router = useRouter();
   const { user, refresh, updateProfile } = useAuth();
+  const t = useT();
   const p = state.profile || {};
   const savedLinks = readContactLinks(state.builderProfile?.contact_links);
 
@@ -98,10 +100,10 @@ function BuilderIdentityStep({ state }) {
         saveErr.code === "23505" ||
         /duplicate|unique/i.test(saveErr.message || "")
       ) {
-        setError("That handle was just taken. Try another one.");
+        setError(t("onboarding.errors.handleTaken"));
         setHandleValid(false);
       } else {
-        setError(saveErr.message || "Couldn't save. Try again.");
+        setError(saveErr.message || t("onboarding.errors.saveFailed"));
       }
       return;
     }
@@ -128,9 +130,9 @@ function BuilderIdentityStep({ state }) {
   return (
     <div>
       <div className="text-center mb-8 onb-fade-in onb-fade-in-1">
-        <h1 className="onb-section-title">Craft your builder profile</h1>
+        <h1 className="onb-section-title">{t("onboarding.identity.title")}</h1>
         <p className="onb-section-sub mt-3 mx-auto">
-          This is what clients see first. Make it count.
+          {t("onboarding.identity.subtitle")}
         </p>
       </div>
 
@@ -138,7 +140,7 @@ function BuilderIdentityStep({ state }) {
         <div className="glass rounded-2xl border border-[#4ade80]/20 bg-[#4ade80]/[0.06] px-4 py-3 flex items-start gap-3">
           <Icon name="info" size={18} className="text-[#4ade80] flex-shrink-0 mt-0.5" />
           <p className="text-sm text-gray-300 leading-relaxed">
-            Nothing here is permanent — you can change everything on this page anytime from your account settings.
+            {t("onboarding.identity.notPermanent")}
           </p>
         </div>
       </div>
@@ -147,14 +149,14 @@ function BuilderIdentityStep({ state }) {
         {/* Display name — hero input */}
         <div className="glass onb-card onb-fade-in onb-fade-in-2">
           <label htmlFor="displayName" className="onb-label block mb-3">
-            Your name
+            {t("onboarding.identity.nameLabel")}
           </label>
           <input
             id="displayName"
             type="text"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value.slice(0, DISPLAY_NAME_MAX))}
-            placeholder="Pixel Forge Studio"
+            placeholder={t("onboarding.identity.namePlaceholder")}
             className={`onb-input onb-hero-name-input ${
               displayName && !nameValid ? "is-error" : nameValid ? "is-success" : ""
             }`}
@@ -163,7 +165,7 @@ function BuilderIdentityStep({ state }) {
           />
           <div className="mt-2 flex items-start justify-between text-xs">
             <p className="text-gray-500 leading-snug">
-              Shown big on your profile. Two people can share the same name.
+              {t("onboarding.identity.nameHint")}
             </p>
             <span className="text-gray-500">
               {trimmedName.length}/{DISPLAY_NAME_MAX}
@@ -178,14 +180,14 @@ function BuilderIdentityStep({ state }) {
             onChange={setHandle}
             currentUserId={user?.id}
             onValidityChange={setHandleValid}
-            label="Pick your @nickname"
-            hint="Unique to you — your profile URL is /builders/profile/@yourhandle."
+            label={t("onboarding.identity.handleLabel")}
+            hint={t("onboarding.identity.handleHint")}
           />
         </div>
 
         {/* Avatar */}
         <div className="glass onb-card onb-fade-in onb-fade-in-3">
-          <div className="onb-label mb-3">Avatar</div>
+          <div className="onb-label mb-3">{t("onboarding.identity.avatarLabel")}</div>
           <div className="flex items-end gap-5">
             <AvatarUploader
               userId={user?.id}
@@ -197,9 +199,9 @@ function BuilderIdentityStep({ state }) {
             />
             <div className="pb-2">
               <div className="text-base font-bold">
-                {trimmedName || "Your name"}
+                {trimmedName || t("onboarding.identity.nameLabel")}
               </div>
-              <div className="text-xs text-gray-400">@{handle || "yourhandle"}</div>
+              <div className="text-xs text-gray-400">@{handle || t("onboarding.identity.handlePlaceholder")}</div>
             </div>
           </div>
         </div>
@@ -207,19 +209,19 @@ function BuilderIdentityStep({ state }) {
         {/* Bio */}
         <div className="glass onb-card onb-fade-in onb-fade-in-3">
           <label htmlFor="bio" className="onb-label block mb-3">
-            About you
+            {t("onboarding.identity.bioLabel")}
           </label>
           <textarea
             id="bio"
             className="onb-input onb-textarea"
-            placeholder="Share your story, what you love building, the kind of projects you take on, and anything that makes working with you great."
+            placeholder={t("onboarding.identity.bioPlaceholder")}
             value={bio}
             onChange={(e) => setBio(e.target.value.slice(0, BIO_MAX))}
             maxLength={BIO_MAX}
           />
           <div className="mt-2 flex items-start justify-between text-xs">
             <p className="text-gray-500">
-              Optional, but builders with bios get 3× more inquiries.
+              {t("onboarding.identity.bioHint")}
             </p>
             <span className="text-gray-500">
               {bio.length}/{BIO_MAX}
@@ -232,8 +234,8 @@ function BuilderIdentityStep({ state }) {
           <ContactLinkField
             rows={linkRows}
             onChange={setLinkRows}
-            label="Where else can clients find you?"
-            hint="Optional. These show as buttons on your public profile — Discord, YouTube, your site, whatever you use."
+            label={t("onboarding.identity.linksLabel")}
+            hint={t("onboarding.identity.linksHint")}
           />
         </div>
 
@@ -253,8 +255,8 @@ function BuilderIdentityStep({ state }) {
           canContinue
             ? null
             : !linksOk
-            ? "Fix or clear your links to continue"
-            : "Add your name and pick a unique @nickname to continue"
+            ? t("onboarding.identity.helperLinks")
+            : t("onboarding.identity.helperName")
         }
       />
     </div>

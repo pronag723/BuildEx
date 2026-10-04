@@ -22,6 +22,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "../../../lib/auth/AuthContext";
 import { resolvePostLoginPath } from "../../../lib/auth/redirects";
 import { withBase } from "../../home/utils";
+import { useT } from "../../../lib/i18n/LanguageProvider";
 
 export default function AuthCallbackPage() {
   return (
@@ -54,6 +55,7 @@ function readOAuthError() {
 function AuthCallbackInner() {
   const router = useRouter();
   const { status, configured, profile } = useAuth();
+  const t = useT();
   const [stuck, setStuck] = useState(false);
 
   useEffect(() => {
@@ -85,9 +87,11 @@ function AuthCallbackInner() {
     return (
       <main className="min-h-screen flex items-center justify-center px-6 text-center">
         <div className="glass rounded-3xl p-10 max-w-md border border-white/10">
-          <div className="text-xl font-semibold mb-2">Authentication not configured</div>
+          <div className="text-xl font-semibold mb-2">{t("auth.callback.notConfiguredTitle")}</div>
           <p className="text-gray-400 text-sm">
-            Add Supabase keys to <code className="text-[#4ade80]">.env.local</code> to enable sign-in.
+            {t.rich("auth.callback.notConfiguredBody", {
+              file: <code className="text-[#4ade80]">.env.local</code>,
+            })}
           </p>
         </div>
       </main>
@@ -98,16 +102,15 @@ function AuthCallbackInner() {
     return (
       <main className="min-h-screen flex items-center justify-center px-6 text-center">
         <div className="glass rounded-3xl p-10 max-w-md border border-red-400/30">
-          <div className="text-xl font-semibold mb-2">Sign-in didn&apos;t finish</div>
+          <div className="text-xl font-semibold mb-2">{t("auth.callback.stuckTitle")}</div>
           <p className="text-gray-400 text-sm mb-6">
-            If you refreshed this page, the one-time login code in the URL is no longer
-            valid — please sign in again.
+            {t("auth.callback.stuckBody")}
           </p>
           <a
             href={withBase("/login")}
             className="inline-block px-6 py-3 bg-[#4ade80] text-black font-semibold rounded-full green-glow hover:scale-105 transition-all"
           >
-            Back to login
+            {t("auth.callback.backToLogin")}
           </a>
         </div>
       </main>
@@ -118,10 +121,11 @@ function AuthCallbackInner() {
 }
 
 function Waiting() {
+  const t = useT();
   return (
     <main className="min-h-screen flex flex-col items-center justify-center">
       <div className="w-10 h-10 rounded-full border-2 border-[#4ade80] border-t-transparent animate-spin" />
-      <p className="mt-4 text-sm text-gray-500">Signing you in…</p>
+      <p className="mt-4 text-sm text-gray-500">{t("auth.callback.signingIn")}</p>
     </main>
   );
 }

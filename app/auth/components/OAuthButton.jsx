@@ -1,5 +1,7 @@
 "use client";
 
+import { useT } from "../../../lib/i18n/LanguageProvider";
+
 export function DiscordIcon({ className = "w-5 h-5" }) {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" className={className} fill="currentColor">
@@ -38,6 +40,7 @@ export default function OAuthButton({
   disabled = false,
   children
 }) {
+  const t = useT();
   const isPrimary = provider === "discord";
 
   const base =
@@ -53,7 +56,7 @@ export default function OAuthButton({
       onClick={onClick}
       disabled={disabled || loading}
       className={`${base} ${styles}`}
-      aria-label={`Continue with ${provider === "discord" ? "Discord" : "Google"}`}
+      aria-label={t("auth.continueWith", { provider: provider === "discord" ? "Discord" : "Google" })}
     >
       {loading ? (
         <span className="w-5 h-5 rounded-full border-2 border-current border-t-transparent animate-spin" />

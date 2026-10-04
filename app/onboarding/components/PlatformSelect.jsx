@@ -23,15 +23,18 @@
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { Icon } from "../../../lib/icons";
+import { useT } from "../../../lib/i18n/LanguageProvider";
 
 export default function PlatformSelect({
   value,
   options,
   usedKeys,
   onChange,
-  label = "Link type",
+  label: labelProp,
   className = "",
 }) {
+  const t = useT();
+  const label = labelProp ?? t("onboarding.links.type");
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   // Flip the panel above the trigger when the last row of a long form sits
@@ -243,7 +246,7 @@ export default function PlatformSelect({
                   <Icon name={option.icon} size={15} className="platform-select-option-glyph" />
                   <span className="platform-select-option-label">{option.label}</span>
                   {disabled ? (
-                    <span className="platform-select-option-note">added</span>
+                    <span className="platform-select-option-note">{t("onboarding.links.added")}</span>
                   ) : (
                     isSelected && <Icon name="check" size={15} className="platform-select-tick" />
                   )}

@@ -8,10 +8,12 @@ import { fetchOnboardingState } from "../../../lib/onboarding/api";
 import { withBase } from "../../home/utils";
 import OnboardingShell from "../components/OnboardingShell";
 import { STEPS } from "../../../lib/onboarding/state";
+import { useT } from "../../../lib/i18n/LanguageProvider";
 
 export default function OnboardingCompletePage() {
   const router = useRouter();
   const { status, user, configured, displayUser } = useAuth();
+  const t = useT();
   const [profile, setProfile] = useState(null);
 
   // Fetch the now-final profile so the celebration can show the user's name
@@ -39,7 +41,7 @@ export default function OnboardingCompletePage() {
   }, [status, user?.id, configured, router]);
 
   const handle = profile?.username || displayUser?.username;
-  const name = profile?.display_name || displayUser?.displayName || "Builder";
+  const name = profile?.display_name || displayUser?.displayName || t("onboarding.complete.fallbackName");
 
   return (
     <OnboardingShell currentStep={STEPS.complete} hideStepHeader maxWidth="max-w-xl">
@@ -70,20 +72,19 @@ export default function OnboardingCompletePage() {
 
         <div className="inline-flex items-center gap-2 glass px-4 py-1.5 rounded-full text-xs mb-4">
           <span className="w-2 h-2 bg-[#4ade80] rounded-full animate-pulse" />
-          <span>You&apos;re all set</span>
+          <span>{t("onboarding.complete.badge")}</span>
         </div>
 
-        <h1 className="onb-section-title">Welcome to BuildEx, {name}.</h1>
+        <h1 className="onb-section-title">{t("onboarding.complete.title", { name })}</h1>
         <p className="onb-section-sub mt-4 mx-auto">
-          Your builder profile is live and discoverable. Share your handle and let
-          your portfolio do the talking.
+          {t("onboarding.complete.subtitle")}
         </p>
 
         {handle && (
           <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/[0.04]">
             <span className="w-2 h-2 rounded-full bg-[#4ade80]" />
             <span className="text-sm">
-              Your handle:&nbsp;
+              {t("onboarding.complete.handle")}&nbsp;
               <span className="text-[#4ade80] font-semibold">@{handle}</span>
             </span>
           </div>
@@ -94,7 +95,7 @@ export default function OnboardingCompletePage() {
             href={withBase("/account")}
             className="onb-btn-primary justify-center"
           >
-            Go to my profile
+            {t("onboarding.complete.goToProfile")}
             <svg viewBox="0 0 16 16" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M6 3l5 5-5 5" />
             </svg>
@@ -103,12 +104,12 @@ export default function OnboardingCompletePage() {
             href={withBase("/")}
             className="onb-btn-ghost justify-center"
           >
-            Back to BuildEx home
+            {t("onboarding.complete.backHome")}
           </a>
         </div>
 
         <p className="mt-8 text-xs text-gray-500">
-          You can manage your profile, portfolio and account settings from your dashboard.
+          {t("onboarding.complete.manage")}
         </p>
       </div>
     </OnboardingShell>

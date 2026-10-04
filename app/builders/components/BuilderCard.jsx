@@ -4,6 +4,8 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import { publicAsset } from "../../home/utils";
 import { useFavorites } from "../../../lib/favorites/FavoritesContext";
+import { useT } from "../../../lib/i18n/LanguageProvider";
+import { styleChipLabel } from "../../../lib/i18n/labels.mjs";
 
 function ArrowIcon({ className = "w-4 h-4" }) {
   return (
@@ -39,6 +41,7 @@ function HeartIcon({ className = "w-4 h-4", filled = false }) {
 }
 
 export default function BuilderCard({ builder, animationDelay = 0 }) {
+  const t = useT();
   const previews = builder.portfolio.slice(0, 6);
   const count = previews.length;
 
@@ -99,7 +102,7 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
       >
         {count === 0 ? (
           <div className="w-full h-full bg-white/[0.03] flex items-center justify-center px-2 text-center text-gray-600 text-[11px] sm:text-sm">
-            Portfolio coming soon
+            {t("card.portfolioSoon")}
           </div>
         ) : (
           <div
@@ -136,7 +139,7 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
               infoHover ? "translate-y-0" : "translate-y-2.5"
             }`}
           >
-            View Profile
+            {t("card.viewProfile")}
             <ArrowIcon />
           </span>
         </div>
@@ -146,7 +149,7 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
           <>
             <button
               type="button"
-              aria-label="Previous build"
+              aria-label={t("card.previousBuild")}
               onClick={(e) => go(e, -1)}
               className="carousel-arrow absolute left-1.5 xs:left-2.5 sm:left-3 top-1/2 -translate-y-1/2 z-10 w-7 h-7 xs:w-8 xs:h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-full bg-[#4ade80]/25 text-white border border-[#4ade80]/50 backdrop-blur-md shadow-[0_2px_10px_rgba(0,0,0,0.3)] hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.55)] transition-all duration-200"
             >
@@ -154,7 +157,7 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
             </button>
             <button
               type="button"
-              aria-label="Next build"
+              aria-label={t("card.nextBuild")}
               onClick={(e) => go(e, 1)}
               className="carousel-arrow absolute right-1.5 xs:right-2.5 sm:right-3 top-1/2 -translate-y-1/2 z-10 w-7 h-7 xs:w-8 xs:h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-full bg-[#4ade80]/25 text-white border border-[#4ade80]/50 backdrop-blur-md shadow-[0_2px_10px_rgba(0,0,0,0.3)] hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.55)] transition-all duration-200"
             >
@@ -162,7 +165,7 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
             </button>
 
             {/* Slide dots */}
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 opacity-80 group-hover/media:opacity-100 transition-opacity duration-200" role="tablist" aria-label="Portfolio images">
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 opacity-80 group-hover/media:opacity-100 transition-opacity duration-200" role="tablist" aria-label={t("card.portfolioImages")}>
               {previews.map((p, i) => (
                 <button
                   type="button"
@@ -170,7 +173,7 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
                   onClick={(event) => selectSlide(event, i)}
                   role="tab"
                   aria-selected={i === index}
-                  aria-label={`Show image ${i + 1}`}
+                  aria-label={t("card.showImage", { n: i + 1 })}
                   className={`carousel-progress-indicator h-1.5 rounded-full ${
                     i === index ? "w-4 bg-[#4ade80]" : "w-1.5 bg-white/50"
                   }`}
@@ -183,9 +186,9 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
         {/* Presence — top left, and only when the builder is actually online
             (a real heartbeat on profiles.last_seen_at, see lib/presence). */}
         {builder.online && (
-          <div className="absolute top-2 left-2 sm:top-3 sm:left-3 z-10 px-1.5 py-1 xs:px-2.5 rounded-full text-[11px] sm:text-xs bg-black/60 text-[#4ade80] backdrop-blur-sm border border-[#4ade80]/30 flex items-center gap-1.5" title="Online now">
+          <div className="absolute top-2 left-2 sm:top-3 sm:left-3 z-10 px-1.5 py-1 xs:px-2.5 rounded-full text-[11px] sm:text-xs bg-black/60 text-[#4ade80] backdrop-blur-sm border border-[#4ade80]/30 flex items-center gap-1.5" title={t("card.onlineNow")}>
             <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80] online-dot" />
-            <span className="hidden xs:inline">Online</span>
+            <span className="hidden xs:inline">{t("card.online")}</span>
           </div>
         )}
 
@@ -196,8 +199,8 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
               type="button"
               onClick={onToggleFavorite}
               aria-pressed={favorited}
-              aria-label={favorited ? "Remove from favorites" : "Add to favorites"}
-              title={favorited ? "Remove from favorites" : "Add to favorites"}
+              aria-label={favorited ? t("card.removeFavorite") : t("card.addFavorite")}
+              title={favorited ? t("card.removeFavorite") : t("card.addFavorite")}
               className={`w-7 h-7 xs:w-8 xs:h-8 sm:w-9 sm:h-9 flex-shrink-0 flex items-center justify-center rounded-full backdrop-blur-md border transition-all duration-200 ${
                 favorited
                   ? "bg-[#4ade80] text-black border-[#4ade80] shadow-[0_0_16px_rgba(74,222,128,0.5)]"
@@ -208,8 +211,8 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
             </button>
           )}
           <div className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[10px] xs:text-[11px] sm:text-xs bg-black/60 text-white/70 backdrop-blur-sm border border-white/10 whitespace-nowrap">
-            {builder.portfolio.length} {builder.portfolio.length === 1 ? "build" : "builds"}
-            <span className="hidden sm:inline"> in portfolio</span>
+            {t("card.builds", { count: builder.portfolio.length })}
+            <span className="hidden sm:inline">{t("card.inPortfolio")}</span>
           </div>
         </div>
       </div>
@@ -255,7 +258,7 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
                   i === 2 ? "hidden sm:inline-block" : ""
                 }`}
               >
-                {s}
+                {styleChipLabel(s, t.lang)}
               </span>
             ))}
             {narrowOverflow > 0 && (
@@ -287,7 +290,7 @@ export default function BuilderCard({ builder, animationDelay = 0 }) {
         {/* Footer — CTA */}
         <div className="mt-auto pt-2 xs:pt-2.5 sm:pt-3 border-t border-white/[0.08] flex items-center justify-center xs:justify-end gap-3">
           <span className="offer-card-view-btn inline-flex items-center gap-1 xs:gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full whitespace-nowrap bg-[#4ade80]/12 border border-[#4ade80]/30 text-[#4ade80] text-[11px] xs:text-xs font-semibold transition-all duration-200 group-hover:bg-[#4ade80] group-hover:text-black group-hover:shadow-[0_0_18px_rgba(74,222,128,0.45)] group-hover:border-[#4ade80]">
-            View Profile
+            {t("card.viewProfile")}
             <ArrowIcon className="w-3 h-3 xs:w-3.5 xs:h-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
           </span>
         </div>

@@ -8,6 +8,7 @@ import {
   HANDLE_MIN,
   HANDLE_REGEX,
 } from "../../../lib/onboarding/constants";
+import { useT } from "../../../lib/i18n/LanguageProvider";
 
 /**
  * Controlled @handle input with debounced uniqueness check.
@@ -18,6 +19,9 @@ import {
  *   - currentUserId:   needed so a user re-editing their own handle isn't told it's taken
  *   - onValidityChange:(boolean) => void  — fired whenever the input becomes valid/invalid
  *   - id, label, hint
+ *
+ * The status line is held as a dictionary key (`message`) and translated at
+ * render time, so it follows a language switch while it is on screen.
  */
 export default function HandleInput({
   value,
@@ -25,9 +29,10 @@ export default function HandleInput({
   currentUserId,
   onValidityChange,
   id = "handle",
-  label = "Pick your @handle",
-  hint = "Used in your profile URL, mentions and messages.",
+  label,
+  hint,
 }) {
+  const t = useT();
   const [state, setState] = useState({ status: "idle", message: "" });
   const debounceRef = useRef(null);
   const reqRef = useRef(0);
@@ -55,7 +60,7 @@ export default function HandleInput({
     if (trimmed.length < HANDLE_MIN) {
       setState({
         status: "error",
-        message: `Handles need at least ${HANDLE_MIN} characters.`,
+        message: "onboarding.handle.tooShort",
       });
       return () => {
         cancelled = true;
@@ -64,19 +69,19 @@ export default function HandleInput({
     if (!HANDLE_REGEX.test(trimmed)) {
       setState({
         status: "error",
-        message: "Letters, numbers and underscores only. Must start with a letter or number.",
+        message: "onboarding.handle.format",
       });
       return () => {
         cancelled = true;
       };
     }
 
-    setState({ status: "checking", message: "Checking availability…" });
+    setState({ status: "checking", message: "onboarding.handle.checking" });
 
     debounceRef.current = setTimeout(async () => {
       const supabase = getSupabaseClient();
       if (!supabase) {
-        setState({ status: "error", message: "Auth is not configured." });
+        setState({ status: "error", message: "onboarding.handle.notConfigured" });
         return;
       }
       const reqId = ++reqRef.current;
@@ -86,16 +91,16 @@ export default function HandleInput({
       if (result.available) {
         setState({
           status: "success",
-          message: result.ownedBySelf ? "That's already yours." : "Available — looking sharp.",
+          message: result.ownedBySelf ? "onboarding.handle.yours" : "onboarding.handle.available",
         });
       } else if (result.reason === "format") {
-        setState({ status: "error", message: "Invalid characters in handle." });
+        setState({ status: "error", message: "onboarding.handle.invalidChars" });
       } else if (result.reason === "taken") {
-        setState({ status: "error", message: "That handle is already taken." });
+        setState({ status: "error", message: "onboarding.handle.taken" });
       } else {
         setState({
           status: "error",
-          message: "We couldn't check that handle just now. Try again in a moment.",
+          message: "onboarding.handle.checkFailed",
         });
       }
     }, 380);
@@ -123,7 +128,7 @@ export default function HandleInput({
   return (
     <div>
       <label htmlFor={id} className="onb-label block mb-2">
-        {label}
+        {label ?? t("onboarding.handle.label")}
       </label>
       <div className="onb-input-with-prefix relative">
         <span className="onb-input-prefix">@</span>
@@ -138,7 +143,7 @@ export default function HandleInput({
           value={value || ""}
           onChange={(e) => handleInput(e.target.value)}
           maxLength={HANDLE_MAX}
-          placeholder="pixelforge"
+          placeholder={t("onboarding.handle.placeholder")}
           aria-invalid={state.status === "error"}
           aria-describedby={`${id}-hint ${id}-status`}
         />
@@ -146,7 +151,7 @@ export default function HandleInput({
           {state.status === "checking" && (
             <span
               className="w-4 h-4 rounded-full border-2 border-[#4ade80] border-t-transparent animate-spin"
-              aria-label="Checking"
+              aria-label={t("onboarding.handle.checkingShort")}
             />
           )}
           {state.status === "success" && (
@@ -166,7 +171,7 @@ export default function HandleInput({
           words per row. The status drops onto its own line instead. */}
       <div className="mt-2 flex flex-wrap items-start justify-between gap-x-3 gap-y-1 text-xs">
         <p id={`${id}-hint`} className="text-gray-500 leading-snug min-w-0 basis-56 grow">
-          {hint}
+          {hint ?? t("onboarding.handle.hint")}
         </p>
         <span
           className={
@@ -178,7 +183,7 @@ export default function HandleInput({
               : "text-gray-500")
           }
         >
-          {state.message}
+          {state.message ? t(state.message, { min: HANDLE_MIN }) : ""}
         </span>
       </div>
     </div>

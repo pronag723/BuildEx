@@ -2,6 +2,7 @@
 
 import { withBase } from "../utils";
 import { AuthMobileControls } from "../../auth/components/AuthNavControls";
+import { useT } from "../../../lib/i18n/LanguageProvider";
 
 export default function MobileMenu({
   navItems,
@@ -10,6 +11,8 @@ export default function MobileMenu({
   setMobileMenuOpen,
   onAnchorClick
 }) {
+  const t = useT();
+
   return (
     <div
       id="mobile-menu"
@@ -26,14 +29,14 @@ export default function MobileMenu({
       <div className="relative glass rounded-3xl p-8 flex flex-col gap-2 mobile-menu-panel">
         {navItems.map((item) => (
           <a
-            key={`${item.label}-mobile`}
+            key={`${item.key}-mobile`}
             href={item.href.startsWith("/") ? withBase(item.href) : item.href}
             className={`mobile-nav-link nav-link ${
               activeSection === item.href.slice(1) ? "active" : ""
             }`}
             onClick={(event) => onAnchorClick(event, item.href)}
           >
-            {item.label}
+            {t(`nav.${item.key}`)}
           </a>
         ))}
         <div className="border-t border-white/10 mt-4 pt-6 flex flex-col gap-3">

@@ -8,6 +8,8 @@ import { ensureProfile } from "../../../lib/auth/profile";
 import { fetchOnboardingState } from "../../../lib/onboarding/api";
 import { resolveNextStep, STEP_ORDER } from "../../../lib/onboarding/state";
 import { withBase } from "../../home/utils";
+import { useT } from "../../../lib/i18n/LanguageProvider";
+import { translate } from "../../../lib/i18n/translate.mjs";
 
 /**
  * Client-side gate for the BUILDER onboarding steps.
@@ -32,6 +34,7 @@ import { withBase } from "../../home/utils";
 export default function OnboardingGate({ expectedStep, children, allowFutureSteps = true }) {
   const router = useRouter();
   const { status, user, configured, profile: authProfile, profileLoaded } = useAuth();
+  const t = useT();
   const [state, setState] = useState(null);
   const [error, setError] = useState(null);
   const [phase, setPhase] = useState("loading");
@@ -46,7 +49,7 @@ export default function OnboardingGate({ expectedStep, children, allowFutureStep
         "[onboarding-gate] auth status stuck on 'loading' — the initial session " +
           "lookup never resolved."
       );
-      setError("Couldn't confirm your session. Try refreshing the page.");
+      setError(translate("onboarding.gate.sessionStuck"));
       setPhase("error");
     }, 8000);
     return () => clearTimeout(t);
@@ -75,9 +78,7 @@ export default function OnboardingGate({ expectedStep, children, allowFutureStep
         "[onboarding-gate] profile load timed out — Supabase queries never returned. " +
           "Verify the migrations in supabase/migrations/ have been applied."
       );
-      setError(
-        "Couldn't load your profile in time. The most likely cause is that the database migrations haven't been applied to Supabase yet — see supabase/migrations/README.md."
-      );
+      setError(translate("onboarding.gate.timeout"));
       setPhase("error");
     }, 25000);
 
@@ -85,7 +86,7 @@ export default function OnboardingGate({ expectedStep, children, allowFutureStep
       const supabase = getSupabaseClient();
       if (!supabase || !user?.id) {
         if (!cancelled) {
-          setError("Couldn't reach BuildEx. Try refreshing in a moment.");
+          setError(translate("onboarding.gate.unreachable"));
           setPhase("error");
         }
         return;
@@ -128,10 +129,10 @@ export default function OnboardingGate({ expectedStep, children, allowFutureStep
           const hint = /column .* does not exist|relation .* does not exist/i.test(
             result.error.message || ""
           )
-            ? " — looks like the SQL migrations in supabase/migrations/ haven't been applied to Supabase yet."
+            ? translate("onboarding.gate.migrationsHint")
             : "";
           setError(
-            (result.error.message || "Couldn't load your profile.") + code + hint
+            (result.error.message || translate("onboarding.gate.loadFailed")) + code + hint
           );
           setPhase("error");
           return;
@@ -189,9 +190,11 @@ export default function OnboardingGate({ expectedStep, children, allowFutureStep
   if (phase === "unconfigured") {
     return (
       <div className="glass rounded-3xl p-8 sm:p-10 border border-white/10 text-center">
-        <div className="text-xl font-semibold mb-2">Authentication not configured</div>
+        <div className="text-xl font-semibold mb-2">{t("auth.callback.notConfiguredTitle")}</div>
         <p className="text-gray-400 text-sm">
-          Add Supabase keys to <code className="text-[#4ade80]">.env.local</code> to enable onboarding.
+          {t.rich("onboarding.gate.notConfiguredBody", {
+            file: <code className="text-[#4ade80]">.env.local</code>,
+          })}
         </p>
       </div>
     );
@@ -205,21 +208,21 @@ export default function OnboardingGate({ expectedStep, children, allowFutureStep
             <path d="M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
-        <div className="text-xl font-semibold mb-2">We hit a snag</div>
+        <div className="text-xl font-semibold mb-2">{t("onboarding.gate.errorTitle")}</div>
         <p className="text-gray-400 text-sm mb-6 max-w-md mx-auto">{error}</p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <a
             href={withBase("/account")}
             className="inline-block px-6 py-3 bg-[#4ade80] text-black font-semibold rounded-full green-glow hover:scale-105 transition-all"
           >
-            Back to your account
+            {t("onboarding.gate.backToAccount")}
           </a>
           <button
             type="button"
             onClick={() => window.location.reload()}
             className="onb-btn-ghost justify-center"
           >
-            Try again
+            {t("common.tryAgain")}
           </button>
         </div>
       </div>
@@ -230,7 +233,7 @@ export default function OnboardingGate({ expectedStep, children, allowFutureStep
     return (
       <div className="flex flex-col items-center justify-center py-20">
         <div className="w-10 h-10 rounded-full border-2 border-[#4ade80] border-t-transparent animate-spin" />
-        <p className="mt-4 text-sm text-gray-500">Loading your profile…</p>
+        <p className="mt-4 text-sm text-gray-500">{t("onboarding.gate.loading")}</p>
       </div>
     );
   }

@@ -14,6 +14,7 @@ import OnboardingShell from "../../components/OnboardingShell";
 import OnboardingGate from "../../components/OnboardingGate";
 import OnboardingFooter from "../../components/OnboardingFooter";
 import PortfolioUploader from "../../components/PortfolioUploader";
+import { useT } from "../../../../lib/i18n/LanguageProvider";
 
 export default function BuilderPortfolioPage() {
   return (
@@ -28,6 +29,7 @@ export default function BuilderPortfolioPage() {
 function BuilderPortfolioStep({ state }) {
   const router = useRouter();
   const { user, updateProfile } = useAuth();
+  const t = useT();
 
   const [count, setCount] = useState(state.portfolioCount || 0);
   const [error, setError] = useState(null);
@@ -46,7 +48,7 @@ function BuilderPortfolioStep({ state }) {
     );
     if (doneErr) {
       setSaving(false);
-      setError(doneErr.message || "Couldn't finalize. Try again.");
+      setError(doneErr.message || t("onboarding.errors.finalizeFailed"));
       return;
     }
     navigateAfterOnboarding({ router, updateProfile });
@@ -55,10 +57,9 @@ function BuilderPortfolioStep({ state }) {
   return (
     <div>
       <div className="text-center mb-10 onb-fade-in onb-fade-in-1">
-        <h1 className="onb-section-title">Show your work</h1>
+        <h1 className="onb-section-title">{t("onboarding.portfolio.title")}</h1>
         <p className="onb-section-sub mt-3 mx-auto">
-          Drag in your best builds. The first image becomes your cover. You can keep adding,
-          reordering, and refining your portfolio later from your dashboard.
+          {t("onboarding.portfolio.subtitle")}
         </p>
       </div>
 
@@ -81,11 +82,11 @@ function BuilderPortfolioStep({ state }) {
         onNext={handleFinish}
         nextDisabled={!canFinish}
         isSaving={saving}
-        nextLabel="Finish setup"
+        nextLabel={t("onboarding.portfolio.finish")}
         helper={
           canFinish
-            ? `${count} image${count === 1 ? "" : "s"} ready · you can add more later`
-            : "Upload at least one image to finish"
+            ? t("onboarding.portfolio.ready", { count })
+            : t("onboarding.portfolio.helper")
         }
       />
     </div>

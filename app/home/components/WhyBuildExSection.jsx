@@ -2,24 +2,15 @@
 
 import { withBase } from "../utils";
 import { Icon } from "../../../lib/icons";
+import { useT } from "../../../lib/i18n/LanguageProvider";
 
 // The testimonials that used to live here were invented, and a page being
 // rewritten to stop making claims we cannot back is no place for invented
 // endorsements. What replaced them is the plainest thing we can put on the
 // page: the two lists below, which say exactly what this site does and does
-// not do. They match app/legal/documents.js word for word in substance.
-
-const DOES = [
-  "Lists Minecraft builders who chose to publish a profile here.",
-  "Shows you their portfolio, their styles and the contact links they published.",
-  "Gives you somewhere to message them, and somewhere to report abuse.",
-];
-
-const DOES_NOT = [
-  "Take, hold, escrow or refund money. No payment ever passes through BuildEx.",
-  "Vet, verify, endorse, rank or guarantee any builder or any piece of work.",
-  "Join in, mediate or take responsibility for any deal you make with a builder.",
-];
+// not do. They match app/legal/documents.js word for word in substance. The
+// lists themselves are `about.why.does` / `about.why.doesNot` in the
+// dictionaries (lib/i18n/messages/<lang>/about.mjs).
 
 function ClaimList({ tone, title, items }) {
   const isPositive = tone === "positive";
@@ -56,16 +47,14 @@ function ClaimList({ tone, title, items }) {
 }
 
 export default function WhyBuildExSection({ onAnchorClick }) {
+  const t = useT();
   return (
     <section id="why-buildex" className="py-16 sm:py-24 reveal">
       <div className="max-w-5xl mx-auto px-6">
         <h2 className="text-4xl font-semibold text-center mb-7 sm:mb-10">
-          {/* The space after </span> is written as an explicit {" "} because the
-              JSX transform drops a plain leading space on a text segment that
-              also contains an HTML entity — this heading rendered as
-              "BuildExis — and isn't" for as long as the &apos; has been here. */}
-          What Build<span className="text-[#4ade80]">Ex</span>{" "}
-          is — and isn&apos;t
+          {t.rich("about.why.heading", {
+            brand: <>Build<span className="text-[#4ade80]">Ex</span></>,
+          })}
         </h2>
 
         {/* One panel split by a shared divider, rather than two separate cards.
@@ -73,11 +62,11 @@ export default function WhyBuildExSection({ onAnchorClick }) {
             CSS had forced to three columns, leaving a phantom empty column on
             every desktop screen. */}
         <div className="glass rounded-3xl overflow-hidden grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-white/[0.07]">
-          <ClaimList tone="positive" title="What BuildEx does" items={DOES} />
+          <ClaimList tone="positive" title={t("about.why.doesTitle")} items={t("about.why.does")} />
           <ClaimList
             tone="negative"
-            title="What BuildEx does not do"
-            items={DOES_NOT}
+            title={t("about.why.doesNotTitle")}
+            items={t("about.why.doesNot")}
           />
         </div>
 
@@ -87,7 +76,7 @@ export default function WhyBuildExSection({ onAnchorClick }) {
             onClick={(event) => onAnchorClick?.(event, "/")}
             className="inline-block px-7 py-3 sm:px-8 sm:py-4 bg-[#4ade80] text-black font-semibold rounded-full hover:scale-105 transition-all green-glow"
           >
-            Browse Builders
+            {t("about.browseBuilders")}
           </a>
         </div>
       </div>

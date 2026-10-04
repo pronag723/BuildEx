@@ -36,6 +36,8 @@ import HandleInput from "../onboarding/components/HandleInput";
 import PortfolioUploader from "../onboarding/components/PortfolioUploader";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useT } from "../../lib/i18n/LanguageProvider";
+import { styleChipLabel } from "../../lib/i18n/labels.mjs";
 
 function IconPencil({ className = "w-4 h-4" }) {
   return (
@@ -47,6 +49,7 @@ function IconPencil({ className = "w-4 h-4" }) {
 }
 
 function SectionHeader({ title, editing, onEdit, onCancel, onSave, saving, canSave = true }) {
+  const t = useT();
   return (
     <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
       <h2 className="font-bold text-xl">{title}</h2>
@@ -57,7 +60,7 @@ function SectionHeader({ title, editing, onEdit, onCancel, onSave, saving, canSa
             onClick={onCancel}
             className="px-4 py-1.5 rounded-full text-xs font-semibold border border-white/15 text-gray-300 hover:bg-white/5 transition-all"
           >
-            Cancel
+            {t("common.cancel")}
           </button>
           <button
             type="button"
@@ -68,7 +71,7 @@ function SectionHeader({ title, editing, onEdit, onCancel, onSave, saving, canSa
             {saving && (
               <span className="w-3 h-3 rounded-full border-2 border-black/40 border-t-black animate-spin" />
             )}
-            Save
+            {t("common.save")}
           </button>
         </div>
       ) : (
@@ -78,7 +81,7 @@ function SectionHeader({ title, editing, onEdit, onCancel, onSave, saving, canSa
           className="px-3 py-1.5 rounded-full text-xs font-semibold border border-[#4ade80]/30 text-[#4ade80] bg-[#4ade80]/10 hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.35)] transition-all inline-flex items-center gap-1.5"
         >
           <IconPencil className="w-3.5 h-3.5" />
-          Edit
+          {t("common.edit")}
         </button>
       )}
     </div>
@@ -89,12 +92,14 @@ function SectionHeader({ title, editing, onEdit, onCancel, onSave, saving, canSa
 // The three top-level views of the account page. A segmented control sits above
 // the avatar and toggles which group of cards is shown, so the page no longer
 // stacks everything in one long scroll.
+// Labels: `account.sections.<key>` (full) and `account.sections.<key>Short`.
 const ACCOUNT_SECTIONS = [
-  { key: "profile", label: "Profile", short: "Profile" },
-  { key: "danger", label: "Account", short: "Account" },
+  { key: "profile" },
+  { key: "danger" },
 ];
 
 function SectionTabs({ section, setSection }) {
+  const t = useT();
   const sections = ACCOUNT_SECTIONS;
   const idx = Math.max(0, sections.findIndex((s) => s.key === section));
   return (
@@ -102,7 +107,7 @@ function SectionTabs({ section, setSection }) {
       className="account-section-tabs relative grid p-1 rounded-full bg-white/[0.04] border border-white/10 mb-6 sm:mb-8 detail-fade-up"
       style={{ gridTemplateColumns: `repeat(${sections.length}, minmax(0, 1fr))` }}
       role="tablist"
-      aria-label="Account sections"
+      aria-label={t("account.sections.aria")}
     >
       {/* Sliding highlight */}
       <span
@@ -127,8 +132,8 @@ function SectionTabs({ section, setSection }) {
               isActive ? "text-white" : "text-gray-400 hover:text-gray-200"
             }`}
           >
-            <span className="sm:hidden">{s.short}</span>
-            <span className="hidden sm:inline">{s.label}</span>
+            <span className="sm:hidden">{t(`account.sections.${s.key}Short`)}</span>
+            <span className="hidden sm:inline">{t(`account.sections.${s.key}`)}</span>
           </button>
         );
       })}
@@ -140,6 +145,7 @@ function SectionTabs({ section, setSection }) {
 // Only rendered for builders — it is their public pitch.
 function AboutSection({ profile, onSaved }) {
   const { user } = useAuth();
+  const t = useT();
   const [editing, setEditing] = useState(false);
   const [bio, setBio] = useState(profile?.bio || "");
   const [error, setError] = useState(null);
@@ -163,7 +169,7 @@ function AboutSection({ profile, onSaved }) {
     });
     setSaving(false);
     if (err) {
-      setError(err.message || "Couldn't save.");
+      setError(err.message || t("account.errors.saveFailed"));
       return;
     }
     setEditing(false);
@@ -173,7 +179,7 @@ function AboutSection({ profile, onSaved }) {
   return (
     <section className="reveal glass rounded-3xl p-4 sm:p-6 lg:p-8">
       <SectionHeader
-        title="About"
+        title={t("account.about.title")}
         editing={editing}
         onEdit={startEdit}
         onCancel={() => setEditing(false)}
@@ -184,11 +190,11 @@ function AboutSection({ profile, onSaved }) {
       {editing ? (
         <div className="space-y-4">
           <div>
-            <label htmlFor="acc-bio" className="onb-label block mb-2">Bio</label>
+            <label htmlFor="acc-bio" className="onb-label block mb-2">{t("account.about.bio")}</label>
             <textarea
               id="acc-bio"
               className="onb-input onb-textarea"
-              placeholder="Share your story, what you love building, the kind of projects you take on…"
+              placeholder={t("account.about.placeholder")}
               value={bio}
               onChange={(e) => setBio(e.target.value.slice(0, BIO_MAX))}
               maxLength={BIO_MAX}
@@ -203,7 +209,7 @@ function AboutSection({ profile, onSaved }) {
             <p className="text-gray-400 leading-relaxed break-words whitespace-pre-wrap">{profile.bio}</p>
           ) : (
             <p className="text-gray-500 text-sm italic">
-              No bio yet. Click <strong>Edit</strong> to add one.
+              {t.rich("account.about.empty", { edit: <strong>{t("common.edit")}</strong> })}
             </p>
           )}
         </div>
@@ -217,6 +223,7 @@ function AboutSection({ profile, onSaved }) {
 // passed, so whatever an older builder stored there survives untouched.
 function StylesSection({ builderProfile, onSaved }) {
   const { user } = useAuth();
+  const t = useT();
   const [editing, setEditing] = useState(false);
   const [specialties, setSpecialties] = useState(builderProfile?.specialties || []);
   const [error, setError] = useState(null);
@@ -235,7 +242,7 @@ function StylesSection({ builderProfile, onSaved }) {
     const { error: err } = await saveBuilderStyles(supabase, user.id, { specialties });
     setSaving(false);
     if (err) {
-      setError(err.message || "Couldn't save.");
+      setError(err.message || t("account.errors.saveFailed"));
       return;
     }
     setEditing(false);
@@ -248,7 +255,7 @@ function StylesSection({ builderProfile, onSaved }) {
   return (
     <section className="reveal glass rounded-3xl p-4 sm:p-6 lg:p-8">
       <SectionHeader
-        title="Styles"
+        title={t("account.styles.title")}
         editing={editing}
         onEdit={startEdit}
         onCancel={() => setEditing(false)}
@@ -260,30 +267,29 @@ function StylesSection({ builderProfile, onSaved }) {
       {editing ? (
         <div className="space-y-6">
           <div>
-            <div className="onb-label mb-3">Building styles</div>
+            <div className="onb-label mb-3">{t("onboarding.styles.label")}</div>
             <ChipGrid
-              options={STYLES}
+              options={STYLES.map((s) => ({ ...s, label: t(`styles.${s.key}`) }))}
               value={specialties}
               onChange={setSpecialties}
               multi
-              ariaLabel="Building styles"
+              ariaLabel={t("onboarding.styles.label")}
             />
           </div>
           {!canSave && (
-            <p className="text-xs text-gray-500">Pick at least one style.</p>
+            <p className="text-xs text-gray-500">{t("account.styles.pickOne")}</p>
           )}
           {error && <div role="alert" className="auth-banner auth-banner-error">{error}</div>}
         </div>
       ) : savedSpecs.length === 0 ? (
         <p className="text-gray-500 text-sm italic">
-          No styles yet. Click <strong>Edit</strong> to pick some — they are what
-          clients filter the catalog by.
+          {t.rich("account.styles.empty", { edit: <strong>{t("common.edit")}</strong> })}
         </p>
       ) : (
         <div className="flex flex-wrap gap-1.5">
           {savedSpecs.map((sp) => (
             <span key={sp} className="px-3 py-1 rounded-full text-xs bg-white/5 border border-white/10 text-gray-300 capitalize">
-              {sp}
+              {styleChipLabel(sp, t.lang)}
             </span>
           ))}
         </div>
@@ -295,6 +301,7 @@ function StylesSection({ builderProfile, onSaved }) {
 // ─── Portfolio (builders) ───────────────────────────────────────────────────
 function PortfolioSection({ portfolioCount, onSaved }) {
   const { user } = useAuth();
+  const t = useT();
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState(null);
   const [images, setImages] = useState([]);
@@ -316,9 +323,9 @@ function PortfolioSection({ portfolioCount, onSaved }) {
     <section className="reveal">
       <div className="flex items-center justify-between mb-5 flex-wrap gap-2">
         <div>
-          <h2 className="font-bold text-xl">Portfolio</h2>
+          <h2 className="font-bold text-xl">{t("profile.portfolio")}</h2>
           <p className="text-xs text-gray-500 mt-1">
-            Drag in your best builds. The first image becomes your cover.
+            {t("account.portfolio.subtitle")}
           </p>
         </div>
         <button
@@ -327,7 +334,7 @@ function PortfolioSection({ portfolioCount, onSaved }) {
           className="px-3 py-1.5 rounded-full text-xs font-semibold border border-[#4ade80]/30 text-[#4ade80] bg-[#4ade80]/10 hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.35)] transition-all inline-flex items-center gap-1.5"
         >
           <IconPencil className="w-3.5 h-3.5" />
-          {editing ? "Done editing" : "Manage portfolio"}
+          {editing ? t("account.portfolio.done") : t("account.portfolio.manage")}
         </button>
       </div>
 
@@ -348,10 +355,10 @@ function PortfolioSection({ portfolioCount, onSaved }) {
           )}
         </div>
       ) : loading ? (
-        <div className="glass rounded-3xl p-8 sm:p-12 text-center text-gray-500 text-sm">Loading…</div>
+        <div className="glass rounded-3xl p-8 sm:p-12 text-center text-gray-500 text-sm">{t("account.loading")}</div>
       ) : images.length === 0 ? (
         <div className="glass rounded-3xl p-8 sm:p-12 text-center text-gray-500 text-sm">
-          No builds in your portfolio yet. Click <strong>Manage portfolio</strong> to add some.
+          {t.rich("account.portfolio.empty", { manage: <strong>{t("account.portfolio.manage")}</strong> })}
         </div>
       ) : (
         <div className="portfolio-scroll-wrapper fade-edges -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
@@ -379,6 +386,7 @@ function PortfolioSection({ portfolioCount, onSaved }) {
 // ─── Account actions + danger zone ───────────────────────────────────────────
 function AccountActionsSection() {
   const { user, profile, signOut } = useAuth();
+  const t = useT();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmText, setConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
@@ -411,8 +419,8 @@ function AccountActionsSection() {
         /could not find the function|delete_own_account/i.test(err.message || "");
       setError(
         missingFn
-          ? "Account deletion isn't enabled on the database yet. Run Supabase migration 0006 (delete_own_account), then try again."
-          : err.message || "Couldn't delete your account. Please try again."
+          ? t("account.errors.deleteNotEnabled")
+          : err.message || t("account.errors.deleteFailed")
       );
       return;
     }
@@ -432,8 +440,8 @@ function AccountActionsSection() {
 
   return (
     <section className="reveal glass rounded-3xl p-4 sm:p-6 lg:p-8">
-      <h2 className="font-bold text-xl mb-1">Account</h2>
-      <p className="text-xs text-gray-500 mb-5">Quick links and account controls.</p>
+      <h2 className="font-bold text-xl mb-1">{t("account.actions.title")}</h2>
+      <p className="text-xs text-gray-500 mb-5">{t("account.actions.subtitle")}</p>
 
       {/* "Browse builders" and "Back to home" used to be two tiles; the feed is
           the site root now, so they were the same destination twice. */}
@@ -442,7 +450,7 @@ function AccountActionsSection() {
           href={withBase("/")}
           className="py-3 px-4 text-sm font-medium rounded-2xl border border-white/15 hover:border-white/40 transition-all ghost-btn text-center"
         >
-          Browse builders
+          {t("account.actions.browse")}
         </a>
         <button
           type="button"
@@ -450,7 +458,7 @@ function AccountActionsSection() {
           className="py-3 px-4 inline-flex items-center justify-center gap-2 text-sm font-semibold rounded-2xl border border-white/15 text-gray-200 hover:border-white/40 hover:bg-white/5 transition-all"
         >
           <Icon name="logout" size={16} />
-          Log out
+          {t("nav.logOut")}
         </button>
       </div>
 
@@ -458,10 +466,9 @@ function AccountActionsSection() {
       <div className="mt-6 pt-6 border-t border-white/10">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-red-400/25 bg-red-500/[0.06] p-5">
           <div className="min-w-0">
-            <h3 className="font-semibold text-red-200 text-sm">Delete account</h3>
+            <h3 className="font-semibold text-red-200 text-sm">{t("account.actions.delete")}</h3>
             <p className="text-xs text-gray-400 mt-1 max-w-md leading-relaxed">
-              Permanently remove your account and everything tied to it — profile,
-              availability, portfolio and conversations. This can&apos;t be undone.
+              {t("account.actions.deleteBody")}
             </p>
           </div>
           <button
@@ -469,7 +476,7 @@ function AccountActionsSection() {
             onClick={openConfirm}
             className="flex-shrink-0 py-2.5 px-5 text-sm font-semibold rounded-full bg-red-500/15 text-red-200 border border-red-400/40 hover:bg-red-500/25 hover:border-red-400/60 transition-all disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/[0.03] disabled:text-gray-600"
           >
-            Delete account
+            {t("account.actions.delete")}
           </button>
         </div>
       </div>
@@ -495,15 +502,16 @@ function AccountActionsSection() {
               </svg>
             </div>
             <h3 id="delete-account-title" className="text-xl font-bold mb-2">
-              Delete your account?
+              {t("account.deleteDialog.title")}
             </h3>
             <p className="text-sm text-gray-400 leading-relaxed mb-5">
-              This permanently deletes your BuildEx account and all associated data —
-              profile, availability, portfolio images and conversations.{" "}
-              <strong className="text-red-200">This action cannot be undone.</strong>
+              {t("account.deleteDialog.body")}{" "}
+              <strong className="text-red-200">{t("account.deleteDialog.irreversible")}</strong>
             </p>
             <label htmlFor="confirm-delete" className="onb-label block mb-2">
-              Type <span className="text-red-200 font-bold">DELETE</span> to confirm
+              {t.rich("account.deleteDialog.typeToConfirm", {
+                word: <span className="text-red-200 font-bold">DELETE</span>,
+              })}
             </label>
             <input
               id="confirm-delete"
@@ -527,7 +535,7 @@ function AccountActionsSection() {
                 disabled={deleting}
                 className="px-4 py-2 rounded-full text-sm font-semibold border border-white/15 text-gray-300 hover:bg-white/5 transition-all disabled:opacity-50"
               >
-                Cancel
+                {t("common.cancel")}
               </button>
               <button
                 type="button"
@@ -538,7 +546,7 @@ function AccountActionsSection() {
                 {deleting && (
                   <span className="w-3.5 h-3.5 rounded-full border-2 border-white/40 border-t-white animate-spin" />
                 )}
-                {deleting ? "Deleting…" : "Delete account"}
+                {deleting ? t("account.deleteDialog.deleting") : t("account.actions.delete")}
               </button>
             </div>
           </div>
@@ -554,6 +562,7 @@ function AccountActionsSection() {
 // reads like what clients will eventually see.
 function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
   const { user, updateProfile } = useAuth();
+  const t = useT();
   const [editing, setEditing] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || null);
   const [displayName, setDisplayName] = useState(profile?.display_name || "");
@@ -607,10 +616,10 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
     setSaving(false);
     if (err) {
       if (err.code === "23505" || /duplicate|unique/i.test(err.message || "")) {
-        setError("That handle was just taken. Try another one.");
+        setError(t("onboarding.errors.handleTaken"));
         setHandleValid(false);
       } else {
-        setError(err.message || "Couldn't save.");
+        setError(err.message || t("account.errors.saveFailed"));
       }
       return;
     }
@@ -665,7 +674,7 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
             <div className="space-y-4 text-left">
               <div>
                 <label htmlFor="acc-display-name" className="onb-label block mb-2">
-                  Your name
+                  {t("onboarding.identity.nameLabel")}
                 </label>
                 <input
                   id="acc-display-name"
@@ -676,11 +685,11 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value.slice(0, DISPLAY_NAME_MAX))}
                   maxLength={DISPLAY_NAME_MAX}
-                  placeholder="Your name"
+                  placeholder={t("onboarding.identity.nameLabel")}
                   autoComplete="off"
                 />
                 <p className="mt-1.5 text-xs text-gray-500">
-                  Shown big on your profile. {trimmedName.length}/{DISPLAY_NAME_MAX}
+                  {t("account.header.nameHint")} {trimmedName.length}/{DISPLAY_NAME_MAX}
                 </p>
               </div>
               <HandleInput
@@ -688,15 +697,15 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
                 onChange={setHandle}
                 currentUserId={user?.id}
                 onValidityChange={setHandleValid}
-                label="Your @nickname"
-                hint="Unique to you — used in your profile URL, mentions and DMs."
+                label={t("account.header.handleLabel")}
+                hint={t("account.header.handleHint")}
               />
               {isBuilder && (
                 <ContactLinkField
                   rows={linkRows}
                   onChange={setLinkRows}
-                  label="Your links"
-                  hint="Shown as buttons on your public profile. Clear a field to remove it."
+                  label={t("onboarding.links.label")}
+                  hint={t("account.header.linksHint")}
                 />
               )}
             </div>
@@ -704,12 +713,12 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
             <>
           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2 gap-y-1.5 mb-1.5">
             <h2 className="text-xl sm:text-3xl font-extrabold leading-tight break-words min-w-0">
-              {profile?.display_name || "Your name"}
+              {profile?.display_name || t("onboarding.identity.nameLabel")}
             </h2>
             {isBuilder && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#4ade80]/15 border border-[#4ade80]/30 text-[#4ade80]">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80] flex-shrink-0" />
-                Builder
+                {t("account.header.builderBadge")}
               </span>
             )}
           </div>
@@ -727,7 +736,7 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
           {isBuilder && (
             <div className="mb-4">
               <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
-                Your links
+                {t("onboarding.links.label")}
               </p>
               {savedLinks.length > 0 ? (
                 <SocialLinks
@@ -741,7 +750,7 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
                   className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-white/20 px-3.5 py-1.5 text-xs font-medium text-gray-400 transition hover:border-[#4ade80]/50 hover:text-[#4ade80]"
                 >
                   <Icon name="link" size={13} />
-                  Add Discord, Telegram, YouTube and more
+                  {t("account.header.addLinks")}
                 </button>
               )}
             </div>
@@ -751,7 +760,7 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
             <div className="flex flex-wrap justify-center sm:justify-start gap-2">
               {specialties.map((s) => (
                 <span key={s} className="px-3 py-1 rounded-full text-xs bg-white/5 border border-white/10 text-gray-400 capitalize">
-                  {s}
+                  {styleChipLabel(s, t.lang)}
                 </span>
               ))}
             </div>
@@ -769,7 +778,7 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
                 onClick={() => setEditing(false)}
                 className="px-4 py-2 rounded-full text-xs font-semibold border border-white/15 text-gray-300 hover:bg-white/5 transition-all"
               >
-                Cancel
+                {t("common.cancel")}
               </button>
               <button
                 type="button"
@@ -780,7 +789,7 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
                 {saving && (
                   <span className="w-3 h-3 rounded-full border-2 border-black/40 border-t-black animate-spin" />
                 )}
-                Save
+                {t("common.save")}
               </button>
             </>
           ) : (
@@ -790,7 +799,7 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
               className="px-3 py-2 rounded-full text-xs font-semibold border border-[#4ade80]/30 text-[#4ade80] bg-[#4ade80]/10 hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.35)] transition-all inline-flex items-center gap-1.5"
             >
               <IconPencil className="w-3.5 h-3.5" />
-              Edit profile
+              {t("account.header.editProfile")}
             </button>
           )}
         </div>
@@ -809,21 +818,19 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
 // The ONLY entrance to builder onboarding. Anyone signed in is a visitor until
 // they have a builder_profiles row; this card is what creates one.
 function BecomeABuilderCard() {
+  const t = useT();
   return (
     <section className="reveal glass rounded-3xl p-4 sm:p-6 lg:p-8 border border-[#4ade80]/20">
-      <p className="text-xs uppercase tracking-[0.18em] text-[#4ade80]/80">Build for others</p>
-      <h2 className="font-bold text-xl mt-1">Create a builder profile</h2>
+      <p className="text-xs uppercase tracking-[0.18em] text-[#4ade80]/80">{t("account.become.eyebrow")}</p>
+      <h2 className="font-bold text-xl mt-1">{t("account.become.title")}</h2>
       <p className="text-sm text-gray-500 mt-2 max-w-2xl leading-relaxed">
-        Get listed in the builders directory so server owners can find you and message
-        you directly. Three steps: your name and avatar, the styles you build in, and
-        a few photos of your work. It takes a couple of minutes and nothing is
-        permanent — you can edit or remove it later.
+        {t("account.become.body")}
       </p>
       <Link
         href={BUILDER_ONBOARDING_START}
         className="mt-5 inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#4ade80] text-black text-sm font-bold transition-[transform,background-color,box-shadow] duration-300 ease-out hover:-translate-y-0.5 hover:bg-[#86efac] hover:shadow-[0_8px_20px_rgba(74,222,128,0.22)]"
       >
-        Create a builder profile
+        {t("account.become.title")}
         <Icon name="hammer" size={16} />
       </Link>
     </section>
@@ -847,6 +854,7 @@ export default function AccountPage() {
 
 function AccountPageInner() {
   useRequireAuth();
+  const t = useT();
   const searchParams = useSearchParams();
   const router = useRouter();
   const {
@@ -1056,16 +1064,16 @@ function AccountPageInner() {
               <path d="M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
-          <div className="text-xl font-semibold mb-2">Couldn&apos;t load your profile</div>
+          <div className="text-xl font-semibold mb-2">{t("account.loadError.title")}</div>
           <p className="text-gray-400 text-sm mb-6">
-            {loadError || "We hit a snag fetching your account. Please try again."}
+            {loadError || t("account.loadError.body")}
           </p>
           <button
             type="button"
             onClick={refresh}
             className="inline-block px-6 py-3 bg-[#4ade80] text-black font-semibold rounded-full green-glow hover:scale-105 transition-all"
           >
-            Try again
+            {t("common.tryAgain")}
           </button>
         </div>
       </main>
@@ -1106,15 +1114,15 @@ function AccountPageInner() {
           {/* Page intro */}
           <div className="mb-6 detail-fade-up">
             <p className="text-xs font-semibold uppercase tracking-widest text-[#4ade80]/80 mb-1.5">
-              Profile settings
+              {t("account.intro.eyebrow")}
             </p>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight logo-font">
-              Your profile
+              {t("account.intro.title")}
             </h1>
             <p className="text-sm text-gray-500 mt-1.5">
               {isBuilder
-                ? "Manage how you appear across BuildEx — your identity, styles and portfolio."
-                : "Manage your account details and how you appear to the builders you message."}
+                ? t("account.intro.builderBody")
+                : t("account.intro.visitorBody")}
             </p>
           </div>
 

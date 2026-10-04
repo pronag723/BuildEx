@@ -9,6 +9,10 @@ import test from "node:test";
 
 const read = (path) => readFileSync(path, "utf8");
 const auth = read("app/auth/components/AuthCard.jsx");
+// The interface copy lives in the dictionaries since localization; the
+// components only name keys. English is what these tests read for the claims
+// themselves, and the Russian files get a guard of their own below.
+const authCopy = read("lib/i18n/messages/en/auth.mjs");
 const legalDocs = read("app/legal/documents.js");
 const legalApi = read("lib/legal/api.js");
 
@@ -25,7 +29,14 @@ const HOME_COPY = [
   "app/home/components/FeaturesDeckSection.jsx",
   "app/home/components/WhyBuildExSection.jsx",
   "app/home/components/ProjectsSection.jsx",
-  "app/home/components/SiteFooter.jsx"
+  "app/home/components/SiteFooter.jsx",
+  "lib/i18n/messages/en/about.mjs",
+  "lib/i18n/messages/en/footer.mjs"
+].map((path) => [path, stripComments(read(path))]);
+
+const RU_HOME_COPY = [
+  "lib/i18n/messages/ru/about.mjs",
+  "lib/i18n/messages/ru/footer.mjs"
 ].map((path) => [path, stripComments(read(path))]);
 
 const escapeForRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -78,11 +89,15 @@ test("the terms say what BuildEx is, and what it is not responsible for", () => 
 // is now on EVERY page rather than two sections of one. Keep it that way: if
 // the footer stops rendering it, this must fail.
 test("the site states that deals and payments are direct", () => {
-  const data = HOME_COPY.find(([path]) => path === "app/home/data.js")[1];
-  assert.match(data, /All arrangements and payments happen directly between the client and the builder/);
+  const copy = HOME_COPY.find(([path]) => path.endsWith("en/footer.mjs"))[1];
+  assert.match(copy, /All arrangements and payments happen directly between the client and the builder/);
 
   const footer = HOME_COPY.find(([path]) => path.endsWith("SiteFooter.jsx"))[1];
-  assert.match(footer, /DIRECTORY_DISCLAIMER/);
+  assert.match(footer, /footer\.disclaimer/);
+
+  // …and says the same in Russian.
+  const ruFooter = RU_HOME_COPY.find(([path]) => path.endsWith("ru/footer.mjs"))[1];
+  assert.match(ruFooter, /происходят напрямую между клиентом и билдером/);
 });
 
 test("the landing page makes no payment, protection or vetting claim", () => {
@@ -115,6 +130,27 @@ test("the landing page denies the things BuildEx does not do", () => {
   assert.match(all, /BuildEx is not involved in them/);
   assert.match(all, /does not hold or handle money/);
   assert.match(all, /does not vet, verify or guarantee anyone/);
+
+  const ru = RU_HOME_COPY.map(([, source]) => source).join("\n");
+  assert.match(ru, /BuildEx в них не участвует/);
+  assert.match(ru, /не принимает и не хранит деньги/);
+  assert.match(ru, /не проверяет, не подтверждает и не гарантирует никого/);
+});
+
+test("the Russian landing copy makes no payment, protection or vetting claim", () => {
+  const forbidden = [
+    /защищ[её]нн\S* (?:оплат|плат[её]ж|сделк)/i,
+    /гарантируем/i,
+    /комисси/i,
+    /мы (?:проверяем|верифицируем)/i,
+    /проверенн\S* (?:билдер|отзыв|заказ)/i,
+    /\$\d/
+  ];
+  for (const [path, source] of RU_HOME_COPY) {
+    for (const pattern of forbidden) {
+      assert.doesNotMatch(source, pattern, `${path} must not claim ${pattern}`);
+    }
+  }
 });
 
 // Sign-in is one click, so the active "tick to continue" gate is gone. The
@@ -123,7 +159,8 @@ test("the landing page denies the things BuildEx does not do", () => {
 // accepted, which flushes to record_legal_acceptance once they are signed in.
 test("account creation records versioned consent shown at the point of sign-in", () => {
   assert.doesNotMatch(auth, /type="checkbox"/);
-  assert.match(auth, /By continuing you confirm you are at least 13/);
+  assert.match(auth, /auth\.consent/);
+  assert.match(authCopy, /By continuing you confirm you are at least 13/);
   assert.match(auth, /\/legal\/terms\//);
   assert.match(auth, /\/legal\/privacy\//);
   assert.match(auth, /stageAccountAcceptance/);

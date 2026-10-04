@@ -20,6 +20,7 @@ import OnboardingShell from "../../components/OnboardingShell";
 import OnboardingGate from "../../components/OnboardingGate";
 import OnboardingFooter from "../../components/OnboardingFooter";
 import ChipGrid from "../../components/ChipGrid";
+import { useT } from "../../../../lib/i18n/LanguageProvider";
 
 export default function BuilderStylesPage() {
   return (
@@ -34,6 +35,7 @@ export default function BuilderStylesPage() {
 function BuilderStylesStep({ state }) {
   const router = useRouter();
   const { user, refresh } = useAuth();
+  const t = useT();
   const bp = state.builderProfile || {};
 
   const [specialties, setSpecialties] = useState(
@@ -58,7 +60,7 @@ function BuilderStylesStep({ state }) {
     });
     setSaving(false);
     if (saveErr) {
-      setError(saveErr.message || "Couldn't save. Try again.");
+      setError(saveErr.message || t("onboarding.errors.saveFailed"));
       return;
     }
     await refresh?.();
@@ -68,30 +70,29 @@ function BuilderStylesStep({ state }) {
   return (
     <div>
       <div className="text-center mb-10 onb-fade-in onb-fade-in-1">
-        <h1 className="onb-section-title">What do you build?</h1>
+        <h1 className="onb-section-title">{t("onboarding.styles.title")}</h1>
         <p className="onb-section-sub mt-3 mx-auto">
-          Your styles drive the catalog filters — clients searching for them will find
-          you. You can change these anytime from your account.
+          {t("onboarding.styles.subtitle")}
         </p>
       </div>
 
       <div className="space-y-6">
         <div className="glass onb-card onb-fade-in onb-fade-in-2">
           <div className="flex items-baseline justify-between mb-3">
-            <div className="onb-label">Building styles</div>
+            <div className="onb-label">{t("onboarding.styles.label")}</div>
             <span className="text-[11px] text-gray-500">
-              {specialties.length} selected
+              {t("onboarding.styles.selected", { count: specialties.length })}
             </span>
           </div>
           <p className="text-xs text-gray-500 mb-4">
-            Pick everything you&apos;re great at. At least one is required.
+            {t("onboarding.styles.hint")}
           </p>
           <ChipGrid
-            options={STYLES}
+            options={STYLES.map((s) => ({ ...s, label: t(`styles.${s.key}`) }))}
             value={specialties}
             onChange={setSpecialties}
             multi
-            ariaLabel="Building styles"
+            ariaLabel={t("onboarding.styles.label")}
           />
         </div>
 
@@ -107,7 +108,7 @@ function BuilderStylesStep({ state }) {
         onNext={handleContinue}
         nextDisabled={!canContinue}
         isSaving={saving}
-        helper={canContinue ? null : "Pick at least one style to continue"}
+        helper={canContinue ? null : t("onboarding.styles.helper")}
       />
     </div>
   );

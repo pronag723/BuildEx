@@ -3,6 +3,8 @@
 import { withBase } from "../utils";
 import AuthNavControls from "../../auth/components/AuthNavControls";
 import { Icon } from "../../../lib/icons";
+import { useT } from "../../../lib/i18n/LanguageProvider";
+import LanguageSwitcher from "../../../lib/i18n/LanguageSwitcher";
 
 export default function Navbar({
   navItems,
@@ -13,6 +15,8 @@ export default function Navbar({
   setTheme,
   onAnchorClick
 }) {
+  const t = useT();
+
   return (
     <nav className="fixed top-3.5 left-1/2 -translate-x-1/2 z-50 w-full nav-wrapper px-6">
       <div className="glass nav-pill flex items-center justify-between shadow-2xl">
@@ -22,7 +26,7 @@ export default function Navbar({
               hero the way it used to. */}
           <a
             href={withBase("/")}
-            aria-label="BuildEx — back to the builder feed"
+            aria-label={t("common.logoHome")}
             className="flex items-center gap-1.5 no-underline"
             onClick={(event) => onAnchorClick(event, "/")}
           >
@@ -36,24 +40,26 @@ export default function Navbar({
         <div className="hidden lg:flex items-center nav-links-gap nav-text font-medium">
           {navItems.map((item) => (
             <a
-              key={`${item.label}-desktop`}
+              key={`${item.key}-desktop`}
               href={item.href.startsWith("/") ? withBase(item.href) : item.href}
               className={`nav-link hover:text-[#4ade80] transition-colors whitespace-nowrap ${
                 activeSection === item.href.slice(1) ? "active" : ""
               }`}
               onClick={(event) => onAnchorClick(event, item.href)}
             >
-              {item.label}
+              {t(`nav.${item.key}`)}
             </a>
           ))}
         </div>
 
         <div className="flex items-center nav-controls-gap flex-shrink-0">
+          <LanguageSwitcher />
+
           <button
             id="theme-toggle"
             type="button"
             className="theme-switch relative w-14 h-7 flex items-center rounded-full transition-all duration-300 bg-white/10 border border-white/20 hover:border-white/40 flex-shrink-0"
-            aria-label="Toggle color theme"
+            aria-label={t("common.toggleTheme")}
             onClick={() =>
               setTheme((currentTheme) =>
                 currentTheme === "light" ? "dark" : "light"
@@ -73,7 +79,7 @@ export default function Navbar({
             className={`lg:hidden flex flex-col justify-center items-center w-9 h-9 gap-1.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 transition-all ${
               mobileMenuOpen ? "active" : ""
             }`}
-            aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+            aria-label={mobileMenuOpen ? t("common.closeMenu") : t("common.openMenu")}
             onClick={() => setMobileMenuOpen((isOpen) => !isOpen)}
           >
             <span className="burger-line w-5 h-0.5 bg-current rounded-full transition-all duration-300" />

@@ -5,21 +5,10 @@ import { createPortal } from "react-dom";
 import { useAuth } from "../../../lib/auth/AuthContext";
 import { useNotifications } from "../../../lib/notifications/NotificationsContext";
 import { withBase } from "../../home/utils";
-
+import { useT } from "../../../lib/i18n/LanguageProvider";
 // Compact "now / 2m / 4h / Mon / Apr 3" stamp — same shape as the chat inbox.
-function relativeStamp(iso) {
-  if (!iso) return "";
-  const then = new Date(iso);
-  const diff = Date.now() - then.getTime();
-  const min = Math.floor(diff / 60000);
-  if (min < 1) return "now";
-  if (min < 60) return `${min}m`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h`;
-  const day = Math.floor(hr / 24);
-  if (day < 7) return then.toLocaleDateString("en-US", { weekday: "short" });
-  return then.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
+import { relativeStamp } from "../../../lib/i18n/format.mjs";
+import { translateServerText } from "../../../lib/i18n/serverText.mjs";
 
 function IconBell({ className = "w-5 h-5" }) {
   return (
@@ -51,6 +40,7 @@ export default function NotificationsBell() {
   // (via a click here, or by navigating to its linked page) it drops out of the
   // list. The badge/aria still use the context's full counts.
   const visible = notifications.filter((n) => !n.read_at);
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [coords, setCoords] = useState(null);
   const buttonRef = useRef(null);
@@ -116,8 +106,8 @@ export default function NotificationsBell() {
         aria-expanded={open}
         aria-label={
           hasUnread
-            ? `Notifications (${unreadCount} unread)`
-            : "Notifications"
+            ? t("notifications.ariaUnread", { count: unreadCount })
+            : t("notifications.title")
         }
       >
         <IconBell />
@@ -147,7 +137,7 @@ export default function NotificationsBell() {
             }`}
           >
             <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between gap-3">
-              <span className="text-sm font-semibold">Notifications</span>
+              <span className="text-sm font-semibold">{t("notifications.title")}</span>
               {visible.length > 0 && (
                 <button
                   type="button"
@@ -155,7 +145,7 @@ export default function NotificationsBell() {
                   tabIndex={open ? 0 : -1}
                   className="text-xs text-[#4ade80] hover:underline"
                 >
-                  Mark all as read
+                  {t("notifications.markAllRead")}
                 </button>
               )}
             </div>
@@ -163,7 +153,7 @@ export default function NotificationsBell() {
             <div className="max-h-[60vh] overflow-y-auto hide-scrollbar">
               {visible.length === 0 ? (
                 <div className="px-4 py-8 text-center text-sm text-gray-400">
-                  You're all caught up.
+                  {t("notifications.empty")}
                 </div>
               ) : (
                 <ul className="py-1 text-sm">
@@ -181,15 +171,15 @@ export default function NotificationsBell() {
                         <span className="min-w-0 flex-1">
                           <span className="flex items-baseline justify-between gap-2">
                             <span className="font-medium truncate">
-                              {n.title}
+                              {translateServerText(n.title, t.lang)}
                             </span>
                             <span className="text-[10px] text-gray-500 flex-shrink-0">
-                              {relativeStamp(n.created_at)}
+                              {relativeStamp(n.created_at, t.lang)}
                             </span>
                           </span>
                           {n.body && (
                             <span className="block text-xs text-gray-400 mt-0.5 line-clamp-2">
-                              {n.body}
+                              {translateServerText(n.body, t.lang)}
                             </span>
                           )}
                         </span>

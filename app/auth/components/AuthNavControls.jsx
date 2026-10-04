@@ -8,6 +8,7 @@ import { useAuth } from "../../../lib/auth/AuthContext";
 import { useUnread } from "../../../lib/chat/UnreadContext";
 import NotificationsBell from "../../notifications/components/NotificationsBell";
 import { Icon } from "../../../lib/icons";
+import { useT } from "../../../lib/i18n/LanguageProvider";
 
 function IconUser({ className = "w-4 h-4" }) {
   return (
@@ -84,6 +85,7 @@ export default function AuthNavControls() {
   const { status, displayUser, profile, signOut } = useAuth();
   const isAdmin = profile?.is_admin === true;
   const { hasUnread, unreadTotal } = useUnread();
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [coords, setCoords] = useState(null);
   const buttonRef = useRef(null);
@@ -153,8 +155,8 @@ export default function AuthNavControls() {
             {hasUnread && (
               <span
                 className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-red-500 ring-2 ring-[#171717]"
-                title="You have unread messages"
-                aria-label="You have unread messages"
+                title={t("nav.unreadTitle")}
+                aria-label={t("nav.unreadTitle")}
               />
             )}
           </span>
@@ -212,7 +214,7 @@ export default function AuthNavControls() {
                 className="flex items-center gap-3 px-4 py-2.5 hover:bg-white/5 transition-colors"
               >
                 <IconUser className="w-4 h-4 text-[#4ade80]" />
-                <span>My profile</span>
+                <span>{t("nav.myProfile")}</span>
               </Link>
               <Link
                 role="menuitem"
@@ -222,7 +224,7 @@ export default function AuthNavControls() {
                 className="flex items-center gap-3 px-4 py-2.5 hover:bg-white/5 transition-colors"
               >
                 <IconMessage className="w-4 h-4 text-[#4ade80]" />
-                <span>My Chats</span>
+                <span>{t("nav.myChats")}</span>
                 {hasUnread && (
                   <span className="ml-auto min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
                     {unreadTotal > 9 ? "9+" : unreadTotal}
@@ -238,7 +240,7 @@ export default function AuthNavControls() {
                   className="flex items-center gap-3 px-4 py-2.5 hover:bg-white/5 transition-colors"
                 >
                   <IconShield className="w-4 h-4 text-[#4ade80]" />
-                  <span>Moderator console</span>
+                  <span>{t("nav.moderatorConsole")}</span>
                 </Link>
               )}
               <button
@@ -252,7 +254,7 @@ export default function AuthNavControls() {
                 className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-500/10 text-red-300 transition-colors"
               >
                 <Icon name="logout" size={16} className="text-red-300" />
-                Log out
+                {t("nav.logOut")}
               </button>
             </nav>
           </div>,
@@ -269,7 +271,7 @@ export default function AuthNavControls() {
       href="/login"
       className="nav-btn-primary nav-btn-text font-semibold rounded-full bg-[#4ade80] text-black transition-all green-glow whitespace-nowrap hidden sm:inline-block"
     >
-      Log in
+      {t("nav.logIn")}
     </Link>
   );
 }
@@ -279,6 +281,7 @@ export function AuthMobileControls({ onAfter }) {
   const isAdmin = profile?.is_admin === true;
   const pathname = usePathname();
   const onAccount = pathname === "/account";
+  const t = useT();
 
   if (status === "loading") {
     return (
@@ -312,7 +315,7 @@ export function AuthMobileControls({ onAfter }) {
           }`}
         >
           <IconUser className="w-4 h-4" />
-          My profile
+          {t("nav.myProfile")}
         </Link>
         {isAdmin && (
           <Link
@@ -321,7 +324,7 @@ export function AuthMobileControls({ onAfter }) {
             className="w-full py-3.5 inline-flex items-center justify-center gap-2 text-base font-medium rounded-2xl border border-white/20 hover:border-white/40 ghost-btn transition-all"
           >
             <IconShield className="w-4 h-4" />
-            Moderator console
+            {t("nav.moderatorConsole")}
           </Link>
         )}
         <button
@@ -333,7 +336,7 @@ export function AuthMobileControls({ onAfter }) {
           className="w-full py-3.5 inline-flex items-center justify-center gap-2 text-base font-semibold rounded-2xl bg-red-500/15 text-red-200 border border-red-400/30 hover:bg-red-500/25 transition-all"
         >
           <Icon name="logout" size={18} />
-          Log out
+          {t("nav.logOut")}
         </button>
       </>
     );
@@ -345,7 +348,7 @@ export function AuthMobileControls({ onAfter }) {
       onClick={() => onAfter?.()}
       className="w-full py-3.5 text-center text-base font-semibold rounded-2xl bg-[#4ade80] text-black transition-all green-glow"
     >
-      Log in
+      {t("nav.logIn")}
     </Link>
   );
 }

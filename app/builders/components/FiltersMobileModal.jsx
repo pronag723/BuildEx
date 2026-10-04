@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import CatalogFilters from "./CatalogFilters";
 import { useScrollLock } from "../../../lib/useScrollLock";
+import { useT } from "../../../lib/i18n/LanguageProvider";
 
 export default function FiltersMobileModal({
   open,
@@ -10,6 +11,7 @@ export default function FiltersMobileModal({
   resultCount,
   ...filterProps
 }) {
+  const t = useT();
   const closeButtonRef = useRef(null);
   const previousFocusRef = useRef(null);
 
@@ -41,7 +43,7 @@ export default function FiltersMobileModal({
       aria-modal={open}
       aria-hidden={!open}
       role="dialog"
-      aria-label="Filter options"
+      aria-label={t("catalog.filterOptions")}
     >
       {/* Backdrop */}
       <div
@@ -61,9 +63,9 @@ export default function FiltersMobileModal({
           {/* Modal header */}
           <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-white/[0.08] flex-shrink-0">
             <div>
-              <h2 className="font-semibold">Filters</h2>
+              <h2 className="font-semibold">{t("catalog.filters")}</h2>
               <p className="mt-0.5 text-xs text-gray-500">
-                Narrow down the builder list
+                {t("catalog.narrowDown")}
               </p>
             </div>
             <button
@@ -71,7 +73,7 @@ export default function FiltersMobileModal({
               type="button"
               onClick={onClose}
               className="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 hover:rotate-90 flex items-center justify-center transition-all duration-300"
-              aria-label="Close filters"
+              aria-label={t("catalog.closeFilters")}
             >
               <svg
                 className="w-4 h-4"
@@ -100,7 +102,7 @@ export default function FiltersMobileModal({
               onClick={onClose}
               className="w-full py-3 bg-[#4ade80] text-black font-semibold rounded-2xl text-sm green-glow hover:scale-[1.02] active:scale-[0.99] transition-transform duration-200"
             >
-              Show {resultCount} {resultCount === 1 ? "builder" : "builders"}
+              {t("catalog.showResults", { count: resultCount })}
             </button>
           </div>
         </div>

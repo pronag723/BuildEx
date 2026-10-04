@@ -15,9 +15,11 @@
 
 import { Icon } from "../../../lib/icons";
 import { readContactLinks } from "../../../lib/onboarding/contactLinks";
+import { useT } from "../../../lib/i18n/LanguageProvider";
 
 export default function SocialLinks({ contactLinks, className = "" }) {
   const links = readContactLinks(contactLinks);
+  const t = useT();
 
   // A builder with no published links renders nothing at all. The `emptyHint`
   // prop that used to print an apology here went with the rest of the
@@ -34,7 +36,7 @@ export default function SocialLinks({ contactLinks, className = "" }) {
             target="_blank"
             rel="noopener noreferrer nofollow"
             className="social-link-btn"
-            title={`${link.label}: ${link.text}`}
+            title={`${t(`platforms.${link.type}.label`)}: ${link.text}`}
           >
             <Icon name={link.icon} size={14} />
             <span>{link.text}</span>
@@ -45,7 +47,7 @@ export default function SocialLinks({ contactLinks, className = "" }) {
           <span
             key={link.type}
             className="social-link-btn"
-            title={`${link.label}: ${link.text}`}
+            title={`${t(`platforms.${link.type}.label`)}: ${link.text}`}
           >
             <Icon name={link.icon} size={14} />
             <span>{link.text}</span>

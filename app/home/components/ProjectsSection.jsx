@@ -2,21 +2,23 @@
 
 import { projects } from "../data";
 import { publicAsset, withBase } from "../utils";
+import { useT } from "../../../lib/i18n/LanguageProvider";
 
 function ProjectCard({ project }) {
+  const t = useT();
   return (
     <div className="glass w-80 rounded-3xl overflow-hidden flex-shrink-0 group project-card card-hover">
       <div className="h-52 bg-zinc-800 relative overflow-hidden">
         <img
           src={publicAsset(project.image)}
-          alt={project.alt}
+          alt={t(`about.projects.items.${project.key}.alt`)}
           className="w-full h-full object-cover minecraft-img"
           loading="lazy"
           decoding="async"
         />
       </div>
       <div className="p-6">
-        <div className="font-medium">{project.title}</div>
+        <div className="font-medium">{t(`about.projects.items.${project.key}.title`)}</div>
       </div>
     </div>
   );
@@ -33,6 +35,7 @@ function ProjectSet({ setIndex }) {
 }
 
 export default function ProjectsSection({ onAnchorClick }) {
+  const t = useT();
   return (
     <section id="projects" className="py-32 reveal">
       <div className="w-full px-6">
@@ -42,7 +45,9 @@ export default function ProjectsSection({ onAnchorClick }) {
             needing a second element. */}
         <div className="flex flex-col gap-3 mb-10 max-w-7xl mx-auto sm:flex-row sm:items-end sm:justify-between">
           <h2 className="text-4xl font-semibold">
-            The kind of thing <span className="text-[#4ade80]">people build</span>
+            {t.rich("about.projects.heading", {
+              hl: <span className="text-[#4ade80]">{t("about.projects.highlight")}</span>,
+            })}
           </h2>
           <div className="shrink-0">
             <a
@@ -50,7 +55,7 @@ export default function ProjectsSection({ onAnchorClick }) {
               className="text-[#4ade80] hover:underline text-sm inline-flex items-center gap-2"
               onClick={(event) => onAnchorClick(event, "/")}
             >
-              View all builders →
+              {t("about.projects.viewAll")}
             </a>
           </div>
         </div>

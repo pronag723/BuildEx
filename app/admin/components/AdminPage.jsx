@@ -39,23 +39,30 @@ import SmartText from "../../../lib/ui/SmartText";
 import CatalogNavbar from "../../builders/components/CatalogNavbar";
 import CatalogMobileMenu from "../../builders/components/CatalogMobileMenu";
 import { useGradientBackground } from "../../../lib/ui/useGradientBackground";
+import { useT } from "../../../lib/i18n/LanguageProvider";
+import { getLang } from "../../../lib/i18n/translate.mjs";
+import { formatDate as formatLocaleDate, formatDateTime as formatLocaleDateTime } from "../../../lib/i18n/format.mjs";
+import { serverMessage } from "../../../lib/i18n/serverText.mjs";
 
+// Labels: `admin.sections.<key>` and `admin.reports.tabs.<key>`.
 const SECTIONS = [
-  { key: "builders", label: "Builders", icon: "hammer" },
-  { key: "reports", label: "Reports", icon: "flag" },
-  { key: "users", label: "Users", icon: "users" },
+  { key: "builders", icon: "hammer" },
+  { key: "reports", icon: "flag" },
+  { key: "users", icon: "users" },
 ];
 
 const REPORT_TABS = [
-  { key: "open", label: "Open" },
-  { key: "reviewed", label: "Reviewed" },
-  { key: "dismissed", label: "Dismissed" },
-  { key: "all", label: "All" },
+  { key: "open" },
+  { key: "reviewed" },
+  { key: "dismissed" },
+  { key: "all" },
 ];
 
+// Dates follow the interface language. Every component that prints one also
+// calls useT(), so a language switch re-renders it with the new locale.
 function formatDate(iso) {
   if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-US", {
+  return formatLocaleDate(iso, getLang(), {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -64,7 +71,7 @@ function formatDate(iso) {
 
 function formatDateTime(iso) {
   if (!iso) return "—";
-  return new Date(iso).toLocaleString("en-US", {
+  return formatLocaleDateTime(iso, getLang(), {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -77,8 +84,10 @@ function profileHref(username) {
   return `/builders/profile?u=${encodeURIComponent(username || "")}`;
 }
 
-function errText(error, fallback) {
-  return error?.message || fallback;
+// The RPC's own message (mapped to the current language where known), or the
+// dictionary fallback.
+function errText(error, fallbackKey) {
+  return serverMessage(error, fallbackKey);
 }
 
 // ─── Page shell ─────────────────────────────────────────────────────────────
@@ -147,36 +156,36 @@ function Spinner({ small = false }) {
 }
 
 function NotAuthorized() {
+  const t = useT();
   return (
     <div className="glass rounded-3xl p-8 text-center">
-      <h1 className="text-xl font-extrabold mb-2">Admins only</h1>
+      <h1 className="text-xl font-extrabold mb-2">{t("admin.notAuthorized.title")}</h1>
       <p className="text-sm text-gray-400">
-        This page is reserved for the BuildEx team.
+        {t("admin.notAuthorized.body")}
       </p>
       <Link
         href="/"
         className="inline-block mt-5 px-4 py-2 rounded-full text-xs font-semibold border border-[#4ade80]/30 text-[#4ade80] bg-[#4ade80]/10 hover:bg-[#4ade80] hover:text-black transition-all"
       >
-        Browse builders
+        {t("account.actions.browse")}
       </Link>
     </div>
   );
 }
 
 function Console() {
+  const t = useT();
   const [section, setSection] = useState("builders");
 
   return (
     <div className="space-y-6">
       <header>
         <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-[#4ade80]/15 border border-[#4ade80]/30 text-[#4ade80] text-[11px] font-bold uppercase tracking-widest mb-2">
-          <Icon name="shield" size={13} /> Moderator console
+          <Icon name="shield" size={13} /> {t("nav.moderatorConsole")}
         </div>
-        <h1 className="text-2xl font-extrabold">Directory moderation</h1>
+        <h1 className="text-2xl font-extrabold">{t("admin.title")}</h1>
         <p className="text-sm text-gray-500 mt-1">
-          Take down profiles carrying spam, stolen work or anything that does not
-          belong in a public directory, clear the chat report queue, and look up
-          an account by handle.
+          {t("admin.subtitle")}
         </p>
       </header>
 
@@ -193,7 +202,7 @@ function Console() {
             }`}
           >
             <Icon name={s.icon} size={14} />
-            {s.label}
+            {t(`admin.sections.${s.key}`)}
           </button>
         ))}
       </nav>
@@ -210,6 +219,7 @@ function Console() {
 // Debounced search box. The debounce lives here so every section gets the same
 // 250ms feel without repeating the timer.
 function SearchBox({ value, onChange, placeholder, label }) {
+  const t = useT();
   return (
     <label className="glass rounded-2xl px-4 py-3 flex items-center gap-2 border border-white/10 focus-within:border-[#4ade80]/50 transition-colors">
       <Icon name="search" size={16} className="text-gray-500" />
@@ -226,7 +236,7 @@ function SearchBox({ value, onChange, placeholder, label }) {
           onClick={() => onChange("")}
           className="text-xs text-gray-500 hover:text-white"
         >
-          Clear
+          {t("admin.clear")}
         </button>
       )}
     </label>
@@ -275,6 +285,7 @@ function ErrorLine({ children }) {
 // ─── 1. BUILDERS ────────────────────────────────────────────────────────────
 
 function BuildersSection() {
+  const t = useT();
   const [query, setQuery] = useState("");
   const search = useDebounced(query);
   const [builders, setBuilders] = useState(null); // null = loading
@@ -283,7 +294,7 @@ function BuildersSection() {
   const load = useCallback(() => {
     setError(null);
     listAdminBuilders(search).then(({ builders: rows, error: e }) => {
-      if (e) setError(errText(e, "Failed to load builder profiles."));
+      if (e) setError(errText(e, "admin.errors.loadBuilders"));
       setBuilders(rows || []);
     });
   }, [search]);
@@ -312,16 +323,16 @@ function BuildersSection() {
       <SearchBox
         value={query}
         onChange={setQuery}
-        placeholder="Search by @handle or display name"
-        label="Search builder profiles"
+        placeholder={t("admin.searchPlaceholder")}
+        label={t("admin.builders.searchAria")}
       />
 
       <ErrorLine>{error}</ErrorLine>
 
       {builders !== null && builders.length > 0 && (
         <p className="text-[11px] text-gray-500 uppercase tracking-widest">
-          {builders.length} profile{builders.length === 1 ? "" : "s"}
-          {hiddenCount > 0 && ` · ${hiddenCount} hidden`}
+          {t("admin.builders.count", { count: builders.length })}
+          {hiddenCount > 0 && ` · ${t("admin.builders.hiddenCount", { count: hiddenCount })}`}
         </p>
       )}
 
@@ -329,7 +340,7 @@ function BuildersSection() {
         <Spinner />
       ) : builders.length === 0 ? (
         <EmptyState>
-          {search ? "No builder matches that search." : "No builder profiles yet."}
+          {search ? t("admin.builders.noMatch") : t("admin.builders.none")}
         </EmptyState>
       ) : (
         <div className="space-y-3">
@@ -349,8 +360,9 @@ function BuilderRow({ builder: b, onPatch }) {
   const [confirming, setConfirming] = useState(false);
   const [reason, setReason] = useState("");
   const [count, setCount] = useState(b.portfolio_count ?? 0);
+  const t = useT();
 
-  const name = b.display_name || b.username || "Builder";
+  const name = b.display_name || b.username || t("onboarding.complete.fallbackName");
 
   const unhide = useCallback(async () => {
     if (busy) return;
@@ -359,7 +371,7 @@ function BuilderRow({ builder: b, onPatch }) {
     const { error: e } = await setBuilderHidden(b.builder_id, false);
     setBusy(false);
     if (e) {
-      setError(errText(e, "Couldn't unhide this profile."));
+      setError(errText(e, "admin.errors.unhide"));
       return;
     }
     onPatch(b.builder_id, {
@@ -377,7 +389,7 @@ function BuilderRow({ builder: b, onPatch }) {
     const { error: e } = await setBuilderHidden(b.builder_id, true, reason.trim());
     setBusy(false);
     if (e) {
-      setError(errText(e, "Couldn't hide this profile."));
+      setError(errText(e, "admin.errors.hide"));
       return;
     }
     setConfirming(false);
@@ -408,14 +420,14 @@ function BuilderRow({ builder: b, onPatch }) {
               <p className="font-bold text-[15px] text-gray-100 truncate">{name}</p>
               {b.is_hidden && (
                 <span className="inline-flex items-center gap-1 shrink-0 rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-amber-300">
-                  <Icon name="eyeOff" size={11} /> Hidden
+                  <Icon name="eyeOff" size={11} /> {t("admin.builders.hidden")}
                 </span>
               )}
             </div>
             <p className="text-xs text-gray-500 truncate">@{b.username}</p>
             <p className="mt-1 text-[11px] text-gray-500">
-              Joined {formatDate(b.joined_at)} · {b.portfolio_count ?? 0} image
-              {(b.portfolio_count ?? 0) === 1 ? "" : "s"}
+              {t("admin.builders.joined", { date: formatDate(b.joined_at) })} ·{" "}
+              {t("admin.builders.images", { count: b.portfolio_count ?? 0 })}
             </p>
           </div>
 
@@ -424,7 +436,7 @@ function BuilderRow({ builder: b, onPatch }) {
               href={profileHref(b.username)}
               target="_blank"
               rel="noopener noreferrer"
-              title="Open the public profile"
+              title={t("admin.builders.openProfile")}
               className="inline-flex items-center justify-center w-9 h-9 rounded-full border border-white/15 text-gray-300 hover:border-[#4ade80]/45 hover:text-[#4ade80] transition-all"
             >
               <Icon name="external" size={15} />
@@ -436,7 +448,7 @@ function BuilderRow({ builder: b, onPatch }) {
                 disabled={busy}
                 className="inline-flex items-center gap-1.5 px-3 h-9 rounded-full text-xs font-semibold border border-[#4ade80]/40 bg-[#4ade80]/10 text-[#4ade80] hover:bg-[#4ade80] hover:text-black transition-all disabled:opacity-50"
               >
-                <Icon name="eye" size={14} /> Unhide
+                <Icon name="eye" size={14} /> {t("admin.builders.unhide")}
               </button>
             ) : (
               <button
@@ -445,7 +457,7 @@ function BuilderRow({ builder: b, onPatch }) {
                 disabled={busy}
                 className="inline-flex items-center gap-1.5 px-3 h-9 rounded-full text-xs font-semibold border border-amber-400/35 text-amber-300 hover:bg-amber-400/15 transition-all disabled:opacity-50"
               >
-                <Icon name="eyeOff" size={14} /> Hide
+                <Icon name="eyeOff" size={14} /> {t("admin.builders.hide")}
               </button>
             )}
           </div>
@@ -454,11 +466,11 @@ function BuilderRow({ builder: b, onPatch }) {
         {b.is_hidden && (
           <div className="mt-3 rounded-2xl border border-amber-400/20 bg-amber-400/[0.07] p-3">
             <span className="block text-[10px] uppercase tracking-widest text-amber-300/80 mb-1">
-              Hidden {formatDateTime(b.hidden_at)}
-              {b.hidden_by_username ? ` by @${b.hidden_by_username}` : ""}
+              {t("admin.builders.hiddenAt", { date: formatDateTime(b.hidden_at) })}
+              {b.hidden_by_username ? t("admin.builders.hiddenBy", { handle: b.hidden_by_username }) : ""}
             </span>
             <p className="text-sm text-gray-300 whitespace-pre-wrap break-words">
-              {b.hidden_reason || "No reason recorded."}
+              {b.hidden_reason || t("admin.builders.noReason")}
             </p>
           </div>
         )}
@@ -466,16 +478,14 @@ function BuilderRow({ builder: b, onPatch }) {
         {confirming && !b.is_hidden && (
           <div className="mt-3 rounded-2xl border border-white/10 bg-black/30 p-3 space-y-2.5">
             <p className="text-xs text-gray-400">
-              Hiding removes this profile from /builders and stops the public page
-              resolving for logged-out visitors. Nothing is deleted, and you can
-              unhide it at any time.
+              {t("admin.builders.hideExplain")}
             </p>
             <textarea
               value={reason}
               onChange={(event) => setReason(event.target.value)}
               rows={2}
               maxLength={2000}
-              placeholder="Reason (optional, visible only to moderators)"
+              placeholder={t("admin.builders.reasonPlaceholder")}
               className="bx-scroll w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2 text-sm text-gray-100 placeholder:text-gray-600 outline-none focus:border-[#4ade80]/50 resize-none"
             />
             <div className="flex items-center gap-2">
@@ -485,14 +495,14 @@ function BuilderRow({ builder: b, onPatch }) {
                 disabled={busy}
                 className="px-4 py-2 rounded-full text-xs font-bold border border-amber-400/40 bg-amber-400/15 text-amber-200 hover:bg-amber-400 hover:text-black transition-all disabled:opacity-50"
               >
-                {busy ? "Hiding…" : "Hide profile"}
+                {busy ? t("admin.builders.hiding") : t("admin.builders.hideProfile")}
               </button>
               <button
                 type="button"
                 onClick={() => setConfirming(false)}
                 className="px-4 py-2 rounded-full text-xs font-semibold border border-white/15 text-gray-300 hover:bg-white/5 transition-all"
               >
-                Cancel
+                {t("common.cancel")}
               </button>
             </div>
           </div>
@@ -507,7 +517,7 @@ function BuilderRow({ builder: b, onPatch }) {
           className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-[#4ade80] transition-colors"
         >
           <Icon name="image" size={14} />
-          {expanded ? "Hide portfolio" : `Portfolio (${count})`}
+          {expanded ? t("admin.builders.hidePortfolio") : t("admin.builders.portfolioCount", { n: count })}
         </button>
       </div>
 
@@ -529,6 +539,7 @@ function BuilderRow({ builder: b, onPatch }) {
 // The one destructive action in this console. Each delete is confirmed
 // individually — there is no "remove all", on purpose.
 function PortfolioManager({ builderId, onCountChange }) {
+  const t = useT();
   const [images, setImages] = useState(null);
   const [error, setError] = useState(null);
   const [pending, setPending] = useState(null); // image id awaiting confirmation
@@ -538,7 +549,7 @@ function PortfolioManager({ builderId, onCountChange }) {
     let cancelled = false;
     listBuilderPortfolio(builderId).then(({ images: rows, error: e }) => {
       if (cancelled) return;
-      if (e) setError(errText(e, "Failed to load the portfolio."));
+      if (e) setError(errText(e, "admin.errors.loadPortfolio"));
       setImages(rows || []);
     });
     return () => {
@@ -553,7 +564,7 @@ function PortfolioManager({ builderId, onCountChange }) {
       const { error: e } = await removePortfolioImage(imageId);
       setBusyId(null);
       if (e) {
-        setError(errText(e, "Couldn't remove that image."));
+        setError(errText(e, "admin.errors.removeImage"));
         return;
       }
       setPending(null);
@@ -572,7 +583,7 @@ function PortfolioManager({ builderId, onCountChange }) {
     <div className="space-y-3">
       <ErrorLine>{error}</ErrorLine>
       {images.length === 0 ? (
-        <p className="text-sm text-gray-500">This builder has no portfolio images.</p>
+        <p className="text-sm text-gray-500">{t("admin.portfolio.empty")}</p>
       ) : (
         <ul className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {images.map((img) => (
@@ -583,13 +594,13 @@ function PortfolioManager({ builderId, onCountChange }) {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={publicAsset(img.url)}
-                alt={img.alt || "Portfolio image"}
+                alt={img.alt || t("profile.portfolioImage")}
                 className="w-full h-28 object-cover"
                 loading="lazy"
               />
               {pending === img.id ? (
                 <div className="absolute inset-0 bg-black/85 flex flex-col items-center justify-center gap-2 px-2 text-center">
-                  <p className="text-[11px] text-gray-300">Delete permanently?</p>
+                  <p className="text-[11px] text-gray-300">{t("admin.portfolio.confirm")}</p>
                   <div className="flex items-center gap-1.5">
                     <button
                       type="button"
@@ -597,14 +608,14 @@ function PortfolioManager({ builderId, onCountChange }) {
                       disabled={busyId === img.id}
                       className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-red-500/20 border border-red-400/40 text-red-300 hover:bg-red-500 hover:text-white transition-all disabled:opacity-50"
                     >
-                      {busyId === img.id ? "…" : "Delete"}
+                      {busyId === img.id ? "…" : t("admin.portfolio.delete")}
                     </button>
                     <button
                       type="button"
                       onClick={() => setPending(null)}
                       className="px-2.5 py-1 rounded-full text-[11px] font-semibold border border-white/20 text-gray-300 hover:bg-white/10 transition-all"
                     >
-                      Keep
+                      {t("admin.portfolio.keep")}
                     </button>
                   </div>
                 </div>
@@ -612,7 +623,7 @@ function PortfolioManager({ builderId, onCountChange }) {
                 <button
                   type="button"
                   onClick={() => setPending(img.id)}
-                  title="Remove this image"
+                  title={t("admin.portfolio.removeTitle")}
                   className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-black/70 border border-white/15 text-gray-300 hover:text-red-300 hover:border-red-400/50 flex items-center justify-center transition-all"
                 >
                   <Icon name="trash" size={13} />
@@ -629,6 +640,7 @@ function PortfolioManager({ builderId, onCountChange }) {
 // ─── 2. REPORTS ─────────────────────────────────────────────────────────────
 
 function ReportsSection() {
+  const t = useT();
   const [tab, setTab] = useState("open");
   const [reports, setReports] = useState(null);
   const [error, setError] = useState(null);
@@ -636,7 +648,7 @@ function ReportsSection() {
   const load = useCallback(() => {
     setError(null);
     listConversationReports(tab).then(({ reports: rows, error: e }) => {
-      if (e) setError(errText(e, "Failed to load the report queue."));
+      if (e) setError(errText(e, "admin.errors.loadReports"));
       setReports(rows || []);
     });
   }, [tab]);
@@ -668,24 +680,24 @@ function ReportsSection() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 flex-wrap">
-        {REPORT_TABS.map((t) => (
+        {REPORT_TABS.map((tabItem) => (
           <button
-            key={t.key}
+            key={tabItem.key}
             type="button"
-            onClick={() => setTab(t.key)}
+            onClick={() => setTab(tabItem.key)}
             className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-              tab === t.key
+              tab === tabItem.key
                 ? "border-[#4ade80] bg-[#4ade80]/15 text-[#4ade80]"
                 : "border-white/10 text-gray-400 hover:border-[#4ade80]/40 hover:bg-white/5"
             }`}
           >
-            {t.label}
+            {t(`admin.reports.tabs.${tabItem.key}`)}
           </button>
         ))}
         <button
           type="button"
           onClick={load}
-          title="Reload"
+          title={t("admin.reports.reload")}
           className="ml-auto inline-flex items-center justify-center w-8 h-8 rounded-full border border-white/10 text-gray-400 hover:text-[#4ade80] hover:border-[#4ade80]/40 transition-all"
         >
           <Icon name="refresh" size={14} />
@@ -700,11 +712,10 @@ function ReportsSection() {
         <EmptyState>
           {tab === "open" ? (
             <span className="inline-flex items-center gap-2">
-              <Icon name="check" size={16} className="text-[#4ade80]" /> Nothing
-              waiting for review.
+              <Icon name="check" size={16} className="text-[#4ade80]" /> {t("admin.reports.nothingOpen")}
             </span>
           ) : (
-            "No reports in this list."
+            t("admin.reports.none")
           )}
         </EmptyState>
       ) : (
@@ -726,9 +737,10 @@ function ReportCard({ report: r, onResolved }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
 
+  const t = useT();
   const isOpen = r.status === "open";
-  const reporterName = r.reporter_display_name || r.reporter_username || "Someone";
-  const otherName = r.other_display_name || r.other_username || "the other member";
+  const reporterName = r.reporter_display_name || r.reporter_username || t("admin.reports.someone");
+  const otherName = r.other_display_name || r.other_username || t("admin.reports.otherMemberFallback");
 
   const toggle = useCallback(() => {
     const next = !open;
@@ -736,7 +748,7 @@ function ReportCard({ report: r, onResolved }) {
     if (next && messages === null) {
       getAdminConversationMessages(r.conversation_id).then(
         ({ messages: rows, error: e }) => {
-          if (e) setMsgError(errText(e, "Failed to load the conversation."));
+          if (e) setMsgError(errText(e, "admin.errors.loadConversation"));
           setMessages(rows || []);
         }
       );
@@ -755,7 +767,7 @@ function ReportCard({ report: r, onResolved }) {
       );
       setBusy(false);
       if (e) {
-        setError(errText(e, "Couldn't update this report."));
+        setError(errText(e, "admin.errors.updateReport"));
         return;
       }
       onResolved(r.report_id, status);
@@ -777,7 +789,7 @@ function ReportCard({ report: r, onResolved }) {
           <span
             className={`rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] ${statusTone}`}
           >
-            {r.status}
+            {t(`admin.reports.status.${r.status}`)}
           </span>
           <p className="inline-flex items-center gap-1.5 text-[11px] text-gray-500">
             <Icon name="calendar" size={13} /> {formatDateTime(r.created_at)}
@@ -786,13 +798,13 @@ function ReportCard({ report: r, onResolved }) {
 
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <ReportParty
-            label="Reported by"
+            label={t("admin.reports.reportedBy")}
             name={reporterName}
             username={r.reporter_username}
             avatar={r.reporter_avatar_url}
           />
           <ReportParty
-            label="Other member"
+            label={t("admin.reports.otherMember")}
             name={otherName}
             username={r.other_username}
             avatar={r.other_avatar_url}
@@ -803,7 +815,7 @@ function ReportCard({ report: r, onResolved }) {
 
         <div className="mt-3 rounded-2xl border border-white/10 bg-black/30 p-3">
           <span className="block text-[10px] uppercase tracking-widest text-gray-500 mb-1">
-            Reason given
+            {t("admin.reports.reason")}
           </span>
           <p className="text-sm text-gray-300 whitespace-pre-wrap break-words leading-relaxed">
             <SmartText>{r.reason}</SmartText>
@@ -813,7 +825,7 @@ function ReportCard({ report: r, onResolved }) {
         {r.resolution_note && (
           <div className="mt-3 rounded-2xl border border-white/10 bg-black/20 p-3">
             <span className="block text-[10px] uppercase tracking-widest text-gray-500 mb-1">
-              Moderator note
+              {t("admin.reports.note")}
               {r.reviewer_username ? ` · @${r.reviewer_username}` : ""}
             </span>
             <p className="text-sm text-gray-400 whitespace-pre-wrap break-words">
@@ -829,7 +841,7 @@ function ReportCard({ report: r, onResolved }) {
           className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-[#4ade80] transition-colors"
         >
           <Icon name="chat" size={14} />
-          {open ? "Hide conversation" : `Read conversation (${r.message_count ?? 0})`}
+          {open ? t("admin.reports.hideConversation") : t("admin.reports.readConversation", { n: r.message_count ?? 0 })}
         </button>
 
         {open && (
@@ -838,7 +850,7 @@ function ReportCard({ report: r, onResolved }) {
             {messages === null ? (
               <Spinner small />
             ) : messages.length === 0 ? (
-              <p className="text-sm text-gray-500">This thread has no messages.</p>
+              <p className="text-sm text-gray-500">{t("admin.reports.noMessages")}</p>
             ) : (
               <ul className="bx-scroll max-h-80 overflow-y-auto space-y-2.5 pr-1">
                 {messages.map((m) => (
@@ -856,7 +868,7 @@ function ReportCard({ report: r, onResolved }) {
               onChange={(event) => setNote(event.target.value)}
               rows={2}
               maxLength={2000}
-              placeholder="What did you decide? (optional, moderators only)"
+              placeholder={t("admin.reports.notePlaceholder")}
               className="bx-scroll w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2 text-sm text-gray-100 placeholder:text-gray-600 outline-none focus:border-[#4ade80]/50 resize-none"
             />
             <ErrorLine>{error}</ErrorLine>
@@ -867,7 +879,7 @@ function ReportCard({ report: r, onResolved }) {
                 disabled={busy}
                 className="px-4 py-2 rounded-full text-xs font-bold border border-[#4ade80]/40 bg-[#4ade80]/10 text-[#4ade80] hover:bg-[#4ade80] hover:text-black transition-all disabled:opacity-50"
               >
-                Mark reviewed
+                {t("admin.reports.markReviewed")}
               </button>
               <button
                 type="button"
@@ -875,10 +887,10 @@ function ReportCard({ report: r, onResolved }) {
                 disabled={busy}
                 className="px-4 py-2 rounded-full text-xs font-semibold border border-white/15 text-gray-300 hover:bg-white/5 transition-all disabled:opacity-50"
               >
-                Dismiss
+                {t("admin.reports.dismiss")}
               </button>
               <p className="text-[11px] text-gray-500">
-                Reviewed means you acted; dismissed means there was nothing to act on.
+                {t("admin.reports.explain")}
               </p>
             </div>
           </div>
@@ -889,6 +901,7 @@ function ReportCard({ report: r, onResolved }) {
 }
 
 function ReportParty({ label, name, username, avatar, isBuilder, isHidden }) {
+  const t = useT();
   return (
     <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
       <span className="block text-[10px] uppercase tracking-widest text-gray-500 mb-2">
@@ -912,7 +925,7 @@ function ReportParty({ label, name, username, avatar, isBuilder, isHidden }) {
               ) : (
                 `@${username}`
               )}
-              {isHidden && <span className="text-amber-300"> · hidden</span>}
+              {isHidden && <span className="text-amber-300">{t("admin.reports.hiddenSuffix")}</span>}
             </p>
           )}
         </div>
@@ -922,7 +935,8 @@ function ReportParty({ label, name, username, avatar, isBuilder, isHidden }) {
 }
 
 function AdminMessage({ message: m }) {
-  const name = m.sender_display_name || m.sender_username || "User";
+  const t = useT();
+  const name = m.sender_display_name || m.sender_username || t("admin.reports.user");
   const isImage = m.msg_type === "image" && m.meta?.url;
 
   return (
@@ -938,7 +952,7 @@ function AdminMessage({ message: m }) {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={publicAsset(m.meta.url)}
-              alt={m.body || "Photo"}
+              alt={m.body || t("chat.photo")}
               className="mt-1 rounded-xl max-h-48 w-auto object-cover border border-white/10"
               loading="lazy"
             />
@@ -963,6 +977,7 @@ function AdminMessage({ message: m }) {
 // Read-only by design. Finding an account is the job; anything that acts on one
 // belongs in the Builders tab, where the takedown lever already lives.
 function UsersSection() {
+  const t = useT();
   const [query, setQuery] = useState("");
   const search = useDebounced(query);
   const [users, setUsers] = useState(null);
@@ -975,7 +990,7 @@ function UsersSection() {
     setError(null);
     listAdminUsers(search).then(({ users: rows, error: e }) => {
       if (requestRef.current !== id) return; // a newer search already landed
-      if (e) setError(errText(e, "Failed to load accounts."));
+      if (e) setError(errText(e, "admin.errors.loadUsers"));
       setUsers(rows || []);
     });
   }, [search]);
@@ -985,8 +1000,8 @@ function UsersSection() {
       <SearchBox
         value={query}
         onChange={setQuery}
-        placeholder="Search by @handle or display name"
-        label="Search accounts"
+        placeholder={t("admin.searchPlaceholder")}
+        label={t("admin.users.searchAria")}
       />
 
       <ErrorLine>{error}</ErrorLine>
@@ -995,7 +1010,7 @@ function UsersSection() {
         <Spinner />
       ) : users.length === 0 ? (
         <EmptyState>
-          {search ? "No account matches that search." : "No accounts yet."}
+          {search ? t("admin.users.noMatch") : t("admin.users.none")}
         </EmptyState>
       ) : (
         <div className="glass rounded-2xl divide-y divide-white/[0.07] overflow-hidden">
@@ -1004,16 +1019,16 @@ function UsersSection() {
               <Avatar url={u.avatar_url} name={u.display_name || u.username} size={34} />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-gray-200 truncate">
-                  {u.display_name || u.username || "Unnamed"}
+                  {u.display_name || u.username || t("admin.users.unnamed")}
                 </p>
                 <p className="text-[11px] text-gray-500 truncate">
-                  {u.username ? `@${u.username}` : "no handle yet"}
+                  {u.username ? `@${u.username}` : t("admin.users.noHandle")}
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2 sm:flex-shrink-0">
                 {u.is_admin && (
                   <span className="rounded-full border border-sky-400/30 bg-sky-400/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-sky-300">
-                    Admin
+                    {t("admin.users.admin")}
                   </span>
                 )}
                 {u.is_builder ? (
@@ -1024,11 +1039,11 @@ function UsersSection() {
                         : "border-[#4ade80]/30 bg-[#4ade80]/10 text-[#4ade80]"
                     }`}
                   >
-                    {u.is_hidden ? "Builder · hidden" : "Builder"}
+                    {u.is_hidden ? t("admin.users.builderHidden") : t("admin.users.builder")}
                   </span>
                 ) : (
                   <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-gray-400">
-                    Member
+                    {t("admin.users.member")}
                   </span>
                 )}
                 <span className="hidden sm:block text-[11px] text-gray-500 w-24 text-right">

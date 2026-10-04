@@ -1,5 +1,7 @@
 "use client";
 
+import { useT } from "../../../lib/i18n/LanguageProvider";
+
 /**
  * Bottom navigation strip for every onboarding step.
  *
@@ -17,14 +19,16 @@
 export default function OnboardingFooter({
   onBack,
   onNext,
-  nextLabel = "Continue",
-  backLabel = "Back",
+  nextLabel,
+  backLabel,
   nextDisabled = false,
   isSaving = false,
   helper,
   skipLabel,
   onSkip,
 }) {
+  const t = useT();
+
   return (
     <>
       <div className="onb-footer">
@@ -34,7 +38,7 @@ export default function OnboardingFooter({
               <svg viewBox="0 0 16 16" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M10 13L5 8l5-5" />
               </svg>
-              {backLabel}
+              {backLabel ?? t("onboarding.back")}
             </button>
           )}
         </div>
@@ -62,7 +66,7 @@ export default function OnboardingFooter({
                 aria-hidden="true"
               />
             )}
-            {nextLabel}
+            {nextLabel ?? t("onboarding.continue")}
             {!isSaving && (
               <svg viewBox="0 0 16 16" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M6 3l5 5-5 5" />

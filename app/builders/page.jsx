@@ -16,9 +16,11 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useT } from "../../lib/i18n/LanguageProvider";
 
 export default function BuildersRedirect() {
   const router = useRouter();
+  const t = useT();
 
   useEffect(() => {
     // `replace` so the back button skips this hop. No withBase() — Next
@@ -31,7 +33,7 @@ export default function BuildersRedirect() {
       <div
         className="w-10 h-10 rounded-full border-2 border-[#4ade80] border-t-transparent animate-spin"
         role="status"
-        aria-label="Redirecting to the builder directory"
+        aria-label={t("catalog.redirecting")}
       />
     </main>
   );

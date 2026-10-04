@@ -1,6 +1,7 @@
 "use client";
 
 import { builderSteps } from "../../../lib/onboarding/state";
+import { useT } from "../../../lib/i18n/LanguageProvider";
 
 // Matches `.step-dot { width: 28px }` in globals.css — the label row measures
 // against the dots, so the two have to agree.
@@ -12,6 +13,7 @@ const DOT_PX = 28;
  * progress bar that fills as the user advances.
  */
 export default function StepHeader({ currentStep }) {
+  const t = useT();
   const steps = builderSteps();
   const currentIdx = Math.max(
     0,
@@ -24,12 +26,12 @@ export default function StepHeader({ currentStep }) {
       <div className="flex items-center justify-between mb-3 text-xs">
         <span className="inline-flex items-center gap-2 glass px-3 py-1.5 rounded-full text-[11px] font-semibold uppercase tracking-widest text-gray-300">
           <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80] animate-pulse" />
-          Step {currentIdx + 1} of {steps.length}
+          {t("onboarding.stepOf", { current: currentIdx + 1, total: steps.length })}
         </span>
-        <span className="text-gray-500 hidden sm:inline">Builder setup</span>
+        <span className="text-gray-500 hidden sm:inline">{t("onboarding.builderSetup")}</span>
       </div>
 
-      <div className="step-track" aria-label="Onboarding progress">
+      <div className="step-track" aria-label={t("onboarding.progress")}>
         {steps.map((s, i) => {
           const isActive = i === currentIdx;
           const isDone = i < currentIdx;
@@ -38,7 +40,7 @@ export default function StepHeader({ currentStep }) {
               <div
                 className={`step-dot ${isActive ? "is-active" : ""} ${isDone ? "is-done" : ""}`}
                 aria-current={isActive ? "step" : undefined}
-                title={s.label}
+                title={t(`onboarding.steps.${s.key}`)}
               >
                 {isDone ? (
                   <svg
@@ -108,7 +110,7 @@ export default function StepHeader({ currentStep }) {
               }`}
               style={position}
             >
-              {s.label}
+              {t(`onboarding.steps.${s.key}`)}
             </span>
           );
         })}

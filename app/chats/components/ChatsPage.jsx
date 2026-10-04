@@ -22,6 +22,9 @@ import {
   subscribeToInbox,
 } from "../../../lib/chat/api";
 import ConversationList from "./ConversationList";
+import { useT } from "../../../lib/i18n/LanguageProvider";
+import { translate } from "../../../lib/i18n/translate.mjs";
+import { serverMessage } from "../../../lib/i18n/serverText.mjs";
 import MessageThread from "./MessageThread";
 
 // Inbox row → the peer identity shape MessageThread/ConversationList consume.
@@ -55,6 +58,7 @@ const LIST_WIDTH_KEY = "buildex-chats-list-width";
 
 export default function ChatsPage() {
   const { status, user, displayUser } = useAuth();
+  const t = useT();
   const { refresh: refreshUnread, setActiveConversation } = useUnread();
   useRequireAuth(); // bounces to /login (preserving ?to/?c) when unauthenticated
 
@@ -294,11 +298,11 @@ export default function ChatsPage() {
         const peer = await resolveProfileByUsername(to);
         if (cancelled) return;
         if (!peer) {
-          showNotice("We couldn't find that builder.");
+          showNotice(translate("chat.notices.builderNotFound"));
           return;
         }
         if (peer.id === meId) {
-          showNotice("That's your own profile — pick another builder to message.");
+          showNotice(translate("chat.notices.ownProfile"));
           return;
         }
         const existing = rows.find((x) => x.other_id === peer.id);
@@ -400,7 +404,7 @@ export default function ChatsPage() {
         if (!convId) {
           const { conversationId, error } = await getOrCreateConversation(activePeer.id);
           if (error || !conversationId) {
-            showNotice(error?.message || "Couldn't start this conversation. Please try again.");
+            showNotice(serverMessage(error, "chat.notices.startFailed"));
             return { error: error || new Error("No conversation") };
           }
           convId = conversationId;
@@ -411,7 +415,7 @@ export default function ChatsPage() {
 
         const { message, error } = await sendMessage(convId, meId, body);
         if (error || !message) {
-          showNotice(error?.message || "Your message didn't send. Please try again.");
+          showNotice(serverMessage(error, "chat.notices.messageFailed"));
           return { error: error || new Error("Not sent") };
         }
         setMessages((prev) =>
@@ -439,7 +443,7 @@ export default function ChatsPage() {
         if (!convId) {
           const { conversationId, error } = await getOrCreateConversation(activePeer.id);
           if (error || !conversationId) {
-            showNotice(error?.message || "Couldn't start this conversation. Please try again.");
+            showNotice(serverMessage(error, "chat.notices.startFailed"));
             return;
           }
           convId = conversationId;
@@ -450,7 +454,7 @@ export default function ChatsPage() {
 
         const { message, error } = await sendImageMessage(convId, meId, file);
         if (error || !message) {
-          showNotice(error?.message || "Your photo didn't send. Please try again.");
+          showNotice(serverMessage(error, "chat.notices.photoFailed"));
           return;
         }
         setMessages((prev) =>
@@ -472,17 +476,17 @@ export default function ChatsPage() {
   const handleReport = useCallback(
     async (reason) => {
       if (!activeConvId) {
-        const error = new Error("Send a message first, then you can report this conversation.");
+        const error = new Error(translate("chat.notices.reportNeedsMessage"));
         showNotice(error.message);
         return { error };
       }
       const { error } = await reportConversation(activeConvId, reason);
       if (error) {
-        showNotice(error.message || "We couldn't send that report. Please try again.");
+        showNotice(serverMessage(error, "chat.notices.reportFailed"));
         return { error };
       }
       setThreadReported(true);
-      showNotice("Thanks — our team will review this conversation.");
+      showNotice(translate("chat.notices.reportThanks"));
       return { error: null };
     },
     [activeConvId, showNotice]
@@ -539,8 +543,8 @@ export default function ChatsPage() {
                     <div className="px-3 py-4 border-b border-white/10 flex-shrink-0 flex items-center justify-center h-[68px]">
                       <span
                         className="w-10 h-10 rounded-2xl bg-[#4ade80]/10 border border-[#4ade80]/30 flex items-center justify-center text-[#4ade80]"
-                        title="Messages"
-                        aria-label="Messages"
+                        title={t("nav.messages")}
+                        aria-label={t("nav.messages")}
                       >
                         <svg
                           className="w-5 h-5"
@@ -558,9 +562,9 @@ export default function ChatsPage() {
                     </div>
                   ) : (
                     <div className="px-5 py-4 border-b border-white/10 flex-shrink-0">
-                      <h1 className="text-lg font-extrabold">Messages</h1>
+                      <h1 className="text-lg font-extrabold">{t("nav.messages")}</h1>
                       <p className="text-xs text-gray-500 mt-0.5">
-                        Your conversations with builders & clients
+                        {t("chat.listSubtitle")}
                       </p>
                     </div>
                   )}
@@ -577,7 +581,7 @@ export default function ChatsPage() {
                 <div
                   role="separator"
                   aria-orientation="vertical"
-                  aria-label="Resize conversation list"
+                  aria-label={t("chat.resizeList")}
                   onMouseDown={startResize}
                   onTouchStart={startResize}
                   className="hidden lg:flex flex-shrink-0 w-1.5 -ml-px cursor-col-resize items-center justify-center group hover:bg-[#4ade80]/10 active:bg-[#4ade80]/20 transition-colors"
@@ -613,11 +617,11 @@ export default function ChatsPage() {
                       <div className="w-16 h-16 rounded-2xl bg-[#4ade80]/10 border border-[#4ade80]/30 flex items-center justify-center text-[#4ade80] mb-5">
                         <Icon name="chat" size={28} />
                       </div>
-                      <h2 className="font-bold text-lg mb-2">Select a conversation</h2>
+                      <h2 className="font-bold text-lg mb-2">{t("chat.selectTitle")}</h2>
                       <p className="text-sm text-gray-500 max-w-xs leading-relaxed">
-                        Pick a thread on the left, or open a builder&apos;s profile and tap{" "}
-                        <span className="text-[#4ade80] font-medium">Contact Builder</span> to
-                        start a new one.
+                        {t.rich("chat.selectBody", {
+                          cta: <span className="text-[#4ade80] font-medium">{t("profile.contactBuilder")}</span>,
+                        })}
                       </p>
                     </div>
                   )}

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { STYLES, BUILD_TYPES } from "../data/builders";
 import { Icon } from "../../../lib/icons";
+import { useT } from "../../../lib/i18n/LanguageProvider";
 
 // ─── Custom checkbox row (button-based for guaranteed click handling) ────────
 function FilterCheckbox({ label, icon, checked, onChange }) {
@@ -55,6 +56,7 @@ function FilterCheckbox({ label, icon, checked, onChange }) {
 
 // ─── Favorites toggle (signed-in only) ───────────────────────────────────────
 function FavoritesToggle({ active, count, onToggle }) {
+  const t = useT();
   return (
     <button
       type="button"
@@ -80,7 +82,7 @@ function FavoritesToggle({ active, count, onToggle }) {
           <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
         </svg>
         <span className={`text-sm transition-colors leading-none ${active ? "text-white font-medium" : "text-gray-300 group-hover:text-white"}`}>
-          Favorites only
+          {t("catalog.favoritesOnly")}
         </span>
       </span>
       {count > 0 && (
@@ -141,18 +143,19 @@ export default function CatalogFilters({
   onClearAll,
   activeFilterCount,
 }) {
+  const t = useT();
   return (
     <div className="glass rounded-3xl p-5">
       {/* Header */}
       <div className="flex items-center justify-between mb-1">
-        <h2 className="font-semibold text-base">Filters</h2>
+        <h2 className="font-semibold text-base">{t("catalog.filters")}</h2>
         {activeFilterCount > 0 && (
           <button
             type="button"
             onClick={onClearAll}
             className="text-xs text-[#4ade80] hover:text-green-300 transition-colors flex items-center gap-1.5"
           >
-            Clear all
+            {t("catalog.clearAll")}
             <span className="w-4 h-4 bg-[#4ade80]/15 rounded-full text-[10px] font-bold flex items-center justify-center">
               {activeFilterCount}
             </span>
@@ -172,11 +175,11 @@ export default function CatalogFilters({
       )}
 
       {/* Style */}
-      <FilterGroup label="Style">
+      <FilterGroup label={t("catalog.style")}>
         {STYLES.map((s) => (
           <FilterCheckbox
             key={s.key}
-            label={s.label}
+            label={t(`styles.${s.key}`)}
             icon={s.icon}
             checked={selectedStyles.includes(s.key)}
             onChange={() => onStyleToggle(s.key)}
@@ -185,11 +188,11 @@ export default function CatalogFilters({
       </FilterGroup>
 
       {/* Build type */}
-      <FilterGroup label="Build Type" defaultOpen={false}>
+      <FilterGroup label={t("catalog.buildType")} defaultOpen={false}>
         {BUILD_TYPES.map((bt) => (
           <FilterCheckbox
             key={bt.key}
-            label={bt.label}
+            label={t(`buildTypes.${bt.key}`)}
             checked={selectedBuildTypes.includes(bt.key)}
             onChange={() => onBuildTypeToggle(bt.key)}
           />

@@ -28,6 +28,14 @@ export const viewport = {
   initialScale: 1
 };
 
+// Runs before first paint. The static HTML is English; a visitor whose stored
+// (or, on a first visit, browser) language is Russian gets <html lang="ru"> and
+// a hidden <body> until LanguageProvider has switched the page over, so the
+// English text never flashes. The timeout is a failsafe: the page always
+// becomes visible even if the app bundle fails to load. Keep the detection in
+// step with readInitialLang() in lib/i18n/LanguageProvider.jsx.
+const languageBootScript = `(function(){try{var d=document.documentElement,l=localStorage.getItem("lang");if(l!=="en"&&l!=="ru"){var n=(navigator.languages&&navigator.languages[0])||navigator.language||"";l=/^ru(?:-|$)/i.test(n)?"ru":"en"}if(l==="ru"){d.lang="ru";d.classList.add("i18n-pending");setTimeout(function(){d.classList.remove("i18n-pending")},2500)}}catch(e){}})();`;
+
 // Supabase project origin (also the Storage CDN host for avatars/banners/
 // portfolio images). Warming the TLS connection here shaves the handshake off
 // the first image request, which matters a lot on higher-latency links.
@@ -50,6 +58,7 @@ export default function RootLayout({ children }) {
       suppressHydrationWarning
     >
       <head>
+        <script dangerouslySetInnerHTML={{ __html: languageBootScript }} />
         {supabaseOrigin && (
           <>
             <link rel="preconnect" href={supabaseOrigin} crossOrigin="anonymous" />

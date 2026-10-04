@@ -2,16 +2,18 @@
 
 import { withBase } from "../utils";
 import { usePathname } from "next/navigation";
-import { DIRECTORY_DISCLAIMER } from "../data";
+import { useT } from "../../../lib/i18n/LanguageProvider";
 
 // This footer is the ONE place the directory disclaimer still appears outside
 // the legal documents. It used to be repeated in the hero, again under the
 // How It Works steps and again in the profile contact sidebar; those copies
 // were crowding the interface, so this is now the single canonical statement.
-// Do not remove it without reading app/legal/documents.js first — the landing
-// copy has to stay consistent with what the legal pages promise.
+// The sentence itself is `footer.disclaimer` in lib/i18n/messages/<lang>/
+// footer.mjs. Do not remove it without reading app/legal/documents.js first —
+// the landing copy has to stay consistent with what the legal pages promise.
 export default function SiteFooter() {
   const pathname = usePathname();
+  const t = useT();
   const legalCenterHref = pathname.startsWith("/legal")
     ? withBase("/legal/")
     : `${withBase("/legal/")}?from=${encodeURIComponent(pathname)}`;
@@ -25,27 +27,30 @@ export default function SiteFooter() {
       <div className="mx-auto flex max-w-7xl flex-col gap-5 px-4 text-sm text-gray-400 sm:px-6 lg:flex-row lg:items-start lg:justify-between lg:gap-10 lg:px-8">
         <div className="min-w-0 lg:max-w-xl">
           <p className="font-medium text-gray-300">
-            © 2026 BuildEx — a directory of Minecraft builders.
+            {t("footer.copyright")}
           </p>
           <p className="mt-2 text-xs leading-relaxed text-gray-500">
-            {DIRECTORY_DISCLAIMER}
+            {t("footer.disclaimer")}
           </p>
         </div>
+        {/* lg:max-w-sm lets longer (translated) link labels wrap onto a second
+            row instead of squeezing the disclaimer column; the English row is
+            narrower than the cap. */}
         <nav
-          aria-label="Legal"
-          className="flex flex-wrap items-center gap-x-5 gap-y-2 lg:flex-shrink-0 lg:justify-end"
+          aria-label={t("footer.legalAria")}
+          className="flex flex-wrap items-center gap-x-5 gap-y-2 lg:flex-shrink-0 lg:justify-end lg:max-w-sm"
         >
           <a href={legalCenterHref} className="hover:text-white">
-            Legal Center
+            {t("footer.legalCenter")}
           </a>
           <a href={withBase("/legal/terms/")} className="hover:text-white">
-            Terms
+            {t("footer.terms")}
           </a>
           <a href={withBase("/legal/privacy/")} className="hover:text-white">
-            Privacy
+            {t("footer.privacy")}
           </a>
           <a href={withBase("/legal/community/")} className="hover:text-white">
-            Community &amp; copyright
+            {t("footer.community")}
           </a>
         </nav>
       </div>

@@ -1,8 +1,11 @@
 "use client";
 
 import { Icon } from "../../../lib/icons";
+import { useT } from "../../../lib/i18n/LanguageProvider";
 
 export default function CatalogSearch({ query, onQueryChange }) {
+  const t = useT();
+
   return (
     <div className="relative flex-1 min-w-0">
       {/* Search icon */}
@@ -24,9 +27,9 @@ export default function CatalogSearch({ query, onQueryChange }) {
         type="text"
         value={query}
         onChange={(e) => onQueryChange(e.target.value)}
-        placeholder="Search by name, handle or style…"
+        placeholder={t("catalog.searchPlaceholder")}
         className="w-full glass rounded-2xl pl-11 pr-10 py-3 text-sm focus:outline-none focus:border-[#4ade80]/40 focus:ring-1 focus:ring-[#4ade80]/15 transition-all placeholder:text-gray-500"
-        aria-label="Search builders"
+        aria-label={t("catalog.searchAria")}
       />
 
       {/* Clear button */}
@@ -35,7 +38,7 @@ export default function CatalogSearch({ query, onQueryChange }) {
           type="button"
           onClick={() => onQueryChange("")}
           className="absolute right-3.5 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-gray-400 hover:text-white transition-colors"
-          aria-label="Clear search"
+          aria-label={t("catalog.clearSearch")}
         >
           <Icon name="close" size={12} strokeWidth={2.5} />
         </button>

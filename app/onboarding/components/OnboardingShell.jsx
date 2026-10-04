@@ -8,6 +8,8 @@ import { cancelOnboarding } from "../../../lib/onboarding/api";
 import { withBase } from "../../home/utils";
 import StepHeader from "./StepHeader";
 import { Icon } from "../../../lib/icons";
+import { useT } from "../../../lib/i18n/LanguageProvider";
+import LanguageSwitcher from "../../../lib/i18n/LanguageSwitcher";
 
 /**
  * Shared shell for every onboarding step.
@@ -27,6 +29,7 @@ export default function OnboardingShell({
   maxWidth = "max-w-3xl",
 }) {
   const { gradientRef, edgeGlowRef, isLight, setTheme } = useThemedBackground();
+  const t = useT();
   const { user, profile, refresh } = useAuth();
   const [cancelling, setCancelling] = useState(false);
 
@@ -38,9 +41,7 @@ export default function OnboardingShell({
     if (cancelling) return;
     const confirmed =
       typeof window !== "undefined" &&
-      window.confirm(
-        "Cancel builder setup? The profile details you've entered here will be discarded. Your account stays exactly as it is."
-      );
+      window.confirm(t("onboarding.shell.cancelConfirm"));
     if (!confirmed) return;
 
     setCancelling(true);
@@ -68,10 +69,12 @@ export default function OnboardingShell({
           </a>
 
           <div className="flex items-center nav-controls-gap flex-shrink-0">
+            <LanguageSwitcher />
+
             <button
               type="button"
               className="theme-switch relative w-14 h-7 flex items-center rounded-full transition-all duration-300 bg-white/10 border border-white/20 hover:border-white/40 flex-shrink-0"
-              aria-label="Toggle color theme"
+              aria-label={t("common.toggleTheme")}
               onClick={() => setTheme((t) => (t === "light" ? "dark" : "light"))}
             >
               <span className="theme-switch-thumb absolute left-1 w-5 h-5 rounded-full bg-[#0f172a] shadow-lg transition-all duration-300 flex items-center justify-center">
@@ -85,7 +88,7 @@ export default function OnboardingShell({
               disabled={cancelling}
               className="nav-btn-ghost nav-btn-text font-medium rounded-full border border-white/20 hover:border-white/40 transition-all ghost-btn whitespace-nowrap disabled:opacity-60"
             >
-              {cancelling ? "Cancelling…" : "Cancel"}
+              {cancelling ? t("onboarding.shell.cancelling") : t("common.cancel")}
             </button>
           </div>
         </div>
