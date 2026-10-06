@@ -141,7 +141,6 @@ test("vocabularies the UI looks up by key are all translated", () => {
   expectKeys(keysIn("app/builders/data/offers.js", "export const STYLES"), "styles");
   expectKeys(keysIn("app/builders/data/offers.js", "export const BUILD_TYPES"), "buildTypes");
   expectKeys(keysIn("app/builders/components/navItems.js", "export const catalogNavItems"), "nav");
-  expectKeys(keysIn("app/home/data.js", "export const navItems"), "nav");
   expectKeys(keysIn("app/builders/data/builders.js", "export const SORT_OPTIONS").map((k) => `sort.${k}`), "catalog");
   expectKeys(keysIn("app/home/data.js", "export const projects").map((k) => `projects.items.${k}`), "about");
   expectKeys(keysIn("app/home/data.js", "export const steps").map((k) => `how.steps.${k}`), "about");

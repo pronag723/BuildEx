@@ -86,11 +86,11 @@ function AuthCallbackInner() {
   if (!configured) {
     return (
       <main className="min-h-screen flex items-center justify-center px-6 text-center">
-        <div className="glass rounded-3xl p-10 max-w-md border border-white/10">
-          <div className="text-xl font-semibold mb-2">{t("auth.callback.notConfiguredTitle")}</div>
-          <p className="text-gray-400 text-sm">
+        <div className="card max-w-md p-8">
+          <h1 className="text-lg font-semibold">{t("auth.callback.notConfiguredTitle")}</h1>
+          <p className="mt-2 text-sm text-ink-2">
             {t.rich("auth.callback.notConfiguredBody", {
-              file: <code className="text-[#4ade80]">.env.local</code>,
+              file: <code className="text-ink">.env.local</code>,
             })}
           </p>
         </div>
@@ -101,15 +101,12 @@ function AuthCallbackInner() {
   if (stuck && status !== "authenticated") {
     return (
       <main className="min-h-screen flex items-center justify-center px-6 text-center">
-        <div className="glass rounded-3xl p-10 max-w-md border border-red-400/30">
-          <div className="text-xl font-semibold mb-2">{t("auth.callback.stuckTitle")}</div>
-          <p className="text-gray-400 text-sm mb-6">
+        <div className="card max-w-md p-8">
+          <h1 className="text-lg font-semibold">{t("auth.callback.stuckTitle")}</h1>
+          <p className="mt-2 text-sm text-ink-2">
             {t("auth.callback.stuckBody")}
           </p>
-          <a
-            href={withBase("/login")}
-            className="inline-block px-6 py-3 bg-[#4ade80] text-black font-semibold rounded-full green-glow hover:scale-105 transition-all"
-          >
+          <a href={withBase("/login")} className="btn btn-primary mt-6">
             {t("auth.callback.backToLogin")}
           </a>
         </div>
@@ -124,8 +121,8 @@ function Waiting() {
   const t = useT();
   return (
     <main className="min-h-screen flex flex-col items-center justify-center">
-      <div className="w-10 h-10 rounded-full border-2 border-[#4ade80] border-t-transparent animate-spin" />
-      <p className="mt-4 text-sm text-gray-500">{t("auth.callback.signingIn")}</p>
+      <div className="h-6 w-6 rounded-full border-2 border-line/20 border-t-accent animate-spin" />
+      <p className="mt-4 text-sm text-ink-3">{t("auth.callback.signingIn")}</p>
     </main>
   );
 }

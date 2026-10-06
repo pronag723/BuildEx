@@ -9,88 +9,52 @@ import { useUnread } from "../../../lib/chat/UnreadContext";
 import { Icon } from "../../../lib/icons";
 import { useT } from "../../../lib/i18n/LanguageProvider";
 import LanguageSwitcher from "../../../lib/i18n/LanguageSwitcher";
+import SiteHeader from "../../components/SiteHeader";
+import ThemeToggle from "../../components/ThemeToggle";
 
-export default function CatalogNavbar({
-  isLight,
-  setTheme,
-  mobileMenuOpen,
-  setMobileMenuOpen,
-  onShowSoon,
-}) {
+// The product header: feed, profiles, messages, account, about. The theme is
+// owned by ThemeToggle now, so pages no longer thread theme state through here.
+export default function CatalogNavbar({ mobileMenuOpen, setMobileMenuOpen }) {
   const pathname = usePathname();
   const { status } = useAuth();
   const { hasUnread } = useUnread();
   const navItems = catalogNavItemsFor(status === "authenticated");
   const t = useT();
 
-  return (
-    <nav className="catalog-navbar fixed top-3.5 left-1/2 -translate-x-1/2 z-[80] w-full nav-wrapper px-6">
-      <div className="glass nav-pill flex items-center justify-between shadow-2xl">
-        {/* Logo */}
-        <Link href="/" aria-label={t("common.logoHome")} className="flex items-center gap-1.5 no-underline flex-shrink-0">
-          <span className="text-2xl font-bold tracking-tight logo-font nav-logo-text">
-            Build<span className="text-[#4ade80] font-extrabold">Ex</span>
-          </span>
-        </Link>
+  const nav = navItems.map((item) => (
+    <Link
+      key={item.key}
+      href={item.path}
+      className="nav-link"
+      aria-current={isNavActive(pathname, item.path) ? "page" : undefined}
+    >
+      {t(`nav.${item.key}`)}
+      {item.path === "/chats" && hasUnread && (
+        <span
+          className="ml-1.5 inline-block w-1.5 h-1.5 rounded-full bg-red-500"
+          aria-label={t("common.unreadMessages")}
+        />
+      )}
+    </Link>
+  ));
 
-        {/* Desktop nav links */}
-        <div className="hidden lg:flex items-center nav-links-gap nav-text font-medium">
-          {navItems.map((item) => (
-            <Link
-              key={item.key}
-              href={item.path}
-              className={`nav-link hover:text-[#4ade80] transition-colors whitespace-nowrap ${
-                isNavActive(pathname, item.path) ? "active text-[#4ade80]" : ""
-              }`}
-            >
-              {t(`nav.${item.key}`)}
-              {item.path === "/chats" && hasUnread && (
-                <span
-                  className="ml-1.5 inline-block w-1.5 h-1.5 rounded-full bg-red-500 align-middle"
-                  aria-label={t("common.unreadMessages")}
-                />
-              )}
-            </Link>
-          ))}
-        </div>
-
-        {/* Controls */}
-        <div className="flex items-center nav-controls-gap flex-shrink-0">
-          <LanguageSwitcher />
-
-          {/* Theme toggle */}
-          <button
-            id="theme-toggle"
-            type="button"
-            className="theme-switch relative w-14 h-7 flex items-center rounded-full transition-all duration-300 bg-white/10 border border-white/20 hover:border-white/40 flex-shrink-0"
-            aria-label={t("common.toggleTheme")}
-            onClick={() =>
-              setTheme((t) => (t === "light" ? "dark" : "light"))
-            }
-          >
-            <span className="theme-switch-thumb absolute left-1 w-5 h-5 rounded-full bg-[#0f172a] shadow-lg transition-all duration-300 flex items-center justify-center">
-              <Icon name={isLight ? "sun" : "moon"} size={12} strokeWidth={2} />
-            </span>
-          </button>
-
-          <AuthNavControls />
-
-          {/* Burger */}
-          <button
-            type="button"
-            className={`lg:hidden flex flex-col justify-center items-center w-9 h-9 gap-1.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 transition-all ${
-              mobileMenuOpen ? "active" : ""
-            }`}
-            aria-label={mobileMenuOpen ? t("common.closeMenu") : t("common.openMenu")}
-            onClick={() => setMobileMenuOpen((v) => !v)}
-            id="burger-btn"
-          >
-            <span className="burger-line w-5 h-0.5 bg-current rounded-full transition-all duration-300" />
-            <span className="burger-line w-5 h-0.5 bg-current rounded-full transition-all duration-300" />
-            <span className="burger-line w-5 h-0.5 bg-current rounded-full transition-all duration-300" />
-          </button>
-        </div>
-      </div>
-    </nav>
+  const actions = (
+    <>
+      <LanguageSwitcher />
+      <ThemeToggle />
+      <AuthNavControls />
+      <button
+        type="button"
+        className="lg:hidden btn btn-ghost btn-icon"
+        aria-label={mobileMenuOpen ? t("common.closeMenu") : t("common.openMenu")}
+        aria-expanded={mobileMenuOpen}
+        aria-controls="mobile-menu"
+        onClick={() => setMobileMenuOpen((v) => !v)}
+      >
+        <Icon name={mobileMenuOpen ? "close" : "menu"} size={19} />
+      </button>
+    </>
   );
+
+  return <SiteHeader nav={nav} actions={actions} />;
 }

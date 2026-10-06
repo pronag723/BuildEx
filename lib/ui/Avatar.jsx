@@ -3,39 +3,48 @@
 import { useState } from "react";
 
 /**
- * Avatar with a graceful fallback. When no image URL is supplied — or the
- * image fails to load — it renders the same green "initial badge" used on the
- * profile page, so a missing avatar never shows up as a blank square.
+ * A person's avatar: a rounded square — the shape of a Minecraft player head —
+ * everywhere on the site. Falls back to their initial on a neutral tile when
+ * there is no image or it fails to load, so a missing avatar never shows up as
+ * a blank or broken box.
  *
- * `className` controls the geometry of the badge (size, rounding, ring, and the
- * font-size of the fallback initial). The wrapper clips the image so any
- * rounding applies to the picture too.
+ * Give it either `size` (px; the corner radius and the initial scale with it)
+ * or size it yourself through `className`. Callers resolve `src` (publicAsset
+ * etc.) before passing it in.
  */
-export default function Avatar({ src, name, alt, className = "" }) {
+export default function Avatar({ src, name, alt, size, className = "" }) {
   const [broken, setBroken] = useState(false);
   const initial = ((name || "?").trim().charAt(0) || "?").toUpperCase();
   const showImg = Boolean(src) && !broken;
 
+  const style = size
+    ? {
+        width: size,
+        height: size,
+        fontSize: Math.round(size * 0.4),
+        borderRadius: Math.max(6, Math.round(size * 0.22)),
+      }
+    : undefined;
+
   return (
     <div
-      className={`overflow-hidden flex items-center justify-center ${
-        showImg
-          ? ""
-          : "bg-[#4ade80]/15 border border-[#4ade80]/40 text-[#4ade80] font-bold"
-      } ${className}`}
+      style={style}
+      className={`flex-shrink-0 overflow-hidden flex items-center justify-center select-none ${
+        size ? "" : "rounded-lg"
+      } ${showImg ? "bg-raised" : "bg-line/10 text-ink-2 font-semibold"} ${className}`}
     >
       {showImg ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={src}
-          alt={alt ?? name ?? ""}
+          alt={alt ?? ""}
           className="w-full h-full object-cover"
           loading="lazy"
           decoding="async"
           onError={() => setBroken(true)}
         />
       ) : (
-        <span>{initial}</span>
+        <span aria-hidden="true">{initial}</span>
       )}
     </div>
   );

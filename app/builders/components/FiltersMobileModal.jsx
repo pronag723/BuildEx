@@ -3,8 +3,10 @@
 import { useEffect, useRef } from "react";
 import CatalogFilters from "./CatalogFilters";
 import { useScrollLock } from "../../../lib/useScrollLock";
+import { Icon } from "../../../lib/icons";
 import { useT } from "../../../lib/i18n/LanguageProvider";
 
+// The filter drawer (all widths): slides in from the right over a dimmed page.
 export default function FiltersMobileModal({
   open,
   onClose,
@@ -15,9 +17,8 @@ export default function FiltersMobileModal({
   const closeButtonRef = useRef(null);
   const previousFocusRef = useRef(null);
 
-  // Lock body scroll while open. This used to set body.overflow inline and
-  // reset it to "" on close, which unlocked the page even when another overlay
-  // (a portfolio lightbox) still had it locked. The shared hook ref-counts.
+  // Lock body scroll while open. The shared hook ref-counts, so closing this
+  // never unlocks the page while another overlay still holds it.
   useScrollLock(open);
 
   useEffect(() => {
@@ -47,7 +48,7 @@ export default function FiltersMobileModal({
     >
       {/* Backdrop */}
       <div
-        className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ease-out ${
+        className={`absolute inset-0 bg-black/50 transition-opacity duration-200 ${
           open ? "opacity-100" : "opacity-0"
         }`}
         onClick={onClose}
@@ -55,56 +56,36 @@ export default function FiltersMobileModal({
 
       {/* Panel */}
       <div
-        className={`absolute inset-y-0 right-0 w-[min(400px,94vw)] flex flex-col transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-          open ? "translate-x-0 opacity-100" : "translate-x-full opacity-70"
+        className={`absolute inset-y-0 right-0 flex w-[min(380px,92vw)] flex-col border-l border-line/10 bg-surface shadow-pop transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+          open ? "translate-x-0" : "translate-x-full"
         }`}
       >
-        <div className="flex flex-col h-full glass border-l border-white/10 overflow-hidden shadow-[-24px_0_80px_rgba(0,0,0,0.35)]">
-          {/* Modal header */}
-          <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-white/[0.08] flex-shrink-0">
-            <div>
-              <h2 className="font-semibold">{t("catalog.filters")}</h2>
-              <p className="mt-0.5 text-xs text-gray-500">
-                {t("catalog.narrowDown")}
-              </p>
-            </div>
-            <button
-              ref={closeButtonRef}
-              type="button"
-              onClick={onClose}
-              className="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 hover:rotate-90 flex items-center justify-center transition-all duration-300"
-              aria-label={t("catalog.closeFilters")}
-            >
-              <svg
-                className="w-4 h-4"
-                viewBox="0 0 20 20"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M6 6l8 8M14 6l-8 8" />
-              </svg>
-            </button>
-          </div>
+        <div className="flex h-[var(--header-h)] flex-shrink-0 items-center justify-between border-b border-line/[0.08] px-5">
+          <h2 className="text-base font-semibold">{t("catalog.filters")}</h2>
+          <button
+            ref={closeButtonRef}
+            type="button"
+            onClick={onClose}
+            className="btn btn-ghost btn-icon -mr-2"
+            aria-label={t("catalog.closeFilters")}
+          >
+            <Icon name="close" size={18} />
+          </button>
+        </div>
 
-          {/* Scrollable filter content */}
-          <div className="flex-1 overflow-y-auto px-5 sm:px-6 py-3 catalog-sidebar">
-            <CatalogFilters {...filterProps} />
-          </div>
+        <div className="catalog-sidebar flex-1 overflow-y-auto px-5 py-2">
+          <CatalogFilters {...filterProps} />
+        </div>
 
-          {/* Footer */}
-          <div className="px-5 sm:px-6 py-4 border-t border-white/[0.08] flex-shrink-0 bg-black/10">
-            <button
-              type="button"
-              onClick={onClose}
-              className="w-full py-3 bg-[#4ade80] text-black font-semibold rounded-2xl text-sm green-glow hover:scale-[1.02] active:scale-[0.99] transition-transform duration-200"
-            >
-              {t("catalog.showResults", { count: resultCount })}
+        <div className="flex flex-shrink-0 items-center gap-2 border-t border-line/[0.08] px-5 py-4 safe-bottom">
+          {filterProps.activeFilterCount > 0 && (
+            <button type="button" onClick={filterProps.onClearAll} className="btn btn-ghost btn-lg">
+              {t("catalog.clearAll")}
             </button>
-          </div>
+          )}
+          <button type="button" onClick={onClose} className="btn btn-primary btn-lg flex-1">
+            {t("catalog.showResults", { count: resultCount })}
+          </button>
         </div>
       </div>
     </div>

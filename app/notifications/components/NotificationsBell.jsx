@@ -6,27 +6,10 @@ import { useAuth } from "../../../lib/auth/AuthContext";
 import { useNotifications } from "../../../lib/notifications/NotificationsContext";
 import { withBase } from "../../home/utils";
 import { useT } from "../../../lib/i18n/LanguageProvider";
+import { Icon } from "../../../lib/icons";
 // Compact "now / 2m / 4h / Mon / Apr 3" stamp — same shape as the chat inbox.
 import { relativeStamp } from "../../../lib/i18n/format.mjs";
 import { translateServerText } from "../../../lib/i18n/serverText.mjs";
-
-function IconBell({ className = "w-5 h-5" }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-    </svg>
-  );
-}
 
 // Navbar bell + dropdown. Renders only for authenticated users; placed beside
 // the avatar in AuthNavControls. Anchors a portaled dropdown to the button,
@@ -61,7 +44,7 @@ export default function NotificationsBell() {
     const desiredRight = vw - rect.right;
     const maxRight = vw - menuWidth - 8;
     setCoords({
-      top: rect.bottom + 12,
+      top: rect.bottom + 8,
       right: Math.min(maxRight, Math.max(8, desiredRight)),
     });
   }, []);
@@ -101,7 +84,7 @@ export default function NotificationsBell() {
         ref={buttonRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="relative flex items-center justify-center w-9 h-9 rounded-full border border-white/15 hover:border-[#4ade80]/40 bg-white/5 hover:bg-white/10 transition-all text-gray-200"
+        className="relative btn btn-ghost btn-icon"
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={
@@ -110,10 +93,10 @@ export default function NotificationsBell() {
             : t("notifications.title")
         }
       >
-        <IconBell />
+        <Icon name="bell" size={18} />
         {hasUnread && (
           <span
-            className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-[#171717]"
+            className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-semibold flex items-center justify-center ring-2 ring-canvas"
             aria-hidden="true"
           >
             {unreadCount > 9 ? "9+" : unreadCount}
@@ -132,18 +115,18 @@ export default function NotificationsBell() {
                 ? { top: coords.top, right: coords.right }
                 : { top: -9999, right: 0 }
             }
-            className={`profile-menu fixed w-80 max-w-[calc(100vw-1rem)] glass rounded-2xl border border-white/10 shadow-2xl overflow-hidden z-[120] ${
+            className={`profile-menu menu-panel fixed w-80 max-w-[calc(100vw-1rem)] overflow-hidden z-[120] ${
               open ? "open" : ""
             }`}
           >
-            <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between gap-3">
+            <div className="px-4 py-3 border-b border-line/[0.08] flex items-center justify-between gap-3">
               <span className="text-sm font-semibold">{t("notifications.title")}</span>
               {visible.length > 0 && (
                 <button
                   type="button"
                   onClick={() => clearAll()}
                   tabIndex={open ? 0 : -1}
-                  className="text-xs text-[#4ade80] hover:underline"
+                  className="text-xs font-medium text-ink-2 hover:text-ink"
                 >
                   {t("notifications.markAllRead")}
                 </button>
@@ -152,7 +135,7 @@ export default function NotificationsBell() {
 
             <div className="max-h-[60vh] overflow-y-auto hide-scrollbar">
               {visible.length === 0 ? (
-                <div className="px-4 py-8 text-center text-sm text-gray-400">
+                <div className="px-4 py-8 text-center text-sm text-ink-3">
                   {t("notifications.empty")}
                 </div>
               ) : (
@@ -164,7 +147,7 @@ export default function NotificationsBell() {
                         <span className="flex-shrink-0 mt-1.5">
                           <span
                             className={`block w-2 h-2 rounded-full ${
-                              unread ? "bg-[#4ade80]" : "bg-transparent"
+                              unread ? "bg-accent" : "bg-transparent"
                             }`}
                           />
                         </span>
@@ -173,12 +156,12 @@ export default function NotificationsBell() {
                             <span className="font-medium truncate">
                               {translateServerText(n.title, t.lang)}
                             </span>
-                            <span className="text-[10px] text-gray-500 flex-shrink-0">
+                            <span className="text-[11px] text-ink-3 flex-shrink-0 tabular-nums">
                               {relativeStamp(n.created_at, t.lang)}
                             </span>
                           </span>
                           {n.body && (
-                            <span className="block text-xs text-gray-400 mt-0.5 line-clamp-2">
+                            <span className="block text-xs text-ink-2 mt-0.5 line-clamp-2">
                               {translateServerText(n.body, t.lang)}
                             </span>
                           )}
@@ -187,8 +170,8 @@ export default function NotificationsBell() {
                     );
 
                     const rowClass = `flex items-start gap-2.5 px-4 py-3 transition-colors ${
-                      unread ? "bg-[#4ade80]/5" : ""
-                    } hover:bg-white/5`;
+                      unread ? "" : "text-ink-2"
+                    } hover:bg-line/[0.05]`;
 
                     return (
                       <li key={n.id}>

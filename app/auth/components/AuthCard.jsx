@@ -59,21 +59,13 @@ export default function AuthCard() {
   const subtitle = t("auth.subtitle");
 
   return (
-    <div className="reveal active">
-      <div className="glass rounded-3xl p-8 sm:p-10 border border-white/10 shadow-2xl">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 glass px-4 py-1.5 rounded-full text-xs mb-5">
-            <span className="w-2 h-2 bg-[#4ade80] rounded-full animate-pulse" />
-            <span>{t("auth.secureBadge")}</span>
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-2 logo-font">
-            {title}
-          </h1>
-          <p className="text-gray-400 text-sm sm:text-base">{subtitle}</p>
-        </div>
+    <div>
+      <div className="card p-6 sm:p-8">
+        <h1 className="text-2xl font-semibold tracking-[-0.02em]">{title}</h1>
+        <p className="mt-2 text-[15px] leading-relaxed text-ink-2">{subtitle}</p>
 
         {!configured && (
-          <div className="mb-6 auth-banner auth-banner-warning">
+          <div className="mt-6 auth-banner auth-banner-warning">
             {t.rich("auth.notConfigured", {
               url: <code>NEXT_PUBLIC_SUPABASE_URL</code>,
               key: <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code>,
@@ -83,12 +75,12 @@ export default function AuthCard() {
         )}
 
         {error && (
-          <div role="alert" className="mb-6 auth-banner auth-banner-error">
+          <div role="alert" className="mt-6 auth-banner auth-banner-error">
             {error}
           </div>
         )}
 
-        <div className="flex flex-col gap-3">
+        <div className="mt-7 flex flex-col gap-2.5">
           <OAuthButton
             provider="discord"
             onClick={() => handleSignIn("discord")}
@@ -107,28 +99,18 @@ export default function AuthCard() {
           </OAuthButton>
         </div>
 
-        <p className="mt-5 text-center text-xs leading-5 text-gray-400">
+        <p className="mt-5 text-xs leading-5 text-ink-3">
           {/* Consent copy lives in lib/i18n/messages/<lang>/auth.mjs ("By
               continuing you confirm you are at least 13…"); the two policy
               links are spliced into it here. */}
           {t.rich("auth.consent", {
-            terms: <a href={withBase("/legal/terms/")} className="underline hover:text-white">{t("auth.termsLink")}</a>,
-            privacy: <a href={withBase("/legal/privacy/")} className="underline hover:text-white">{t("auth.privacyLink")}</a>,
+            terms: <a href={withBase("/legal/terms/")} className="underline underline-offset-2 hover:text-ink">{t("auth.termsLink")}</a>,
+            privacy: <a href={withBase("/legal/privacy/")} className="underline underline-offset-2 hover:text-ink">{t("auth.privacyLink")}</a>,
           })}
         </p>
-
-        <div className="mt-8 flex items-center gap-3">
-          <span className="flex-1 h-px bg-white/10" />
-          <span className="text-xs uppercase tracking-widest text-gray-500">{t("auth.moreSoon")}</span>
-          <span className="flex-1 h-px bg-white/10" />
-        </div>
-
-        <div className="mt-4 text-center text-xs text-gray-500">
-          {t("auth.roadmap")}
-        </div>
       </div>
 
-      <p className="mt-6 text-center text-xs text-gray-500 px-4">{t("auth.acceptanceRecorded")}</p>
+      <p className="mt-4 px-2 text-center text-xs leading-5 text-ink-3">{t("auth.acceptanceRecorded")}</p>
     </div>
   );
 }

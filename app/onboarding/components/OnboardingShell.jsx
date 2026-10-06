@@ -1,22 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { useThemedBackground } from "../../auth/components/useThemedBackground";
 import { useAuth } from "../../../lib/auth/AuthContext";
 import { getSupabaseClient } from "../../../lib/supabase/client";
 import { cancelOnboarding } from "../../../lib/onboarding/api";
 import { withBase } from "../../home/utils";
 import StepHeader from "./StepHeader";
-import { Icon } from "../../../lib/icons";
+import SiteHeader from "../../components/SiteHeader";
+import ThemeToggle from "../../components/ThemeToggle";
 import { useT } from "../../../lib/i18n/LanguageProvider";
 import LanguageSwitcher from "../../../lib/i18n/LanguageSwitcher";
 
 /**
- * Shared shell for every onboarding step.
- *
- * - Renders the animated themed gradient + edge glow (matches login/landing).
- * - Pinned top header with logo + theme toggle + step indicator.
- * - Centered max-width content area.
+ * Shared shell for every onboarding step: the site header (with Cancel in
+ * place of navigation) and a centred column with the step indicator.
  *
  * Auth + routing is handled by `<OnboardingGate>` (rendered as a child).
  * Putting the redirect logic in only one place avoids a race where two
@@ -26,9 +23,8 @@ export default function OnboardingShell({
   currentStep,    // string path, e.g. "/onboarding/builder/identity"
   children,
   hideStepHeader = false,
-  maxWidth = "max-w-3xl",
+  maxWidth = "max-w-2xl",
 }) {
-  const { gradientRef, edgeGlowRef, isLight, setTheme } = useThemedBackground();
   const t = useT();
   const { user, profile, refresh } = useAuth();
   const [cancelling, setCancelling] = useState(false);
@@ -55,50 +51,27 @@ export default function OnboardingShell({
     }
   }
 
+  const actions = (
+    <>
+      <LanguageSwitcher />
+      <ThemeToggle />
+      <button
+        type="button"
+        onClick={handleCancel}
+        disabled={cancelling}
+        className="btn btn-ghost btn-sm"
+      >
+        {cancelling ? t("onboarding.shell.cancelling") : t("common.cancel")}
+      </button>
+    </>
+  );
+
   return (
-    <div className="onboarding-root">
-      <div ref={gradientRef} className="gradient-background" aria-hidden="true" />
-      <div ref={edgeGlowRef} className="gradient-edge-glow" aria-hidden="true" />
-
-      <header className="fixed top-3.5 left-1/2 -translate-x-1/2 z-50 w-full nav-wrapper px-6">
-        <div className="glass nav-pill flex items-center justify-between shadow-2xl">
-          <a href={withBase("/")} className="flex items-center gap-1.5 no-underline">
-            <span className="text-2xl font-bold tracking-tight logo-font nav-logo-text">
-              Build<span className="text-[#4ade80] font-extrabold">Ex</span>
-            </span>
-          </a>
-
-          <div className="flex items-center nav-controls-gap flex-shrink-0">
-            <LanguageSwitcher />
-
-            <button
-              type="button"
-              className="theme-switch relative w-14 h-7 flex items-center rounded-full transition-all duration-300 bg-white/10 border border-white/20 hover:border-white/40 flex-shrink-0"
-              aria-label={t("common.toggleTheme")}
-              onClick={() => setTheme((t) => (t === "light" ? "dark" : "light"))}
-            >
-              <span className="theme-switch-thumb absolute left-1 w-5 h-5 rounded-full bg-[#0f172a] shadow-lg transition-all duration-300 flex items-center justify-center">
-                <Icon name={isLight ? "sun" : "moon"} size={12} strokeWidth={2} />
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={handleCancel}
-              disabled={cancelling}
-              className="nav-btn-ghost nav-btn-text font-medium rounded-full border border-white/20 hover:border-white/40 transition-all ghost-btn whitespace-nowrap disabled:opacity-60"
-            >
-              {cancelling ? t("onboarding.shell.cancelling") : t("common.cancel")}
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="min-h-screen flex flex-col items-center px-4 sm:px-6 pt-24 sm:pt-28 pb-16">
+    <div className="min-h-[100dvh]">
+      <SiteHeader actions={actions} />
+      <main className="flex flex-col items-center px-4 pb-16 pt-8 sm:px-6 sm:pt-12">
         <div className={`w-full ${maxWidth}`}>
-          {!hideStepHeader && (
-            <StepHeader currentStep={currentStep} />
-          )}
+          {!hideStepHeader && <StepHeader currentStep={currentStep} />}
           {children}
         </div>
       </main>

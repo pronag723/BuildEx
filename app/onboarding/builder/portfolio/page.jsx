@@ -56,14 +56,14 @@ function BuilderPortfolioStep({ state }) {
 
   return (
     <div>
-      <div className="text-center mb-10 onb-fade-in onb-fade-in-1">
+      <div className="mb-6">
         <h1 className="onb-section-title">{t("onboarding.portfolio.title")}</h1>
-        <p className="onb-section-sub mt-3 mx-auto">
+        <p className="onb-section-sub mt-2">
           {t("onboarding.portfolio.subtitle")}
         </p>
       </div>
 
-      <div className="glass onb-card onb-fade-in onb-fade-in-2">
+      <div className="onb-card">
         <PortfolioUploader
           userId={user?.id}
           onCountChange={setCount}

@@ -76,9 +76,9 @@ export default function ContactLinkField({
     <div>
       <div className="flex items-baseline justify-between mb-1 gap-3">
         <div className="onb-label">{label ?? t("onboarding.links.label")}</div>
-        <span className="text-[11px] text-gray-500">{t("onboarding.links.optional")}</span>
+        <span className="text-xs text-ink-3">{t("onboarding.links.optional")}</span>
       </div>
-      <p className="text-xs text-gray-500 mb-3 leading-snug">{hint ?? t("onboarding.links.hint")}</p>
+      <p className="text-xs text-ink-3 mb-3 leading-snug">{hint ?? t("onboarding.links.hint")}</p>
 
       <div className="space-y-3">
         {list.map((row, i) => {
@@ -129,13 +129,13 @@ export default function ContactLinkField({
                     onClick={() => removeRow(i)}
                     aria-label={t("onboarding.links.removeAria", { platform: meta.label })}
                     title={t("onboarding.links.remove")}
-                    className="contact-link-cell-remove w-10 rounded-xl border border-white/10 text-gray-500 hover:text-red-300 hover:border-red-400/40 transition-colors flex items-center justify-center"
+                    className="contact-link-cell-remove w-11 rounded-[10px] border border-line/10 text-ink-3 hover:text-ink hover:border-line/25 transition-colors flex items-center justify-center"
                   >
                     <Icon name="close" size={15} />
                   </button>
                 )}
               </div>
-              <p className={`mt-1.5 text-xs leading-snug ${error ? "text-red-300" : "text-gray-500"}`}>
+              <p className={`mt-1.5 text-xs leading-snug ${error ? "text-danger" : "text-ink-3"}`}>
                 {error || meta.hint}
               </p>
             </div>
@@ -147,9 +147,9 @@ export default function ContactLinkField({
         <button
           type="button"
           onClick={addRow}
-          className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border border-white/10 bg-white/[0.04] text-gray-300 hover:text-white hover:border-[#4ade80]/40 hover:bg-[#4ade80]/10 transition-all"
+          className="btn btn-secondary btn-sm mt-3"
         >
-          <span className="text-base leading-none">+</span>
+          <Icon name="plus" size={15} />
           {t("onboarding.links.add")}
         </button>
       )}

@@ -33,6 +33,9 @@ export function GoogleIcon({ className = "w-5 h-5" }) {
   );
 }
 
+// Provider sign-in button. Discord gets its own brand colour (the provider
+// most of this audience uses); Google follows its brand guidance — a neutral
+// button with the four-colour mark.
 export default function OAuthButton({
   provider,
   onClick,
@@ -41,31 +44,28 @@ export default function OAuthButton({
   children
 }) {
   const t = useT();
-  const isPrimary = provider === "discord";
+  const isDiscord = provider === "discord";
 
-  const base =
-    "group relative w-full flex items-center justify-center gap-3 px-6 py-4 rounded-full font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed";
-
-  const styles = isPrimary
-    ? "bg-[#5865F2] text-white hover:bg-[#4752c4] shadow-lg hover:shadow-[0_0_25px_-5px_rgba(88,101,242,0.6)]"
-    : "bg-white text-[#0f172a] hover:bg-gray-100 border border-white/10 shadow-lg hover:shadow-[0_0_25px_-5px_rgba(255,255,255,0.35)]";
+  const styles = isDiscord
+    ? "bg-[#5865F2] text-white hover:bg-[#4f5bd5] border-transparent"
+    : "bg-surface text-ink border-line/15 hover:border-line/30";
 
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled || loading}
-      className={`${base} ${styles}`}
-      aria-label={t("auth.continueWith", { provider: provider === "discord" ? "Discord" : "Google" })}
+      className={`btn btn-lg w-full gap-3 ${styles}`}
+      aria-label={t("auth.continueWith", { provider: isDiscord ? "Discord" : "Google" })}
     >
       {loading ? (
-        <span className="w-5 h-5 rounded-full border-2 border-current border-t-transparent animate-spin" />
-      ) : provider === "discord" ? (
-        <DiscordIcon />
+        <span className="h-[18px] w-[18px] rounded-full border-2 border-current border-t-transparent opacity-70 animate-spin" />
+      ) : isDiscord ? (
+        <DiscordIcon className="h-[18px] w-[18px]" />
       ) : (
-        <GoogleIcon />
+        <GoogleIcon className="h-[18px] w-[18px]" />
       )}
-      <span className="text-sm sm:text-base">{children}</span>
+      <span>{children}</span>
     </button>
   );
 }

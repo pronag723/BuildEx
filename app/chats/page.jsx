@@ -11,7 +11,7 @@ export default function Page() {
     <Suspense
       fallback={
         <main className="min-h-screen flex items-center justify-center px-4">
-          <div className="w-12 h-12 rounded-full border-2 border-[#4ade80] border-t-transparent animate-spin" />
+          <div className="h-6 w-6 rounded-full border-2 border-line/20 border-t-accent animate-spin" />
         </main>
       }
     >

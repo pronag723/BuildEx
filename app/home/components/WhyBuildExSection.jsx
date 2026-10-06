@@ -1,6 +1,6 @@
 "use client";
 
-import { withBase } from "../utils";
+import Link from "next/link";
 import { Icon } from "../../../lib/icons";
 import { useT } from "../../../lib/i18n/LanguageProvider";
 
@@ -12,31 +12,18 @@ import { useT } from "../../../lib/i18n/LanguageProvider";
 // lists themselves are `about.why.does` / `about.why.doesNot` in the
 // dictionaries (lib/i18n/messages/<lang>/about.mjs).
 
-function ClaimList({ tone, title, items }) {
-  const isPositive = tone === "positive";
+function ClaimList({ positive, title, items }) {
   return (
-    <div className="p-5 sm:p-8">
-      <div className="flex items-center gap-2.5 mb-4 sm:mb-5">
-        <Icon
-          name={isPositive ? "check" : "close"}
-          size={18}
-          strokeWidth={2.2}
-          className={`flex-shrink-0 ${
-            isPositive ? "text-[#4ade80]" : "text-gray-500"
-          }`}
-        />
-        <h3 className="text-base font-semibold">{title}</h3>
-      </div>
-      <ul className="space-y-2 sm:space-y-2.5">
+    <div>
+      <h3 className="text-sm font-semibold">{title}</h3>
+      <ul className="mt-3 space-y-2.5">
         {items.map((item) => (
-          <li
-            key={item}
-            className="flex items-start gap-2.5 text-sm text-gray-400 leading-relaxed"
-          >
-            <span
-              className={`mt-[7px] h-1 w-1 flex-shrink-0 rounded-full ${
-                isPositive ? "bg-[#4ade80]" : "bg-gray-600"
-              }`}
+          <li key={item} className="flex items-start gap-2.5 text-sm leading-relaxed text-ink-2">
+            <Icon
+              name={positive ? "check" : "close"}
+              size={16}
+              strokeWidth={2}
+              className={`mt-0.5 flex-shrink-0 ${positive ? "text-accent-ink" : "text-ink-3"}`}
             />
             <span>{item}</span>
           </li>
@@ -46,38 +33,27 @@ function ClaimList({ tone, title, items }) {
   );
 }
 
-export default function WhyBuildExSection({ onAnchorClick }) {
+export default function WhyBuildExSection() {
   const t = useT();
   return (
-    <section id="why-buildex" className="py-16 sm:py-24 reveal">
-      <div className="max-w-5xl mx-auto px-6">
-        <h2 className="text-4xl font-semibold text-center mb-7 sm:mb-10">
-          {t.rich("about.why.heading", {
-            brand: <>Build<span className="text-[#4ade80]">Ex</span></>,
-          })}
-        </h2>
-
-        {/* One panel split by a shared divider, rather than two separate cards.
-            The old version was two `glass rounded-3xl p-8` boxes in a grid that
-            CSS had forced to three columns, leaving a phantom empty column on
-            every desktop screen. */}
-        <div className="glass rounded-3xl overflow-hidden grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-white/[0.07]">
-          <ClaimList tone="positive" title={t("about.why.doesTitle")} items={t("about.why.does")} />
-          <ClaimList
-            tone="negative"
-            title={t("about.why.doesNotTitle")}
-            items={t("about.why.doesNot")}
-          />
+    <section
+      id="why-buildex"
+      className="mx-auto max-w-7xl scroll-mt-[calc(var(--header-h)+1rem)] px-4 sm:px-6 lg:px-8"
+    >
+      <div className="border-t border-line/[0.08] py-14 sm:py-20">
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:gap-16">
+          <h2 className="text-xl font-semibold tracking-[-0.015em] sm:text-2xl">{t("about.why.heading")}</h2>
+          <div className="grid gap-8 sm:grid-cols-2 sm:gap-10">
+            <ClaimList positive title={t("about.why.doesTitle")} items={t("about.why.does")} />
+            <ClaimList title={t("about.why.doesNotTitle")} items={t("about.why.doesNot")} />
+          </div>
         </div>
 
-        <div className="mt-7 sm:mt-10 text-center">
-          <a
-            href={withBase("/")}
-            onClick={(event) => onAnchorClick?.(event, "/")}
-            className="inline-block px-7 py-3 sm:px-8 sm:py-4 bg-[#4ade80] text-black font-semibold rounded-full hover:scale-105 transition-all green-glow"
-          >
+        <div className="mt-14 flex flex-col items-start gap-4 rounded-xl border border-line/10 bg-surface p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
+          <p className="max-w-lg text-[15px] font-medium text-ink">{t("about.cta")}</p>
+          <Link href="/" className="btn btn-primary btn-lg flex-shrink-0">
             {t("about.browseBuilders")}
-          </a>
+          </Link>
         </div>
       </div>
     </section>

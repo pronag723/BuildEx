@@ -1,10 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useScrollLock } from "../../../lib/useScrollLock";
 import { useRequireAuth } from "../../../lib/auth/useRequireAuth";
 import { useAuth } from "../../../lib/auth/AuthContext";
 import { useUnread } from "../../../lib/chat/UnreadContext";
 import { Icon } from "../../../lib/icons";
+import Toast from "../../components/Toast";
 import { withBase } from "../../home/utils";
 import CatalogNavbar from "../../builders/components/CatalogNavbar";
 import CatalogMobileMenu from "../../builders/components/CatalogMobileMenu";
@@ -64,10 +66,6 @@ export default function ChatsPage() {
 
   const meId = user?.id || null;
 
-  // ── Animated gradient background refs (mirrors the catalog pages) ───────────
-  const gradientRef = useRef(null);
-  const edgeGlowRef = useRef(null);
-
   // ── Resizable conversation-list pane (desktop) ──────────────────────────────
   const containerRef = useRef(null);
   const [isDesktop, setIsDesktop] = useState(false);
@@ -77,90 +75,6 @@ export default function ChatsPage() {
   useEffect(() => {
     listWidthRef.current = listWidth;
   }, [listWidth]);
-
-  // ── Theme (mirrors the other catalog pages) ────────────────────────────────
-  const [theme, setTheme] = useState(null);
-  const isLight = theme === "light";
-  useEffect(() => {
-    const saved = window.localStorage.getItem("theme");
-    setTheme(saved === "light" ? "light" : "dark");
-  }, []);
-  useEffect(() => {
-    if (!theme) return;
-    const root = document.documentElement;
-    root.classList.toggle("light", isLight);
-    root.classList.toggle("dark", !isLight);
-    window.localStorage.setItem("theme", theme);
-  }, [theme, isLight]);
-
-  // ── Animated gradient background (identical to the catalog pages) ───────────
-  useEffect(() => {
-    const gradientBg = gradientRef.current;
-    const edgeGlow = edgeGlowRef.current;
-    if (!gradientBg || !edgeGlow || window.getComputedStyle(gradientBg).display === "none") return undefined;
-
-    const cfg = {
-      edgeOffset: 12,
-      speed: 1,
-      smoothing: 0.08,
-      idleDrift: 0.00003,
-      swayAmp: 0.015,
-      swaySpeed: 0.0004,
-    };
-
-    let cp1 = 0, cp2 = 0.5, tp1 = 0, tp2 = 0.5;
-    let lastScroll = window.pageYOffset;
-    let raf = 0;
-
-    function periToXY(progress, offset) {
-      const p = ((progress % 1) + 1) % 1;
-      const seg = p * 4;
-      const si = Math.floor(seg);
-      const sp = seg - si;
-      switch (si) {
-        case 0: return { x: offset + sp * (100 - offset * 2), y: offset };
-        case 1: return { x: 100 - offset, y: offset + sp * (100 - offset * 2) };
-        case 2: return { x: 100 - offset - sp * (100 - offset * 2), y: 100 - offset };
-        default: return { x: offset, y: 100 - offset - sp * (100 - offset * 2) };
-      }
-    }
-
-    function tick(ts) {
-      const sy = window.pageYOffset;
-      const delta = sy - lastScroll;
-      if (Math.abs(delta) > 0) {
-        tp1 += delta * 0.0008 * cfg.speed;
-        tp2 -= delta * 0.0006 * cfg.speed;
-      }
-      tp1 += cfg.idleDrift;
-      tp2 -= cfg.idleDrift * 0.7;
-      lastScroll = sy;
-      tp1 = ((tp1 % 1) + 1) % 1;
-      tp2 = ((tp2 % 1) + 1) % 1;
-
-      let d1 = tp1 - cp1; if (d1 > 0.5) d1 -= 1; if (d1 < -0.5) d1 += 1;
-      let d2 = tp2 - cp2; if (d2 > 0.5) d2 -= 1; if (d2 < -0.5) d2 += 1;
-      cp1 += d1 * cfg.smoothing;
-      cp2 += d2 * cfg.smoothing;
-
-      const sw1 = Math.sin(ts * cfg.swaySpeed) * cfg.swayAmp;
-      const sw2 = Math.cos(ts * cfg.swaySpeed * 1.3) * cfg.swayAmp * 0.8;
-      const p1 = periToXY(cp1 + sw1, cfg.edgeOffset);
-      const p2 = periToXY(cp2 + sw2, cfg.edgeOffset + 3);
-
-      gradientBg.style.setProperty("--gradient-x", `${p1.x}%`);
-      gradientBg.style.setProperty("--gradient-y", `${p1.y}%`);
-      gradientBg.style.setProperty("--gradient-x2", `${p2.x}%`);
-      gradientBg.style.setProperty("--gradient-y2", `${p2.y}%`);
-
-      const breathe = 1 + Math.sin(ts * 0.0003) * 0.12;
-      edgeGlow.style.opacity = `${0.45 + breathe * 0.2}`;
-      raf = requestAnimationFrame(tick);
-    }
-
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, []);
 
   // ── Track desktop breakpoint + restore the saved list width ─────────────────
   useEffect(() => {
@@ -210,6 +124,7 @@ export default function ChatsPage() {
 
   // ── Chat state ──────────────────────────────────────────────────────────────
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  useScrollLock(mobileMenuOpen);
   const [conversations, setConversations] = useState([]);
   const [convLoading, setConvLoading] = useState(true);
 
@@ -503,32 +418,19 @@ export default function ChatsPage() {
   const authReady = status === "authenticated" && meId;
 
   return (
-    <div className={`catalog-root min-h-screen ${isLight ? "light" : ""}`}>
-      <div ref={gradientRef} className="gradient-background" aria-hidden="true" />
-      <div ref={edgeGlowRef} className="gradient-edge-glow" aria-hidden="true" />
+    <div className="flex min-h-[100dvh] flex-col">
+      <CatalogNavbar mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
+      <CatalogMobileMenu mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
 
-      <CatalogNavbar
-        isLight={isLight}
-        setTheme={setTheme}
-        mobileMenuOpen={mobileMenuOpen}
-        setMobileMenuOpen={setMobileMenuOpen}
-        onShowSoon={showNotice}
-      />
-      <CatalogMobileMenu
-        mobileMenuOpen={mobileMenuOpen}
-        setMobileMenuOpen={setMobileMenuOpen}
-        onShowSoon={showNotice}
-      />
-
-      <main className="relative z-10 pt-24 lg:pt-28 px-3 sm:px-5 pb-4">
-        <div className="max-w-6xl mx-auto">
+      <main className="sm:px-5 sm:py-5">
+        <div className="mx-auto max-w-6xl">
           <div
             ref={containerRef}
-            className="glass rounded-3xl overflow-hidden flex h-[calc(100dvh-7.5rem)] min-h-[360px] sm:min-h-[480px]"
+            className="flex h-[calc(100dvh-var(--header-h))] min-h-[360px] overflow-hidden bg-surface sm:h-[calc(100dvh-var(--header-h)-2.5rem)] sm:min-h-[480px] sm:rounded-xl sm:border sm:border-line/[0.09] sm:shadow-card"
           >
             {!authReady ? (
               <div className="flex-1 flex items-center justify-center">
-                <div className="w-10 h-10 rounded-full border-2 border-[#4ade80] border-t-transparent animate-spin" />
+                <div className="h-6 w-6 rounded-full border-2 border-line/20 border-t-accent animate-spin" />
               </div>
             ) : (
               <>
@@ -537,35 +439,17 @@ export default function ChatsPage() {
                   style={isDesktop ? { width: `${listWidth}px` } : undefined}
                   className={`${
                     showThreadPane && mobileView === "thread" ? "hidden" : "flex"
-                  } lg:flex w-full lg:w-80 xl:w-96 flex-shrink-0 flex-col border-r border-white/10 min-h-0`}
+                  } lg:flex w-full lg:w-80 xl:w-96 flex-shrink-0 flex-col border-r border-line/[0.08] min-h-0`}
                 >
                   {isDesktop && listWidth < LIST_COMPACT_BELOW ? (
-                    <div className="px-3 py-4 border-b border-white/10 flex-shrink-0 flex items-center justify-center h-[68px]">
-                      <span
-                        className="w-10 h-10 rounded-2xl bg-[#4ade80]/10 border border-[#4ade80]/30 flex items-center justify-center text-[#4ade80]"
-                        title={t("nav.messages")}
-                        aria-label={t("nav.messages")}
-                      >
-                        <svg
-                          className="w-5 h-5"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          aria-hidden="true"
-                        >
-                          <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-                        </svg>
+                    <div className="flex h-14 flex-shrink-0 items-center justify-center border-b border-line/[0.08]">
+                      <span title={t("nav.messages")} aria-label={t("nav.messages")} className="text-ink-2">
+                        <Icon name="chat" size={20} />
                       </span>
                     </div>
                   ) : (
-                    <div className="px-5 py-4 border-b border-white/10 flex-shrink-0">
-                      <h1 className="text-lg font-extrabold">{t("nav.messages")}</h1>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        {t("chat.listSubtitle")}
-                      </p>
+                    <div className="flex h-14 flex-shrink-0 items-center border-b border-line/[0.08] px-4">
+                      <h1 className="text-base font-semibold">{t("nav.messages")}</h1>
                     </div>
                   )}
                   <ConversationList
@@ -584,9 +468,9 @@ export default function ChatsPage() {
                   aria-label={t("chat.resizeList")}
                   onMouseDown={startResize}
                   onTouchStart={startResize}
-                  className="hidden lg:flex flex-shrink-0 w-1.5 -ml-px cursor-col-resize items-center justify-center group hover:bg-[#4ade80]/10 active:bg-[#4ade80]/20 transition-colors"
+                  className="hidden lg:flex flex-shrink-0 w-1.5 -ml-1 cursor-col-resize items-center justify-center group transition-colors"
                 >
-                  <span className="w-0.5 h-10 rounded-full bg-white/15 group-hover:bg-[#4ade80]/70 transition-colors" />
+                  <span className="w-0.5 h-8 rounded-full bg-transparent group-hover:bg-line/30 group-active:bg-accent transition-colors" />
                 </div>
 
                 {/* ── Thread pane ──────────────────────────────────────────── */}
@@ -614,13 +498,11 @@ export default function ChatsPage() {
                     />
                   ) : (
                     <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
-                      <div className="w-16 h-16 rounded-2xl bg-[#4ade80]/10 border border-[#4ade80]/30 flex items-center justify-center text-[#4ade80] mb-5">
-                        <Icon name="chat" size={28} />
-                      </div>
-                      <h2 className="font-bold text-lg mb-2">{t("chat.selectTitle")}</h2>
-                      <p className="text-sm text-gray-500 max-w-xs leading-relaxed">
+                      <Icon name="chat" size={28} strokeWidth={1.5} className="mb-3 text-ink-3" />
+                      <h2 className="text-base font-semibold">{t("chat.selectTitle")}</h2>
+                      <p className="mt-1 max-w-xs text-sm leading-relaxed text-ink-2">
                         {t.rich("chat.selectBody", {
-                          cta: <span className="text-[#4ade80] font-medium">{t("profile.contactBuilder")}</span>,
+                          cta: <span className="font-medium text-ink">{t("profile.contactBuilder")}</span>,
                         })}
                       </p>
                     </div>
@@ -632,18 +514,7 @@ export default function ChatsPage() {
         </div>
       </main>
 
-      {/* Toast */}
-      <div
-        role="status"
-        aria-live="polite"
-        className={`catalog-toast fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] glass rounded-2xl px-5 py-3 text-sm font-medium shadow-xl transition-all duration-300 max-w-sm text-center ${
-          notice
-            ? "opacity-100 translate-y-0 pointer-events-auto"
-            : "opacity-0 translate-y-4 pointer-events-none"
-        }`}
-      >
-        {notice}
-      </div>
+      <Toast message={notice} />
     </div>
   );
 }

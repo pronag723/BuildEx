@@ -8,51 +8,8 @@ import { publicAsset } from "../../home/utils";
 import { useScrollLock } from "../../../lib/useScrollLock";
 import { useT } from "../../../lib/i18n/LanguageProvider";
 import { formatDate, formatTime } from "../../../lib/i18n/format.mjs";
-
-function IconSend({ className = "w-5 h-5" }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M22 2 11 13" />
-      <path d="M22 2 15 22l-4-9-9-4 20-7z" />
-    </svg>
-  );
-}
-
-function IconPhoto({ className = "w-5 h-5" }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-      <circle cx="8.5" cy="8.5" r="1.5" />
-      <path d="m21 15-5-5L5 21" />
-    </svg>
-  );
-}
-
-function IconBack({ className = "w-5 h-5" }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M19 12H5M12 19l-7-7 7-7" />
-    </svg>
-  );
-}
-
-function IconFlag({ className = "w-5 h-5" }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V4s-1 1-4 1-5-2-8-2-4 1-4 1z" />
-      <path d="M4 22v-7" />
-    </svg>
-  );
-}
-
-function IconShield({ className = "w-4 h-4" }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-      <path d="M9 12l2 2 4-4" />
-    </svg>
-  );
-}
+import { Icon } from "../../../lib/icons";
+import Avatar from "../../../lib/ui/Avatar";
 
 // Pinned at the very top of every thread. The old version of this notice
 // promised that BuildEx would review the conversation to settle a dispute — a
@@ -61,12 +18,9 @@ function IconShield({ className = "w-4 h-4" }) {
 function SafetyNotice() {
   const t = useT();
   return (
-    <div className="flex items-start gap-2.5 mb-4 px-3.5 py-2.5 rounded-2xl bg-[#4ade80]/[0.07] border border-[#4ade80]/20 text-gray-400">
-      <IconShield className="w-4 h-4 mt-0.5 flex-shrink-0 text-[#4ade80]" />
-      <p className="text-[11px] leading-relaxed">
-        {t("chat.safetyNotice")}
-      </p>
-    </div>
+    <p className="mx-auto mb-5 max-w-md rounded-lg border border-line/[0.08] px-3.5 py-2.5 text-center text-xs leading-relaxed text-ink-3">
+      {t("chat.safetyNotice")}
+    </p>
   );
 }
 
@@ -79,9 +33,9 @@ function OrderEventMessage({ message }) {
   const t = useT();
   return (
     <div className="flex justify-center my-3 px-2">
-      <span className="inline-flex items-center gap-2 text-[11px] font-medium text-gray-500 bg-white/5 border border-white/10 rounded-full px-3 py-1">
+      <span className="inline-flex items-center gap-2 text-[11px] text-ink-3">
         <span>{t("chat.orderUpdate")}</span>
-        <span className="text-gray-600">· {clockTime(message.created_at, t.lang)}</span>
+        <span>· {clockTime(message.created_at, t.lang)}</span>
       </span>
     </div>
   );
@@ -101,24 +55,6 @@ function dayLabel(iso, t) {
   if (sameDay(d, today)) return t("chat.today");
   if (sameDay(d, yest)) return t("chat.yesterday");
   return formatDate(iso, t.lang, { month: "long", day: "numeric", year: "numeric" });
-}
-
-function PeerAvatar({ name, url, size = 40 }) {
-  const initial = (name || "?").trim().charAt(0).toUpperCase();
-  return (
-    <div
-      className="rounded-2xl overflow-hidden bg-[#4ade80]/15 border border-[#4ade80]/40 flex items-center justify-center text-[#4ade80] font-semibold flex-shrink-0"
-      style={{ width: size, height: size, fontSize: Math.round(size * 0.42) }}
-      aria-hidden="true"
-    >
-      {url ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={publicAsset(url)} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
-      ) : (
-        <span>{initial}</span>
-      )}
-    </div>
-  );
 }
 
 export default function MessageThread({
@@ -259,28 +195,28 @@ export default function MessageThread({
   return (
     <div className="flex flex-col h-full min-h-0">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-white/10 flex-shrink-0">
+      <div className="flex h-14 flex-shrink-0 items-center gap-3 border-b border-line/[0.08] px-3 sm:px-4">
         <button
           type="button"
           onClick={onBack}
-          className="lg:hidden -ml-1 mr-1 w-9 h-9 flex items-center justify-center rounded-xl hover:bg-white/10 transition-colors"
+          className="btn btn-ghost btn-icon -ml-1 lg:hidden"
           aria-label={t("chat.backToConversations")}
         >
-          <IconBack className="w-5 h-5" />
+          <Icon name="arrowLeft" size={19} />
         </button>
-        <PeerAvatar name={peerName} url={peer?.avatar_url} />
+        <Avatar src={peer?.avatar_url ? publicAsset(peer.avatar_url) : null} name={peerName} size={34} />
         <div className="min-w-0">
-          <p className="font-bold text-sm truncate leading-tight">{peerName}</p>
+          <p className="truncate text-sm font-semibold leading-tight">{peerName}</p>
           {peer?.username && (
             peerHasProfile ? (
               <Link
                 href={`/builders/profile?u=${encodeURIComponent(peer.username)}`}
-                className="text-xs text-gray-500 hover:text-[#4ade80] transition-colors"
+                className="text-xs text-ink-3 transition-colors hover:text-ink"
               >
                 @{peer.username}
               </Link>
             ) : (
-              <p className="text-xs text-gray-500">@{peer.username}</p>
+              <p className="text-xs text-ink-3">@{peer.username}</p>
             )
           )}
         </div>
@@ -290,34 +226,30 @@ export default function MessageThread({
             type="button"
             onClick={() => !reported && setReportOpen(true)}
             disabled={reported}
-            className={`ml-auto flex-shrink-0 flex items-center gap-1.5 h-9 px-3 rounded-xl border text-xs font-medium transition-colors ${
-              reported
-                ? "border-white/10 text-gray-500 cursor-default"
-                : "border-white/10 text-gray-400 hover:border-red-400/40 hover:text-red-300 hover:bg-red-500/10"
-            }`}
+            className="btn btn-ghost btn-sm ml-auto flex-shrink-0 font-medium disabled:opacity-60"
             title={reported ? t("chat.reportedTitle") : t("chat.reportTitle")}
           >
-            <IconFlag className="w-4 h-4" />
+            <Icon name="flag" size={15} />
             <span className="hidden sm:inline">{reported ? t("chat.reported") : t("chat.report")}</span>
           </button>
         )}
       </div>
 
       {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-5 space-y-1 min-h-0 hide-scrollbar">
+      <div ref={scrollRef} className="bx-scroll flex-1 overflow-y-auto px-3 py-5 space-y-1 min-h-0 sm:px-5">
         {!loading && <SafetyNotice />}
         {loading ? (
           <div className="h-full flex items-center justify-center">
-            <div className="w-8 h-8 rounded-full border-2 border-[#4ade80] border-t-transparent animate-spin" />
+            <div className="h-6 w-6 rounded-full border-2 border-line/20 border-t-accent animate-spin" />
           </div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center text-center px-6 py-10">
-            <PeerAvatar name={peerName} url={peer?.avatar_url} size={64} />
-            <p className="font-semibold text-sm mt-4 mb-1">{peerName}</p>
+            <Avatar src={peer?.avatar_url ? publicAsset(peer.avatar_url) : null} name={peerName} size={56} />
+            <p className="font-semibold text-sm mt-3">{peerName}</p>
             {peer?.username && (
-              <p className="text-xs text-gray-500 mb-2">@{peer.username}</p>
+              <p className="text-xs text-ink-3">@{peer.username}</p>
             )}
-            <p className="text-xs text-gray-500 max-w-[260px] leading-relaxed">
+            <p className="mt-3 text-xs text-ink-2 max-w-[260px] leading-relaxed">
               {t("chat.startOfConversation")}
             </p>
           </div>
@@ -335,7 +267,7 @@ export default function MessageThread({
                 <div key={m.id}>
                   {showDay && (
                     <div className="flex items-center justify-center my-4">
-                      <span className="text-[10px] uppercase tracking-wide text-gray-500 bg-white/5 border border-white/10 rounded-full px-3 py-1">
+                      <span className="text-[11px] font-medium text-ink-3">
                         {dayLabel(m.created_at, t)}
                       </span>
                     </div>
@@ -348,27 +280,21 @@ export default function MessageThread({
             const mine = m.sender_id === meId;
             // Direct threads have exactly two participants, so the bubble side
             // already says who is speaking — no per-message sender label.
-            const senderLabel = null;
             const isImage = m.msg_type === "image" && m.meta?.url;
             return (
               <div key={m.id}>
                 {showDay && (
                   <div className="flex items-center justify-center my-4">
-                    <span className="text-[10px] uppercase tracking-wide text-gray-500 bg-white/5 border border-white/10 rounded-full px-3 py-1">
+                    <span className="text-[11px] font-medium text-ink-3">
                       {dayLabel(m.created_at, t)}
                     </span>
                   </div>
                 )}
                 <div className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
-                  {senderLabel && (
-                    <span className="px-1 mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
-                      {senderLabel}
-                    </span>
-                  )}
                   {isImage ? (
                     <div
-                      className={`max-w-[78%] sm:max-w-[60%] p-1 rounded-2xl overflow-hidden ${
-                        mine ? "bg-[#4ade80] rounded-br-md" : "glass rounded-bl-md"
+                      className={`max-w-[78%] sm:max-w-[60%] p-1 rounded-[14px] overflow-hidden ${
+                        mine ? "bg-accent rounded-br-[4px]" : "bg-raised rounded-bl-[4px]"
                       }`}
                     >
                       <button
@@ -381,7 +307,7 @@ export default function MessageThread({
                         <img
                           src={publicAsset(m.meta.url)}
                           alt={m.body || t("chat.photo")}
-                          className="rounded-xl max-h-72 w-auto object-cover"
+                          className="rounded-[10px] max-h-72 w-auto object-cover"
                           loading="lazy"
                           decoding="async"
                         />
@@ -389,7 +315,7 @@ export default function MessageThread({
                       {m.body && (
                         <p
                           className={`px-2 pt-1.5 text-sm whitespace-pre-wrap break-words ${
-                            mine ? "text-black" : "text-gray-200"
+                            mine ? "text-accent-fg" : "text-ink"
                           }`}
                         >
                           <SmartText>{m.body}</SmartText>
@@ -397,7 +323,7 @@ export default function MessageThread({
                       )}
                       <span
                         className={`block px-2 pb-1 text-[10px] mt-0.5 text-right ${
-                          mine ? "text-black/50" : "text-gray-500"
+                          mine ? "text-accent-fg/60" : "text-ink-3"
                         }`}
                       >
                         {clockTime(m.created_at, t.lang)}
@@ -405,16 +331,16 @@ export default function MessageThread({
                     </div>
                   ) : (
                     <div
-                      className={`max-w-[78%] sm:max-w-[70%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap break-words ${
+                      className={`max-w-[80%] sm:max-w-[70%] px-3.5 py-2 rounded-[14px] text-sm leading-relaxed whitespace-pre-wrap break-words ${
                         mine
-                          ? "bg-[#4ade80] text-black rounded-br-md"
-                          : "glass rounded-bl-md"
+                          ? "bg-accent text-accent-fg rounded-br-[4px]"
+                          : "bg-raised text-ink rounded-bl-[4px]"
                       }`}
                     >
                       <SmartText>{m.body}</SmartText>
                       <span
-                        className={`block text-[10px] mt-1 text-right ${
-                          mine ? "text-black/50" : "text-gray-500"
+                        className={`block text-[10px] mt-0.5 text-right tabular-nums ${
+                          mine ? "text-accent-fg/60" : "text-ink-3"
                         }`}
                       >
                         {clockTime(m.created_at, t.lang)}
@@ -429,9 +355,9 @@ export default function MessageThread({
       </div>
 
       {/* Composer */}
-      <div className="border-t border-white/10 p-3 flex-shrink-0">
+      <div className="flex-shrink-0 border-t border-line/[0.08] p-2.5 sm:p-3">
         {!canWrite && (
-          <p className="mb-2 text-center text-xs text-amber-300">
+          <p className="mb-2 text-center text-xs text-ink-2">
             {t("chat.readOnly")}
           </p>
         )}
@@ -447,11 +373,11 @@ export default function MessageThread({
             type="button"
             onClick={() => fileRef.current?.click()}
             disabled={sending || !canWrite}
-            className="w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-2xl border border-white/10 text-gray-300 hover:bg-white/10 hover:text-[#4ade80] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            className="btn btn-ghost h-11 w-11 flex-shrink-0 p-0"
             aria-label={t("chat.sendPhoto")}
             title={t("chat.sendPhoto")}
           >
-            <IconPhoto className="w-5 h-5" />
+            <Icon name="photo" size={20} />
           </button>
           <textarea
             ref={taRef}
@@ -462,19 +388,19 @@ export default function MessageThread({
             disabled={!canWrite}
             rows={1}
             placeholder={t("chat.composerPlaceholder", { name: peerName })}
-            className="flex-1 resize-none bg-white/5 border border-white/10 focus:border-[#4ade80]/50 rounded-2xl px-4 py-2.5 text-sm outline-none transition-colors placeholder:text-gray-500 max-h-[140px]"
+            className="input h-auto min-h-[2.75rem] max-h-[140px] flex-1 resize-none py-[0.6875rem] leading-snug"
           />
           <button
             type="button"
             onClick={submit}
             disabled={!draft.trim() || sending || !canWrite}
-            className="w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-2xl bg-[#4ade80] text-black green-glow hover:bg-[#22c55e] transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-[#4ade80]"
+            className="btn btn-primary h-11 w-11 flex-shrink-0 p-0"
             aria-label={t("chat.sendMessage")}
           >
             {sending ? (
-              <span className="w-4 h-4 rounded-full border-2 border-black/40 border-t-transparent animate-spin" />
+              <span className="h-4 w-4 rounded-full border-2 border-accent-fg/30 border-t-accent-fg animate-spin" />
             ) : (
-              <IconSend className="w-5 h-5" />
+              <Icon name="send" size={18} />
             )}
           </button>
         </div>
@@ -482,23 +408,18 @@ export default function MessageThread({
 
       {reportOpen && (
         <div
-          className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 p-4"
           role="dialog"
           aria-modal="true"
           aria-label={t("chat.reportDialogAria")}
           onClick={() => !reporting && setReportOpen(false)}
         >
           <div
-            className="glass rounded-3xl w-full max-w-md p-5 border border-white/10"
+            className="w-full max-w-md rounded-2xl border border-line/10 bg-surface p-5 shadow-pop sm:p-6"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center gap-2.5 mb-2">
-              <span className="w-9 h-9 rounded-2xl bg-red-500/10 border border-red-400/30 flex items-center justify-center text-red-300 flex-shrink-0">
-                <IconFlag className="w-4 h-4" />
-              </span>
-              <h2 className="font-bold text-base">{t("chat.reportTitle")}</h2>
-            </div>
-            <p className="text-xs text-gray-400 leading-relaxed mb-3">
+            <h2 className="text-base font-semibold">{t("chat.reportTitle")}</h2>
+            <p className="mt-1.5 text-sm leading-relaxed text-ink-2">
               {t("chat.reportBody")}
             </p>
             <textarea
@@ -507,14 +428,14 @@ export default function MessageThread({
               rows={4}
               autoFocus
               placeholder={t("chat.reportPlaceholder")}
-              className="w-full resize-none bg-white/5 border border-white/10 focus:border-[#4ade80]/50 rounded-2xl px-4 py-3 text-sm outline-none transition-colors placeholder:text-gray-500"
+              className="input mt-4 h-auto resize-none py-2.5"
             />
-            <div className="flex items-center justify-end gap-2 mt-4">
+            <div className="mt-4 flex items-center justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setReportOpen(false)}
                 disabled={reporting}
-                className="h-10 px-4 rounded-2xl border border-white/10 text-sm font-medium text-gray-300 hover:bg-white/10 transition-colors disabled:opacity-40"
+                className="btn btn-ghost"
               >
                 {t("common.cancel")}
               </button>
@@ -522,7 +443,7 @@ export default function MessageThread({
                 type="button"
                 onClick={submitReport}
                 disabled={!reportReason.trim() || reporting}
-                className="h-10 px-4 rounded-2xl bg-red-500/90 hover:bg-red-500 text-white text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="btn btn-danger"
               >
                 {reporting ? t("chat.sending") : t("chat.sendReport")}
               </button>
@@ -533,7 +454,7 @@ export default function MessageThread({
 
       {lightboxUrl && (
         <div
-          className="fixed inset-0 z-[200] bg-black/85 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-[200] bg-black/90 flex items-center justify-center p-4"
           role="dialog"
           aria-modal="true"
           onClick={() => setLightboxUrl(null)}
@@ -542,7 +463,7 @@ export default function MessageThread({
           <img
             src={lightboxUrl}
             alt={t("chat.photo")}
-            className="max-w-full max-h-full rounded-2xl object-contain"
+            className="max-w-full max-h-full rounded-lg object-contain"
           />
         </div>
       )}

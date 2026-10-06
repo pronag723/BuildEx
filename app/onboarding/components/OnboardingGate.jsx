@@ -189,11 +189,11 @@ export default function OnboardingGate({ expectedStep, children, allowFutureStep
 
   if (phase === "unconfigured") {
     return (
-      <div className="glass rounded-3xl p-8 sm:p-10 border border-white/10 text-center">
-        <div className="text-xl font-semibold mb-2">{t("auth.callback.notConfiguredTitle")}</div>
-        <p className="text-gray-400 text-sm">
+      <div className="card p-6 text-center sm:p-8">
+        <h1 className="text-lg font-semibold">{t("auth.callback.notConfiguredTitle")}</h1>
+        <p className="mt-2 text-sm text-ink-2">
           {t.rich("onboarding.gate.notConfiguredBody", {
-            file: <code className="text-[#4ade80]">.env.local</code>,
+            file: <code className="text-ink">.env.local</code>,
           })}
         </p>
       </div>
@@ -202,25 +202,17 @@ export default function OnboardingGate({ expectedStep, children, allowFutureStep
 
   if (phase === "error") {
     return (
-      <div className="glass rounded-3xl p-8 sm:p-10 border border-red-400/30 text-center">
-        <div className="w-12 h-12 mx-auto mb-5 rounded-2xl bg-red-500/15 border border-red-400/30 flex items-center justify-center">
-          <svg viewBox="0 0 24 24" className="w-6 h-6 text-red-300" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-            <path d="M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </div>
-        <div className="text-xl font-semibold mb-2">{t("onboarding.gate.errorTitle")}</div>
-        <p className="text-gray-400 text-sm mb-6 max-w-md mx-auto">{error}</p>
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <a
-            href={withBase("/account")}
-            className="inline-block px-6 py-3 bg-[#4ade80] text-black font-semibold rounded-full green-glow hover:scale-105 transition-all"
-          >
+      <div className="card p-6 text-center sm:p-8">
+        <h1 className="text-lg font-semibold">{t("onboarding.gate.errorTitle")}</h1>
+        <p className="mx-auto mt-2 max-w-md text-sm text-ink-2">{error}</p>
+        <div className="mt-6 flex flex-col justify-center gap-2 sm:flex-row">
+          <a href={withBase("/account")} className="btn btn-primary">
             {t("onboarding.gate.backToAccount")}
           </a>
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="onb-btn-ghost justify-center"
+            className="btn btn-secondary"
           >
             {t("common.tryAgain")}
           </button>
@@ -232,8 +224,8 @@ export default function OnboardingGate({ expectedStep, children, allowFutureStep
   if (phase !== "ready" || !state) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
-        <div className="w-10 h-10 rounded-full border-2 border-[#4ade80] border-t-transparent animate-spin" />
-        <p className="mt-4 text-sm text-gray-500">{t("onboarding.gate.loading")}</p>
+        <div className="h-6 w-6 rounded-full border-2 border-line/20 border-t-accent animate-spin" />
+        <p className="mt-4 text-sm text-ink-3">{t("onboarding.gate.loading")}</p>
       </div>
     );
   }

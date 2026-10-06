@@ -1,37 +1,33 @@
 "use client";
 
-import { withBase } from "../../../../home/utils";
-import { Icon } from "../../../../../lib/icons";
+import { useState } from "react";
+import Link from "next/link";
+import CatalogNavbar from "../../../components/CatalogNavbar";
+import CatalogMobileMenu from "../../../components/CatalogMobileMenu";
 import { useT } from "../../../../../lib/i18n/LanguageProvider";
 
 export default function BuilderNotFound({ provider = "builder" }) {
   const isStudio = provider === "studio";
   const t = useT();
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center">
-      <div className="gradient-background" />
-      <div className="gradient-edge-glow" />
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-      <div className="relative z-10 glass rounded-3xl p-12 max-w-md w-full">
-        <div className="w-16 h-16 bg-[#4ade80]/10 border border-[#4ade80]/30 rounded-2xl flex items-center justify-center text-[#4ade80] mx-auto mb-6">
-          <Icon name="blocks" size={28} strokeWidth={1.5} />
+  return (
+    <div className="catalog-root">
+      <CatalogNavbar mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
+      <CatalogMobileMenu mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
+      <main className="flex items-center justify-center px-4 py-20">
+        <div className="max-w-sm text-center">
+          <h1 className="text-xl font-semibold">
+            {isStudio ? t("profile.notFound.studioTitle") : t("profile.notFound.title")}
+          </h1>
+          <p className="mt-2 text-sm leading-relaxed text-ink-2">
+            {isStudio ? t("profile.notFound.studioBody") : t("profile.notFound.body")}
+          </p>
+          <Link href="/" className="btn btn-secondary mt-6">
+            {isStudio ? t("profile.notFound.studioCta") : t("profile.notFound.cta")}
+          </Link>
         </div>
-        <h1 className="text-2xl font-bold mb-3">
-          {isStudio ? t("profile.notFound.studioTitle") : t("profile.notFound.title")}
-        </h1>
-        <p className="text-gray-400 text-sm mb-8 leading-relaxed">
-          {isStudio ? t("profile.notFound.studioBody") : t("profile.notFound.body")}
-        </p>
-        <a
-          href={withBase("/builders")}
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#4ade80] text-black font-bold text-sm green-glow hover:bg-[#22c55e] transition-all"
-        >
-          {isStudio ? t("profile.notFound.studioCta") : t("profile.notFound.cta")}
-          <svg className="w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M5 10h10M11 6l4 4-4 4" />
-          </svg>
-        </a>
-      </div>
+      </main>
     </div>
   );
 }

@@ -1,18 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   filterBuilders,
   sortBuilders,
   ITEMS_PER_PAGE,
   DEFAULT_SORT,
+  STYLES,
 } from "../data/builders";
 import { fetchBuilders } from "../data/fetchBuilders";
 import { resolveFeedSeed } from "../data/feedOrder";
 import { useFavorites } from "../../../lib/favorites/FavoritesContext";
 import { useScrollLock } from "../../../lib/useScrollLock";
 import { useT } from "../../../lib/i18n/LanguageProvider";
+import { Icon } from "../../../lib/icons";
 
 import CatalogNavbar from "./CatalogNavbar";
 import CatalogMobileMenu from "./CatalogMobileMenu";
@@ -93,7 +95,7 @@ export default function CatalogPage() {
   // ── Favorites (signed-in users can bookmark builders & filter to them) ──────
   const { favoriteIds, canFavorite } = useFavorites();
 
-  // ── Live builder feed (replaces the old static demo array) ──────────────────
+  // ── Live builder feed ────────────────────────────────────────────────────────
   const [builders, setBuilders] = useState([]);
   const [buildersLoading, setBuildersLoading] = useState(true);
 
@@ -114,106 +116,6 @@ export default function CatalogPage() {
   const [pageCount, setPageCount] = useState(1);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [theme, setTheme] = useState(null);
-  const [toastMsg, setToastMsg] = useState(null);
-
-  const gradientRef = useRef(null);
-  const edgeGlowRef = useRef(null);
-  const toastTimer = useRef(null);
-
-  // ── Theme ───────────────────────────────────────────────────────────────────
-  useEffect(() => {
-    const saved = window.localStorage.getItem("theme");
-    setTheme(saved === "light" ? "light" : "dark");
-  }, []);
-
-  useEffect(() => {
-    if (!theme) return;
-    const root = document.documentElement;
-    root.classList.toggle("dark", theme === "dark");
-    root.classList.toggle("light", theme === "light");
-    window.localStorage.setItem("theme", theme);
-  }, [theme]);
-
-  // ── Animated gradient background (identical to homepage) ───────────────────
-  useEffect(() => {
-    const gradientBg = gradientRef.current;
-    const edgeGlow = edgeGlowRef.current;
-    if (!gradientBg || !edgeGlow || window.getComputedStyle(gradientBg).display === "none") return;
-
-    const cfg = {
-      edgeOffset: 12,
-      speed: 1,
-      smoothing: 0.08,
-      idleDrift: 0.00003,
-      swayAmp: 0.015,
-      swaySpeed: 0.0004,
-    };
-
-    let cp1 = 0, cp2 = 0.5, tp1 = 0, tp2 = 0.5;
-    let lastScroll = window.pageYOffset;
-    let raf = 0;
-
-    function periToXY(progress, offset) {
-      const p = ((progress % 1) + 1) % 1;
-      const seg = p * 4;
-      const si = Math.floor(seg);
-      const sp = seg - si;
-      switch (si) {
-        case 0: return { x: offset + sp * (100 - offset * 2), y: offset };
-        case 1: return { x: 100 - offset, y: offset + sp * (100 - offset * 2) };
-        case 2: return { x: 100 - offset - sp * (100 - offset * 2), y: 100 - offset };
-        default: return { x: offset, y: 100 - offset - sp * (100 - offset * 2) };
-      }
-    }
-
-    function tick(ts) {
-      const sy = window.pageYOffset;
-      const delta = sy - lastScroll;
-      if (Math.abs(delta) > 0) {
-        tp1 += delta * 0.0008 * cfg.speed;
-        tp2 -= delta * 0.0006 * cfg.speed;
-      }
-      tp1 += cfg.idleDrift;
-      tp2 -= cfg.idleDrift * 0.7;
-      lastScroll = sy;
-      tp1 = ((tp1 % 1) + 1) % 1;
-      tp2 = ((tp2 % 1) + 1) % 1;
-
-      let d1 = tp1 - cp1; if (d1 > 0.5) d1 -= 1; if (d1 < -0.5) d1 += 1;
-      let d2 = tp2 - cp2; if (d2 > 0.5) d2 -= 1; if (d2 < -0.5) d2 += 1;
-      cp1 += d1 * cfg.smoothing;
-      cp2 += d2 * cfg.smoothing;
-
-      const sw1 = Math.sin(ts * cfg.swaySpeed) * cfg.swayAmp;
-      const sw2 = Math.cos(ts * cfg.swaySpeed * 1.3) * cfg.swayAmp * 0.8;
-      const p1 = periToXY(cp1 + sw1, cfg.edgeOffset);
-      const p2 = periToXY(cp2 + sw2, cfg.edgeOffset + 3);
-
-      gradientBg.style.setProperty("--gradient-x", `${p1.x}%`);
-      gradientBg.style.setProperty("--gradient-y", `${p1.y}%`);
-      gradientBg.style.setProperty("--gradient-x2", `${p2.x}%`);
-      gradientBg.style.setProperty("--gradient-y2", `${p2.y}%`);
-
-      const breathe = 1 + Math.sin(ts * 0.0003) * 0.12;
-      edgeGlow.style.opacity = `${0.45 + breathe * 0.2}`;
-      raf = requestAnimationFrame(tick);
-    }
-
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, []);
-
-  // ── Scroll-reveal for non-card elements ────────────────────────────────────
-  useEffect(() => {
-    const els = document.querySelectorAll(".reveal");
-    const obs = new IntersectionObserver(
-      (entries) => entries.forEach((e) => e.isIntersecting && e.target.classList.add("active")),
-      { threshold: 0.1 }
-    );
-    els.forEach((el) => obs.observe(el));
-    return () => obs.disconnect();
-  }, []);
 
   // ── Mobile menu / keyboard cleanup ─────────────────────────────────────────
   useScrollLock(mobileMenuOpen);
@@ -232,13 +134,6 @@ export default function CatalogPage() {
   useEffect(() => {
     setPageCount(1);
   }, [params]);
-
-  // ── Toast helper (for "coming soon" actions) ────────────────────────────────
-  function showToast(msg) {
-    setToastMsg(msg);
-    clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToastMsg(null), 3000);
-  }
 
   // ── URL update helper (writes to history + updates local state) ────────────
   const updateURL = useCallback((updates) => {
@@ -329,13 +224,9 @@ export default function CatalogPage() {
     () => filteredBuilders.slice(0, pageCount * ITEMS_PER_PAGE),
     [filteredBuilders, pageCount]
   );
-  // Key for triggering card re-animation when filters change
-  const animKey = useMemo(
-    () => `${query}|${selectedStyles}|${selectedBuildTypes}|${effectiveFavoritesOnly}|${sort}|${feedSeed}`,
-    [query, selectedStyles, selectedBuildTypes, effectiveFavoritesOnly, sort, feedSeed]
-  );
 
-  // Active filter count (for mobile button badge)
+  // Filters only — the drawer button's badge. The search box shows its own
+  // state, so it is not counted here.
   const activeFilterCount = useMemo(() => {
     let n = 0;
     if (selectedStyles.length) n++;
@@ -344,9 +235,9 @@ export default function CatalogPage() {
     return n;
   }, [selectedStyles, selectedBuildTypes, effectiveFavoritesOnly]);
 
-  const isLight = theme === "light";
+  const hasNarrowing = activeFilterCount > 0 || Boolean(query);
 
-  // Shared filter props passed to both sidebar and modal
+  // Shared filter props passed to the drawer
   const filterProps = {
     selectedStyles,
     onStyleToggle: handleStyleToggle,
@@ -363,164 +254,115 @@ export default function CatalogPage() {
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div className="catalog-root">
-      {/* Animated gradient background */}
-      <div ref={gradientRef} className="gradient-background" aria-hidden="true" />
-      <div ref={edgeGlowRef} className="gradient-edge-glow" aria-hidden="true" />
-
-      {/* Navbar */}
-      <CatalogNavbar
-        isLight={isLight}
-        setTheme={setTheme}
-        mobileMenuOpen={mobileMenuOpen}
-        setMobileMenuOpen={setMobileMenuOpen}
-        onShowSoon={showToast}
-      />
-
-      {/* Mobile nav menu */}
-      <CatalogMobileMenu
-        mobileMenuOpen={mobileMenuOpen}
-        setMobileMenuOpen={setMobileMenuOpen}
-        onShowSoon={showToast}
-      />
+      <CatalogNavbar mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
+      <CatalogMobileMenu mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
 
       <main>
-        {/* ── Page header ─────────────────────────────────────────────────── */}
-        <section className="catalog-page-header pt-24 pb-6 sm:pt-32 sm:pb-10">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="catalog-header-content">
-              {/* The paragraph that used to sit under this heading explained
-                  what a directory is. This is the landing page now — the work
-                  below says it better than a sentence could. */}
-              <h1 className="catalog-heading reveal text-3xl sm:text-5xl font-extrabold tracking-tight leading-tight">
-                {t.rich("catalog.heading", {
-                  mc: <span className="text-[#4ade80]">Minecraft</span>,
-                })}
-              </h1>
+        <div className="mx-auto max-w-7xl px-4 pb-16 pt-7 sm:px-6 sm:pb-24 sm:pt-10 lg:px-8">
+          {/* ── Page header ─────────────────────────────────────────────── */}
+          <header className="mb-5 sm:mb-7">
+            <h1 className="text-[1.625rem] font-semibold leading-tight tracking-[-0.02em] sm:text-[2rem]">
+              {t("catalog.heading")}
+            </h1>
+            <p className="mt-1.5 max-w-xl text-[15px] leading-relaxed text-ink-2">
+              {t("catalog.subheading")}
+            </p>
+          </header>
+
+          {/* ── Search + filters ────────────────────────────────────────── */}
+          <div className="flex gap-2">
+            <CatalogSearch query={query} onQueryChange={handleQueryChange} />
+            <button
+              type="button"
+              onClick={() => setMobileFiltersOpen(true)}
+              className={`btn btn-secondary h-11 px-3.5 sm:px-4 ${
+                activeFilterCount > 0 ? "!border-accent/50" : ""
+              }`}
+              aria-label={t("catalog.openFilters")}
+              aria-expanded={mobileFiltersOpen}
+              aria-controls="catalog-filter-drawer"
+            >
+              <Icon name="filters" size={16} />
+              <span className="hidden xs:inline">{t("catalog.filters")}</span>
+              {activeFilterCount > 0 && (
+                <span className="min-w-[1.125rem] h-[1.125rem] px-1 rounded-full bg-accent text-accent-fg text-[11px] font-semibold flex items-center justify-center">
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* ── Style shortcuts ─────────────────────────────────────────────
+              The style filter is the one most people reach for, so it sits
+              out in the open; build type and favourites stay in the drawer. */}
+          <div
+            className="quick-filters hide-scrollbar -mx-4 mt-3 flex gap-1.5 overflow-x-auto px-4 sm:mx-0 sm:px-0 lg:flex-wrap"
+            role="group"
+            aria-label={t("catalog.style")}
+          >
+            {STYLES.map((s) => (
+              <button
+                key={s.key}
+                type="button"
+                className="tag-toggle"
+                aria-pressed={selectedStyles.includes(s.key)}
+                onClick={() => handleStyleToggle(s.key)}
+              >
+                {t(`styles.${s.key}`)}
+              </button>
+            ))}
+          </div>
+
+          {/* ── Result count + sort ────────────────────────────────────────
+              relative + z-30 so the sort menu paints above the grid. */}
+          <div className="relative z-30 mb-4 mt-6 flex min-h-[2rem] items-center justify-between gap-3 sm:mb-5">
+            <p className="min-w-0 truncate text-sm text-ink-2" aria-live="polite">
+              {!buildersLoading && (
+                <>
+                  {t.rich("catalog.found", {
+                    count: filteredBuilders.length,
+                    n: <span className="font-semibold text-ink">{filteredBuilders.length}</span>,
+                  })}
+                  {query && (
+                    <span className="ml-1">
+                      {t.rich("catalog.forQuery", {
+                        q: <span className="text-ink">&ldquo;{query}&rdquo;</span>,
+                      })}
+                    </span>
+                  )}
+                </>
+              )}
+            </p>
+
+            <div className="flex flex-shrink-0 items-center gap-1">
+              {hasNarrowing && (
+                <button type="button" onClick={handleClearAll} className="btn btn-ghost btn-sm">
+                  {t("catalog.clearAll")}
+                </button>
+              )}
+              <CatalogSort sort={sort} onSortChange={handleSortChange} />
             </div>
           </div>
-        </section>
 
-        {/* ── Catalog body ─────────────────────────────────────────────────── */}
-        <section className="pb-16 sm:pb-24">
-          {/* The `<div><div className="min-w-0">` pair that used to wrap this
-              was the left column of a two-column catalog whose filter sidebar
-              was removed; filters live in the drawer now, so the wrapper had
-              nothing left to sit beside. */}
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* ── Builder grid ────────────────────────────────────────────── */}
+          <BuilderGrid
+            builders={visibleBuilders}
+            loading={buildersLoading}
+            hasNarrowing={hasNarrowing}
+            onClearAll={handleClearAll}
+          />
 
-                {/* Toolbar — relative + z-30 so the sort dropdown panel
-                    paints above the card grid below (the .reveal class
-                    creates a stacking context via transform). */}
-                <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 mb-4 sm:mb-5 reveal relative z-30 isolate">
-                  <CatalogSearch query={query} onQueryChange={handleQueryChange} />
-                  {/* Wraps rather than clipping: this row used to be
-                      flex-shrink-0 and overflowed a 375px viewport, taking the
-                      active-filter badge with it (body is overflow-x-hidden). */}
-                  <div className="flex gap-2 flex-wrap sm:flex-nowrap sm:flex-shrink-0">
-                    <CatalogSort sort={sort} onSortChange={handleSortChange} />
-
-                    {/* Mobile filter button */}
-                    <button
-                      type="button"
-                      onClick={() => setMobileFiltersOpen(true)}
-                      className={`glass rounded-2xl px-4 py-2.5 text-sm font-medium flex items-center gap-2 transition-all duration-300 relative flex-shrink-0 ${
-                        activeFilterCount > 0
-                          ? "border-[#4ade80]/40 bg-[#4ade80]/10 text-[#4ade80] shadow-[0_0_24px_rgba(74,222,128,0.08)]"
-                          : "hover:border-white/30 hover:bg-white/[0.07]"
-                      }`}
-                      aria-label={t("catalog.openFilters")}
-                      aria-expanded={mobileFiltersOpen}
-                      aria-controls="catalog-filter-drawer"
-                    >
-                      <svg
-                        className="w-4 h-4"
-                        viewBox="0 0 20 20"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
-                      >
-                        <path d="M3 5h14M6 10h8M9 15h2" />
-                      </svg>
-                      {t("catalog.filters")}
-                      {activeFilterCount > 0 && (
-                        <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-[#4ade80] text-black text-[10px] font-bold rounded-full flex items-center justify-center">
-                          {activeFilterCount}
-                        </span>
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Results meta row */}
-                <div className="flex items-center justify-between mb-3.5 sm:mb-6 reveal">
-                  <p className="text-sm text-gray-400">
-                    {t.rich("catalog.found", {
-                      count: filteredBuilders.length,
-                      n: (
-                        <span className="text-white font-semibold">
-                          {filteredBuilders.length}
-                        </span>
-                      ),
-                    })}
-                    {query && (
-                      <span className="ml-2">
-                        {t.rich("catalog.forQuery", {
-                          q: (
-                            <span className="text-[#4ade80] font-medium">
-                              &ldquo;{query}&rdquo;
-                            </span>
-                          ),
-                        })}
-                      </span>
-                    )}
-                  </p>
-
-                  {/* Active filter pills */}
-                  {activeFilterCount > 0 && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-500 hidden sm:block">
-                        {t("catalog.filtersActive", { count: activeFilterCount })}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={handleClearAll}
-                        className="text-xs text-[#4ade80] hover:text-green-300 transition-colors font-medium"
-                      >
-                        {t("catalog.clearAll")}
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Builder grid (spinner until the live feed resolves) */}
-                {buildersLoading ? (
-                  <div className="flex flex-col items-center justify-center py-24 text-center">
-                    <div className="w-10 h-10 rounded-full border-2 border-[#4ade80] border-t-transparent animate-spin mb-4" />
-                    <p className="text-gray-400 text-sm">{t("catalog.loading")}</p>
-                  </div>
-                ) : (
-                  <>
-                    <BuilderGrid
-                      builders={visibleBuilders}
-                      animKey={animKey}
-                    />
-
-                    {/* Pagination */}
-                    <PaginationControls
-                      total={filteredBuilders.length}
-                      shown={visibleBuilders.length}
-                      onLoadMore={() => setPageCount((p) => p + 1)}
-                    />
-                  </>
-                )}
-          </div>
-        </section>
+          {!buildersLoading && (
+            <PaginationControls
+              total={filteredBuilders.length}
+              shown={visibleBuilders.length}
+              onLoadMore={() => setPageCount((p) => p + 1)}
+            />
+          )}
+        </div>
       </main>
 
-      {/* Mobile filter slide-over */}
+      {/* Filter slide-over */}
       <FiltersMobileModal
         open={mobileFiltersOpen}
         onClose={() => setMobileFiltersOpen(false)}
@@ -529,19 +371,6 @@ export default function CatalogPage() {
       />
 
       <SiteFooter />
-
-      {/* Toast notification */}
-      <div
-        role="status"
-        aria-live="polite"
-        className={`catalog-toast fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] glass rounded-2xl px-5 py-3 text-sm font-medium shadow-xl transition-all duration-300 max-w-sm text-center ${
-          toastMsg
-            ? "opacity-100 translate-y-0 pointer-events-auto"
-            : "opacity-0 translate-y-4 pointer-events-none"
-        }`}
-      >
-        {toastMsg}
-      </div>
     </div>
   );
 }

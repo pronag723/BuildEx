@@ -69,22 +69,22 @@ function BuilderStylesStep({ state }) {
 
   return (
     <div>
-      <div className="text-center mb-10 onb-fade-in onb-fade-in-1">
+      <div className="mb-6">
         <h1 className="onb-section-title">{t("onboarding.styles.title")}</h1>
-        <p className="onb-section-sub mt-3 mx-auto">
+        <p className="onb-section-sub mt-2">
           {t("onboarding.styles.subtitle")}
         </p>
       </div>
 
       <div className="space-y-6">
-        <div className="glass onb-card onb-fade-in onb-fade-in-2">
-          <div className="flex items-baseline justify-between mb-3">
+        <div className="onb-card">
+          <div className="mb-1 flex items-baseline justify-between gap-3">
             <div className="onb-label">{t("onboarding.styles.label")}</div>
-            <span className="text-[11px] text-gray-500">
+            <span className="text-xs tabular-nums text-ink-3">
               {t("onboarding.styles.selected", { count: specialties.length })}
             </span>
           </div>
-          <p className="text-xs text-gray-500 mb-4">
+          <p className="mb-4 text-xs text-ink-3">
             {t("onboarding.styles.hint")}
           </p>
           <ChipGrid

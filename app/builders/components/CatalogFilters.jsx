@@ -1,136 +1,46 @@
 "use client";
 
-import { useState } from "react";
 import { STYLES, BUILD_TYPES } from "../data/builders";
 import { Icon } from "../../../lib/icons";
 import { useT } from "../../../lib/i18n/LanguageProvider";
 
-// ─── Custom checkbox row (button-based for guaranteed click handling) ────────
-function FilterCheckbox({ label, icon, checked, onChange }) {
+// ─── Checkbox row (button-based for guaranteed click handling) ───────────────
+function FilterCheckbox({ label, checked, onChange }) {
   return (
     <button
       type="button"
       onClick={onChange}
       aria-pressed={checked}
-      className="w-full flex items-center gap-2.5 cursor-pointer group py-1.5 select-none text-left"
+      className="group flex min-h-[2.25rem] w-full items-center gap-3 py-1.5 text-left text-sm leading-snug select-none"
     >
       <span
-        className={`w-4 h-4 rounded-[5px] border flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
+        className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-[4px] border transition-colors ${
           checked
-            ? "bg-[#4ade80] border-[#4ade80]"
-            : "border-white/20 group-hover:border-[#4ade80]/40"
+            ? "border-accent bg-accent text-accent-fg"
+            : "border-line/25 group-hover:border-line/45"
         }`}
       >
-        {checked && (
-          <svg
-            className="w-2.5 h-2.5 text-black"
-            viewBox="0 0 12 10"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M1 5l3.5 3.5L11 1" />
-          </svg>
-        )}
+        {checked && <Icon name="check" size={12} strokeWidth={3} />}
       </span>
-      <span
-        className={`text-sm transition-colors leading-none flex items-center gap-1.5 ${
-          checked ? "text-white" : "text-gray-400 group-hover:text-gray-200"
-        }`}
-      >
-        {icon && (
-          <Icon
-            name={icon}
-            size={15}
-            className={`flex-shrink-0 transition-colors ${checked ? "text-[#4ade80]" : "text-gray-500 group-hover:text-gray-300"}`}
-          />
-        )}
+      <span className={`transition-colors ${checked ? "text-ink" : "text-ink-2 group-hover:text-ink"}`}>
         {label}
       </span>
     </button>
   );
 }
 
-// ─── Favorites toggle (signed-in only) ───────────────────────────────────────
-function FavoritesToggle({ active, count, onToggle }) {
-  const t = useT();
+function FilterGroup({ label, children }) {
   return (
-    <button
-      type="button"
-      onClick={onToggle}
-      aria-pressed={active}
-      className={`w-full flex items-center justify-between gap-2.5 cursor-pointer group py-2.5 px-3 rounded-xl border transition-all duration-200 select-none text-left ${
-        active
-          ? "bg-[#4ade80]/12 border-[#4ade80]/40"
-          : "glass border-white/10 hover:border-white/30"
-      }`}
-    >
-      <span className="flex items-center gap-2.5">
-        <svg
-          className={`w-4 h-4 flex-shrink-0 transition-colors ${active ? "text-[#4ade80]" : "text-gray-400 group-hover:text-gray-200"}`}
-          viewBox="0 0 24 24"
-          fill={active ? "currentColor" : "none"}
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-        </svg>
-        <span className={`text-sm transition-colors leading-none ${active ? "text-white font-medium" : "text-gray-300 group-hover:text-white"}`}>
-          {t("catalog.favoritesOnly")}
-        </span>
-      </span>
-      {count > 0 && (
-        <span className={`text-[11px] font-semibold rounded-full px-2 py-0.5 flex-shrink-0 ${active ? "bg-[#4ade80] text-black" : "bg-white/10 text-gray-400"}`}>
-          {count}
-        </span>
-      )}
-    </button>
-  );
-}
-
-// ─── Collapsible section ──────────────────────────────────────────────────────
-function FilterGroup({ label, children, defaultOpen = true }) {
-  const [open, setOpen] = useState(defaultOpen);
-
-  return (
-    <div className="border-b border-white/[0.07] last:border-b-0">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between py-4 text-xs font-semibold uppercase tracking-widest text-gray-400 hover:text-white transition-colors"
-      >
-        {label}
-        <svg
-          className={`w-4 h-4 transition-transform duration-300 flex-shrink-0 ${open ? "rotate-180" : ""}`}
-          viewBox="0 0 20 20"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="m6 8 4 4 4-4" />
-        </svg>
-      </button>
-
-      <div
-        className="overflow-hidden transition-all duration-300 ease-in-out"
-        style={{ maxHeight: open ? "500px" : "0px", opacity: open ? 1 : 0 }}
-      >
-        <div className="pb-4 space-y-0.5">{children}</div>
-      </div>
-    </div>
+    <fieldset className="border-b border-line/[0.08] py-4 last:border-b-0">
+      <legend className="float-left mb-1.5 w-full text-[13px] font-medium text-ink-3">{label}</legend>
+      <div className="clear-both grid grid-cols-2 gap-x-3">{children}</div>
+    </fieldset>
   );
 }
 
 // ─── Main panel ───────────────────────────────────────────────────────────────
+// Lives inside the filter drawer. Groups are always open — there are only two,
+// and collapsing a list of ten checkboxes saved nothing but a click.
 export default function CatalogFilters({
   selectedStyles,
   onStyleToggle,
@@ -140,55 +50,46 @@ export default function CatalogFilters({
   onFavoritesToggle,
   canFavorite,
   favoriteCount,
-  onClearAll,
-  activeFilterCount,
 }) {
   const t = useT();
   return (
-    <div className="glass rounded-3xl p-5">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-1">
-        <h2 className="font-semibold text-base">{t("catalog.filters")}</h2>
-        {activeFilterCount > 0 && (
-          <button
-            type="button"
-            onClick={onClearAll}
-            className="text-xs text-[#4ade80] hover:text-green-300 transition-colors flex items-center gap-1.5"
-          >
-            {t("catalog.clearAll")}
-            <span className="w-4 h-4 bg-[#4ade80]/15 rounded-full text-[10px] font-bold flex items-center justify-center">
-              {activeFilterCount}
-            </span>
-          </button>
-        )}
-      </div>
-
+    <div>
       {/* Favorites — signed-in users only */}
       {canFavorite && (
-        <div className="py-3 border-b border-white/[0.07]">
-          <FavoritesToggle
-            active={favoritesOnly}
-            count={favoriteCount}
-            onToggle={onFavoritesToggle}
-          />
+        <div className="border-b border-line/[0.08] py-4">
+          <button
+            type="button"
+            onClick={onFavoritesToggle}
+            aria-pressed={favoritesOnly}
+            className={`flex h-11 w-full items-center justify-between gap-3 rounded-lg border px-3 text-left text-sm transition-colors ${
+              favoritesOnly
+                ? "border-accent/55 bg-accent/10 text-ink"
+                : "border-line/10 text-ink-2 hover:border-line/25 hover:text-ink"
+            }`}
+          >
+            <span className="flex items-center gap-2.5">
+              <Icon name="heart" size={16} filled={favoritesOnly} className={favoritesOnly ? "text-accent-ink" : ""} />
+              {t("catalog.favoritesOnly")}
+            </span>
+            {favoriteCount > 0 && (
+              <span className="text-xs tabular-nums text-ink-3">{favoriteCount}</span>
+            )}
+          </button>
         </div>
       )}
 
-      {/* Style */}
       <FilterGroup label={t("catalog.style")}>
         {STYLES.map((s) => (
           <FilterCheckbox
             key={s.key}
             label={t(`styles.${s.key}`)}
-            icon={s.icon}
             checked={selectedStyles.includes(s.key)}
             onChange={() => onStyleToggle(s.key)}
           />
         ))}
       </FilterGroup>
 
-      {/* Build type */}
-      <FilterGroup label={t("catalog.buildType")} defaultOpen={false}>
+      <FilterGroup label={t("catalog.buildType")}>
         {BUILD_TYPES.map((bt) => (
           <FilterCheckbox
             key={bt.key}

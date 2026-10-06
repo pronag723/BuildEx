@@ -1,87 +1,91 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // BuildEx — Icon system
-// A single cohesive icon family (lucide-react) replaces the old emoji "stickers".
-// Data files (offers.js, onboarding/constants.js, home/data.js) stay serializable
-// by storing string keys (e.g. icon: "castle"); render sites resolve them here.
+// One icon family (lucide-react) at one stroke weight. Components ask for an
+// icon by semantic key — <Icon name="heart" /> — rather than importing glyphs
+// or pasting SVG paths, so the whole site draws from the same set. Data files
+// (contact link platforms, the about-page steps) store keys, not components.
 //
-// The registry holds only keys something actually renders. The tier, rank,
-// order, payment and review icons went with those features, and the legacy
-// emoji aliases went with the pricing-tier rows they were there to keep
-// rendering. An unknown key renders nothing and warns in development.
+// The registry holds only keys something actually renders. An unknown key
+// renders nothing and warns in development.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import {
-  // build styles
-  Castle, Sparkles, Rocket, Cpu, Building2, Camera, Leaf, Mountain, Swords, Palette,
-  // people / work
-  Handshake, Users, Link2, Image as ImageIcon, Hammer,
-  // app surfaces (chat / admin / profile / onboarding)
-  ShieldCheck, MessageCircle, Calendar, Blocks, Info, Check, X,
-  // flow / misc
-  Search, Sun, Moon, LogOut, ChevronDown,
-  // contact / social links
-  Send, AtSign, CirclePlay, Video, Music,
+  // navigation and actions
+  ArrowLeft, ArrowRight, ChevronDown, ChevronLeft, ChevronRight, Menu, X,
+  Search, SlidersHorizontal, Check, Plus, Pencil, Trash2, Upload, Maximize2,
+  ExternalLink, RefreshCw, LogOut,
+  // people, messaging, account
+  User, Users, MessageCircle, Send, ImagePlus, Image as ImageIcon, Flag, ShieldCheck,
+  Bell, Heart, Hammer, Mail,
+  // theme
+  Sun, Moon,
+  // contact link platforms
+  AtSign, CirclePlay, Video, Music, Camera, Link2,
   // moderation console
-  Eye, EyeOff, Trash2, ExternalLink, Flag, User, RefreshCw,
+  Eye, EyeOff, Calendar,
 } from "lucide-react";
 
-// Semantic key → lucide component. Keys are referenced from the data files.
 export const ICONS = {
-  // styles
-  castle: Castle,
-  sparkles: Sparkles,
-  rocket: Rocket,
-  cyberpunk: Cpu,
-  modern: Building2,
-  camera: Camera,
-  leaf: Leaf,
-  mountain: Mountain,
-  swords: Swords,
-  palette: Palette,
-  // people / work
-  handshake: Handshake,
-  users: Users,
-  link: Link2,
-  image: ImageIcon,
-  hammer: Hammer,
-  // app surfaces
-  shield: ShieldCheck,
-  chat: MessageCircle,
-  calendar: Calendar,
-  blocks: Blocks,
-  info: Info,
-  check: Check,
+  // navigation and actions
+  arrowLeft: ArrowLeft,
+  arrowRight: ArrowRight,
+  chevronDown: ChevronDown,
+  chevronLeft: ChevronLeft,
+  chevronRight: ChevronRight,
+  menu: Menu,
   close: X,
-  // flow / misc
   search: Search,
+  filters: SlidersHorizontal,
+  check: Check,
+  plus: Plus,
+  pencil: Pencil,
+  trash: Trash2,
+  upload: Upload,
+  expand: Maximize2,
+  external: ExternalLink,
+  refresh: RefreshCw,
+  logout: LogOut,
+
+  // people, messaging, account
+  user: User,
+  users: Users,
+  chat: MessageCircle,
+  send: Send,
+  photo: ImagePlus,
+  image: ImageIcon,
+  flag: Flag,
+  shield: ShieldCheck,
+  bell: Bell,
+  heart: Heart,
+  hammer: Hammer,
+  mail: Mail,
+
+  // theme
   sun: Sun,
   moon: Moon,
-  logout: LogOut,
-  chevronDown: ChevronDown,
-  // contact / social links (builder_profiles.contact_links). lucide ships no
+
+  // contact link platforms (builder_profiles.contact_links). lucide ships no
   // brand marks, so each platform borrows the closest semantic glyph — one
   // coherent family beats eight mismatched logos.
-  send: Send,       // Telegram
-  at: AtSign,       // X / Twitter
-  play: CirclePlay, // YouTube
-  video: Video,     // Twitch
-  music: Music,     // TikTok
+  at: AtSign,        // X / Twitter
+  play: CirclePlay,  // YouTube
+  video: Video,      // Twitch
+  music: Music,      // TikTok
+  camera: Camera,    // Instagram
+  link: Link2,       // a website
 
-  // ── Moderation console ───────────────────────────────────────────────────
+  // moderation console
   eye: Eye,
   eyeOff: EyeOff,
-  trash: Trash2,
-  external: ExternalLink,
-  flag: Flag,
-  user: User,
-  refresh: RefreshCw,
+  calendar: Calendar,
 };
 
 /**
  * Render an icon by semantic key with consistent defaults.
- * Inherits color via `currentColor`, so callers control color with text classes.
+ * Inherits colour via `currentColor`, so callers set colour with text classes.
+ * `filled` fills the shape (a saved heart).
  */
-export function Icon({ name, size = 18, strokeWidth = 1.75, className = "", ...rest }) {
+export function Icon({ name, size = 18, strokeWidth = 1.75, filled = false, className = "", ...rest }) {
   const Cmp = ICONS[name];
   if (!Cmp) {
     if (process.env.NODE_ENV !== "production") {
@@ -94,6 +98,7 @@ export function Icon({ name, size = 18, strokeWidth = 1.75, className = "", ...r
       size={size}
       strokeWidth={strokeWidth}
       className={className}
+      fill={filled ? "currentColor" : "none"}
       aria-hidden="true"
       {...rest}
     />

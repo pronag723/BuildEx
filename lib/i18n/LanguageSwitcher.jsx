@@ -1,12 +1,11 @@
 "use client";
 
-// The header language control. From `sm` up it is a two-segment EN | RU pill
-// the same height as the theme switch beside it; on phones the header is
-// already carrying the theme switch, the account controls and the burger, so it
-// collapses to a single button that shows the current language and flips it.
-// Exactly one of the two is displayed at any width — switched in globals.css
-// (`.lang-switch-full` / `.lang-switch-compact`), because Tailwind only scans
-// app/ for class names and this file lives in lib/.
+// The header language control. From `sm` up it is a small two-segment EN | RU
+// switch the same height as the buttons beside it; on phones the header is
+// already carrying the theme switch, the account controls and the menu button,
+// so it collapses to a single button that shows the current language and
+// flips it. Exactly one of the two is displayed at any width — switched in
+// globals.css (`.lang-switch-full` / `.lang-switch-compact`).
 
 import { useLanguage, useT } from "./LanguageProvider";
 import { LANGS } from "./translate.mjs";

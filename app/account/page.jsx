@@ -3,6 +3,7 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRequireAuth } from "../../lib/auth/useRequireAuth";
+import { useScrollLock } from "../../lib/useScrollLock";
 import { useAuth } from "../../lib/auth/AuthContext";
 import { getSupabaseClient } from "../../lib/supabase/client";
 import {
@@ -22,6 +23,7 @@ import { readContactLinks } from "../../lib/onboarding/contactLinks";
 import { BUILDER_ONBOARDING_START } from "../../lib/onboarding/state";
 import { withBase } from "../home/utils";
 import { Icon } from "../../lib/icons";
+import Avatar from "../../lib/ui/Avatar";
 import CatalogNavbar from "../builders/components/CatalogNavbar";
 import CatalogMobileMenu from "../builders/components/CatalogMobileMenu";
 import SiteFooter from "../home/components/SiteFooter";
@@ -39,26 +41,17 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useT } from "../../lib/i18n/LanguageProvider";
 import { styleChipLabel } from "../../lib/i18n/labels.mjs";
 
-function IconPencil({ className = "w-4 h-4" }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-    </svg>
-  );
-}
-
 function SectionHeader({ title, editing, onEdit, onCancel, onSave, saving, canSave = true }) {
   const t = useT();
   return (
-    <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-      <h2 className="font-bold text-xl">{title}</h2>
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+      <h2 className="text-lg font-semibold">{title}</h2>
       {editing ? (
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-1.5 rounded-full text-xs font-semibold border border-white/15 text-gray-300 hover:bg-white/5 transition-all"
+            className="btn btn-ghost btn-sm"
           >
             {t("common.cancel")}
           </button>
@@ -66,10 +59,10 @@ function SectionHeader({ title, editing, onEdit, onCancel, onSave, saving, canSa
             type="button"
             onClick={onSave}
             disabled={saving || !canSave}
-            className="px-4 py-1.5 rounded-full text-xs font-bold bg-[#4ade80] text-black hover:bg-[#22c55e] transition-all disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+            className="btn btn-primary btn-sm"
           >
             {saving && (
-              <span className="w-3 h-3 rounded-full border-2 border-black/40 border-t-black animate-spin" />
+              <span className="w-3 h-3 rounded-full border-2 border-accent-fg/30 border-t-accent-fg animate-spin" />
             )}
             {t("common.save")}
           </button>
@@ -78,9 +71,9 @@ function SectionHeader({ title, editing, onEdit, onCancel, onSave, saving, canSa
         <button
           type="button"
           onClick={onEdit}
-          className="px-3 py-1.5 rounded-full text-xs font-semibold border border-[#4ade80]/30 text-[#4ade80] bg-[#4ade80]/10 hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.35)] transition-all inline-flex items-center gap-1.5"
+          className="btn btn-secondary btn-sm"
         >
-          <IconPencil className="w-3.5 h-3.5" />
+          <Icon name="pencil" size={14} />
           {t("common.edit")}
         </button>
       )}
@@ -100,26 +93,13 @@ const ACCOUNT_SECTIONS = [
 
 function SectionTabs({ section, setSection }) {
   const t = useT();
-  const sections = ACCOUNT_SECTIONS;
-  const idx = Math.max(0, sections.findIndex((s) => s.key === section));
   return (
     <div
-      className="account-section-tabs relative grid p-1 rounded-full bg-white/[0.04] border border-white/10 mb-6 sm:mb-8 detail-fade-up"
-      style={{ gridTemplateColumns: `repeat(${sections.length}, minmax(0, 1fr))` }}
+      className="mb-6 flex gap-1 border-b border-line/[0.08]"
       role="tablist"
       aria-label={t("account.sections.aria")}
     >
-      {/* Sliding highlight */}
-      <span
-        aria-hidden="true"
-        className="account-section-indicator absolute inset-y-1 left-1 rounded-full bg-[#4ade80]/15 transition-[transform,background-color,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
-        style={{
-          width: `calc((100% - 0.5rem) / ${sections.length})`,
-          transform: `translateX(calc(${idx} * 100%))`,
-          boxShadow: "0 0 0 1px rgba(74,222,128,0.5), 0 0 14px rgba(74,222,128,0.22)",
-        }}
-      />
-      {sections.map((s) => {
+      {ACCOUNT_SECTIONS.map((s) => {
         const isActive = s.key === section;
         return (
           <button
@@ -128,8 +108,10 @@ function SectionTabs({ section, setSection }) {
             role="tab"
             aria-selected={isActive}
             onClick={() => setSection(s.key)}
-            className={`account-section-tab relative z-10 py-2.5 px-2 rounded-full text-xs sm:text-sm font-semibold transition-[color,transform] duration-300 ${
-              isActive ? "text-white" : "text-gray-400 hover:text-gray-200"
+            className={`relative -mb-px h-10 rounded-t-md px-3 text-sm font-medium transition-colors ${
+              isActive
+                ? "text-ink after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:bg-accent"
+                : "text-ink-2 hover:text-ink"
             }`}
           >
             <span className="sm:hidden">{t(`account.sections.${s.key}Short`)}</span>
@@ -177,7 +159,7 @@ function AboutSection({ profile, onSaved }) {
   }
 
   return (
-    <section className="reveal glass rounded-3xl p-4 sm:p-6 lg:p-8">
+    <section className="card p-5 sm:p-6">
       <SectionHeader
         title={t("account.about.title")}
         editing={editing}
@@ -190,7 +172,7 @@ function AboutSection({ profile, onSaved }) {
       {editing ? (
         <div className="space-y-4">
           <div>
-            <label htmlFor="acc-bio" className="onb-label block mb-2">{t("account.about.bio")}</label>
+            <label htmlFor="acc-bio" className="onb-label block mb-1.5">{t("account.about.bio")}</label>
             <textarea
               id="acc-bio"
               className="onb-input onb-textarea"
@@ -199,16 +181,16 @@ function AboutSection({ profile, onSaved }) {
               onChange={(e) => setBio(e.target.value.slice(0, BIO_MAX))}
               maxLength={BIO_MAX}
             />
-            <p className="mt-2 text-xs text-gray-500">{bio.length}/{BIO_MAX}</p>
+            <p className="mt-1.5 text-xs tabular-nums text-ink-3">{bio.length}/{BIO_MAX}</p>
           </div>
           {error && <div role="alert" className="auth-banner auth-banner-error">{error}</div>}
         </div>
       ) : (
         <div className="space-y-3">
           {profile?.bio ? (
-            <p className="text-gray-400 leading-relaxed break-words whitespace-pre-wrap">{profile.bio}</p>
+            <p className="max-w-prose text-[15px] leading-7 text-ink-2 break-words whitespace-pre-wrap">{profile.bio}</p>
           ) : (
-            <p className="text-gray-500 text-sm italic">
+            <p className="text-sm text-ink-3">
               {t.rich("account.about.empty", { edit: <strong>{t("common.edit")}</strong> })}
             </p>
           )}
@@ -253,7 +235,7 @@ function StylesSection({ builderProfile, onSaved }) {
   const savedSpecs = builderProfile?.specialties || [];
 
   return (
-    <section className="reveal glass rounded-3xl p-4 sm:p-6 lg:p-8">
+    <section className="card p-5 sm:p-6">
       <SectionHeader
         title={t("account.styles.title")}
         editing={editing}
@@ -277,18 +259,18 @@ function StylesSection({ builderProfile, onSaved }) {
             />
           </div>
           {!canSave && (
-            <p className="text-xs text-gray-500">{t("account.styles.pickOne")}</p>
+            <p className="text-xs text-ink-3">{t("account.styles.pickOne")}</p>
           )}
           {error && <div role="alert" className="auth-banner auth-banner-error">{error}</div>}
         </div>
       ) : savedSpecs.length === 0 ? (
-        <p className="text-gray-500 text-sm italic">
+        <p className="text-sm text-ink-3">
           {t.rich("account.styles.empty", { edit: <strong>{t("common.edit")}</strong> })}
         </p>
       ) : (
         <div className="flex flex-wrap gap-1.5">
           {savedSpecs.map((sp) => (
-            <span key={sp} className="px-3 py-1 rounded-full text-xs bg-white/5 border border-white/10 text-gray-300 capitalize">
+            <span key={sp} className="tag h-6 px-2 text-xs">
               {styleChipLabel(sp, t.lang)}
             </span>
           ))}
@@ -320,26 +302,26 @@ function PortfolioSection({ portfolioCount, onSaved }) {
   }, [loadImages, portfolioCount]);
 
   return (
-    <section className="reveal">
-      <div className="flex items-center justify-between mb-5 flex-wrap gap-2">
+    <section className="card p-5 sm:p-6">
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h2 className="font-bold text-xl">{t("profile.portfolio")}</h2>
-          <p className="text-xs text-gray-500 mt-1">
+          <h2 className="text-lg font-semibold">{t("profile.portfolio")}</h2>
+          <p className="mt-0.5 text-xs text-ink-3">
             {t("account.portfolio.subtitle")}
           </p>
         </div>
         <button
           type="button"
           onClick={() => setEditing((v) => !v)}
-          className="px-3 py-1.5 rounded-full text-xs font-semibold border border-[#4ade80]/30 text-[#4ade80] bg-[#4ade80]/10 hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.35)] transition-all inline-flex items-center gap-1.5"
+          className="btn btn-secondary btn-sm"
         >
-          <IconPencil className="w-3.5 h-3.5" />
+          <Icon name="pencil" size={14} />
           {editing ? t("account.portfolio.done") : t("account.portfolio.manage")}
         </button>
       </div>
 
       {editing ? (
-        <div className="glass rounded-3xl p-4 sm:p-6 lg:p-8">
+        <div>
           <PortfolioUploader
             userId={user?.id}
             onCountChange={() => {
@@ -355,28 +337,21 @@ function PortfolioSection({ portfolioCount, onSaved }) {
           )}
         </div>
       ) : loading ? (
-        <div className="glass rounded-3xl p-8 sm:p-12 text-center text-gray-500 text-sm">{t("account.loading")}</div>
+        <div className="rounded-lg border border-dashed border-line/15 p-8 text-center text-sm text-ink-3">{t("account.loading")}</div>
       ) : images.length === 0 ? (
-        <div className="glass rounded-3xl p-8 sm:p-12 text-center text-gray-500 text-sm">
+        <div className="rounded-lg border border-dashed border-line/15 p-8 text-center text-sm text-ink-3">
           {t.rich("account.portfolio.empty", { manage: <strong>{t("account.portfolio.manage")}</strong> })}
         </div>
       ) : (
-        <div className="portfolio-scroll-wrapper fade-edges -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
-          {/* pt-3/pb-3: a horizontal scroller forces its vertical axis to `auto`
-              overflow, which would otherwise clip a card's hover lift
-              (related-card translateY) and crowd the image against the
-              scrollbar. The vertical padding gives the lift, glow and scrollbar
-              room so nothing is cut off — on mobile especially. */}
-          <div className="portfolio-scroll flex gap-4 overflow-x-auto pt-3 pb-3 snap-x snap-mandatory">
-            {images.map((img) => (
-              <div key={img.id} className="snap-start portfolio-card related-card glass rounded-2xl overflow-hidden flex-shrink-0">
-                <div className="relative aspect-[16/10] overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={img.url} alt={img.alt || ""} className="w-full h-full object-cover" loading="lazy" />
-                </div>
+        <div className="portfolio-scroll -mx-5 flex gap-3 overflow-x-auto px-5 pb-2 snap-x sm:-mx-6 sm:px-6">
+          {images.map((img) => (
+            <div key={img.id} className="portfolio-card snap-start flex-shrink-0 overflow-hidden rounded-lg bg-raised">
+              <div className="relative aspect-[16/10] overflow-hidden">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={img.url} alt={img.alt || ""} className="w-full h-full object-cover" loading="lazy" />
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
       )}
     </section>
@@ -439,23 +414,19 @@ function AccountActionsSection() {
   }, [confirmOpen, deleting]);
 
   return (
-    <section className="reveal glass rounded-3xl p-4 sm:p-6 lg:p-8">
-      <h2 className="font-bold text-xl mb-1">{t("account.actions.title")}</h2>
-      <p className="text-xs text-gray-500 mb-5">{t("account.actions.subtitle")}</p>
+    <section className="card p-5 sm:p-6">
+      <h2 className="text-lg font-semibold">{t("account.actions.title")}</h2>
 
       {/* "Browse builders" and "Back to home" used to be two tiles; the feed is
           the site root now, so they were the same destination twice. */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <a
-          href={withBase("/")}
-          className="py-3 px-4 text-sm font-medium rounded-2xl border border-white/15 hover:border-white/40 transition-all ghost-btn text-center"
-        >
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+        <a href={withBase("/")} className="btn btn-secondary">
           {t("account.actions.browse")}
         </a>
         <button
           type="button"
           onClick={() => signOut()}
-          className="py-3 px-4 inline-flex items-center justify-center gap-2 text-sm font-semibold rounded-2xl border border-white/15 text-gray-200 hover:border-white/40 hover:bg-white/5 transition-all"
+          className="btn btn-secondary"
         >
           <Icon name="logout" size={16} />
           {t("nav.logOut")}
@@ -463,27 +434,27 @@ function AccountActionsSection() {
       </div>
 
       {/* Danger zone */}
-      <div className="mt-6 pt-6 border-t border-white/10">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-red-400/25 bg-red-500/[0.06] p-5">
+      <div className="mt-6 border-t border-line/[0.08] pt-6">
+        <div className="flex flex-col justify-between gap-4 rounded-lg border border-danger/30 p-4 sm:flex-row sm:items-center">
           <div className="min-w-0">
-            <h3 className="font-semibold text-red-200 text-sm">{t("account.actions.delete")}</h3>
-            <p className="text-xs text-gray-400 mt-1 max-w-md leading-relaxed">
+            <h3 className="text-sm font-semibold text-danger">{t("account.actions.delete")}</h3>
+            <p className="mt-1 max-w-md text-xs leading-relaxed text-ink-2">
               {t("account.actions.deleteBody")}
             </p>
           </div>
           <button
             type="button"
             onClick={openConfirm}
-            className="flex-shrink-0 py-2.5 px-5 text-sm font-semibold rounded-full bg-red-500/15 text-red-200 border border-red-400/40 hover:bg-red-500/25 hover:border-red-400/60 transition-all disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/[0.03] disabled:text-gray-600"
+            className="btn btn-secondary flex-shrink-0 !text-danger hover:!border-danger/50"
           >
             {t("account.actions.delete")}
           </button>
         </div>
       </div>
 
-      {/* Confirmation modal — portaled to <body> so it escapes the .glass
-          ancestor (whose backdrop-filter would otherwise become the containing
-          block for this fixed overlay, breaking full-screen centering/dimming). */}
+      {/* Confirmation modal — portaled to <body> so it sits outside the
+          card, so no ancestor style can become the containing block for this
+          fixed overlay and break its full-screen centering. */}
       {confirmOpen && typeof document !== "undefined" && createPortal(
         <div
           className="fixed inset-0 z-[200] flex items-center justify-center p-4"
@@ -492,25 +463,20 @@ function AccountActionsSection() {
           aria-labelledby="delete-account-title"
         >
           <div
-            className="absolute inset-0 bg-black/75 backdrop-blur-md"
+            className="absolute inset-0 bg-black/60"
             onClick={closeConfirm}
           />
-          <div className="relative glass rounded-3xl p-5 sm:p-8 w-full max-w-md detail-fade-up shadow-2xl">
-            <div className="w-12 h-12 rounded-2xl bg-red-500/15 border border-red-400/30 flex items-center justify-center mb-4">
-              <svg viewBox="0 0 24 24" className="w-6 h-6 text-red-300" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                <path d="M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
-            <h3 id="delete-account-title" className="text-xl font-bold mb-2">
+          <div className="relative w-full max-w-md rounded-2xl border border-line/10 bg-surface p-6 shadow-pop">
+            <h3 id="delete-account-title" className="text-lg font-semibold">
               {t("account.deleteDialog.title")}
             </h3>
-            <p className="text-sm text-gray-400 leading-relaxed mb-5">
+            <p className="mt-1.5 mb-5 text-sm leading-relaxed text-ink-2">
               {t("account.deleteDialog.body")}{" "}
-              <strong className="text-red-200">{t("account.deleteDialog.irreversible")}</strong>
+              <strong className="font-semibold text-ink">{t("account.deleteDialog.irreversible")}</strong>
             </p>
-            <label htmlFor="confirm-delete" className="onb-label block mb-2">
+            <label htmlFor="confirm-delete" className="onb-label block mb-1.5">
               {t.rich("account.deleteDialog.typeToConfirm", {
-                word: <span className="text-red-200 font-bold">DELETE</span>,
+                word: <span className="font-semibold text-danger">DELETE</span>,
               })}
             </label>
             <input
@@ -533,7 +499,7 @@ function AccountActionsSection() {
                 type="button"
                 onClick={closeConfirm}
                 disabled={deleting}
-                className="px-4 py-2 rounded-full text-sm font-semibold border border-white/15 text-gray-300 hover:bg-white/5 transition-all disabled:opacity-50"
+                className="btn btn-ghost"
               >
                 {t("common.cancel")}
               </button>
@@ -541,7 +507,7 @@ function AccountActionsSection() {
                 type="button"
                 onClick={handleDelete}
                 disabled={deleting || !canDelete}
-                className="px-5 py-2 rounded-full text-sm font-bold bg-red-500 text-white hover:bg-red-600 transition-all disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-2"
+                className="btn btn-danger"
               >
                 {deleting && (
                   <span className="w-3.5 h-3.5 rounded-full border-2 border-white/40 border-t-white animate-spin" />
@@ -635,7 +601,7 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
   }
 
   return (
-    <header className="glass rounded-3xl p-4 sm:p-8 mb-6 sm:mb-8 detail-fade-up">
+    <header className="card mb-6 p-5 sm:p-6">
       <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 items-start">
         {/* Avatar */}
         <div className="relative flex-shrink-0 mx-auto sm:mx-0">
@@ -649,22 +615,12 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
               size={112}
             />
           ) : (
-            <>
-              {profile?.avatar_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={profile.avatar_url}
-                  alt={profile.display_name || ""}
-                  className="w-20 h-20 sm:w-28 sm:h-28 rounded-3xl object-cover ring-2 ring-[#4ade80]/30 shadow-xl"
-                  loading="lazy"
-                  decoding="async"
-                />
-              ) : (
-                <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-3xl bg-[#4ade80]/15 border border-[#4ade80]/40 ring-2 ring-[#4ade80]/30 flex items-center justify-center text-[#4ade80] font-bold text-3xl sm:text-4xl">
-                  {(profile?.display_name || "B").charAt(0).toUpperCase()}
-                </div>
-              )}
-            </>
+            <Avatar
+              src={profile?.avatar_url}
+              name={profile?.display_name || "B"}
+              alt={profile?.display_name || ""}
+              className="h-20 w-20 rounded-2xl text-3xl sm:h-24 sm:w-24"
+            />
           )}
         </div>
 
@@ -673,22 +629,20 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
           {editing ? (
             <div className="space-y-4 text-left">
               <div>
-                <label htmlFor="acc-display-name" className="onb-label block mb-2">
+                <label htmlFor="acc-display-name" className="onb-label block mb-1.5">
                   {t("onboarding.identity.nameLabel")}
                 </label>
                 <input
                   id="acc-display-name"
                   type="text"
-                  className={`onb-input ${
-                    displayName && !nameValid ? "is-error" : nameValid ? "is-success" : ""
-                  }`}
+                  className={`onb-input ${displayName && !nameValid ? "is-error" : ""}`}
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value.slice(0, DISPLAY_NAME_MAX))}
                   maxLength={DISPLAY_NAME_MAX}
                   placeholder={t("onboarding.identity.nameLabel")}
                   autoComplete="off"
                 />
-                <p className="mt-1.5 text-xs text-gray-500">
+                <p className="mt-1.5 text-xs text-ink-3">
                   {t("account.header.nameHint")} {trimmedName.length}/{DISPLAY_NAME_MAX}
                 </p>
               </div>
@@ -712,19 +666,18 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
           ) : (
             <>
           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2 gap-y-1.5 mb-1.5">
-            <h2 className="text-xl sm:text-3xl font-extrabold leading-tight break-words min-w-0">
+            <h2 className="min-w-0 break-words text-xl font-semibold leading-tight tracking-[-0.02em] sm:text-2xl">
               {profile?.display_name || t("onboarding.identity.nameLabel")}
             </h2>
             {isBuilder && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#4ade80]/15 border border-[#4ade80]/30 text-[#4ade80]">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80] flex-shrink-0" />
+              <span className="tag bg-accent/15 text-accent-ink">
                 {t("account.header.builderBadge")}
               </span>
             )}
           </div>
 
           {profile?.username && (
-            <p className="text-sm text-gray-500 mb-3 break-all">@{profile.username}</p>
+            <p className="mb-4 break-all text-sm text-ink-3">@{profile.username}</p>
           )}
 
           {/* Links used to render ONLY when at least one was saved, which meant
@@ -735,7 +688,7 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
               where to add them. */}
           {isBuilder && (
             <div className="mb-4">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+              <p className="mb-2 text-[13px] font-medium text-ink-3">
                 {t("onboarding.links.label")}
               </p>
               {savedLinks.length > 0 ? (
@@ -747,7 +700,7 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
                 <button
                   type="button"
                   onClick={startEdit}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-white/20 px-3.5 py-1.5 text-xs font-medium text-gray-400 transition hover:border-[#4ade80]/50 hover:text-[#4ade80]"
+                  className="btn btn-secondary btn-sm border-dashed"
                 >
                   <Icon name="link" size={13} />
                   {t("account.header.addLinks")}
@@ -759,7 +712,7 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
           {isBuilder && specialties.length > 0 && (
             <div className="flex flex-wrap justify-center sm:justify-start gap-2">
               {specialties.map((s) => (
-                <span key={s} className="px-3 py-1 rounded-full text-xs bg-white/5 border border-white/10 text-gray-400 capitalize">
+                <span key={s} className="tag h-6 px-2 text-xs">
                   {styleChipLabel(s, t.lang)}
                 </span>
               ))}
@@ -776,7 +729,7 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
               <button
                 type="button"
                 onClick={() => setEditing(false)}
-                className="px-4 py-2 rounded-full text-xs font-semibold border border-white/15 text-gray-300 hover:bg-white/5 transition-all"
+                className="btn btn-ghost btn-sm"
               >
                 {t("common.cancel")}
               </button>
@@ -784,10 +737,10 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
                 type="button"
                 onClick={save}
                 disabled={saving || !canSave}
-                className="px-4 py-2 rounded-full text-xs font-bold bg-[#4ade80] text-black hover:bg-[#22c55e] transition-all disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+                className="btn btn-primary btn-sm"
               >
                 {saving && (
-                  <span className="w-3 h-3 rounded-full border-2 border-black/40 border-t-black animate-spin" />
+                  <span className="w-3 h-3 rounded-full border-2 border-accent-fg/30 border-t-accent-fg animate-spin" />
                 )}
                 {t("common.save")}
               </button>
@@ -796,9 +749,9 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
             <button
               type="button"
               onClick={startEdit}
-              className="px-3 py-2 rounded-full text-xs font-semibold border border-[#4ade80]/30 text-[#4ade80] bg-[#4ade80]/10 hover:bg-[#4ade80] hover:text-black hover:border-[#4ade80] hover:shadow-[0_0_18px_rgba(74,222,128,0.35)] transition-all inline-flex items-center gap-1.5"
+              className="btn btn-secondary btn-sm"
             >
-              <IconPencil className="w-3.5 h-3.5" />
+              <Icon name="pencil" size={14} />
               {t("account.header.editProfile")}
             </button>
           )}
@@ -820,18 +773,13 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
 function BecomeABuilderCard() {
   const t = useT();
   return (
-    <section className="reveal glass rounded-3xl p-4 sm:p-6 lg:p-8 border border-[#4ade80]/20">
-      <p className="text-xs uppercase tracking-[0.18em] text-[#4ade80]/80">{t("account.become.eyebrow")}</p>
-      <h2 className="font-bold text-xl mt-1">{t("account.become.title")}</h2>
-      <p className="text-sm text-gray-500 mt-2 max-w-2xl leading-relaxed">
+    <section className="card p-5 sm:p-6">
+      <h2 className="text-lg font-semibold">{t("account.become.title")}</h2>
+      <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-ink-2">
         {t("account.become.body")}
       </p>
-      <Link
-        href={BUILDER_ONBOARDING_START}
-        className="mt-5 inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#4ade80] text-black text-sm font-bold transition-[transform,background-color,box-shadow] duration-300 ease-out hover:-translate-y-0.5 hover:bg-[#86efac] hover:shadow-[0_8px_20px_rgba(74,222,128,0.22)]"
-      >
-        {t("account.become.title")}
-        <Icon name="hammer" size={16} />
+      <Link href={BUILDER_ONBOARDING_START} className="btn btn-primary mt-5">
+        {t("account.become.cta")}
       </Link>
     </section>
   );
@@ -843,7 +791,7 @@ export default function AccountPage() {
     <Suspense
       fallback={
         <main className="min-h-screen flex items-center justify-center px-4">
-          <div className="w-12 h-12 rounded-full border-2 border-[#4ade80] border-t-transparent animate-spin" />
+          <div className="h-6 w-6 rounded-full border-2 border-line/20 border-t-accent animate-spin" />
         </main>
       }
     >
@@ -865,9 +813,7 @@ function AccountPageInner() {
     refresh: refreshAuthProfile,
   } = useAuth();
 
-  const [theme, setTheme] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [toast, setToast] = useState(null);
   // Top-level account view: "profile" (visuals/identity) or "danger" (account
   // controls + delete). Keep it in the URL so a refresh or a shared account
   // link restores the selected tab.
@@ -894,15 +840,6 @@ function AccountPageInner() {
   const [portfolioCount, setPortfolioCount] = useState(0);
   const [builderLoaded, setBuilderLoaded] = useState(false);
   const [loadError, setLoadError] = useState(null);
-
-  const gradientRef = useRef(null);
-  const edgeGlowRef = useRef(null);
-  const isLight = theme === "light";
-
-  // True once the main content (which mounts the gradient divs) is rendered.
-  // Flips false→true a single time, so the gradient effect below starts only
-  // after its target divs exist — and doesn't restart on later profile swaps.
-  const contentReady = status !== "loading" && !!profile;
 
   // `refresh` reads the latest profile only as a prefetch hint. We keep it in a
   // ref so `refresh`'s identity does NOT change when AuthContext swaps in a new
@@ -935,101 +872,7 @@ function AccountPageInner() {
     if (status === "authenticated" && user?.id) refresh();
   }, [status, user?.id, refresh]);
 
-  const showSoon = useCallback((msg) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 3500);
-  }, []);
-
-  useEffect(() => {
-    const saved = window.localStorage.getItem("theme");
-    setTheme(saved === "light" ? "light" : "dark");
-  }, []);
-
-  useEffect(() => {
-    if (!theme) return;
-    const html = document.documentElement;
-    html.classList.toggle("light", isLight);
-    html.classList.toggle("dark", !isLight);
-    window.localStorage.setItem("theme", theme);
-  }, [theme, isLight]);
-
-  // Animated gradient background (matches the rest of the site)
-  useEffect(() => {
-    const gradientBg = gradientRef.current;
-    const edgeGlow = edgeGlowRef.current;
-    if (!gradientBg || !edgeGlow || window.getComputedStyle(gradientBg).display === "none") return;
-
-    const cfg = {
-      edgeOffset: 12, speed: 1, smoothing: 0.08,
-      idleDrift: 0.00003, swayAmp: 0.015, swaySpeed: 0.0004,
-    };
-    let cp1 = 0, cp2 = 0.5, tp1 = 0, tp2 = 0.5;
-    let lastScroll = window.pageYOffset;
-    let raf = 0;
-    function periToXY(p, off) {
-      const pp = ((p % 1) + 1) % 1;
-      const seg = pp * 4;
-      const si = Math.floor(seg);
-      const sp = seg - si;
-      switch (si) {
-        case 0:  return { x: off + sp * (100 - off * 2), y: off };
-        case 1:  return { x: 100 - off, y: off + sp * (100 - off * 2) };
-        case 2:  return { x: 100 - off - sp * (100 - off * 2), y: 100 - off };
-        default: return { x: off, y: 100 - off - sp * (100 - off * 2) };
-      }
-    }
-    function tick(ts) {
-      const sy = window.pageYOffset;
-      const delta = sy - lastScroll;
-      if (Math.abs(delta) > 0) {
-        tp1 += delta * 0.0008 * cfg.speed;
-        tp2 -= delta * 0.0006 * cfg.speed;
-      }
-      tp1 += cfg.idleDrift;
-      tp2 -= cfg.idleDrift * 0.7;
-      lastScroll = sy;
-      tp1 = ((tp1 % 1) + 1) % 1;
-      tp2 = ((tp2 % 1) + 1) % 1;
-      let d1 = tp1 - cp1; if (d1 > 0.5) d1 -= 1; if (d1 < -0.5) d1 += 1;
-      let d2 = tp2 - cp2; if (d2 > 0.5) d2 -= 1; if (d2 < -0.5) d2 += 1;
-      cp1 += d1 * cfg.smoothing;
-      cp2 += d2 * cfg.smoothing;
-      const sw1 = Math.sin(ts * cfg.swaySpeed) * cfg.swayAmp;
-      const sw2 = Math.cos(ts * cfg.swaySpeed * 1.3) * cfg.swayAmp * 0.8;
-      const p1 = periToXY(cp1 + sw1, cfg.edgeOffset);
-      const p2 = periToXY(cp2 + sw2, cfg.edgeOffset + 3);
-      gradientBg.style.setProperty("--gradient-x", `${p1.x}%`);
-      gradientBg.style.setProperty("--gradient-y", `${p1.y}%`);
-      gradientBg.style.setProperty("--gradient-x2", `${p2.x}%`);
-      gradientBg.style.setProperty("--gradient-y2", `${p2.y}%`);
-      const breathe = 1 + Math.sin(ts * 0.0003) * 0.12;
-      edgeGlow.style.opacity = `${0.45 + breathe * 0.2}`;
-      raf = requestAnimationFrame(tick);
-    }
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [contentReady]);
-
-  // Scroll reveal.
-  //
-  // `.reveal` starts at opacity 0 and is only shown once this observer marks
-  // it active, so EVERY state change that can mount a new `.reveal` card has
-  // to be a dependency here — a card that mounts between runs is never
-  // observed and stays invisible until something else re-runs the effect.
-  //
-  // `builderLoaded` is the one that bites: a brand-new account has no
-  // builder_profiles row, so `builderProfile` is null before AND after the
-  // fetch and never changes identity. Only `builderLoaded` flips, and without
-  // it in this list the "Create a builder profile" card mounted invisibly and
-  // needed a page refresh to appear.
-  useEffect(() => {
-    const obs = new IntersectionObserver(
-      (entries) => entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("active"); obs.unobserve(e.target); } }),
-      { threshold: 0.08 }
-    );
-    document.querySelectorAll(".reveal:not(.active)").forEach((el) => obs.observe(el));
-    return () => obs.disconnect();
-  }, [profile, builderProfile, builderLoaded, portfolioCount, section]);
+  useScrollLock(mobileMenuOpen);
 
   // Builder-ness is the existence of a builder_profiles row — never
   // profiles.role, which visitors leave null and older accounts carry stale
@@ -1050,7 +893,7 @@ function AccountPageInner() {
   if (status === "loading" || (!profile && !profileLoaded)) {
     return (
       <main className="min-h-screen flex items-center justify-center px-4">
-        <div className="w-12 h-12 rounded-full border-2 border-[#4ade80] border-t-transparent animate-spin" />
+        <div className="h-6 w-6 rounded-full border-2 border-line/20 border-t-accent animate-spin" />
       </main>
     );
   }
@@ -1058,21 +901,12 @@ function AccountPageInner() {
   if (!profile) {
     return (
       <main className="min-h-screen flex items-center justify-center px-4">
-        <div className="glass rounded-3xl p-8 sm:p-10 border border-red-400/30 text-center max-w-md">
-          <div className="w-12 h-12 mx-auto mb-5 rounded-2xl bg-red-500/15 border border-red-400/30 flex items-center justify-center">
-            <svg viewBox="0 0 24 24" className="w-6 h-6 text-red-300" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-              <path d="M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </div>
-          <div className="text-xl font-semibold mb-2">{t("account.loadError.title")}</div>
-          <p className="text-gray-400 text-sm mb-6">
+        <div className="card max-w-md p-8 text-center">
+          <h1 className="text-lg font-semibold">{t("account.loadError.title")}</h1>
+          <p className="mt-2 mb-6 text-sm text-ink-2">
             {loadError || t("account.loadError.body")}
           </p>
-          <button
-            type="button"
-            onClick={refresh}
-            className="inline-block px-6 py-3 bg-[#4ade80] text-black font-semibold rounded-full green-glow hover:scale-105 transition-all"
-          >
+          <button type="button" onClick={refresh} className="btn btn-primary">
             {t("common.tryAgain")}
           </button>
         </div>
@@ -1081,45 +915,17 @@ function AccountPageInner() {
   }
 
   return (
-    <div className={`builder-profile-root ${isLight ? "light" : ""} catalog-root min-h-screen flex flex-col`}>
-      <div ref={gradientRef} className="gradient-background" aria-hidden="true" />
-      <div ref={edgeGlowRef} className="gradient-edge-glow" aria-hidden="true" />
+    <div className="catalog-root">
+      <CatalogNavbar mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
+      <CatalogMobileMenu mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
 
-      <CatalogNavbar
-        isLight={isLight}
-        setTheme={setTheme}
-        mobileMenuOpen={mobileMenuOpen}
-        setMobileMenuOpen={setMobileMenuOpen}
-        onShowSoon={showSoon}
-      />
-      <CatalogMobileMenu
-        mobileMenuOpen={mobileMenuOpen}
-        setMobileMenuOpen={setMobileMenuOpen}
-        onShowSoon={showSoon}
-      />
-
-      <div
-        className={`fixed bottom-8 left-1/2 -translate-x-1/2 z-[200] pointer-events-none transition-all duration-500 ${
-          toast ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-        }`}
-      >
-        <div className="glass catalog-toast rounded-2xl px-5 py-3 text-sm font-medium text-[#4ade80] flex items-center gap-2 shadow-2xl max-w-sm text-center">
-          <span className="text-[#4ade80] flex-shrink-0">✦</span>
-          <span>{toast}</span>
-        </div>
-      </div>
-
-      <main className="relative z-10 pt-24 lg:pt-28 pb-20 flex-1">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Page intro */}
-          <div className="mb-6 detail-fade-up">
-            <p className="text-xs font-semibold uppercase tracking-widest text-[#4ade80]/80 mb-1.5">
-              {t("account.intro.eyebrow")}
-            </p>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight logo-font">
+      <main className="pb-20 pt-8 sm:pt-10">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+          <div className="mb-6">
+            <h1 className="text-[1.625rem] font-semibold tracking-[-0.02em] sm:text-[1.875rem]">
               {t("account.intro.title")}
             </h1>
-            <p className="text-sm text-gray-500 mt-1.5">
+            <p className="mt-1.5 text-[15px] text-ink-2">
               {isBuilder
                 ? t("account.intro.builderBody")
                 : t("account.intro.visitorBody")}
@@ -1139,7 +945,7 @@ function AccountPageInner() {
                 onSaved={refresh}
               />
 
-              <div className="space-y-8">
+              <div className="space-y-6">
                 {/* Builder settings edit exactly what signup asks for and
                     nothing more: identity + contact link (in the header above),
                     the bio, the styles, and the portfolio. About is a builder's
@@ -1159,7 +965,7 @@ function AccountPageInner() {
           )}
 
           {section === "danger" && (
-            <div className="space-y-8">
+            <div className="space-y-6">
               <AccountActionsSection />
             </div>
           )}

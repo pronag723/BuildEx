@@ -9,6 +9,7 @@ import { withBase } from "../../home/utils";
 import OnboardingShell from "../components/OnboardingShell";
 import { STEPS } from "../../../lib/onboarding/state";
 import { useT } from "../../../lib/i18n/LanguageProvider";
+import { Icon } from "../../../lib/icons";
 
 export default function OnboardingCompletePage() {
   const router = useRouter();
@@ -44,71 +45,36 @@ export default function OnboardingCompletePage() {
   const name = profile?.display_name || displayUser?.displayName || t("onboarding.complete.fallbackName");
 
   return (
-    <OnboardingShell currentStep={STEPS.complete} hideStepHeader maxWidth="max-w-xl">
-      <div className="glass rounded-3xl p-10 sm:p-14 border border-white/10 text-center relative overflow-hidden onb-fade-in onb-fade-in-1">
-        {/* Subtle radial flourish */}
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 -z-10 pointer-events-none"
-          style={{
-            background:
-              "radial-gradient(circle at 50% 0%, rgba(74,222,128,0.25), transparent 60%)",
-          }}
-        />
+    <OnboardingShell currentStep={STEPS.complete} hideStepHeader maxWidth="max-w-lg">
+      <div className="card p-6 sm:p-8">
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/15 text-accent-ink" aria-hidden="true">
+          <Icon name="check" size={20} strokeWidth={2.5} />
+        </span>
 
-        {/* Big check mark */}
-        <div
-          className="w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center bg-[#4ade80] text-black"
-          style={{
-            boxShadow:
-              "0 0 0 8px rgba(74,222,128,0.15), 0 0 32px rgba(74,222,128,0.45)",
-          }}
-          aria-hidden="true"
-        >
-          <svg viewBox="0 0 24 24" className="w-10 h-10" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M4 12l5 5L20 6" />
-          </svg>
-        </div>
-
-        <div className="inline-flex items-center gap-2 glass px-4 py-1.5 rounded-full text-xs mb-4">
-          <span className="w-2 h-2 bg-[#4ade80] rounded-full animate-pulse" />
-          <span>{t("onboarding.complete.badge")}</span>
-        </div>
-
-        <h1 className="onb-section-title">{t("onboarding.complete.title", { name })}</h1>
-        <p className="onb-section-sub mt-4 mx-auto">
+        <h1 className="mt-5 text-2xl font-semibold tracking-[-0.02em]">
+          {t("onboarding.complete.title", { name })}
+        </h1>
+        <p className="mt-2 text-[15px] leading-relaxed text-ink-2">
           {t("onboarding.complete.subtitle")}
         </p>
 
         {handle && (
-          <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/[0.04]">
-            <span className="w-2 h-2 rounded-full bg-[#4ade80]" />
-            <span className="text-sm">
-              {t("onboarding.complete.handle")}&nbsp;
-              <span className="text-[#4ade80] font-semibold">@{handle}</span>
-            </span>
-          </div>
+          <p className="mt-4 text-sm text-ink-2">
+            {t("onboarding.complete.handle")}{" "}
+            <span className="font-medium text-ink">@{handle}</span>
+          </p>
         )}
 
-        <div className="mt-10 flex flex-col sm:flex-row gap-3 justify-center">
-          <a
-            href={withBase("/account")}
-            className="onb-btn-primary justify-center"
-          >
+        <div className="mt-7 flex flex-col gap-2 sm:flex-row">
+          <a href={withBase("/account")} className="btn btn-primary btn-lg">
             {t("onboarding.complete.goToProfile")}
-            <svg viewBox="0 0 16 16" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M6 3l5 5-5 5" />
-            </svg>
           </a>
-          <a
-            href={withBase("/")}
-            className="onb-btn-ghost justify-center"
-          >
+          <a href={withBase("/")} className="btn btn-secondary btn-lg">
             {t("onboarding.complete.backHome")}
           </a>
         </div>
 
-        <p className="mt-8 text-xs text-gray-500">
+        <p className="mt-6 text-xs leading-relaxed text-ink-3">
           {t("onboarding.complete.manage")}
         </p>
       </div>

@@ -1,27 +1,19 @@
 "use client";
 
 import { publicAsset } from "../../home/utils";
-import { Icon } from "../../../lib/icons";
+import Avatar from "../../../lib/ui/Avatar";
 import { useT } from "../../../lib/i18n/LanguageProvider";
 // Compact "2m / 4h / Mon / Apr 3" stamp for the inbox rows.
 import { relativeStamp } from "../../../lib/i18n/format.mjs";
 import { translateServerText } from "../../../lib/i18n/serverText.mjs";
 
-function Avatar({ name, url, size = 48 }) {
-  const initial = (name || "?").trim().charAt(0).toUpperCase();
+function UnreadBadge({ count, className = "" }) {
   return (
-    <div
-      className="rounded-2xl overflow-hidden bg-[#4ade80]/15 border border-[#4ade80]/40 flex items-center justify-center text-[#4ade80] font-semibold flex-shrink-0"
-      style={{ width: size, height: size, fontSize: Math.round(size * 0.4) }}
-      aria-hidden="true"
+    <span
+      className={`flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-accent px-1 text-[10px] font-semibold text-accent-fg ${className}`}
     >
-      {url ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={publicAsset(url)} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
-      ) : (
-        <span>{initial}</span>
-      )}
-    </div>
+      {count > 9 ? "9+" : count}
+    </span>
   );
 }
 
@@ -36,14 +28,16 @@ export default function ConversationList({
 
   if (loading) {
     return (
-      <div className="flex-1 flex flex-col gap-2 p-3">
+      <div className="flex-1 space-y-1 p-2" aria-hidden="true">
         {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="flex items-center gap-3 p-3 rounded-2xl">
-            <div className="w-12 h-12 rounded-2xl bg-white/5 animate-pulse flex-shrink-0" />
-            <div className="flex-1 min-w-0 space-y-2">
-              <div className="h-3 w-1/2 rounded bg-white/10 animate-pulse" />
-              <div className="h-2.5 w-3/4 rounded bg-white/5 animate-pulse" />
-            </div>
+          <div key={i} className="flex items-center gap-3 p-2">
+            <div className="h-11 w-11 flex-shrink-0 rounded-[10px] skeleton" />
+            {!compact && (
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className="h-3 w-1/2 rounded skeleton" />
+                <div className="h-2.5 w-3/4 rounded skeleton" />
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -51,24 +45,13 @@ export default function ConversationList({
   }
 
   if (conversations.length === 0) {
-    if (compact) {
-      return (
-        <div className="flex-1 flex flex-col items-center justify-center px-2 py-8">
-          <div className="w-10 h-10 rounded-2xl bg-[#4ade80]/10 border border-[#4ade80]/30 flex items-center justify-center text-[#4ade80]">
-            <Icon name="chat" size={18} />
-          </div>
-        </div>
-      );
-    }
+    if (compact) return <div className="flex-1" />;
     return (
-      <div className="flex-1 flex flex-col items-center justify-center text-center px-6 py-12">
-        <div className="w-14 h-14 rounded-2xl bg-[#4ade80]/10 border border-[#4ade80]/30 flex items-center justify-center text-[#4ade80] mb-4">
-          <Icon name="chat" size={24} />
-        </div>
-        <p className="font-semibold text-sm mb-1">{t("chat.noConversations")}</p>
-        <p className="text-xs text-gray-500 leading-relaxed max-w-[220px]">
+      <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 text-center">
+        <p className="text-sm font-medium">{t("chat.noConversations")}</p>
+        <p className="mt-1 max-w-[240px] text-xs leading-relaxed text-ink-3">
           {t.rich("chat.noConversationsHint", {
-            cta: <span className="text-[#4ade80] font-medium">{t("profile.contactBuilder")}</span>,
+            cta: <span className="font-medium text-ink-2">{t("profile.contactBuilder")}</span>,
           })}
         </p>
       </div>
@@ -76,13 +59,16 @@ export default function ConversationList({
   }
 
   return (
-    <div className="flex-1 overflow-y-auto py-2 hide-scrollbar">
+    <div className="bx-scroll flex-1 overflow-y-auto p-1.5">
       {conversations.map((c) => {
         const active = c.conversation_id === activeId;
         // A conversation partner may be hiring rather than building, so never
         // fall back to "Builder" — their @handle, then a neutral word.
         const name = c.other_display_name || c.other_username || t("common.member");
         const unread = Number(c.unread_count) || 0;
+        const avatarSrc = c.other_avatar_url ? publicAsset(c.other_avatar_url) : null;
+        const rowState = active ? "bg-line/[0.07]" : "hover:bg-line/[0.04]";
+
         if (compact) {
           return (
             <button
@@ -91,55 +77,40 @@ export default function ConversationList({
               onClick={() => onSelect(c)}
               title={name}
               aria-label={name}
-              className={`w-full flex items-center justify-center px-2 py-2 transition-colors border-l-2 ${
-                active
-                  ? "bg-[#4ade80]/10 border-[#4ade80]"
-                  : "border-transparent hover:bg-white/5"
-              }`}
+              aria-current={active ? "true" : undefined}
+              className={`flex w-full items-center justify-center rounded-lg p-2 transition-colors ${rowState}`}
             >
               <span className="relative">
-                <Avatar name={name} url={c.other_avatar_url} />
+                <Avatar src={avatarSrc} name={name} size={44} />
                 {unread > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#4ade80] text-black text-[10px] font-bold flex items-center justify-center ring-2 ring-[#171717]">
-                    {unread > 9 ? "9+" : unread}
-                  </span>
+                  <UnreadBadge count={unread} className="absolute -right-1 -top-1 ring-2 ring-surface" />
                 )}
               </span>
             </button>
           );
         }
+
         return (
           <button
             key={c.conversation_id}
             type="button"
             onClick={() => onSelect(c)}
-            className={`w-full flex items-center gap-3 px-3 py-3 text-left transition-colors border-l-2 ${
-              active
-                ? "bg-[#4ade80]/10 border-[#4ade80]"
-                : "border-transparent hover:bg-white/5"
-            }`}
+            aria-current={active ? "true" : undefined}
+            className={`flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors ${rowState}`}
           >
-            <Avatar name={name} url={c.other_avatar_url} />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-sm truncate">{name}</span>
-                <span className="text-[10px] text-gray-500 ml-auto flex-shrink-0">
+            <Avatar src={avatarSrc} name={name} size={44} />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-baseline gap-2">
+                <span className={`truncate text-sm ${unread > 0 ? "font-semibold" : "font-medium"}`}>{name}</span>
+                <span className="ml-auto flex-shrink-0 text-[11px] tabular-nums text-ink-3">
                   {relativeStamp(c.last_message_at, t.lang)}
                 </span>
               </div>
-              <div className="flex items-center gap-2 mt-0.5">
-                <p
-                  className={`text-xs truncate flex-1 ${
-                    unread > 0 ? "text-gray-200 font-medium" : "text-gray-500"
-                  }`}
-                >
+              <div className="mt-0.5 flex items-center gap-2">
+                <p className={`flex-1 truncate text-[13px] ${unread > 0 ? "text-ink" : "text-ink-3"}`}>
                   {translateServerText(c.last_message_preview, t.lang) || t("chat.noMessages")}
                 </p>
-                {unread > 0 && (
-                  <span className="flex-shrink-0 min-w-[18px] h-[18px] px-1 rounded-full bg-[#4ade80] text-black text-[10px] font-bold flex items-center justify-center">
-                    {unread > 9 ? "9+" : unread}
-                  </span>
-                )}
+                {unread > 0 && <UnreadBadge count={unread} className="flex-shrink-0" />}
               </div>
             </div>
           </button>

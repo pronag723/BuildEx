@@ -7,6 +7,7 @@ import {
   PORTFOLIO_ACCEPTED_MIME,
   PORTFOLIO_MAX_FILE_MB,
 } from "../../../lib/onboarding/constants";
+import { Icon } from "../../../lib/icons";
 import { useT } from "../../../lib/i18n/LanguageProvider";
 
 export default function AvatarUploader({
@@ -56,7 +57,7 @@ export default function AvatarUploader({
   }
 
   return (
-    <div className="flex flex-col items-center gap-3">
+    <div className="flex flex-shrink-0 flex-col items-center gap-2">
       <div
         role="button"
         tabIndex={0}
@@ -81,20 +82,13 @@ export default function AvatarUploader({
               className="upload-clear-btn"
               aria-label={t("onboarding.avatar.remove")}
             >
-              <svg viewBox="0 0 16 16" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M5 5l6 6M11 5l-6 6" />
-              </svg>
+              <Icon name="close" size={14} strokeWidth={2.25} />
             </button>
           </>
         ) : (
           <>
-            <span
-              className="text-3xl text-[#4ade80] font-bold logo-font"
-              aria-hidden="true"
-            >
-              {fallbackInitial}
-            </span>
-            <span className="text-[10px] uppercase tracking-widest opacity-70">
+            <Icon name="upload" size={20} />
+            <span className="text-xs font-medium">
               {busy ? t("onboarding.upload.uploading") : t("onboarding.upload.upload")}
             </span>
           </>
@@ -105,7 +99,7 @@ export default function AvatarUploader({
             aria-hidden="true"
           >
             <div
-              className="h-full bg-[#4ade80] transition-all"
+              className="h-full bg-accent transition-all"
               style={{ width: `${Math.round(progress * 100)}%` }}
             />
           </div>
@@ -118,7 +112,7 @@ export default function AvatarUploader({
         className="hidden"
         onChange={(e) => handleFiles(e.target.files)}
       />
-      <p className="text-xs text-gray-500 text-center max-w-[180px] leading-snug">
+      <p className="text-xs text-ink-3 text-center max-w-[140px] leading-snug">
         {t("onboarding.avatar.hint", { mb: PORTFOLIO_MAX_FILE_MB })}
       </p>
     </div>

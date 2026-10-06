@@ -28,13 +28,20 @@ export const viewport = {
   initialScale: 1
 };
 
-// Runs before first paint. The static HTML is English; a visitor whose stored
-// (or, on a first visit, browser) language is Russian gets <html lang="ru"> and
-// a hidden <body> until LanguageProvider has switched the page over, so the
-// English text never flashes. The timeout is a failsafe: the page always
-// becomes visible even if the app bundle fails to load. Keep the detection in
-// step with readInitialLang() in lib/i18n/LanguageProvider.jsx.
-const languageBootScript = `(function(){try{var d=document.documentElement,l=localStorage.getItem("lang");if(l!=="en"&&l!=="ru"){var n=(navigator.languages&&navigator.languages[0])||navigator.language||"";l=/^ru(?:-|$)/i.test(n)?"ru":"en"}if(l==="ru"){d.lang="ru";d.classList.add("i18n-pending");setTimeout(function(){d.classList.remove("i18n-pending")},2500)}}catch(e){}})();`;
+// Runs before first paint, and does two things.
+//
+// Theme: the stored colour theme goes onto <html> immediately. It used to be
+// applied by each page in an effect after hydration, so a light-theme visitor
+// saw the dark page first and then watched it fade over. Keep the key in step
+// with lib/ui/useTheme.js.
+//
+// Language: the static HTML is English; a visitor whose stored (or, on a first
+// visit, browser) language is Russian gets <html lang="ru"> and a hidden <body>
+// until LanguageProvider has switched the page over, so the English text never
+// flashes. The timeout is a failsafe: the page always becomes visible even if
+// the app bundle fails to load. Keep the detection in step with
+// readInitialLang() in lib/i18n/LanguageProvider.jsx.
+const bootScript = `(function(){var d=document.documentElement;try{var t=localStorage.getItem("theme")==="light"?"light":"dark";d.classList.remove(t==="light"?"dark":"light");d.classList.add(t)}catch(e){}try{var l=localStorage.getItem("lang");if(l!=="en"&&l!=="ru"){var n=(navigator.languages&&navigator.languages[0])||navigator.language||"";l=/^ru(?:-|$)/i.test(n)?"ru":"en"}if(l==="ru"){d.lang="ru";d.classList.add("i18n-pending");setTimeout(function(){d.classList.remove("i18n-pending")},2500)}}catch(e){}})();`;
 
 // Supabase project origin (also the Storage CDN host for avatars/banners/
 // portfolio images). Warming the TLS connection here shaves the handshake off
@@ -58,7 +65,7 @@ export default function RootLayout({ children }) {
       suppressHydrationWarning
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: languageBootScript }} />
+        <script dangerouslySetInnerHTML={{ __html: bootScript }} />
         {supabaseOrigin && (
           <>
             <link rel="preconnect" href={supabaseOrigin} crossOrigin="anonymous" />
@@ -66,7 +73,7 @@ export default function RootLayout({ children }) {
           </>
         )}
       </head>
-      <body className="overflow-x-hidden transition-colors duration-300 relative">
+      <body className="overflow-x-hidden relative">
         {/* Tracks the current route (ahead of the page) so the builder catalog
             knows when a visitor is returning from a profile and should keep its
             shuffled order. Renders nothing. */}

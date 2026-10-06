@@ -1,49 +1,28 @@
 "use client";
 
+import { ITEMS_PER_PAGE } from "../data/builders";
 import { useT } from "../../../lib/i18n/LanguageProvider";
 
 export default function PaginationControls({ total, shown, onLoadMore }) {
   const t = useT();
+  if (total === 0) return null;
+
   const hasMore = shown < total;
   const remaining = total - shown;
 
   return (
-    <div className="mt-14 flex flex-col items-center gap-4">
-      <p className="text-sm text-gray-400">
-        {t.rich("catalog.showing", {
-          count: total,
-          shown: <span className="text-white font-semibold">{shown}</span>,
-          total: <span className="text-white font-semibold">{total}</span>,
-        })}
-      </p>
-
-      {hasMore && (
-        <button
-          type="button"
-          onClick={onLoadMore}
-          className="group inline-flex items-center gap-2.5 glass rounded-2xl px-8 py-3 text-sm font-medium hover:border-[#4ade80]/40 hover:text-[#4ade80] transition-all duration-300"
-        >
-          {t("catalog.loadMore", { n: Math.min(remaining, 9) })}
-          <svg
-            className="w-4 h-4 group-hover:translate-y-0.5 transition-transform"
-            viewBox="0 0 20 20"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M10 4v12M4 10l6 6 6-6" />
-          </svg>
-        </button>
-      )}
-
-      {!hasMore && total > 0 && (
-        <p className="text-xs text-gray-500 flex items-center gap-2">
-          <span className="w-1.5 h-1.5 bg-[#4ade80] rounded-full" />
-          {t("catalog.seenAll")}
-        </p>
+    <div className="mt-10 flex flex-col items-center gap-3 sm:mt-14">
+      {hasMore ? (
+        <>
+          <button type="button" onClick={onLoadMore} className="btn btn-secondary btn-lg px-6">
+            {t("catalog.loadMore", { n: Math.min(remaining, ITEMS_PER_PAGE) })}
+          </button>
+          <p className="text-xs text-ink-3 tabular-nums">
+            {t("catalog.showing", { count: total, shown, total })}
+          </p>
+        </>
+      ) : (
+        <p className="text-xs text-ink-3">{t("catalog.seenAll")}</p>
       )}
     </div>
   );

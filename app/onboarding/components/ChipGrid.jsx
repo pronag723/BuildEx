@@ -3,11 +3,11 @@
 import { Icon } from "../../../lib/icons";
 
 /**
- * Animated selectable chips for multi/single-select inputs (styles, build
- * types, project types, interests).
+ * Selectable chips for multi/single-select inputs (styles). A selected chip
+ * gets an accent outline and a check in front of its label.
  *
  * Props:
- *   - options:  [{ key, label, icon? }]
+ *   - options:  [{ key, label }]
  *   - value:    array of selected keys (multi) OR single string (single)
  *   - onChange: (newValue) => void
  *   - multi:    bool (default true)
@@ -50,13 +50,10 @@ export default function ChipGrid({
             aria-pressed={isActive}
             className={`chip ${isActive ? "is-active" : ""}`}
           >
-            {opt.icon && <Icon name={opt.icon} size={16} className="chip-icon" />}
-            <span>{opt.label}</span>
             <span className="chip-check" aria-hidden="true">
-              <svg viewBox="0 0 12 10" className="w-2 h-2" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M1 5l3.5 3.5L11 1" />
-              </svg>
+              <Icon name="check" size={14} strokeWidth={2.5} />
             </span>
+            <span>{opt.label}</span>
           </button>
         );
       })}

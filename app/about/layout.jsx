@@ -1,5 +1,5 @@
-// The page itself is a client component (theme, scroll-spy, animated
-// background), so its metadata has to live in a layout beside it.
+// The page itself is a client component (its header holds menu state), so its
+// metadata has to live in a layout beside it.
 export const metadata = {
   title: "About BuildEx | How the directory works",
   description:

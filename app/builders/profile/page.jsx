@@ -12,7 +12,7 @@
 
 import { useEffect, useState } from "react";
 
-import BuilderProfilePage from "./[username]/components/BuilderProfilePage";
+import BuilderProfilePage, { BuilderProfileSkeleton } from "./[username]/components/BuilderProfilePage";
 import BuilderNotFound from "./[username]/components/BuilderNotFound";
 import { fetchBuilderByUsername } from "../data/fetchBuilders";
 
@@ -39,13 +39,7 @@ export default function ProfileByQueryPage() {
     };
   }, []);
 
-  if (loading) {
-    return (
-      <main className="min-h-screen flex items-center justify-center px-4">
-        <div className="w-12 h-12 rounded-full border-2 border-[#4ade80] border-t-transparent animate-spin" />
-      </main>
-    );
-  }
+  if (loading) return <BuilderProfileSkeleton />;
 
   if (!builder) return <BuilderNotFound />;
 

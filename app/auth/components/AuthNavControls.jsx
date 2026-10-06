@@ -8,78 +8,11 @@ import { useAuth } from "../../../lib/auth/AuthContext";
 import { useUnread } from "../../../lib/chat/UnreadContext";
 import NotificationsBell from "../../notifications/components/NotificationsBell";
 import { Icon } from "../../../lib/icons";
+import Avatar from "../../../lib/ui/Avatar";
 import { useT } from "../../../lib/i18n/LanguageProvider";
 
-function IconUser({ className = "w-4 h-4" }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-      <circle cx="12" cy="7" r="4" />
-    </svg>
-  );
-}
-
-function IconMessage({ className = "w-4 h-4" }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-    </svg>
-  );
-}
-
-function IconShield({ className = "w-4 h-4" }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-      <path d="M9 12l2 2 4-4" />
-    </svg>
-  );
-}
-
-function Avatar({ user, size = 36 }) {
-  const initial = (user?.displayName || user?.username || "?").trim().charAt(0).toUpperCase();
-  return (
-    <div
-      className="rounded-2xl overflow-hidden bg-[#4ade80]/15 border border-[#4ade80]/40 flex items-center justify-center text-[#4ade80] font-semibold"
-      style={{ width: size, height: size, fontSize: Math.round(size * 0.42) }}
-      aria-hidden="true"
-    >
-      {user?.avatarUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
-      ) : (
-        <span>{initial}</span>
-      )}
-    </div>
-  );
-}
+const MENU_ROW =
+  "flex items-center gap-3 px-3 h-9 mx-1.5 rounded-lg text-ink-2 hover:text-ink hover:bg-line/[0.06] transition-colors";
 
 export default function AuthNavControls() {
   const { status, displayUser, profile, signOut } = useAuth();
@@ -91,13 +24,13 @@ export default function AuthNavControls() {
   const buttonRef = useRef(null);
   const menuRef = useRef(null);
 
-  // Anchor the portaled menu to the button. Right-aligned, 12px below it
-  // (matches the old mt-3). Recomputed on open, scroll and resize.
+  // Anchor the portaled menu to the button: right-aligned, 8px below it.
+  // Recomputed on open, scroll and resize.
   const reposition = useCallback(() => {
     const rect = buttonRef.current?.getBoundingClientRect();
     if (!rect) return;
     setCoords({
-      top: rect.bottom + 12,
+      top: rect.bottom + 8,
       right: Math.max(8, window.innerWidth - rect.right),
     });
   }, []);
@@ -129,137 +62,117 @@ export default function AuthNavControls() {
   }, [open, reposition]);
 
   if (status === "loading") {
-    return (
-      <div className="hidden sm:flex items-center gap-3">
-        <div className="w-20 h-9 rounded-full bg-white/5 animate-pulse" />
-        <div className="w-28 h-9 rounded-full bg-white/10 animate-pulse" />
-      </div>
-    );
+    return <div className="hidden sm:block w-16 h-8 rounded-lg skeleton" />;
   }
 
   if (status === "authenticated" && displayUser) {
     return (
-      <div className="flex items-center gap-2 sm:gap-3">
+      <div className="flex items-center gap-1.5 sm:gap-2">
         <NotificationsBell />
         <div className="relative">
-        <button
-          ref={buttonRef}
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          className="flex items-center gap-2 sm:gap-3 pl-1 pr-1 sm:pr-3 py-1 rounded-full border border-white/15 hover:border-[#4ade80]/40 bg-white/5 hover:bg-white/10 transition-all"
-          aria-haspopup="menu"
-          aria-expanded={open}
-        >
-          <span className="relative flex-shrink-0">
-            <Avatar user={displayUser} />
-            {hasUnread && (
-              <span
-                className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-red-500 ring-2 ring-[#171717]"
-                title={t("nav.unreadTitle")}
-                aria-label={t("nav.unreadTitle")}
-              />
-            )}
-          </span>
-          <span className="hidden sm:flex flex-col items-start leading-tight pr-1">
-            <span className="text-sm font-semibold max-w-[140px] truncate">
+          <button
+            ref={buttonRef}
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className="flex items-center gap-2 rounded-lg p-1 sm:pr-2 hover:bg-line/[0.06] transition-colors"
+            aria-haspopup="menu"
+            aria-expanded={open}
+            aria-label={displayUser.displayName}
+          >
+            <span className="relative">
+              <Avatar src={displayUser.avatarUrl} name={displayUser.displayName} size={28} />
+              {hasUnread && (
+                <span
+                  className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-canvas"
+                  title={t("nav.unreadTitle")}
+                  aria-label={t("nav.unreadTitle")}
+                />
+              )}
+            </span>
+            <span className="hidden sm:block max-w-[120px] truncate text-sm font-medium">
               {displayUser.displayName}
             </span>
-            {displayUser.username && (
-              <span className="text-[10px] text-gray-400 max-w-[140px] truncate">
-                @{displayUser.username}
-              </span>
-            )}
-          </span>
-          <svg
-            viewBox="0 0 24 24"
-            className={`hidden sm:block w-3.5 h-3.5 text-gray-400 transition-transform ${
-              open ? "rotate-180" : ""
-            }`}
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.25"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="m6 9 6 6 6-6" />
-          </svg>
-        </button>
+            <Icon
+              name="chevronDown"
+              size={14}
+              className={`hidden sm:block text-ink-3 transition-transform ${open ? "rotate-180" : ""}`}
+            />
+          </button>
 
-        {typeof document !== "undefined" && createPortal(
-          <div
-            ref={menuRef}
-            role="menu"
-            aria-hidden={!open}
-            style={coords ? { top: coords.top, right: coords.right } : { top: -9999, right: 0 }}
-            className={`profile-menu fixed w-64 glass rounded-2xl border border-white/10 shadow-2xl overflow-hidden z-[120] ${
-              open ? "open" : ""
-            }`}
-          >
-            <div className="px-4 py-4 border-b border-white/10 flex items-center gap-3">
-              <Avatar user={displayUser} size={40} />
-              <div className="min-w-0">
-                <div className="text-sm font-semibold truncate">{displayUser.displayName}</div>
-                <div className="text-xs text-gray-400 truncate">
-                  {displayUser.email || (displayUser.username && `@${displayUser.username}`)}
+          {typeof document !== "undefined" &&
+            createPortal(
+              <div
+                ref={menuRef}
+                role="menu"
+                aria-hidden={!open}
+                style={coords ? { top: coords.top, right: coords.right } : { top: -9999, right: 0 }}
+                className={`profile-menu menu-panel fixed w-64 overflow-hidden z-[120] ${open ? "open" : ""}`}
+              >
+                <div className="px-4 py-3 border-b border-line/[0.08] flex items-center gap-3">
+                  <Avatar src={displayUser.avatarUrl} name={displayUser.displayName} size={36} />
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold truncate">{displayUser.displayName}</div>
+                    <div className="text-xs text-ink-3 truncate">
+                      {displayUser.email || (displayUser.username && `@${displayUser.username}`)}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-            <nav className="py-2 text-sm">
-              <Link
-                role="menuitem"
-                href="/account"
-                tabIndex={open ? 0 : -1}
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-3 px-4 py-2.5 hover:bg-white/5 transition-colors"
-              >
-                <IconUser className="w-4 h-4 text-[#4ade80]" />
-                <span>{t("nav.myProfile")}</span>
-              </Link>
-              <Link
-                role="menuitem"
-                href="/chats"
-                tabIndex={open ? 0 : -1}
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-3 px-4 py-2.5 hover:bg-white/5 transition-colors"
-              >
-                <IconMessage className="w-4 h-4 text-[#4ade80]" />
-                <span>{t("nav.myChats")}</span>
-                {hasUnread && (
-                  <span className="ml-auto min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
-                    {unreadTotal > 9 ? "9+" : unreadTotal}
-                  </span>
-                )}
-              </Link>
-              {isAdmin && (
-                <Link
-                  role="menuitem"
-                  href="/admin"
-                  tabIndex={open ? 0 : -1}
-                  onClick={() => setOpen(false)}
-                  className="flex items-center gap-3 px-4 py-2.5 hover:bg-white/5 transition-colors"
-                >
-                  <IconShield className="w-4 h-4 text-[#4ade80]" />
-                  <span>{t("nav.moderatorConsole")}</span>
-                </Link>
-              )}
-              <button
-                type="button"
-                role="menuitem"
-                tabIndex={open ? 0 : -1}
-                onClick={() => {
-                  setOpen(false);
-                  signOut();
-                }}
-                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-500/10 text-red-300 transition-colors"
-              >
-                <Icon name="logout" size={16} className="text-red-300" />
-                {t("nav.logOut")}
-              </button>
-            </nav>
-          </div>,
-          document.body
-        )}
+                <nav className="py-1.5 text-sm">
+                  <Link
+                    role="menuitem"
+                    href="/account"
+                    tabIndex={open ? 0 : -1}
+                    onClick={() => setOpen(false)}
+                    className={MENU_ROW}
+                  >
+                    <Icon name="user" size={16} />
+                    <span>{t("nav.myProfile")}</span>
+                  </Link>
+                  <Link
+                    role="menuitem"
+                    href="/chats"
+                    tabIndex={open ? 0 : -1}
+                    onClick={() => setOpen(false)}
+                    className={MENU_ROW}
+                  >
+                    <Icon name="chat" size={16} />
+                    <span>{t("nav.myChats")}</span>
+                    {hasUnread && (
+                      <span className="ml-auto min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-semibold flex items-center justify-center">
+                        {unreadTotal > 9 ? "9+" : unreadTotal}
+                      </span>
+                    )}
+                  </Link>
+                  {isAdmin && (
+                    <Link
+                      role="menuitem"
+                      href="/admin"
+                      tabIndex={open ? 0 : -1}
+                      onClick={() => setOpen(false)}
+                      className={MENU_ROW}
+                    >
+                      <Icon name="shield" size={16} />
+                      <span>{t("nav.moderatorConsole")}</span>
+                    </Link>
+                  )}
+                  <div className="my-1.5 border-t border-line/[0.08]" />
+                  <button
+                    type="button"
+                    role="menuitem"
+                    tabIndex={open ? 0 : -1}
+                    onClick={() => {
+                      setOpen(false);
+                      signOut();
+                    }}
+                    className={`${MENU_ROW} w-[calc(100%-0.75rem)] text-left`}
+                  >
+                    <Icon name="logout" size={16} />
+                    {t("nav.logOut")}
+                  </button>
+                </nav>
+              </div>,
+              document.body
+            )}
         </div>
       </div>
     );
@@ -267,10 +180,7 @@ export default function AuthNavControls() {
 
   // unauthenticated / unconfigured
   return (
-    <Link
-      href="/login"
-      className="nav-btn-primary nav-btn-text font-semibold rounded-full bg-[#4ade80] text-black transition-all green-glow whitespace-nowrap hidden sm:inline-block"
-    >
+    <Link href="/login" className="btn btn-primary btn-sm">
       {t("nav.logIn")}
     </Link>
   );
@@ -284,22 +194,17 @@ export function AuthMobileControls({ onAfter }) {
   const t = useT();
 
   if (status === "loading") {
-    return (
-      <div className="flex flex-col gap-3">
-        <div className="w-full h-12 rounded-2xl bg-white/5 animate-pulse" />
-        <div className="w-full h-12 rounded-2xl bg-white/10 animate-pulse" />
-      </div>
-    );
+    return <div className="w-full h-11 rounded-lg skeleton" />;
   }
 
   if (status === "authenticated" && displayUser) {
     return (
       <>
-        <div className="flex items-center gap-3 px-2 py-3">
-          <Avatar user={displayUser} size={44} />
+        <div className="flex items-center gap-3 py-2">
+          <Avatar src={displayUser.avatarUrl} name={displayUser.displayName} size={40} />
           <div className="min-w-0">
-            <div className="text-base font-semibold truncate">{displayUser.displayName}</div>
-            <div className="text-xs text-gray-400 truncate">
+            <div className="text-[15px] font-semibold truncate">{displayUser.displayName}</div>
+            <div className="text-xs text-ink-3 truncate">
               {displayUser.email || (displayUser.username && `@${displayUser.username}`)}
             </div>
           </div>
@@ -308,22 +213,18 @@ export function AuthMobileControls({ onAfter }) {
           href="/account"
           onClick={() => onAfter?.()}
           aria-current={onAccount ? "page" : undefined}
-          className={`w-full py-3.5 inline-flex items-center justify-center gap-2 text-base font-medium rounded-2xl border transition-all ${
-            onAccount
-              ? "border-[#4ade80]/50 text-[#4ade80] bg-[#4ade80]/10"
-              : "border-white/20 hover:border-white/40 ghost-btn"
-          }`}
+          className="btn btn-secondary btn-lg w-full justify-start"
         >
-          <IconUser className="w-4 h-4" />
+          <Icon name="user" size={17} />
           {t("nav.myProfile")}
         </Link>
         {isAdmin && (
           <Link
             href="/admin"
             onClick={() => onAfter?.()}
-            className="w-full py-3.5 inline-flex items-center justify-center gap-2 text-base font-medium rounded-2xl border border-white/20 hover:border-white/40 ghost-btn transition-all"
+            className="btn btn-secondary btn-lg w-full justify-start"
           >
-            <IconShield className="w-4 h-4" />
+            <Icon name="shield" size={17} />
             {t("nav.moderatorConsole")}
           </Link>
         )}
@@ -333,22 +234,15 @@ export function AuthMobileControls({ onAfter }) {
             onAfter?.();
             signOut();
           }}
-          className="w-full py-3.5 inline-flex items-center justify-center gap-2 text-base font-semibold rounded-2xl bg-red-500/15 text-red-200 border border-red-400/30 hover:bg-red-500/25 transition-all"
+          className="btn btn-ghost btn-lg w-full justify-start"
         >
-          <Icon name="logout" size={18} />
+          <Icon name="logout" size={17} />
           {t("nav.logOut")}
         </button>
       </>
     );
   }
 
-  return (
-    <Link
-      href="/login"
-      onClick={() => onAfter?.()}
-      className="w-full py-3.5 text-center text-base font-semibold rounded-2xl bg-[#4ade80] text-black transition-all green-glow"
-    >
-      {t("nav.logIn")}
-    </Link>
-  );
+  // Signed out: the header already shows "Log in" at every width.
+  return null;
 }

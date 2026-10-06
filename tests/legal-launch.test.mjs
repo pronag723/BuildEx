@@ -26,7 +26,6 @@ const HOME_COPY = [
   "app/home/data.js",
   "app/home/components/HeroSection.jsx",
   "app/home/components/HowItWorksSection.jsx",
-  "app/home/components/FeaturesDeckSection.jsx",
   "app/home/components/WhyBuildExSection.jsx",
   "app/home/components/ProjectsSection.jsx",
   "app/home/components/SiteFooter.jsx",

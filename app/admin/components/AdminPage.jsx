@@ -35,10 +35,11 @@ import {
 } from "../../../lib/admin/api";
 import { Icon } from "../../../lib/icons";
 import { publicAsset } from "../../home/utils";
+import SharedAvatar from "../../../lib/ui/Avatar";
+import { useScrollLock } from "../../../lib/useScrollLock";
 import SmartText from "../../../lib/ui/SmartText";
 import CatalogNavbar from "../../builders/components/CatalogNavbar";
 import CatalogMobileMenu from "../../builders/components/CatalogMobileMenu";
-import { useGradientBackground } from "../../../lib/ui/useGradientBackground";
 import { useT } from "../../../lib/i18n/LanguageProvider";
 import { getLang } from "../../../lib/i18n/translate.mjs";
 import { formatDate as formatLocaleDate, formatDateTime as formatLocaleDateTime } from "../../../lib/i18n/format.mjs";
@@ -96,46 +97,17 @@ export default function AdminPage() {
   useRequireAuth();
   const { profile, status } = useAuth();
   const isAdmin = profile?.is_admin === true;
-
-  const [theme, setTheme] = useState(null);
-  const isLight = theme === "light";
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { gradientRef, edgeGlowRef } = useGradientBackground();
-  useEffect(() => {
-    const saved = typeof window !== "undefined" && window.localStorage.getItem("theme");
-    setTheme(saved === "light" ? "light" : "dark");
-  }, []);
-  useEffect(() => {
-    if (!theme) return;
-    const html = document.documentElement;
-    html.classList.toggle("light", isLight);
-    html.classList.toggle("dark", !isLight);
-    window.localStorage.setItem("theme", theme);
-  }, [theme, isLight]);
+  useScrollLock(mobileMenuOpen);
 
-  const ready = status === "authenticated" && theme !== null;
+  const ready = status === "authenticated";
 
   return (
-    <div
-      className={`builder-profile-root ${isLight ? "light" : ""} catalog-root min-h-screen flex flex-col`}
-    >
-      <div ref={gradientRef} className="gradient-background" aria-hidden="true" />
-      <div ref={edgeGlowRef} className="gradient-edge-glow" aria-hidden="true" />
+    <div className="catalog-root">
+      <CatalogNavbar mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
+      <CatalogMobileMenu mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
 
-      <CatalogNavbar
-        isLight={isLight}
-        setTheme={setTheme}
-        mobileMenuOpen={mobileMenuOpen}
-        setMobileMenuOpen={setMobileMenuOpen}
-      />
-      <CatalogMobileMenu
-        isLight={isLight}
-        setTheme={setTheme}
-        mobileMenuOpen={mobileMenuOpen}
-        setMobileMenuOpen={setMobileMenuOpen}
-      />
-
-      <main className="relative z-10 flex-1 px-4 sm:px-6 lg:px-8 pt-28 pb-20">
+      <main className="flex-1 px-4 pb-20 pt-8 sm:px-6 sm:pt-10 lg:px-8">
         <div className="max-w-4xl mx-auto">
           {!ready ? <Spinner /> : !isAdmin ? <NotAuthorized /> : <Console />}
         </div>
@@ -145,12 +117,9 @@ export default function AdminPage() {
 }
 
 function Spinner({ small = false }) {
-  const size = small ? "w-6 h-6" : "w-10 h-10";
   return (
     <div className={`flex items-center justify-center ${small ? "py-6" : "py-24"}`}>
-      <div
-        className={`${size} rounded-full border-2 border-[#4ade80] border-t-transparent animate-spin`}
-      />
+      <div className="h-6 w-6 rounded-full border-2 border-line/20 border-t-accent animate-spin" />
     </div>
   );
 }
@@ -158,15 +127,12 @@ function Spinner({ small = false }) {
 function NotAuthorized() {
   const t = useT();
   return (
-    <div className="glass rounded-3xl p-8 text-center">
-      <h1 className="text-xl font-extrabold mb-2">{t("admin.notAuthorized.title")}</h1>
-      <p className="text-sm text-gray-400">
+    <div className="card p-8 text-center">
+      <h1 className="text-lg font-semibold">{t("admin.notAuthorized.title")}</h1>
+      <p className="mt-2 text-sm text-ink-2">
         {t("admin.notAuthorized.body")}
       </p>
-      <Link
-        href="/"
-        className="inline-block mt-5 px-4 py-2 rounded-full text-xs font-semibold border border-[#4ade80]/30 text-[#4ade80] bg-[#4ade80]/10 hover:bg-[#4ade80] hover:text-black transition-all"
-      >
+      <Link href="/" className="btn btn-secondary btn-sm mt-5">
         {t("account.actions.browse")}
       </Link>
     </div>
@@ -180,28 +146,27 @@ function Console() {
   return (
     <div className="space-y-6">
       <header>
-        <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-[#4ade80]/15 border border-[#4ade80]/30 text-[#4ade80] text-[11px] font-bold uppercase tracking-widest mb-2">
-          <Icon name="shield" size={13} /> {t("nav.moderatorConsole")}
-        </div>
-        <h1 className="text-2xl font-extrabold">{t("admin.title")}</h1>
-        <p className="text-sm text-gray-500 mt-1">
+        <h1 className="text-[1.625rem] font-semibold tracking-[-0.02em]">{t("admin.title")}</h1>
+        <p className="mt-1 text-sm text-ink-2">
           {t("admin.subtitle")}
         </p>
       </header>
 
-      <nav className="flex items-center gap-2 flex-wrap">
+      <nav className="flex gap-1 border-b border-line/[0.08]" role="tablist">
         {SECTIONS.map((s) => (
           <button
             key={s.key}
             type="button"
+            role="tab"
+            aria-selected={section === s.key}
             onClick={() => setSection(s.key)}
-            className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold border transition-all ${
+            className={`relative -mb-px inline-flex h-10 items-center gap-1.5 px-3 text-sm font-medium transition-colors ${
               section === s.key
-                ? "border-[#4ade80] bg-[#4ade80]/15 text-[#4ade80]"
-                : "border-white/10 text-gray-300 hover:border-[#4ade80]/40 hover:bg-white/5"
+                ? "text-ink after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:bg-accent"
+                : "text-ink-2 hover:text-ink"
             }`}
           >
-            <Icon name={s.icon} size={14} />
+            <Icon name={s.icon} size={15} />
             {t(`admin.sections.${s.key}`)}
           </button>
         ))}
@@ -221,20 +186,20 @@ function Console() {
 function SearchBox({ value, onChange, placeholder, label }) {
   const t = useT();
   return (
-    <label className="glass rounded-2xl px-4 py-3 flex items-center gap-2 border border-white/10 focus-within:border-[#4ade80]/50 transition-colors">
-      <Icon name="search" size={16} className="text-gray-500" />
+    <label className="input flex h-11 items-center gap-2 focus-within:border-accent/60 focus-within:shadow-[0_0_0_3px_rgb(var(--accent)/0.15)]">
+      <Icon name="search" size={16} className="text-ink-3" />
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="w-full bg-transparent outline-none text-sm text-gray-100 placeholder:text-gray-600"
+        className="w-full bg-transparent outline-none text-sm placeholder:text-ink-3"
         aria-label={label}
       />
       {value && (
         <button
           type="button"
           onClick={() => onChange("")}
-          className="text-xs text-gray-500 hover:text-white"
+          className="text-xs text-ink-3 hover:text-ink"
         >
           {t("admin.clear")}
         </button>
@@ -253,25 +218,12 @@ function useDebounced(value, delay = 250) {
 }
 
 function Avatar({ url, name, size = 40 }) {
-  const initial = (name || "?").trim().charAt(0).toUpperCase() || "?";
-  return (
-    <div
-      className="rounded-full overflow-hidden bg-[#4ade80]/15 border border-[#4ade80]/30 flex items-center justify-center text-[#4ade80] font-semibold flex-shrink-0"
-      style={{ width: size, height: size, fontSize: Math.round(size / 2.6) }}
-    >
-      {url ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={publicAsset(url)} alt="" className="w-full h-full object-cover" />
-      ) : (
-        initial
-      )}
-    </div>
-  );
+  return <SharedAvatar src={url ? publicAsset(url) : null} name={name} size={size} />;
 }
 
 function EmptyState({ children }) {
   return (
-    <div className="glass rounded-2xl p-8 text-center text-sm text-gray-500">
+    <div className="rounded-xl border border-dashed border-line/15 p-8 text-center text-sm text-ink-3">
       {children}
     </div>
   );
@@ -279,7 +231,7 @@ function EmptyState({ children }) {
 
 function ErrorLine({ children }) {
   if (!children) return null;
-  return <p className="text-sm text-red-400">{children}</p>;
+  return <p className="text-sm text-danger">{children}</p>;
 }
 
 // ─── 1. BUILDERS ────────────────────────────────────────────────────────────
@@ -330,7 +282,7 @@ function BuildersSection() {
       <ErrorLine>{error}</ErrorLine>
 
       {builders !== null && builders.length > 0 && (
-        <p className="text-[11px] text-gray-500 uppercase tracking-widest">
+        <p className="text-[11px] text-ink-3 uppercase tracking-widest">
           {t("admin.builders.count", { count: builders.length })}
           {hiddenCount > 0 && ` · ${t("admin.builders.hiddenCount", { count: hiddenCount })}`}
         </p>
@@ -407,8 +359,8 @@ function BuilderRow({ builder: b, onPatch }) {
         b.is_hidden
           ? "border-amber-400/40"
           : expanded
-            ? "border-[#4ade80]/45"
-            : "border-white/[0.11] hover:border-white/20"
+            ? "border-accent/45"
+            : "border-line/[0.11] hover:border-line/20"
       }`}
     >
       <div className="px-4 py-4 sm:px-5">
@@ -417,15 +369,15 @@ function BuilderRow({ builder: b, onPatch }) {
 
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <p className="font-bold text-[15px] text-gray-100 truncate">{name}</p>
+              <p className="font-bold text-[15px] text-ink truncate">{name}</p>
               {b.is_hidden && (
-                <span className="inline-flex items-center gap-1 shrink-0 rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-amber-300">
+                <span className="inline-flex items-center gap-1 shrink-0 rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-warn">
                   <Icon name="eyeOff" size={11} /> {t("admin.builders.hidden")}
                 </span>
               )}
             </div>
-            <p className="text-xs text-gray-500 truncate">@{b.username}</p>
-            <p className="mt-1 text-[11px] text-gray-500">
+            <p className="text-xs text-ink-3 truncate">@{b.username}</p>
+            <p className="mt-1 text-[11px] text-ink-3">
               {t("admin.builders.joined", { date: formatDate(b.joined_at) })} ·{" "}
               {t("admin.builders.images", { count: b.portfolio_count ?? 0 })}
             </p>
@@ -437,7 +389,7 @@ function BuilderRow({ builder: b, onPatch }) {
               target="_blank"
               rel="noopener noreferrer"
               title={t("admin.builders.openProfile")}
-              className="inline-flex items-center justify-center w-9 h-9 rounded-full border border-white/15 text-gray-300 hover:border-[#4ade80]/45 hover:text-[#4ade80] transition-all"
+              className="inline-flex items-center justify-center w-9 h-9 rounded-full border border-line/15 text-ink-2 hover:border-accent/45 hover:text-accent-ink transition-all"
             >
               <Icon name="external" size={15} />
             </Link>
@@ -446,7 +398,7 @@ function BuilderRow({ builder: b, onPatch }) {
                 type="button"
                 onClick={unhide}
                 disabled={busy}
-                className="inline-flex items-center gap-1.5 px-3 h-9 rounded-full text-xs font-semibold border border-[#4ade80]/40 bg-[#4ade80]/10 text-[#4ade80] hover:bg-[#4ade80] hover:text-black transition-all disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3 h-9 rounded-full text-xs font-semibold border border-accent/40 bg-accent/10 text-accent-ink hover:bg-accent hover:text-accent-fg transition-all disabled:opacity-50"
               >
                 <Icon name="eye" size={14} /> {t("admin.builders.unhide")}
               </button>
@@ -455,7 +407,7 @@ function BuilderRow({ builder: b, onPatch }) {
                 type="button"
                 onClick={() => setConfirming((v) => !v)}
                 disabled={busy}
-                className="inline-flex items-center gap-1.5 px-3 h-9 rounded-full text-xs font-semibold border border-amber-400/35 text-amber-300 hover:bg-amber-400/15 transition-all disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3 h-9 rounded-full text-xs font-semibold border border-amber-400/35 text-warn hover:bg-amber-400/15 transition-all disabled:opacity-50"
               >
                 <Icon name="eyeOff" size={14} /> {t("admin.builders.hide")}
               </button>
@@ -465,19 +417,19 @@ function BuilderRow({ builder: b, onPatch }) {
 
         {b.is_hidden && (
           <div className="mt-3 rounded-2xl border border-amber-400/20 bg-amber-400/[0.07] p-3">
-            <span className="block text-[10px] uppercase tracking-widest text-amber-300/80 mb-1">
+            <span className="block text-[10px] uppercase tracking-widest text-warn/80 mb-1">
               {t("admin.builders.hiddenAt", { date: formatDateTime(b.hidden_at) })}
               {b.hidden_by_username ? t("admin.builders.hiddenBy", { handle: b.hidden_by_username }) : ""}
             </span>
-            <p className="text-sm text-gray-300 whitespace-pre-wrap break-words">
+            <p className="text-sm text-ink-2 whitespace-pre-wrap break-words">
               {b.hidden_reason || t("admin.builders.noReason")}
             </p>
           </div>
         )}
 
         {confirming && !b.is_hidden && (
-          <div className="mt-3 rounded-2xl border border-white/10 bg-black/30 p-3 space-y-2.5">
-            <p className="text-xs text-gray-400">
+          <div className="mt-3 rounded-2xl border border-line/10 bg-raised p-3 space-y-2.5">
+            <p className="text-xs text-ink-2">
               {t("admin.builders.hideExplain")}
             </p>
             <textarea
@@ -486,21 +438,21 @@ function BuilderRow({ builder: b, onPatch }) {
               rows={2}
               maxLength={2000}
               placeholder={t("admin.builders.reasonPlaceholder")}
-              className="bx-scroll w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2 text-sm text-gray-100 placeholder:text-gray-600 outline-none focus:border-[#4ade80]/50 resize-none"
+              className="bx-scroll w-full rounded-xl bg-raised border border-line/10 px-3 py-2 text-sm text-ink placeholder:text-ink-3 outline-none focus:border-accent/50 resize-none"
             />
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={hide}
                 disabled={busy}
-                className="px-4 py-2 rounded-full text-xs font-bold border border-amber-400/40 bg-amber-400/15 text-amber-200 hover:bg-amber-400 hover:text-black transition-all disabled:opacity-50"
+                className="px-4 py-2 rounded-full text-xs font-bold border border-amber-400/40 bg-amber-400/15 text-warn hover:bg-amber-400 hover:text-black transition-all disabled:opacity-50"
               >
                 {busy ? t("admin.builders.hiding") : t("admin.builders.hideProfile")}
               </button>
               <button
                 type="button"
                 onClick={() => setConfirming(false)}
-                className="px-4 py-2 rounded-full text-xs font-semibold border border-white/15 text-gray-300 hover:bg-white/5 transition-all"
+                className="px-4 py-2 rounded-full text-xs font-semibold border border-line/15 text-ink-2 hover:bg-line/5 transition-all"
               >
                 {t("common.cancel")}
               </button>
@@ -514,7 +466,7 @@ function BuilderRow({ builder: b, onPatch }) {
           type="button"
           onClick={() => setExpanded((v) => !v)}
           aria-expanded={expanded}
-          className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-[#4ade80] transition-colors"
+          className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-ink-2 hover:text-accent-ink transition-colors"
         >
           <Icon name="image" size={14} />
           {expanded ? t("admin.builders.hidePortfolio") : t("admin.builders.portfolioCount", { n: count })}
@@ -522,7 +474,7 @@ function BuilderRow({ builder: b, onPatch }) {
       </div>
 
       {expanded && (
-        <div className="border-t border-white/[0.07] bg-black/[0.12] px-4 py-4 sm:px-5">
+        <div className="border-t border-line/[0.07] bg-line/[0.03] px-4 py-4 sm:px-5">
           <PortfolioManager
             builderId={b.builder_id}
             onCountChange={(n) => {
@@ -583,13 +535,13 @@ function PortfolioManager({ builderId, onCountChange }) {
     <div className="space-y-3">
       <ErrorLine>{error}</ErrorLine>
       {images.length === 0 ? (
-        <p className="text-sm text-gray-500">{t("admin.portfolio.empty")}</p>
+        <p className="text-sm text-ink-3">{t("admin.portfolio.empty")}</p>
       ) : (
         <ul className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {images.map((img) => (
             <li
               key={img.id}
-              className="relative rounded-xl overflow-hidden border border-white/10 bg-black/30"
+              className="relative rounded-xl overflow-hidden border border-line/10 bg-raised"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -600,20 +552,20 @@ function PortfolioManager({ builderId, onCountChange }) {
               />
               {pending === img.id ? (
                 <div className="absolute inset-0 bg-black/85 flex flex-col items-center justify-center gap-2 px-2 text-center">
-                  <p className="text-[11px] text-gray-300">{t("admin.portfolio.confirm")}</p>
+                  <p className="text-[11px] text-ink-2">{t("admin.portfolio.confirm")}</p>
                   <div className="flex items-center gap-1.5">
                     <button
                       type="button"
                       onClick={() => remove(img.id)}
                       disabled={busyId === img.id}
-                      className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-red-500/20 border border-red-400/40 text-red-300 hover:bg-red-500 hover:text-white transition-all disabled:opacity-50"
+                      className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-red-500/20 border border-red-400/40 text-danger hover:bg-red-500 hover:text-ink transition-all disabled:opacity-50"
                     >
                       {busyId === img.id ? "…" : t("admin.portfolio.delete")}
                     </button>
                     <button
                       type="button"
                       onClick={() => setPending(null)}
-                      className="px-2.5 py-1 rounded-full text-[11px] font-semibold border border-white/20 text-gray-300 hover:bg-white/10 transition-all"
+                      className="px-2.5 py-1 rounded-full text-[11px] font-semibold border border-line/20 text-ink-2 hover:bg-line/10 transition-all"
                     >
                       {t("admin.portfolio.keep")}
                     </button>
@@ -624,7 +576,7 @@ function PortfolioManager({ builderId, onCountChange }) {
                   type="button"
                   onClick={() => setPending(img.id)}
                   title={t("admin.portfolio.removeTitle")}
-                  className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-black/70 border border-white/15 text-gray-300 hover:text-red-300 hover:border-red-400/50 flex items-center justify-center transition-all"
+                  className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-black/70 border border-line/15 text-ink-2 hover:text-danger hover:border-red-400/50 flex items-center justify-center transition-all"
                 >
                   <Icon name="trash" size={13} />
                 </button>
@@ -687,8 +639,8 @@ function ReportsSection() {
             onClick={() => setTab(tabItem.key)}
             className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all ${
               tab === tabItem.key
-                ? "border-[#4ade80] bg-[#4ade80]/15 text-[#4ade80]"
-                : "border-white/10 text-gray-400 hover:border-[#4ade80]/40 hover:bg-white/5"
+                ? "border-accent bg-accent/15 text-accent-ink"
+                : "border-line/10 text-ink-2 hover:border-accent/40 hover:bg-line/5"
             }`}
           >
             {t(`admin.reports.tabs.${tabItem.key}`)}
@@ -698,7 +650,7 @@ function ReportsSection() {
           type="button"
           onClick={load}
           title={t("admin.reports.reload")}
-          className="ml-auto inline-flex items-center justify-center w-8 h-8 rounded-full border border-white/10 text-gray-400 hover:text-[#4ade80] hover:border-[#4ade80]/40 transition-all"
+          className="ml-auto inline-flex items-center justify-center w-8 h-8 rounded-full border border-line/10 text-ink-2 hover:text-accent-ink hover:border-accent/40 transition-all"
         >
           <Icon name="refresh" size={14} />
         </button>
@@ -712,7 +664,7 @@ function ReportsSection() {
         <EmptyState>
           {tab === "open" ? (
             <span className="inline-flex items-center gap-2">
-              <Icon name="check" size={16} className="text-[#4ade80]" /> {t("admin.reports.nothingOpen")}
+              <Icon name="check" size={16} className="text-accent-ink" /> {t("admin.reports.nothingOpen")}
             </span>
           ) : (
             t("admin.reports.none")
@@ -777,13 +729,13 @@ function ReportCard({ report: r, onResolved }) {
 
   const statusTone =
     r.status === "open"
-      ? "border-amber-400/30 bg-amber-400/10 text-amber-300"
+      ? "border-amber-400/30 bg-amber-400/10 text-warn"
       : r.status === "reviewed"
-        ? "border-[#4ade80]/30 bg-[#4ade80]/10 text-[#4ade80]"
-        : "border-white/10 bg-white/[0.04] text-gray-400";
+        ? "border-accent/30 bg-accent/10 text-accent-ink"
+        : "border-line/10 bg-line/[0.04] text-ink-2";
 
   return (
-    <article className="overflow-hidden rounded-[22px] border border-white/[0.11] bg-[#1d201f]/90">
+    <article className="overflow-hidden rounded-[22px] border border-line/[0.11] bg-[#1d201f]/90">
       <div className="px-4 py-4 sm:px-5">
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
           <span
@@ -791,7 +743,7 @@ function ReportCard({ report: r, onResolved }) {
           >
             {t(`admin.reports.status.${r.status}`)}
           </span>
-          <p className="inline-flex items-center gap-1.5 text-[11px] text-gray-500">
+          <p className="inline-flex items-center gap-1.5 text-[11px] text-ink-3">
             <Icon name="calendar" size={13} /> {formatDateTime(r.created_at)}
           </p>
         </div>
@@ -813,22 +765,22 @@ function ReportCard({ report: r, onResolved }) {
           />
         </div>
 
-        <div className="mt-3 rounded-2xl border border-white/10 bg-black/30 p-3">
-          <span className="block text-[10px] uppercase tracking-widest text-gray-500 mb-1">
+        <div className="mt-3 rounded-2xl border border-line/10 bg-raised p-3">
+          <span className="block text-[10px] uppercase tracking-widest text-ink-3 mb-1">
             {t("admin.reports.reason")}
           </span>
-          <p className="text-sm text-gray-300 whitespace-pre-wrap break-words leading-relaxed">
+          <p className="text-sm text-ink-2 whitespace-pre-wrap break-words leading-relaxed">
             <SmartText>{r.reason}</SmartText>
           </p>
         </div>
 
         {r.resolution_note && (
-          <div className="mt-3 rounded-2xl border border-white/10 bg-black/20 p-3">
-            <span className="block text-[10px] uppercase tracking-widest text-gray-500 mb-1">
+          <div className="mt-3 rounded-2xl border border-line/10 bg-black/20 p-3">
+            <span className="block text-[10px] uppercase tracking-widest text-ink-3 mb-1">
               {t("admin.reports.note")}
               {r.reviewer_username ? ` · @${r.reviewer_username}` : ""}
             </span>
-            <p className="text-sm text-gray-400 whitespace-pre-wrap break-words">
+            <p className="text-sm text-ink-2 whitespace-pre-wrap break-words">
               {r.resolution_note}
             </p>
           </div>
@@ -838,19 +790,19 @@ function ReportCard({ report: r, onResolved }) {
           type="button"
           onClick={toggle}
           aria-expanded={open}
-          className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-[#4ade80] transition-colors"
+          className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-ink-2 hover:text-accent-ink transition-colors"
         >
           <Icon name="chat" size={14} />
           {open ? t("admin.reports.hideConversation") : t("admin.reports.readConversation", { n: r.message_count ?? 0 })}
         </button>
 
         {open && (
-          <div className="mt-3 rounded-2xl border border-white/10 bg-black/25 p-3">
+          <div className="mt-3 rounded-2xl border border-line/10 bg-black/25 p-3">
             <ErrorLine>{msgError}</ErrorLine>
             {messages === null ? (
               <Spinner small />
             ) : messages.length === 0 ? (
-              <p className="text-sm text-gray-500">{t("admin.reports.noMessages")}</p>
+              <p className="text-sm text-ink-3">{t("admin.reports.noMessages")}</p>
             ) : (
               <ul className="bx-scroll max-h-80 overflow-y-auto space-y-2.5 pr-1">
                 {messages.map((m) => (
@@ -862,14 +814,14 @@ function ReportCard({ report: r, onResolved }) {
         )}
 
         {isOpen && (
-          <div className="mt-4 border-t border-white/[0.07] pt-3 space-y-2.5">
+          <div className="mt-4 border-t border-line/[0.07] pt-3 space-y-2.5">
             <textarea
               value={note}
               onChange={(event) => setNote(event.target.value)}
               rows={2}
               maxLength={2000}
               placeholder={t("admin.reports.notePlaceholder")}
-              className="bx-scroll w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2 text-sm text-gray-100 placeholder:text-gray-600 outline-none focus:border-[#4ade80]/50 resize-none"
+              className="bx-scroll w-full rounded-xl bg-raised border border-line/10 px-3 py-2 text-sm text-ink placeholder:text-ink-3 outline-none focus:border-accent/50 resize-none"
             />
             <ErrorLine>{error}</ErrorLine>
             <div className="flex items-center gap-2 flex-wrap">
@@ -877,7 +829,7 @@ function ReportCard({ report: r, onResolved }) {
                 type="button"
                 onClick={() => resolve("reviewed")}
                 disabled={busy}
-                className="px-4 py-2 rounded-full text-xs font-bold border border-[#4ade80]/40 bg-[#4ade80]/10 text-[#4ade80] hover:bg-[#4ade80] hover:text-black transition-all disabled:opacity-50"
+                className="px-4 py-2 rounded-full text-xs font-bold border border-accent/40 bg-accent/10 text-accent-ink hover:bg-accent hover:text-accent-fg transition-all disabled:opacity-50"
               >
                 {t("admin.reports.markReviewed")}
               </button>
@@ -885,11 +837,11 @@ function ReportCard({ report: r, onResolved }) {
                 type="button"
                 onClick={() => resolve("dismissed")}
                 disabled={busy}
-                className="px-4 py-2 rounded-full text-xs font-semibold border border-white/15 text-gray-300 hover:bg-white/5 transition-all disabled:opacity-50"
+                className="px-4 py-2 rounded-full text-xs font-semibold border border-line/15 text-ink-2 hover:bg-line/5 transition-all disabled:opacity-50"
               >
                 {t("admin.reports.dismiss")}
               </button>
-              <p className="text-[11px] text-gray-500">
+              <p className="text-[11px] text-ink-3">
                 {t("admin.reports.explain")}
               </p>
             </div>
@@ -903,29 +855,29 @@ function ReportCard({ report: r, onResolved }) {
 function ReportParty({ label, name, username, avatar, isBuilder, isHidden }) {
   const t = useT();
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
-      <span className="block text-[10px] uppercase tracking-widest text-gray-500 mb-2">
+    <div className="rounded-2xl border border-line/10 bg-black/20 p-3">
+      <span className="block text-[10px] uppercase tracking-widest text-ink-3 mb-2">
         {label}
       </span>
       <div className="flex items-center gap-2.5">
         <Avatar url={avatar} name={name} size={32} />
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-gray-200 truncate">{name}</p>
+          <p className="text-sm font-semibold text-ink truncate">{name}</p>
           {username && (
-            <p className="text-[11px] text-gray-500 truncate">
+            <p className="text-[11px] text-ink-3 truncate">
               {isBuilder ? (
                 <Link
                   href={profileHref(username)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hover:text-[#4ade80] transition-colors"
+                  className="hover:text-accent-ink transition-colors"
                 >
                   @{username}
                 </Link>
               ) : (
                 `@${username}`
               )}
-              {isHidden && <span className="text-amber-300">{t("admin.reports.hiddenSuffix")}</span>}
+              {isHidden && <span className="text-warn">{t("admin.reports.hiddenSuffix")}</span>}
             </p>
           )}
         </div>
@@ -943,8 +895,8 @@ function AdminMessage({ message: m }) {
     <li className="flex items-start gap-2.5">
       <Avatar url={m.sender_avatar_url} name={name} size={28} />
       <div className="min-w-0 flex-1">
-        <p className="text-[11px] text-gray-500">
-          <span className="text-gray-300 font-medium">{name}</span> ·{" "}
+        <p className="text-[11px] text-ink-3">
+          <span className="text-ink-2 font-medium">{name}</span> ·{" "}
           {formatDateTime(m.created_at)}
         </p>
         {isImage ? (
@@ -953,17 +905,17 @@ function AdminMessage({ message: m }) {
             <img
               src={publicAsset(m.meta.url)}
               alt={m.body || t("chat.photo")}
-              className="mt-1 rounded-xl max-h-48 w-auto object-cover border border-white/10"
+              className="mt-1 rounded-xl max-h-48 w-auto object-cover border border-line/10"
               loading="lazy"
             />
             {m.body && (
-              <p className="mt-1 text-[13px] text-gray-200 whitespace-pre-wrap break-words">
+              <p className="mt-1 text-[13px] text-ink whitespace-pre-wrap break-words">
                 <SmartText>{m.body}</SmartText>
               </p>
             )}
           </>
         ) : (
-          <p className="text-[13px] text-gray-200 whitespace-pre-wrap break-words">
+          <p className="text-[13px] text-ink whitespace-pre-wrap break-words">
             <SmartText>{m.body}</SmartText>
           </p>
         )}
@@ -1013,15 +965,15 @@ function UsersSection() {
           {search ? t("admin.users.noMatch") : t("admin.users.none")}
         </EmptyState>
       ) : (
-        <div className="glass rounded-2xl divide-y divide-white/[0.07] overflow-hidden">
+        <div className="card divide-y divide-line/[0.07] overflow-hidden">
           {users.map((u) => (
             <div key={u.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
               <Avatar url={u.avatar_url} name={u.display_name || u.username} size={34} />
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-gray-200 truncate">
+                <p className="text-sm font-semibold text-ink truncate">
                   {u.display_name || u.username || t("admin.users.unnamed")}
                 </p>
-                <p className="text-[11px] text-gray-500 truncate">
+                <p className="text-[11px] text-ink-3 truncate">
                   {u.username ? `@${u.username}` : t("admin.users.noHandle")}
                 </p>
               </div>
@@ -1035,18 +987,18 @@ function UsersSection() {
                   <span
                     className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] ${
                       u.is_hidden
-                        ? "border-amber-400/30 bg-amber-400/10 text-amber-300"
-                        : "border-[#4ade80]/30 bg-[#4ade80]/10 text-[#4ade80]"
+                        ? "border-amber-400/30 bg-amber-400/10 text-warn"
+                        : "border-accent/30 bg-accent/10 text-accent-ink"
                     }`}
                   >
                     {u.is_hidden ? t("admin.users.builderHidden") : t("admin.users.builder")}
                   </span>
                 ) : (
-                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-gray-400">
+                  <span className="rounded-full border border-line/10 bg-line/[0.04] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-ink-2">
                     {t("admin.users.member")}
                   </span>
                 )}
-                <span className="hidden sm:block text-[11px] text-gray-500 w-24 text-right">
+                <span className="hidden sm:block text-[11px] text-ink-3 w-24 text-right">
                   {formatDate(u.created_at)}
                 </span>
               </div>

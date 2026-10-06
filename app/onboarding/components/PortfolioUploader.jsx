@@ -14,6 +14,7 @@ import {
   PORTFOLIO_MAX_FILE_MB,
   PORTFOLIO_MAX_IMAGES,
 } from "../../../lib/onboarding/constants";
+import { Icon } from "../../../lib/icons";
 import { useT } from "../../../lib/i18n/LanguageProvider";
 import { translate } from "../../../lib/i18n/translate.mjs";
 
@@ -218,23 +219,19 @@ export default function PortfolioUploader({ userId, onCountChange, onError }) {
           setDragOver(false);
           handleFiles(e.dataTransfer.files);
         }}
-        className={`upload-tile w-full py-10 ${dragOver ? "is-dragging" : ""}`}
+        className={`upload-tile w-full py-9 ${dragOver ? "is-dragging" : ""}`}
         aria-label={t("onboarding.portfolioUpload.aria")}
       >
-        <svg viewBox="0 0 24 24" className="w-9 h-9 text-[#4ade80] mb-2" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-          <polyline points="17 8 12 3 7 8" />
-          <line x1="12" y1="3" x2="12" y2="15" />
-        </svg>
-        <div className="text-base font-semibold">{t("onboarding.portfolioUpload.drop")}</div>
-        <p className="text-xs text-gray-500 mt-1">
+        <Icon name="upload" size={22} className="mb-1 text-ink-3" />
+        <div className="text-sm font-medium text-ink">{t("onboarding.portfolioUpload.drop")}</div>
+        <p className="text-xs text-ink-3">
           {t("onboarding.portfolioUpload.limits", { mb: PORTFOLIO_MAX_FILE_MB, max: PORTFOLIO_MAX_IMAGES })}
         </p>
-        <p className="text-[11px] mt-3 text-gray-500">
-          <span className={remaining > 0 ? "text-[#4ade80]" : "text-amber-300"}>
+        <p className="mt-2 text-xs text-ink-3">
+          <span className={remaining > 0 ? "text-ink-2" : "text-danger"}>
             {remaining > 0 ? t("onboarding.portfolioUpload.slotsLeft", { count: remaining }) : t("onboarding.portfolioUpload.full")}
           </span>
-          {used > 0 && <span className="text-gray-600"> · {t("onboarding.portfolioUpload.used", { used, max: PORTFOLIO_MAX_IMAGES })}</span>}
+          {used > 0 && <span> · {t("onboarding.portfolioUpload.used", { used, max: PORTFOLIO_MAX_IMAGES })}</span>}
         </p>
       </div>
 
@@ -249,7 +246,7 @@ export default function PortfolioUploader({ userId, onCountChange, onError }) {
 
       {/* Grid */}
       {(images.length > 0 || pending.length > 0) && (
-        <div className="portfolio-grid mt-6">
+        <div className="portfolio-grid mt-5">
           {images.map((img, i) => (
             <div key={img.id} className="portfolio-tile group">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -267,9 +264,7 @@ export default function PortfolioUploader({ userId, onCountChange, onError }) {
                   aria-label={t("onboarding.portfolioUpload.removeImage")}
                   title={t("onboarding.portfolioUpload.remove")}
                 >
-                  <svg viewBox="0 0 16 16" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M3 5h10M6 5V3h4v2M5 5l1 9h4l1-9" />
-                  </svg>
+                  <Icon name="trash" size={14} />
                 </button>
               </div>
               <div className="tile-reorder">
@@ -281,9 +276,7 @@ export default function PortfolioUploader({ userId, onCountChange, onError }) {
                   aria-label={t("onboarding.portfolioUpload.moveLeft")}
                   title={t("onboarding.portfolioUpload.moveLeft")}
                 >
-                  <svg viewBox="0 0 16 16" className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M10 13L5 8l5-5" />
-                  </svg>
+                  <Icon name="chevronLeft" size={15} />
                 </button>
                 <button
                   type="button"
@@ -293,9 +286,7 @@ export default function PortfolioUploader({ userId, onCountChange, onError }) {
                   aria-label={t("onboarding.portfolioUpload.moveRight")}
                   title={t("onboarding.portfolioUpload.moveRight")}
                 >
-                  <svg viewBox="0 0 16 16" className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M6 3l5 5-5 5" />
-                  </svg>
+                  <Icon name="chevronRight" size={15} />
                 </button>
               </div>
             </div>
@@ -316,7 +307,7 @@ export default function PortfolioUploader({ userId, onCountChange, onError }) {
       )}
 
       {loading && images.length === 0 && pending.length === 0 && (
-        <div className="text-center text-xs text-gray-500 mt-6">{t("onboarding.portfolioUpload.loading")}</div>
+        <div className="text-center text-xs text-ink-3 mt-6">{t("onboarding.portfolioUpload.loading")}</div>
       )}
     </div>
   );

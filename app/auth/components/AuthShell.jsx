@@ -1,54 +1,33 @@
 "use client";
 
-import { withBase } from "../../home/utils";
-import { useThemedBackground } from "./useThemedBackground";
+import Link from "next/link";
+import SiteHeader from "../../components/SiteHeader";
+import ThemeToggle from "../../components/ThemeToggle";
 import { Icon } from "../../../lib/icons";
 import { useT } from "../../../lib/i18n/LanguageProvider";
 import LanguageSwitcher from "../../../lib/i18n/LanguageSwitcher";
 
+// Sign-in pages: the site header without the navigation (there is one thing
+// to do here) and a narrow centred column.
 export default function AuthShell({ children }) {
-  const { gradientRef, edgeGlowRef, isLight, setTheme } = useThemedBackground();
   const t = useT();
 
+  const actions = (
+    <>
+      <LanguageSwitcher />
+      <ThemeToggle />
+      <Link href="/" className="btn btn-ghost btn-sm hidden sm:inline-flex">
+        <Icon name="arrowLeft" size={15} />
+        {t("nav.backToSite")}
+      </Link>
+    </>
+  );
+
   return (
-    <div className="min-h-screen relative">
-      <div ref={gradientRef} className="gradient-background" aria-hidden="true" />
-      <div ref={edgeGlowRef} className="gradient-edge-glow" aria-hidden="true" />
-
-      <header className="fixed top-3.5 left-1/2 -translate-x-1/2 z-50 w-full nav-wrapper px-6">
-        <div className="glass nav-pill flex items-center justify-between shadow-2xl">
-          <a href={withBase("/")} className="flex items-center gap-1.5 no-underline">
-            <span className="text-2xl font-bold tracking-tight logo-font nav-logo-text">
-              Build<span className="text-[#4ade80] font-extrabold">Ex</span>
-            </span>
-          </a>
-
-          <div className="flex items-center nav-controls-gap flex-shrink-0">
-            <LanguageSwitcher />
-
-            <button
-              type="button"
-              className="theme-switch relative w-14 h-7 flex items-center rounded-full transition-all duration-300 bg-white/10 border border-white/20 hover:border-white/40 flex-shrink-0"
-              aria-label={t("common.toggleTheme")}
-              onClick={() => setTheme((t) => (t === "light" ? "dark" : "light"))}
-            >
-              <span className="theme-switch-thumb absolute left-1 w-5 h-5 rounded-full bg-[#0f172a] shadow-lg transition-all duration-300 flex items-center justify-center">
-                <Icon name={isLight ? "sun" : "moon"} size={12} strokeWidth={2} />
-              </span>
-            </button>
-
-            <a
-              href={withBase("/")}
-              className="nav-btn-ghost nav-btn-text font-medium rounded-full border border-white/20 hover:border-white/40 transition-all ghost-btn whitespace-nowrap hidden sm:inline-block"
-            >
-              {t("nav.backToSite")}
-            </a>
-          </div>
-        </div>
-      </header>
-
-      <main className="min-h-screen flex items-center justify-center px-6 pt-32 pb-16">
-        <div className="w-full max-w-md">{children}</div>
+    <div className="flex min-h-[100dvh] flex-col">
+      <SiteHeader actions={actions} />
+      <main className="flex flex-1 items-center justify-center px-4 py-12 sm:py-16">
+        <div className="w-full max-w-[400px]">{children}</div>
       </main>
     </div>
   );

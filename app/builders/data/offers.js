@@ -13,16 +13,16 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const STYLES = [
-  { key: "medieval", label: "Medieval", icon: "castle" },
-  { key: "fantasy", label: "Fantasy", icon: "sparkles" },
-  { key: "sci-fi", label: "Sci-Fi", icon: "rocket" },
-  { key: "cyberpunk", label: "Cyberpunk", icon: "cyberpunk" },
-  { key: "modern", label: "Modern", icon: "modern" },
-  { key: "realistic", label: "Realistic", icon: "camera" },
-  { key: "organic", label: "Organic", icon: "leaf" },
-  { key: "terrain", label: "Terrain", icon: "mountain" },
-  { key: "pvp", label: "PvP", icon: "swords" },
-  { key: "other", label: "Other", icon: "palette" },
+  { key: "medieval", label: "Medieval" },
+  { key: "fantasy", label: "Fantasy" },
+  { key: "sci-fi", label: "Sci-Fi" },
+  { key: "cyberpunk", label: "Cyberpunk" },
+  { key: "modern", label: "Modern" },
+  { key: "realistic", label: "Realistic" },
+  { key: "organic", label: "Organic" },
+  { key: "terrain", label: "Terrain" },
+  { key: "pvp", label: "PvP" },
+  { key: "other", label: "Other" },
 ];
 
 export const BUILD_TYPES = [
@@ -38,4 +38,6 @@ export const BUILD_TYPES = [
   { key: "commission", label: "Custom Commission" },
 ];
 
-export const ITEMS_PER_PAGE = 9;
+// Twelve divides evenly into the feed's two (phone) and three (desktop)
+// columns, so a page of results never ends on a lone card.
+export const ITEMS_PER_PAGE = 12;

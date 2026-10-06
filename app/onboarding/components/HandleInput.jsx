@@ -8,6 +8,7 @@ import {
   HANDLE_MIN,
   HANDLE_REGEX,
 } from "../../../lib/onboarding/constants";
+import { Icon } from "../../../lib/icons";
 import { useT } from "../../../lib/i18n/LanguageProvider";
 
 /**
@@ -122,12 +123,11 @@ export default function HandleInput({
 
   const inputCls =
     "onb-input pr-12 " +
-    (state.status === "error" ? "is-error " : "") +
-    (state.status === "success" ? "is-success " : "");
+    (state.status === "error" ? "is-error " : "");
 
   return (
     <div>
-      <label htmlFor={id} className="onb-label block mb-2">
+      <label htmlFor={id} className="onb-label block mb-1.5">
         {label ?? t("onboarding.handle.label")}
       </label>
       <div className="onb-input-with-prefix relative">
@@ -150,37 +150,33 @@ export default function HandleInput({
         <span className="onb-input-status" id={`${id}-status`} aria-live="polite">
           {state.status === "checking" && (
             <span
-              className="w-4 h-4 rounded-full border-2 border-[#4ade80] border-t-transparent animate-spin"
+              className="w-4 h-4 rounded-full border-2 border-line/20 border-t-accent animate-spin"
               aria-label={t("onboarding.handle.checkingShort")}
             />
           )}
           {state.status === "success" && (
-            <svg viewBox="0 0 12 10" className="w-4 h-4 text-[#4ade80]" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M1 5l3.5 3.5L11 1" />
-            </svg>
+            <Icon name="check" size={16} strokeWidth={2.5} className="text-accent-ink" />
           )}
           {state.status === "error" && (
-            <svg viewBox="0 0 16 16" className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M5 5l6 6M11 5l-6 6" />
-            </svg>
+            <Icon name="close" size={16} strokeWidth={2.25} className="text-danger" />
           )}
         </span>
       </div>
       {/* Wraps rather than squeezing: on a phone the hint and the availability
           message were fighting over the same line, each down to two or three
           words per row. The status drops onto its own line instead. */}
-      <div className="mt-2 flex flex-wrap items-start justify-between gap-x-3 gap-y-1 text-xs">
-        <p id={`${id}-hint`} className="text-gray-500 leading-snug min-w-0 basis-56 grow">
+      <div className="mt-1.5 flex flex-wrap items-start justify-between gap-x-3 gap-y-1 text-xs">
+        <p id={`${id}-hint`} className="text-ink-3 leading-snug min-w-0 basis-56 grow">
           {hint ?? t("onboarding.handle.hint")}
         </p>
         <span
           className={
             "flex-shrink-0 " +
             (state.status === "error"
-              ? "text-red-300"
+              ? "text-danger"
               : state.status === "success"
-              ? "text-[#4ade80]"
-              : "text-gray-500")
+              ? "text-accent-ink"
+              : "text-ink-3")
           }
         >
           {state.message ? t(state.message, { min: HANDLE_MIN }) : ""}
