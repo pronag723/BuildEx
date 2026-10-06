@@ -626,6 +626,24 @@ select option {
   color: rgb(var(--ink));
 }
 
+/* Denser glass for small dropdowns: they can open over a bright or a dark
+   portfolio image, and 14px text has to stay readable on either. */
+.glass-panel.glass-dense {
+  background: rgb(38 38 38 / 0.8);
+}
+
+:root.light .glass-panel.glass-dense {
+  background: rgb(255 255 255 / 0.86);
+}
+
+/* Compact rows for the header's account dropdown. */
+.glass-row-sm {
+  min-height: 2.375rem;
+  padding: 0 0.75rem;
+  border-radius: 10px;
+  font-size: 0.875rem;
+}
+
 @media (min-width: 1024px) {
   .mobile-menu {
     display: none !important;

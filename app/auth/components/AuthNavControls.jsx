@@ -11,8 +11,9 @@ import { Icon } from "../../../lib/icons";
 import Avatar from "../../../lib/ui/Avatar";
 import { useT } from "../../../lib/i18n/LanguageProvider";
 
-const MENU_ROW =
-  "flex items-center gap-3 px-3 h-9 mx-1.5 rounded-lg text-ink-2 hover:text-ink hover:bg-line/[0.06] transition-colors";
+// Rows of the account dropdown — the compact size of the glass rows the
+// phone menu uses, so the two menus read as the same surface.
+const MENU_ROW = "glass-row glass-row-sm";
 
 export default function AuthNavControls() {
   const { status, displayUser, profile, signOut } = useAuth();
@@ -106,9 +107,9 @@ export default function AuthNavControls() {
                 role="menu"
                 aria-hidden={!open}
                 style={coords ? { top: coords.top, right: coords.right } : { top: -9999, right: 0 }}
-                className={`profile-menu menu-panel fixed w-64 overflow-hidden z-[120] ${open ? "open" : ""}`}
+                className={`profile-menu glass-panel glass-dense fixed w-64 overflow-hidden rounded-2xl p-1.5 z-[120] ${open ? "open" : ""}`}
               >
-                <div className="px-4 py-3 border-b border-line/[0.08] flex items-center gap-3">
+                <div className="px-2.5 pb-2.5 pt-2 border-b border-line/10 flex items-center gap-3">
                   <Avatar src={displayUser.avatarUrl} name={displayUser.displayName} size={36} />
                   <div className="min-w-0">
                     <div className="text-sm font-semibold truncate">{displayUser.displayName}</div>
@@ -117,7 +118,7 @@ export default function AuthNavControls() {
                     </div>
                   </div>
                 </div>
-                <nav className="py-1.5 text-sm">
+                <nav className="flex flex-col gap-0.5 pt-1.5">
                   <Link
                     role="menuitem"
                     href="/account"
@@ -155,7 +156,7 @@ export default function AuthNavControls() {
                       <span>{t("nav.moderatorConsole")}</span>
                     </Link>
                   )}
-                  <div className="my-1.5 border-t border-line/[0.08]" />
+                  <div className="my-1 border-t border-line/10" />
                   <button
                     type="button"
                     role="menuitem"
@@ -164,7 +165,7 @@ export default function AuthNavControls() {
                       setOpen(false);
                       signOut();
                     }}
-                    className={`${MENU_ROW} w-[calc(100%-0.75rem)] text-left`}
+                    className={`${MENU_ROW} w-full text-left`}
                   >
                     <Icon name="logout" size={16} />
                     {t("nav.logOut")}
