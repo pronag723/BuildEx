@@ -24,14 +24,14 @@ export const ABOUT_SECTIONS = ["projects", "how-it-works"];
 const LINE = 0.38;
 
 // After a click (or a visit to /about#…) the page smooth-scrolls through the
-// sections in between, so the clicked section is pinned until the scroll ends
-// and the underline doesn't flicker through them on the way. The end is the
-// `scrollend` event where there is one, else this long without a scroll event.
-const SETTLE_MS = 160;
-// …and if no scroll starts at all (already there), the pin lifts after this
-// many rendered frames. Frames, not milliseconds: a busy page that has not yet
-// drawn the frame its scroll starts on must not lose the pin early.
-const START_FRAMES = 30;
+// sections in between, so the clicked section is pinned until the page has
+// stopped moving, and the underline doesn't flicker through them on the way.
+// Both waits are counted in rendered frames, not milliseconds — a busy page
+// that hasn't drawn the frames its scroll runs on must not lose the pin early —
+// and `scrollend` is no use: it also fires when one smooth scroll is cut short
+// by the next (ours, then Next's), halfway there.
+const SETTLE_FRAMES = 10; // still this long after moving: it has arrived
+const START_FRAMES = 30; // never moved in this long: no scroll is coming
 
 function headerHeight() {
   const root = document.documentElement;
@@ -67,17 +67,16 @@ export function useActiveAboutSection() {
 
     let pinned = false;
     let pinnedTo = null;
-    let settle = 0;
-    let startFrame = 0;
+    let frame = 0;
     const release = () => {
       pinned = false;
-      // A clicked section stays marked while it is on screen, even when the
-      // page ran out before it reached the top (a tall window, a short page).
-      const target = pinnedTo && box(pinnedTo);
-      if (target && target.bottom > headerHeight() && target.top < window.innerHeight) return;
-      // The scroll has only just stopped, and the observer reports it a task
+      // The page has only just stopped, and the observer reports it a task
       // later, so read where the line is now rather than its last report.
       atEnd = atPageEnd();
+      // A clicked section stays marked when the page ran out before it could
+      // bring it up to the line (a tall window): it is on screen, at the end.
+      const target = pinnedTo && box(pinnedTo);
+      if (atEnd && target && target.bottom > headerHeight() && target.top < window.innerHeight) return;
       const under = ABOUT_SECTIONS.find((id) => {
         const r = box(id);
         return r && r.top <= line && r.bottom > line;
@@ -88,37 +87,29 @@ export function useActiveAboutSection() {
       pinned = true;
       pinnedTo = section;
       setActive(section);
-      clearTimeout(settle);
-      cancelAnimationFrame(startFrame);
-      // Lift the pin if no scroll ever came. Once the page has moved, a
-      // scroll is under way and its scroll/scrollend events lift it instead.
-      const startY = window.scrollY;
-      let frames = 0;
+      cancelAnimationFrame(frame);
+      let lastY = window.scrollY;
+      let moved = false;
+      let still = 0;
       const tick = () => {
-        if (!pinned || window.scrollY !== startY) return;
-        if (++frames >= START_FRAMES) release();
-        else startFrame = requestAnimationFrame(tick);
+        if (window.scrollY !== lastY) {
+          lastY = window.scrollY;
+          moved = true;
+          still = 0;
+        } else {
+          still += 1;
+        }
+        if (still >= (moved ? SETTLE_FRAMES : START_FRAMES)) release();
+        else frame = requestAnimationFrame(tick);
       };
-      startFrame = requestAnimationFrame(tick);
+      frame = requestAnimationFrame(tick);
     };
 
-    const hasScrollEnd = "onscrollend" in window;
     const onScroll = () => {
       atEnd = atPageEnd();
-      if (pinned) {
-        clearTimeout(settle);
-        if (!hasScrollEnd) settle = setTimeout(release, SETTLE_MS);
-      } else {
-        setActive(current());
-      }
-    };
-    const onScrollEnd = () => {
-      if (!pinned) return;
-      clearTimeout(settle);
-      release();
+      if (!pinned) setActive(current());
     };
     window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("scrollend", onScrollEnd);
 
     let observer = null;
     const observe = () => {
@@ -157,6 +148,21 @@ export function useActiveAboutSection() {
       const url = new URL(link.href, window.location.href);
       if (url.origin !== window.location.origin || !samePage(url.pathname, window.location.pathname)) return;
       pin(sectionFromHash(url.hash));
+
+      // Next's <Link> (the one that has already called preventDefault) does
+      // not reliably move the page on a same-page click: it ignores a click on
+      // the URL already showing — and the hash stays in the address bar after
+      // the reader scrolls away by hand — and "About" from the foot of
+      // /about#how-it-works changed the URL without scrolling to the top. So
+      // the item was underlined but the page stayed put. Do the scroll here.
+      // A plain <a href="#…"> is left to the browser, which always scrolls.
+      // Neither call names a behaviour, so the page's scroll-behavior applies
+      // (smooth, or instant under reduced motion).
+      if (event.defaultPrevented) {
+        const id = decodeURIComponent(url.hash.slice(1));
+        if (!id) window.scrollTo({ top: 0 });
+        else document.getElementById(id)?.scrollIntoView({ block: "start" });
+      }
     };
     document.addEventListener("click", onClick);
 
@@ -172,12 +178,10 @@ export function useActiveAboutSection() {
 
     return () => {
       observer?.disconnect();
-      clearTimeout(settle);
-      cancelAnimationFrame(startFrame);
+      cancelAnimationFrame(frame);
       cancelAnimationFrame(resizeFrame);
       document.removeEventListener("click", onClick);
       window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("scrollend", onScrollEnd);
       window.removeEventListener("resize", onResize);
     };
   }, [onAbout]);
