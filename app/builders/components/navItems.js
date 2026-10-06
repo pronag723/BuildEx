@@ -27,10 +27,22 @@ export function catalogNavItemsFor(signedIn) {
   return catalogNavItems.filter((item) => !item.auth || signedIn);
 }
 
-export function isNavActive(pathname, path) {
+/** /about, with or without the trailing slash the static export adds. */
+export const isAboutPath = (pathname) => (pathname || "").replace(/\/+$/, "") === "/about";
+
+/**
+ * Whether a nav item is the current one. `activeSection` is the /about section
+ * in view ("projects" | "how-it-works" | null, from useActiveAboutSection), so
+ * on /about exactly one of Showcase / How it works / About is marked: the
+ * section being read, or "About" for the hero and the closing section.
+ */
+export function isNavActive(pathname, path, activeSection = null) {
   if (!pathname || !path) return false;
-  // Anchor links into the landing page are never a "current page".
-  if (path.includes("#")) return false;
+  const hash = path.indexOf("#");
+  if (hash !== -1) {
+    return isAboutPath(pathname) && path.slice(0, hash) === "/about" && path.slice(hash + 1) === activeSection;
+  }
+  if (path === "/about") return isAboutPath(pathname) && !activeSection;
   if (path === "/") return pathname === "/";
   return pathname === path || pathname.startsWith(`${path}/`);
 }

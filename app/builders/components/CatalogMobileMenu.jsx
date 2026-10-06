@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { isNavActive, catalogNavItemsFor } from "./navItems";
+import { useActiveAboutSection } from "./useActiveAboutSection";
 import { AuthMobileControls } from "../../auth/components/AuthNavControls";
 import { useAuth } from "../../../lib/auth/AuthContext";
 import { useUnread } from "../../../lib/chat/UnreadContext";
@@ -13,6 +14,7 @@ import { useT } from "../../../lib/i18n/LanguageProvider";
 // close button). The page behind it is dimmed and blurred.
 export default function CatalogMobileMenu({ mobileMenuOpen, setMobileMenuOpen }) {
   const pathname = usePathname();
+  const aboutSection = useActiveAboutSection();
   const { status } = useAuth();
   const { hasUnread } = useUnread();
   const navItems = catalogNavItemsFor(status === "authenticated");
@@ -31,7 +33,7 @@ export default function CatalogMobileMenu({ mobileMenuOpen, setMobileMenuOpen })
       <div className="mobile-menu-panel glass-panel relative mx-3 mt-2 max-h-[calc(100%-1.5rem)] overflow-y-auto rounded-3xl p-2.5">
         <nav aria-label={t("common.mainNav")} className="flex flex-col gap-0.5">
           {navItems.map((item) => {
-            const active = isNavActive(pathname, item.path);
+            const active = isNavActive(pathname, item.path, aboutSection);
             return (
               <Link
                 key={item.key}

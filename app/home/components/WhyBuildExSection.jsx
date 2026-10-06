@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { Icon } from "../../../lib/icons";
 import { useT } from "../../../lib/i18n/LanguageProvider";
 
@@ -23,7 +22,7 @@ function ClaimList({ positive, title, items }) {
               name={positive ? "check" : "close"}
               size={16}
               strokeWidth={2}
-              className={`mt-0.5 flex-shrink-0 ${positive ? "text-accent-ink" : "text-ink-3"}`}
+              className={`mt-0.5 flex-shrink-0 ${positive ? "text-accent-ink" : "text-danger"}`}
             />
             <span>{item}</span>
           </li>
@@ -47,13 +46,6 @@ export default function WhyBuildExSection() {
             <ClaimList positive title={t("about.why.doesTitle")} items={t("about.why.does")} />
             <ClaimList title={t("about.why.doesNotTitle")} items={t("about.why.doesNot")} />
           </div>
-        </div>
-
-        <div className="mt-14 flex flex-col items-start gap-4 rounded-xl border border-line/10 bg-surface p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
-          <p className="max-w-lg text-[15px] font-medium text-ink">{t("about.cta")}</p>
-          <Link href="/" className="btn btn-primary btn-lg flex-shrink-0">
-            {t("about.browseBuilders")}
-          </Link>
         </div>
       </div>
     </section>

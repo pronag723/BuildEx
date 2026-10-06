@@ -14,7 +14,7 @@ import { useT } from "../../lib/i18n/LanguageProvider";
 export function Wordmark({ className = "" }) {
   return (
     <span className={`wordmark ${className}`}>
-      build<span className="text-accent-ink">ex</span>
+      build<span className="text-accent">ex</span>
     </span>
   );
 }

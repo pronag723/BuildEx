@@ -1535,6 +1535,330 @@ a.social-link-row:hover {
 }
 
 /* =============================================================================
+   /about hero — floating liquid-glass cards
+   -----------------------------------------------------------------------------
+   The second member of the .glass-panel family (mobile menu, header
+   dropdowns): illustration cards that float beside the hero text. Glass only
+   reads as glass when there is something behind it to blur — over the plain
+   canvas it is a grey box — so a few large, slow, blurred colour shapes sit
+   under the cards. Each card is an outer .hero-float (position + float) around
+   an inner .glass-card (glass + hover lift), so the two transforms never fight.
+   ========================================================================== */
+
+/* Fills the screen under the header from `lg`, where the cards sit beside the
+   text. Below it the hero is the text alone, and a full phone screen of it
+   was mostly empty canvas, so it takes its natural height and lets the
+   showcase start in view. */
+.hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+@media (min-width: 1024px) {
+  .hero {
+    min-height: calc(100vh - var(--header-h));
+    min-height: calc(100svh - var(--header-h));
+  }
+}
+
+.hero-visual {
+  /* The colour shapes: the accent and two cooler partners. Light mode takes
+     deeper greens, which still show through white glass at low opacity. */
+  --hero-green: var(--accent);
+  --hero-emerald: 16 185 129;
+  --hero-teal: 45 212 191;
+  position: relative;
+  display: none;
+  width: 100%;
+  max-width: 34rem;
+  height: 22rem;
+  justify-self: end;
+}
+
+:root.light .hero-visual {
+  --hero-green: 34 197 94;
+  --hero-teal: 20 184 166;
+}
+
+@media (min-width: 1024px) {
+  .hero-visual {
+    display: block;
+  }
+}
+
+.hero-blob {
+  position: absolute;
+  z-index: 0;
+  border-radius: 9999px;
+  opacity: 0.35;
+  filter: blur(28px);
+  pointer-events: none;
+  animation: heroDrift 24s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+:root.light .hero-blob {
+  opacity: 0.24;
+}
+
+/* Behind the profile card's lower-left edge, where the reach card overlaps it. */
+.hero-blob-a {
+  left: 8rem;
+  top: 3rem;
+  width: 15rem;
+  height: 15rem;
+  background: radial-gradient(circle, rgb(var(--hero-green)) 30%, rgb(var(--hero-green) / 0) 70%);
+}
+
+/* Under the reach card's right edge and the presence badge. */
+.hero-blob-b {
+  right: 0;
+  bottom: -1rem;
+  width: 17rem;
+  height: 13rem;
+  background: radial-gradient(closest-side, rgb(var(--hero-teal)) 30%, rgb(var(--hero-teal) / 0) 100%);
+  animation-duration: 29s;
+  animation-direction: alternate-reverse;
+}
+
+/* Peeking out past the profile card's top-right corner. */
+.hero-blob-c {
+  right: -2rem;
+  top: -2.5rem;
+  width: 12rem;
+  height: 12rem;
+  background: radial-gradient(circle, rgb(var(--hero-emerald)) 30%, rgb(var(--hero-emerald) / 0) 70%);
+  animation-duration: 21s;
+  animation-delay: -8s;
+}
+
+@keyframes heroDrift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(1.75rem, -1.25rem, 0) scale(1.08);
+  }
+  100% {
+    transform: translate3d(-1.25rem, 1.5rem, 0) scale(0.95);
+  }
+}
+
+.hero-float {
+  position: absolute;
+  z-index: 1;
+  animation: floatBase 3s ease-in-out infinite;
+  will-change: transform;
+}
+
+.hero-float-2 {
+  animation-delay: 0.5s;
+}
+
+.hero-float-3 {
+  animation-delay: 1s;
+}
+
+@keyframes floatBase {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+/* The scroll-down arrow, centred at the foot of the hero. */
+.hero-next {
+  left: 0;
+  right: 0;
+  bottom: 1.5rem;
+  width: 2.75rem;
+  margin: 0 auto;
+}
+
+/* ── Liquid glass ─────────────────────────────────────────────────────────
+   Tint + diagonal sheen, a backdrop blur, a rim of light that is brightest on
+   the top-left edge (::before, a gradient border cut out with mask-composite),
+   a specular top edge and a soft glare across the top third (::after), which
+   follows the cursor on hover. */
+
+@property --glare {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+
+.glass-card {
+  --glass-fill: rgb(38 38 38 / 0.42);
+  --glass-sheen: linear-gradient(135deg, rgb(255 255 255 / 0.14), rgb(255 255 255 / 0.03));
+  --glass-rim: linear-gradient(135deg, rgb(255 255 255 / 0.5), rgb(255 255 255 / 0.05) 60%);
+  --glass-spec: rgb(255 255 255 / 0.25);
+  --glass-drop: 0 30px 60px -20px rgb(0 0 0 / 0.55);
+  position: relative;
+  isolation: isolate;
+  border-radius: 24px;
+  background: var(--glass-sheen), var(--glass-fill);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  box-shadow: inset 0 1px 0 var(--glass-spec), var(--glass-drop);
+}
+
+/* White glass on a near-white page only reads as glass if it is visibly
+   uneven: a brighter top-left falling off to a thinner bottom-right (where
+   the colour behind shows through), a slate hairline outside the white rim,
+   and a soft slate shadow. Averages out at ~0.55 white. */
+:root.light .glass-card {
+  --glass-fill: rgb(255 255 255 / 0.4);
+  --glass-sheen: linear-gradient(135deg, rgb(255 255 255 / 0.45), rgb(255 255 255 / 0.04) 70%);
+  --glass-rim: linear-gradient(135deg, rgb(255 255 255 / 0.95), rgb(255 255 255 / 0.4) 40%, rgb(15 23 42 / 0.08) 75%);
+  --glass-spec: rgb(255 255 255 / 0.9);
+  --glass-drop: 0 0 0 1px rgb(15 23 42 / 0.05), 0 28px 56px -24px rgb(15 23 42 / 0.26), 0 4px 12px -4px rgb(15 23 42 / 0.06);
+}
+
+.glass-card::before,
+.glass-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.glass-card::before {
+  padding: 1px;
+  background: var(--glass-rim);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+
+.glass-card::after {
+  background:
+    radial-gradient(14rem circle at var(--mx, 50%) var(--my, 0%), rgb(255 255 255 / calc(var(--glare) * 0.14)), transparent 70%),
+    linear-gradient(180deg, rgb(255 255 255 / 0.07), rgb(255 255 255 / 0) 34%);
+}
+
+/* Content sits above the rim and the glare. */
+.glass-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.glass-pill,
+.glass-round {
+  border-radius: 9999px;
+}
+
+.glass-round {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  color: rgb(var(--ink-2));
+  transition: color 150ms ease;
+}
+
+.glass-round:hover {
+  color: rgb(var(--ink));
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .glass-card {
+    transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1), --glare 300ms ease, color 150ms ease;
+  }
+
+  .glass-card:hover {
+    transform: translateY(-4px);
+    --glare: 1;
+  }
+}
+
+/* Contents of the glass: translucent pills, not the solid .tag. */
+.glass-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  height: 1.75rem;
+  padding: 0 0.6875rem;
+  border-radius: 9999px;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  background: rgb(255 255 255 / 0.08);
+  color: rgb(var(--ink));
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.glass-chip-sm {
+  height: 1.5rem;
+  padding: 0 0.5625rem;
+  font-size: 0.6875rem;
+  color: rgb(var(--ink-2));
+}
+
+.glass-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 14px;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  background: rgb(255 255 255 / 0.08);
+}
+
+:root.light .glass-chip,
+:root.light .glass-icon {
+  border-color: rgb(var(--ink) / 0.1);
+  background: rgb(var(--ink) / 0.04);
+}
+
+.glass-chip-accent,
+:root.light .glass-chip-accent {
+  border-color: rgb(var(--accent) / 0.4);
+  background: rgb(var(--accent) / 0.18);
+  color: rgb(var(--accent-ink));
+}
+
+.hero-online-dot {
+  flex-shrink: 0;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: rgb(var(--accent));
+  box-shadow: 0 0 0 3px rgb(var(--accent) / 0.22);
+}
+
+/* No backdrop-filter: a solid surface in the same shape. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass-card,
+  :root.light .glass-card {
+    background: rgb(var(--surface));
+    border: 1px solid rgb(var(--line) / 0.1);
+  }
+
+  .glass-card::before {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-float,
+  .hero-blob {
+    animation: none;
+  }
+}
+
+/* =============================================================================
    Motion preferences
    ========================================================================== */
 

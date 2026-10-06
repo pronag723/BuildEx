@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { isNavActive, catalogNavItemsFor } from "./navItems";
+import { useActiveAboutSection } from "./useActiveAboutSection";
 import AuthNavControls from "../../auth/components/AuthNavControls";
 import { useAuth } from "../../../lib/auth/AuthContext";
 import { useUnread } from "../../../lib/chat/UnreadContext";
@@ -16,6 +17,7 @@ import ThemeToggle from "../../components/ThemeToggle";
 // owned by ThemeToggle now, so pages no longer thread theme state through here.
 export default function CatalogNavbar({ mobileMenuOpen, setMobileMenuOpen }) {
   const pathname = usePathname();
+  const aboutSection = useActiveAboutSection();
   const { status } = useAuth();
   const { hasUnread } = useUnread();
   const navItems = catalogNavItemsFor(status === "authenticated");
@@ -26,7 +28,7 @@ export default function CatalogNavbar({ mobileMenuOpen, setMobileMenuOpen }) {
       key={item.key}
       href={item.path}
       className="nav-link"
-      aria-current={isNavActive(pathname, item.path) ? "page" : undefined}
+      aria-current={isNavActive(pathname, item.path, aboutSection) ? "page" : undefined}
     >
       {t(`nav.${item.key}`)}
       {item.path === "/chats" && hasUnread && (
