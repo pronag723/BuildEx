@@ -115,11 +115,11 @@ export default function NotificationsBell() {
                 ? { top: coords.top, right: coords.right }
                 : { top: -9999, right: 0 }
             }
-            className={`profile-menu menu-panel fixed w-80 max-w-[calc(100vw-1rem)] overflow-hidden z-[120] ${
+            className={`profile-menu glass-panel glass-dense fixed w-80 max-w-[calc(100vw-1rem)] overflow-hidden rounded-2xl p-1.5 z-[120] ${
               open ? "open" : ""
             }`}
           >
-            <div className="px-4 py-3 border-b border-line/[0.08] flex items-center justify-between gap-3">
+            <div className="px-2.5 pb-2.5 pt-2 border-b border-line/10 flex items-center justify-between gap-3">
               <span className="text-sm font-semibold">{t("notifications.title")}</span>
               {visible.length > 0 && (
                 <button
@@ -133,13 +133,13 @@ export default function NotificationsBell() {
               )}
             </div>
 
-            <div className="max-h-[60vh] overflow-y-auto hide-scrollbar">
+            <div className="max-h-[60vh] overflow-y-auto hide-scrollbar pt-1.5">
               {visible.length === 0 ? (
                 <div className="px-4 py-8 text-center text-sm text-ink-3">
                   {t("notifications.empty")}
                 </div>
               ) : (
-                <ul className="py-1 text-sm">
+                <ul className="flex flex-col gap-0.5 text-sm">
                   {visible.map((n) => {
                     const unread = !n.read_at;
                     const body = (
@@ -169,9 +169,9 @@ export default function NotificationsBell() {
                       </>
                     );
 
-                    const rowClass = `flex items-start gap-2.5 px-4 py-3 transition-colors ${
+                    const rowClass = `flex items-start gap-2.5 rounded-[10px] px-2.5 py-2.5 transition-colors ${
                       unread ? "" : "text-ink-2"
-                    } hover:bg-line/[0.05]`;
+                    } hover:bg-line/[0.07]`;
 
                     return (
                       <li key={n.id}>
