@@ -194,13 +194,13 @@ export function AuthMobileControls({ onAfter }) {
   const t = useT();
 
   if (status === "loading") {
-    return <div className="w-full h-11 rounded-lg skeleton" />;
+    return <div className="h-12 w-full rounded-[14px] skeleton" />;
   }
 
   if (status === "authenticated" && displayUser) {
     return (
       <>
-        <div className="flex items-center gap-3 py-2">
+        <div className="flex items-center gap-3 px-3 py-2.5">
           <Avatar src={displayUser.avatarUrl} name={displayUser.displayName} size={40} />
           <div className="min-w-0">
             <div className="text-[15px] font-semibold truncate">{displayUser.displayName}</div>
@@ -213,7 +213,7 @@ export function AuthMobileControls({ onAfter }) {
           href="/account"
           onClick={() => onAfter?.()}
           aria-current={onAccount ? "page" : undefined}
-          className="btn btn-secondary btn-lg w-full justify-start"
+          className="glass-row"
         >
           <Icon name="user" size={17} />
           {t("nav.myProfile")}
@@ -222,7 +222,7 @@ export function AuthMobileControls({ onAfter }) {
           <Link
             href="/admin"
             onClick={() => onAfter?.()}
-            className="btn btn-secondary btn-lg w-full justify-start"
+            className="glass-row"
           >
             <Icon name="shield" size={17} />
             {t("nav.moderatorConsole")}
@@ -234,7 +234,7 @@ export function AuthMobileControls({ onAfter }) {
             onAfter?.();
             signOut();
           }}
-          className="btn btn-ghost btn-lg w-full justify-start"
+          className="glass-row w-full text-left"
         >
           <Icon name="logout" size={17} />
           {t("nav.logOut")}
