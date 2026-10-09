@@ -5,6 +5,7 @@ import Link from "next/link";
 import { fetchBuilders } from "../../builders/data/fetchBuilders";
 import { Icon } from "../../../lib/icons";
 import { useT } from "../../../lib/i18n/LanguageProvider";
+import { publicAsset } from "../utils";
 
 // Moves a glass card's glare to the cursor (drawn by .glass-card::after). Only
 // a mouse has a hover state, so touch and pen leave the glare where it rests.
@@ -98,13 +99,10 @@ export default function HeroSection() {
       : t("about.hero.listed", { count: counts.listed }));
 
   return (
-    <section id="hero" className="hero">
-      {/* Below `lg` the colour shapes sit behind the text itself (from `lg`
-          they live in .hero-visual, under the cards). */}
-      <div className="hero-backdrop" aria-hidden="true">
-        <div className="hero-blob hero-blob-a" />
-        <div className="hero-blob hero-blob-b" />
-        <div className="hero-blob hero-blob-c" />
+    <section id="hero" className="hero on-scene">
+      {/* The night scene behind everything: it is what the glass cards blur. */}
+      <div className="hero-scene" aria-hidden="true">
+        <img src={publicAsset("/backgrounds/night-forest.webp")} alt="" fetchPriority="high" decoding="async" />
       </div>
 
       <div className="relative z-[1] mx-auto grid w-full max-w-7xl items-center gap-12 px-4 pb-28 pt-12 sm:px-6 sm:pt-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-16 lg:px-8">
@@ -154,10 +152,6 @@ export default function HeroSection() {
             outer .hero-float (position + float) around an inner .glass-card
             (glass + hover lift), so the two transforms never fight. */}
         <div className="hero-visual">
-          <div className="hero-blob hero-blob-a" aria-hidden="true" />
-          <div className="hero-blob hero-blob-b" aria-hidden="true" />
-          <div className="hero-blob hero-blob-c" aria-hidden="true" />
-
           <div className="hero-float right-2 top-2 w-[22rem]" aria-hidden="true">
             <ProfileCard className="p-6" />
           </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useT } from "../../lib/i18n/LanguageProvider";
 import { useSlidingIndicator } from "../../lib/ui/useSlidingIndicator";
@@ -42,11 +43,48 @@ function HeaderNav({ children }) {
   );
 }
 
-export default function SiteHeader({ nav = null, actions = null }) {
+// `overScene` names a full-bleed picture at the top of the page (the /about
+// hero) that the header may lie over. While it does, the header is see-through:
+// clear at the very top of the page, frosted once the page scrolls under it,
+// and the ordinary bar again once the picture has gone by. Returns "top",
+// "scrolled" or null (not over it). The first render says "top", so the
+// static HTML of a page opened at the top is already right.
+function useOverScene(sceneId, headerRef) {
+  const [state, setState] = useState(sceneId ? "top" : null);
+
+  useEffect(() => {
+    const scene = sceneId && document.getElementById(sceneId);
+    if (!scene) {
+      setState(null);
+      return undefined;
+    }
+    const update = () => {
+      const over = scene.getBoundingClientRect().bottom > headerRef.current.offsetHeight;
+      setState(!over ? null : window.scrollY > 0 ? "scrolled" : "top");
+    };
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, [sceneId, headerRef]);
+
+  return state;
+}
+
+export default function SiteHeader({ nav = null, actions = null, overScene = null }) {
   const t = useT();
+  const headerRef = useRef(null);
+  const sceneState = useOverScene(overScene, headerRef);
 
   return (
-    <header className="site-header">
+    <header
+      ref={headerRef}
+      className={sceneState ? "site-header on-scene" : "site-header"}
+      data-over-scene={sceneState ?? undefined}
+    >
       <div className="mx-auto flex h-full max-w-7xl items-center gap-6 px-4 sm:px-6 lg:px-8">
         <Link
           href="/"

@@ -15,7 +15,8 @@ import ThemeToggle from "../../components/ThemeToggle";
 
 // The product header: feed, profiles, messages, account, about. The theme is
 // owned by ThemeToggle now, so pages no longer thread theme state through here.
-export default function CatalogNavbar({ mobileMenuOpen, setMobileMenuOpen }) {
+// `overScene` is passed through to SiteHeader (see there).
+export default function CatalogNavbar({ mobileMenuOpen, setMobileMenuOpen, overScene = null }) {
   const pathname = usePathname();
   const aboutSection = useActiveAboutSection();
   const { status } = useAuth();
@@ -58,5 +59,5 @@ export default function CatalogNavbar({ mobileMenuOpen, setMobileMenuOpen }) {
     </>
   );
 
-  return <SiteHeader nav={nav} actions={actions} />;
+  return <SiteHeader nav={nav} actions={actions} overScene={overScene} />;
 }

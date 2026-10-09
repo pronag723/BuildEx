@@ -438,10 +438,30 @@ select option {
   top: 0;
   z-index: 80;
   height: var(--header-h);
+  color: rgb(var(--ink));
   background: rgb(var(--canvas) / 0.86);
   -webkit-backdrop-filter: saturate(140%) blur(10px);
   backdrop-filter: saturate(140%) blur(10px);
   border-bottom: 1px solid rgb(var(--line) / 0.08);
+  transition: background-color 200ms ease, border-color 200ms ease;
+}
+
+/* Over the /about night scene (see useOverScene in SiteHeader.jsx) the header
+   is see-through and takes the scene's dark text values (.on-scene): clear at
+   the top of the page, then a dark frosted glass once the hero scrolls under
+   it, so the heading never reads through the links. */
+.site-header[data-over-scene] {
+  background: transparent;
+  border-bottom-color: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.site-header[data-over-scene="scrolled"] {
+  background: rgb(7 9 18 / 0.5);
+  border-bottom-color: rgb(255 255 255 / 0.08);
+  -webkit-backdrop-filter: saturate(140%) blur(16px);
+  backdrop-filter: saturate(140%) blur(16px);
 }
 
 /* The wordmark. Chakra Petch, lowercased — the only place the display face
@@ -1558,14 +1578,14 @@ a.social-link-row:hover {
 }
 
 /* =============================================================================
-   /about hero — floating liquid-glass cards
+   /about hero — night scene + floating liquid-glass cards
    -----------------------------------------------------------------------------
    The second member of the .glass-panel family (mobile menu, header
    dropdowns): illustration cards that float beside the hero text. Glass only
-   reads as glass when there is something behind it to blur — over the plain
-   canvas it is a grey box — so a few large, slow, blurred colour shapes sit
-   under the cards. Each card is an outer .hero-float (position + float) around
-   an inner .glass-card (glass + hover lift), so the two transforms never fight.
+   reads as glass when there is something behind it to blur, so the hero sits
+   on a night shot of a Minecraft forest (.hero-scene) and the cards blur that.
+   Each card is an outer .hero-float (position + float) around an inner
+   .glass-card (glass + hover lift), so the two transforms never fight.
    ========================================================================== */
 
 /* Fills the first screen under the header at every width, with the content
@@ -1573,28 +1593,101 @@ a.social-link-row:hover {
    keeps the text clear of it; if the text is taller than the screen, the
    hero grows and the arrow moves down with it). From `lg` the text and the
    cards share the full width. Below it the text is centred with the screen to
-   itself, so the colour shapes move behind it, dimmer (.hero-backdrop), framing
-   it from both edges, and on a screen tall enough to hold them the cards sit
-   still under the buttons (.hero-compact-card: the profile card, joined by the
-   reach card from `md`); on a short one they are left out rather than
-   squeezing the rest. */
+   itself, and on a screen tall enough to hold them the cards sit still under
+   the buttons (.hero-compact-card: the profile card, joined by the reach card
+   from `md`); on a short one they are left out rather than squeezing the rest.
+
+   The hero runs up under the header (which is see-through over it, see
+   .site-header[data-over-scene]) and pads its content back down, so the
+   picture starts at the top of the window while the content is centred in
+   the space below the header, as before. */
 .hero {
-  /* The colour shapes: the accent and two cooler partners. Light mode takes
-     deeper greens, which still show through white glass at low opacity. */
-  --hero-green: var(--accent);
-  --hero-emerald: 16 185 129;
-  --hero-teal: 45 212 191;
   position: relative;
   display: flex;
   align-items: center;
-  min-height: calc(100vh - var(--header-h));
-  min-height: calc(100svh - var(--header-h));
+  margin-top: calc(-1 * var(--header-h));
+  padding-top: var(--header-h);
+  min-height: 100vh;
+  min-height: 100svh;
   overflow: hidden;
 }
 
-:root.light .hero {
-  --hero-green: 34 197 94;
-  --hero-teal: 20 184 166;
+/* Anything drawn over the night scene (the hero, and the header while it is
+   see-through above it) keeps the dark theme's text, hairline and surface
+   values in both themes. --canvas is left alone: the scene fades into the real
+   page colour. */
+.on-scene {
+  --surface: 28 28 28;
+  --raised: 36 36 36;
+  --ink: 237 237 235;
+  --ink-2: 190 192 196;
+  --ink-3: 150 152 158;
+  --line: 255 255 255;
+  --accent-hover: 110 231 155;
+  --accent-ink: 74 222 128;
+  color-scheme: dark;
+  color: rgb(var(--ink));
+}
+
+/* --hero-fade blends the foot of the scene into the page. Only on the dark
+   page: on the light one the blend runs through a muddy grey, so the scene
+   ends on a clean edge instead. */
+.hero-scene {
+  --hero-fade: linear-gradient(180deg, rgb(var(--canvas) / 0) 78%, rgb(var(--canvas)) 100%);
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: #070912;
+}
+
+:root.light .hero-scene {
+  --hero-fade: none;
+}
+
+/* Below `lg` the text is centred over the top third of the picture, right
+   where the moon is. The picture is drawn 8% taller than the hero and pinned
+   to its foot, which lifts the moon into the gap between the header and the
+   heading; on these screens it is still drawn below its own size, so the zoom
+   costs no sharpness. */
+.hero-scene img {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 108%;
+  object-fit: cover;
+  object-position: 60% 100%;
+}
+
+/* Over the picture: the fade at the foot, and a dimmer behind the centred
+   text. */
+.hero-scene::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    var(--hero-fade),
+    radial-gradient(ellipse 80% 55% at 50% 42%, rgb(5 7 14 / 0.45), rgb(5 7 14 / 0.2));
+}
+
+@media (min-width: 1024px) {
+  .hero-scene {
+    --hero-fade: linear-gradient(180deg, rgb(var(--canvas) / 0) 70%, rgb(var(--canvas)) 100%);
+  }
+
+  .hero-scene img {
+    height: 100%;
+    object-position: 50% 32%;
+  }
+
+  /* From `lg` the text is on the left: dim that side only, leave the moon
+     and the cards' side of the scene clear. */
+  .hero-scene::after {
+    background:
+      var(--hero-fade),
+      linear-gradient(90deg, rgb(5 7 14 / 0.6), rgb(5 7 14 / 0.25) 45%, rgb(5 7 14 / 0) 70%);
+  }
 }
 
 .hero-visual {
@@ -1612,115 +1705,11 @@ a.social-link-row:hover {
   }
 }
 
-/* Below `lg`: the same shapes behind the centred text, softer, so the copy
-   stays easy to read over them. One spills off each edge so the side gutters
-   glow rather than sit blank, and one sits under the cards. */
-.hero-backdrop {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-}
-
-.hero-backdrop .hero-blob {
-  opacity: 0.2;
-}
-
-:root.light .hero-backdrop .hero-blob {
-  opacity: 0.14;
-}
-
-/* Behind the heading, spilling off the left edge. */
-.hero-backdrop .hero-blob-a {
-  inset: 8% auto auto -5rem;
-  width: 17rem;
-  height: 17rem;
-}
-
-/* Its mirror, beside the body text, spilling off the right edge. */
-.hero-backdrop .hero-blob-b {
-  inset: 14% -5rem auto auto;
-  width: 17rem;
-  height: 17rem;
-}
-
-/* Low down and centred, under the cards. Placed with left (not a translate),
-   since heroDrift owns transform. */
-.hero-backdrop .hero-blob-c {
-  inset: auto auto 8% calc(50% - 9rem);
-  width: 18rem;
-  height: 12rem;
-}
-
-@media (min-width: 1024px) {
-  .hero-backdrop {
-    display: none;
-  }
-}
-
 /* The still cards under the buttons: not from `lg` (the floating ones are
    there), and not on a screen too short to hold them with the text. */
 @media (min-width: 1024px), (max-height: 719px) {
   .hero-compact-card {
     display: none;
-  }
-}
-
-.hero-blob {
-  position: absolute;
-  z-index: 0;
-  border-radius: 9999px;
-  opacity: 0.35;
-  filter: blur(28px);
-  pointer-events: none;
-  animation: heroDrift 24s ease-in-out infinite alternate;
-  will-change: transform;
-}
-
-:root.light .hero-blob {
-  opacity: 0.24;
-}
-
-/* Behind the profile card's lower-left edge, where the reach card overlaps it. */
-.hero-blob-a {
-  left: 8rem;
-  top: 3rem;
-  width: 15rem;
-  height: 15rem;
-  background: radial-gradient(circle, rgb(var(--hero-green)) 30%, rgb(var(--hero-green) / 0) 70%);
-}
-
-/* Under the reach card's right edge and the presence badge. */
-.hero-blob-b {
-  right: 0;
-  bottom: -1rem;
-  width: 17rem;
-  height: 13rem;
-  background: radial-gradient(closest-side, rgb(var(--hero-teal)) 30%, rgb(var(--hero-teal) / 0) 100%);
-  animation-duration: 29s;
-  animation-direction: alternate-reverse;
-}
-
-/* Peeking out past the profile card's top-right corner. */
-.hero-blob-c {
-  right: -2rem;
-  top: -2.5rem;
-  width: 12rem;
-  height: 12rem;
-  background: radial-gradient(circle, rgb(var(--hero-emerald)) 30%, rgb(var(--hero-emerald) / 0) 70%);
-  animation-duration: 21s;
-  animation-delay: -8s;
-}
-
-@keyframes heroDrift {
-  0% {
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-  50% {
-    transform: translate3d(1.75rem, -1.25rem, 0) scale(1.08);
-  }
-  100% {
-    transform: translate3d(-1.25rem, 1.5rem, 0) scale(0.95);
   }
 }
 
@@ -1783,18 +1772,6 @@ a.social-link-row:hover {
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   backdrop-filter: blur(24px) saturate(180%);
   box-shadow: inset 0 1px 0 var(--glass-spec), var(--glass-drop);
-}
-
-/* White glass on a near-white page only reads as glass if it is visibly
-   uneven: a brighter top-left falling off to a thinner bottom-right (where
-   the colour behind shows through), a slate hairline outside the white rim,
-   and a soft slate shadow. Averages out at ~0.55 white. */
-:root.light .glass-card {
-  --glass-fill: rgb(255 255 255 / 0.4);
-  --glass-sheen: linear-gradient(135deg, rgb(255 255 255 / 0.45), rgb(255 255 255 / 0.04) 70%);
-  --glass-rim: linear-gradient(135deg, rgb(255 255 255 / 0.95), rgb(255 255 255 / 0.4) 40%, rgb(15 23 42 / 0.08) 75%);
-  --glass-spec: rgb(255 255 255 / 0.9);
-  --glass-drop: 0 0 0 1px rgb(15 23 42 / 0.05), 0 28px 56px -24px rgb(15 23 42 / 0.26), 0 4px 12px -4px rgb(15 23 42 / 0.06);
 }
 
 .glass-card::before,
@@ -1894,14 +1871,7 @@ a.social-link-row:hover {
   background: rgb(255 255 255 / 0.08);
 }
 
-:root.light .glass-chip,
-:root.light .glass-icon {
-  border-color: rgb(var(--ink) / 0.1);
-  background: rgb(var(--ink) / 0.04);
-}
-
-.glass-chip-accent,
-:root.light .glass-chip-accent {
+.glass-chip-accent {
   border-color: rgb(var(--accent) / 0.4);
   background: rgb(var(--accent) / 0.18);
   color: rgb(var(--accent-ink));
@@ -1918,8 +1888,7 @@ a.social-link-row:hover {
 
 /* No backdrop-filter: a solid surface in the same shape. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .glass-card,
-  :root.light .glass-card {
+  .glass-card {
     background: rgb(var(--surface));
     border: 1px solid rgb(var(--line) / 0.1);
   }
@@ -1930,8 +1899,7 @@ a.social-link-row:hover {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hero-float,
-  .hero-blob {
+  .hero-float {
     animation: none;
   }
 }

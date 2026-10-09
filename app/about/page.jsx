@@ -35,7 +35,8 @@ export default function AboutPage() {
 
   return (
     <div className="catalog-root">
-      <CatalogNavbar mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
+      {/* The hero runs up under the header, which is see-through over it. */}
+      <CatalogNavbar mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} overScene="hero" />
       <CatalogMobileMenu mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
 
       <main>
