@@ -69,6 +69,38 @@ function ReachCard({ className = "" }) {
   );
 }
 
+// The forest behind everything, by night or by day with the theme: it is what
+// the glass cards blur. Toggling the theme plays the change of time of day
+// (all CSS — see "The scene" in globals.css). The sun and moon are separate
+// from the pictures so they can set and rise, and the sky mask keeps them
+// behind the trees and mountains.
+function HeroScene() {
+  const skyMask = `url(${publicAsset("/backgrounds/forest-sky-mask.png")})`;
+  return (
+    <div className="hero-scene" aria-hidden="true">
+      <div className="scene-stage">
+        <img className="scene-night" src={publicAsset("/backgrounds/forest-night.webp")} alt="" decoding="async" />
+        <div className="scene-glow" />
+        <img className="scene-day" src={publicAsset("/backgrounds/forest-day.webp")} alt="" decoding="async" />
+        <div className="scene-sky" style={{ maskImage: skyMask, WebkitMaskImage: skyMask }}>
+          <div className="scene-orbit scene-orbit-moon">
+            <div className="scene-rise">
+              <img className="scene-moon" src={publicAsset("/backgrounds/forest-moon.png")} alt="" />
+            </div>
+          </div>
+          <div className="scene-orbit scene-orbit-sun">
+            <div className="scene-rise">
+              <div className="scene-sun" />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="scene-shade scene-shade-night" />
+      <div className="scene-shade scene-shade-day" />
+    </div>
+  );
+}
+
 export default function HeroSection() {
   // Real directory figures for the presence badge (and, below `lg`, the line
   // under the buttons). We reuse fetchBuilders (which already applies the
@@ -100,11 +132,7 @@ export default function HeroSection() {
 
   return (
     <section id="hero" className="hero on-scene">
-      {/* The night scene behind everything: it is what the glass cards blur. */}
-      <div className="hero-scene" aria-hidden="true">
-        <img src={publicAsset("/backgrounds/night-forest.webp")} alt="" fetchPriority="high" decoding="async" />
-      </div>
-
+      <HeroScene />
       <div className="relative z-[1] mx-auto grid w-full max-w-7xl items-center gap-12 px-4 pb-28 pt-12 sm:px-6 sm:pt-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-16 lg:px-8">
         {/* Below `lg` the column is centred; from `lg` it sits left of the cards. */}
         <div className="mx-auto max-w-2xl text-center lg:mx-0 lg:text-left">

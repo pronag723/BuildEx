@@ -446,10 +446,10 @@ select option {
   transition: background-color 200ms ease, border-color 200ms ease;
 }
 
-/* Over the /about night scene (see useOverScene in SiteHeader.jsx) the header
-   is see-through and takes the scene's dark text values (.on-scene): clear at
-   the top of the page, then a dark frosted glass once the hero scrolls under
-   it, so the heading never reads through the links. */
+/* Over the /about scene (see useOverScene in SiteHeader.jsx) the header is
+   see-through: clear at the top of the page, then frosted glass (dark by
+   night, pale by day) once the hero scrolls under it, so the heading never
+   reads through the links. */
 .site-header[data-over-scene] {
   background: transparent;
   border-bottom-color: transparent;
@@ -462,6 +462,11 @@ select option {
   border-bottom-color: rgb(255 255 255 / 0.08);
   -webkit-backdrop-filter: saturate(140%) blur(16px);
   backdrop-filter: saturate(140%) blur(16px);
+}
+
+:root.light .site-header[data-over-scene="scrolled"] {
+  background: rgb(255 255 255 / 0.55);
+  border-bottom-color: rgb(15 23 42 / 0.08);
 }
 
 /* The wordmark. Chakra Petch, lowercased — the only place the display face
@@ -1583,7 +1588,8 @@ a.social-link-row:hover {
    The second member of the .glass-panel family (mobile menu, header
    dropdowns): illustration cards that float beside the hero text. Glass only
    reads as glass when there is something behind it to blur, so the hero sits
-   on a night shot of a Minecraft forest (.hero-scene) and the cards blur that.
+   on a Minecraft forest (.hero-scene, night or day with the theme) and the
+   cards blur that.
    Each card is an outer .hero-float (position + float) around an inner
    .glass-card (glass + hover lift), so the two transforms never fight.
    ========================================================================== */
@@ -1612,82 +1618,246 @@ a.social-link-row:hover {
   overflow: hidden;
 }
 
-/* Anything drawn over the night scene (the hero, and the header while it is
-   see-through above it) keeps the dark theme's text, hairline and surface
-   values in both themes. --canvas is left alone: the scene fades into the real
-   page colour. */
-.on-scene {
-  --surface: 28 28 28;
-  --raised: 36 36 36;
-  --ink: 237 237 235;
+/* On the night scene, secondary text is lifted a step so it reads over the
+   picture (the hero, and the header while it is see-through above it). The
+   day scene sits under a pale wash, where the light theme's values read as
+   they are. */
+:root:not(.light) .on-scene {
   --ink-2: 190 192 196;
   --ink-3: 150 152 158;
-  --line: 255 255 255;
-  --accent-hover: 110 231 155;
-  --accent-ink: 74 222 128;
-  color-scheme: dark;
-  color: rgb(var(--ink));
 }
 
-/* --hero-fade blends the foot of the scene into the page. Only on the dark
-   page: on the light one the blend runs through a muddy grey, so the scene
-   ends on a clean edge instead. */
+/* ── The scene ───────────────────────────────────────────────────────────
+   The same forest by night (dark theme) and by day (light theme). Switching
+   the theme plays the change of time of day: the night picture fades into
+   the day one through a warm glow on the horizon, while the moon sets to the
+   right and the sun rises from the left (and back again). It is all CSS
+   transitions on the theme class, so a page opened in either theme simply
+   shows that scene at rest. Each moving part takes its timing from the
+   state it is heading to, so dawn and dusk run in their own order.
+
+   The sun and moon are elements of their own (the moon was painted out of the
+   night picture), masked to the sky so they sink behind the trees and
+   mountains instead of sliding over them. */
 .hero-scene {
-  --hero-fade: linear-gradient(180deg, rgb(var(--canvas) / 0) 78%, rgb(var(--canvas)) 100%);
+  /* The two themes' --canvas. The scene cannot use --canvas itself: it
+     flips the moment the theme does, while the pictures are still fading. */
+  --canvas-night: 21 21 21;
+  --canvas-day: 240 241 237;
+  --dawn: 1.4s;
+  --dawn-ease: cubic-bezier(0.45, 0, 0.4, 1);
   position: absolute;
   inset: 0;
   z-index: 0;
+  overflow: hidden;
   pointer-events: none;
+  container-type: size;
   background: #070912;
+  transition: background-color var(--dawn) var(--dawn-ease);
 }
 
 :root.light .hero-scene {
-  --hero-fade: none;
+  background: #8dbbe9;
 }
 
-/* Below `lg` the text is centred over the top third of the picture, right
-   where the moon is. The picture is drawn 8% taller than the hero and pinned
-   to its foot, which lifts the moon into the gap between the header and the
-   heading; on these screens it is still drawn below its own size, so the zoom
-   costs no sharpness. */
-.hero-scene img {
+/* The picture's own box, placed the way object-fit: cover would place it, so
+   the sun, the moon and the sky mask can be laid out in the picture's own
+   coordinates (cqw/cqh of this box). Below `lg` the text is centred over the
+   top third of the picture, where the moon is, so the picture is drawn 8%
+   taller than the hero and pinned to its foot, which lifts the moon into the
+   gap between the header and the heading (at these sizes it is still drawn
+   below its own size, so the zoom costs no sharpness). */
+.scene-stage {
+  --w: max(100cqw, 162cqh);
   position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 108%;
-  object-fit: cover;
-  object-position: 60% 100%;
-}
-
-/* Over the picture: the fade at the foot, and a dimmer behind the centred
-   text. */
-.hero-scene::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    var(--hero-fade),
-    radial-gradient(ellipse 80% 55% at 50% 42%, rgb(5 7 14 / 0.45), rgb(5 7 14 / 0.2));
+  left: calc((100cqw - var(--w)) * 0.6);
+  top: calc(100cqh - var(--w) / 1.5);
+  width: var(--w);
+  height: calc(var(--w) / 1.5);
+  container-type: size;
 }
 
 @media (min-width: 1024px) {
-  .hero-scene {
-    --hero-fade: linear-gradient(180deg, rgb(var(--canvas) / 0) 70%, rgb(var(--canvas)) 100%);
+  .scene-stage {
+    --w: max(100cqw, 150cqh);
+    left: calc((100cqw - var(--w)) * 0.5);
+    top: calc((100cqh - var(--w) / 1.5) * 0.32);
   }
+}
 
-  .hero-scene img {
-    height: 100%;
-    object-position: 50% 32%;
-  }
+.scene-stage > img,
+.scene-glow,
+.scene-sky,
+.scene-shade {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
 
-  /* From `lg` the text is on the left: dim that side only, leave the moon
-     and the cards' side of the scene clear. */
-  .hero-scene::after {
+/* Day over night. */
+.scene-day {
+  opacity: 0;
+  transition: opacity var(--dawn) var(--dawn-ease) 0.15s;
+}
+
+:root.light .scene-day {
+  opacity: 1;
+}
+
+/* The warm horizon between the two pictures. Going to day it comes up fast
+   over the night and the day picture then covers it; going to night the day
+   picture fades off it and it lingers before going out: dawn early, dusk
+   late. At rest it is either off or hidden under the day picture. */
+.scene-glow {
+  background: radial-gradient(
+    ellipse 75% 42% at 55% 40%,
+    rgb(255 168 102 / 0.85),
+    rgb(240 120 110 / 0.4) 50%,
+    rgb(120 80 140 / 0) 80%
+  );
+  mix-blend-mode: screen;
+  opacity: 0;
+  transition: opacity 0.9s ease-in 0.7s;
+}
+
+:root.light .scene-glow {
+  opacity: 1;
+  transition: opacity 0.55s ease-out;
+}
+
+.scene-sky {
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+/* Where the moon hangs at night and the sun by day. Each body is an outer
+   element that slides sideways at an even pace around an inner one that
+   rises or sinks, eased, so together they trace an arc. */
+.scene-orbit {
+  position: absolute;
+  left: 62.17%;
+  top: 22.17%;
+}
+
+.scene-moon,
+.scene-sun {
+  display: block;
+  translate: -50% -50%;
+}
+
+.scene-moon {
+  width: 3.71cqw;
+  filter: drop-shadow(0 0 1.2cqw rgb(255 236 190 / 0.55));
+}
+
+/* Minecraft's sun: a square, white-hot in the middle with a yellow rim. */
+.scene-sun {
+  width: 3.9cqw;
+  aspect-ratio: 1;
+  background: #fffdf0;
+  box-shadow:
+    0 0 0 0.45cqw #fff1b8,
+    0 0 2.4cqw 0.8cqw rgb(255 240 170 / 0.75),
+    0 0 8cqw 3cqw rgb(255 247 210 / 0.5);
+}
+
+/* The moon: up at night, rising from below the horizon on the way back... */
+.scene-orbit-moon {
+  translate: 0 0;
+  transition: translate 1.15s linear 0.45s;
+}
+
+.scene-orbit-moon .scene-rise {
+  translate: 0 0;
+  transition: translate 1.15s cubic-bezier(0.15, 0.6, 0.45, 1) 0.45s;
+}
+
+/* ...and setting to the right as day breaks. */
+:root.light .scene-orbit-moon {
+  translate: 15cqw 0;
+  transition: translate 1.15s linear;
+}
+
+:root.light .scene-orbit-moon .scene-rise {
+  translate: 0 42cqh;
+  transition: translate 1.15s cubic-bezier(0.55, 0, 0.85, 0.4);
+}
+
+/* The sun: below the horizon at night, setting there first as night falls... */
+.scene-orbit-sun {
+  translate: -17cqw 0;
+  transition: translate 1.15s linear;
+}
+
+.scene-orbit-sun .scene-rise {
+  translate: 0 42cqh;
+  transition: translate 1.15s cubic-bezier(0.55, 0, 0.85, 0.4);
+}
+
+/* ...and rising from the left after the moon has started down. */
+:root.light .scene-orbit-sun {
+  translate: 0 0;
+  transition: translate 1.15s linear 0.45s;
+}
+
+:root.light .scene-orbit-sun .scene-rise {
+  translate: 0 0;
+  transition: translate 1.15s cubic-bezier(0.15, 0.6, 0.45, 1) 0.45s;
+}
+
+/* Over the picture, one wash per theme, crossfading with the pictures: a
+   fade at the foot into that theme's page colour, so the next section starts
+   without a seam, and a dimmer (night) or pale wash (day) behind the centred
+   text. */
+.scene-shade {
+  transition: opacity var(--dawn) var(--dawn-ease) 0.15s;
+}
+
+.scene-shade-night {
+  background:
+    linear-gradient(180deg, rgb(var(--canvas-night) / 0) 78%, rgb(var(--canvas-night)) 100%),
+    radial-gradient(ellipse 80% 55% at 50% 42%, rgb(5 7 14 / 0.45), rgb(5 7 14 / 0.2));
+}
+
+.scene-shade-day {
+  opacity: 0;
+  background:
+    linear-gradient(180deg, rgb(var(--canvas-day) / 0) 74%, rgb(var(--canvas-day)) 100%),
+    radial-gradient(ellipse 80% 55% at 50% 42%, rgb(var(--canvas-day) / 0.6), rgb(var(--canvas-day) / 0.15));
+}
+
+:root.light .scene-shade-night {
+  opacity: 0;
+}
+
+:root.light .scene-shade-day {
+  opacity: 1;
+}
+
+/* From `lg` the text is on the left: wash that side only, and leave the sky
+   and the cards' side of the scene clear. */
+@media (min-width: 1024px) {
+  .scene-shade-night {
     background:
-      var(--hero-fade),
+      linear-gradient(180deg, rgb(var(--canvas-night) / 0) 70%, rgb(var(--canvas-night)) 100%),
       linear-gradient(90deg, rgb(5 7 14 / 0.6), rgb(5 7 14 / 0.25) 45%, rgb(5 7 14 / 0) 70%);
   }
+
+  .scene-shade-day {
+    background:
+      linear-gradient(180deg, rgb(var(--canvas-day) / 0) 70%, rgb(var(--canvas-day)) 100%),
+      linear-gradient(90deg, rgb(var(--canvas-day) / 0.75), rgb(var(--canvas-day) / 0.35) 45%, rgb(var(--canvas-day) / 0) 70%);
+  }
+}
+
+/* The hero's text changes colour with the theme: let it follow the light
+   rather than flip while the night picture is still up. */
+.hero h1,
+.hero p {
+  transition: color 1.4s cubic-bezier(0.45, 0, 0.4, 1) 0.15s;
 }
 
 .hero-visual {
@@ -1772,6 +1942,18 @@ a.social-link-row:hover {
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   backdrop-filter: blur(24px) saturate(180%);
   box-shadow: inset 0 1px 0 var(--glass-spec), var(--glass-drop);
+}
+
+/* White glass over the day scene only reads as glass if it is visibly
+   uneven: a brighter top-left falling off to a thinner bottom-right (where
+   the colour behind shows through), a slate hairline outside the white rim,
+   and a soft slate shadow. Averages out at ~0.55 white. */
+:root.light .glass-card {
+  --glass-fill: rgb(255 255 255 / 0.4);
+  --glass-sheen: linear-gradient(135deg, rgb(255 255 255 / 0.45), rgb(255 255 255 / 0.04) 70%);
+  --glass-rim: linear-gradient(135deg, rgb(255 255 255 / 0.95), rgb(255 255 255 / 0.4) 40%, rgb(15 23 42 / 0.08) 75%);
+  --glass-spec: rgb(255 255 255 / 0.9);
+  --glass-drop: 0 0 0 1px rgb(15 23 42 / 0.05), 0 28px 56px -24px rgb(15 23 42 / 0.26), 0 4px 12px -4px rgb(15 23 42 / 0.06);
 }
 
 .glass-card::before,
@@ -1871,7 +2053,14 @@ a.social-link-row:hover {
   background: rgb(255 255 255 / 0.08);
 }
 
-.glass-chip-accent {
+:root.light .glass-chip,
+:root.light .glass-icon {
+  border-color: rgb(var(--ink) / 0.1);
+  background: rgb(var(--ink) / 0.04);
+}
+
+.glass-chip-accent,
+:root.light .glass-chip-accent {
   border-color: rgb(var(--accent) / 0.4);
   background: rgb(var(--accent) / 0.18);
   color: rgb(var(--accent-ink));
@@ -1888,7 +2077,8 @@ a.social-link-row:hover {
 
 /* No backdrop-filter: a solid surface in the same shape. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .glass-card {
+  .glass-card,
+  :root.light .glass-card {
     background: rgb(var(--surface));
     border: 1px solid rgb(var(--line) / 0.1);
   }
