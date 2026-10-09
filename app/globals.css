@@ -1786,8 +1786,11 @@ a.social-link-row:hover {
   transition: translate 1.15s cubic-bezier(0.55, 0, 0.85, 0.4);
 }
 
-/* The sun: below the horizon at night, setting there first as night falls... */
+/* The sun: below the horizon at night, setting there first as night falls...
+   It comes to rest in the day picture's halo, where its painted sun was. */
 .scene-orbit-sun {
+  left: 65.1%;
+  top: 19.3%;
   translate: -17cqw 0;
   transition: translate 1.15s linear;
 }
