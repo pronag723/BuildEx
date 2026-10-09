@@ -58,7 +58,7 @@ export default function ProjectsSection() {
                 decoding="async"
               />
               <figcaption className="absolute bottom-2 left-2 rounded-md bg-black/55 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm">
-                {t(`about.projects.items.${project.key}.title`)}
+                {project.title}
               </figcaption>
             </figure>
           ))}

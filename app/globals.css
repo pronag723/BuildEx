@@ -456,7 +456,6 @@ select option {
 }
 
 .nav-link {
-  position: relative;
   display: inline-flex;
   align-items: center;
   height: 2rem;
@@ -478,16 +477,29 @@ select option {
   color: rgb(var(--ink));
 }
 
-/* The current page is marked by a short accent rule under the label, sitting
-   on the header's own bottom edge. */
-.nav-link[aria-current="page"]::after {
-  content: "";
+/* The current item of a row of links or tabs is marked by a short accent rule
+   under its label: a single bar per row that lib/ui/useSlidingIndicator.js
+   moves (translateX + width) to the active item, so it slides between items
+   rather than each one drawing its own. It starts hidden until the hook has
+   placed it. */
+.slide-indicator {
   position: absolute;
-  left: 0.625rem;
-  right: 0.625rem;
-  bottom: calc((var(--header-h) - 2rem) / -2);
+  left: 0;
+  width: 0;
   height: 2px;
   background: rgb(var(--accent));
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
+    width 280ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 200ms ease;
+}
+
+/* In the header it sits on the header's own bottom edge. The nav is exactly
+   as tall as its links (2rem) and centred in the bar. */
+.nav-indicator {
+  bottom: calc((var(--header-h) - 2rem) / -2);
 }
 
 /* Language control: EN | RU as a small segmented switch from 640px up, a
@@ -624,6 +636,17 @@ select option {
 .glass-row[aria-current="page"] {
   background: rgb(var(--line) / 0.09);
   color: rgb(var(--ink));
+}
+
+/* A destructive row (Log out): red text and icon, and on hover a faint red
+   tint in place of the neutral one, with the text staying red. */
+.glass-row-danger,
+.glass-row-danger:hover {
+  color: rgb(var(--danger));
+}
+
+.glass-row-danger:hover {
+  background: rgb(var(--danger) / 0.1);
 }
 
 /* Denser glass for small dropdowns: they can open over a bright or a dark
@@ -1545,30 +1568,35 @@ a.social-link-row:hover {
    an inner .glass-card (glass + hover lift), so the two transforms never fight.
    ========================================================================== */
 
-/* Fills the screen under the header from `lg`, where the cards sit beside the
-   text. Below it the hero is the text alone, and a full phone screen of it
-   was mostly empty canvas, so it takes its natural height and lets the
-   showcase start in view. */
+/* Fills the first screen under the header at every width, with the content
+   centred and the scroll-down arrow at its foot (the grid's bottom padding
+   keeps the text clear of it; if the text is taller than the screen, the
+   hero grows and the arrow moves down with it). From `lg` the cards sit
+   beside the text. Below it the text has the screen to itself, so the colour
+   shapes move behind it, dimmer (.hero-backdrop), and on a screen tall
+   enough to hold it the profile card sits still under the buttons
+   (.hero-compact-card); on a short one it is left out rather than squeezing
+   the rest. */
 .hero {
-  position: relative;
-  display: flex;
-  align-items: center;
-  overflow: hidden;
-}
-
-@media (min-width: 1024px) {
-  .hero {
-    min-height: calc(100vh - var(--header-h));
-    min-height: calc(100svh - var(--header-h));
-  }
-}
-
-.hero-visual {
   /* The colour shapes: the accent and two cooler partners. Light mode takes
      deeper greens, which still show through white glass at low opacity. */
   --hero-green: var(--accent);
   --hero-emerald: 16 185 129;
   --hero-teal: 45 212 191;
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: calc(100vh - var(--header-h));
+  min-height: calc(100svh - var(--header-h));
+  overflow: hidden;
+}
+
+:root.light .hero {
+  --hero-green: 34 197 94;
+  --hero-teal: 20 184 166;
+}
+
+.hero-visual {
   position: relative;
   display: none;
   width: 100%;
@@ -1577,14 +1605,61 @@ a.social-link-row:hover {
   justify-self: end;
 }
 
-:root.light .hero-visual {
-  --hero-green: 34 197 94;
-  --hero-teal: 20 184 166;
-}
-
 @media (min-width: 1024px) {
   .hero-visual {
     display: block;
+  }
+}
+
+/* Below `lg`: the same shapes behind the text, softer, so the copy stays
+   easy to read over them. */
+.hero-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.hero-backdrop .hero-blob {
+  opacity: 0.2;
+}
+
+:root.light .hero-backdrop .hero-blob {
+  opacity: 0.14;
+}
+
+/* Behind the heading, spilling off the left edge. */
+.hero-backdrop .hero-blob-a {
+  inset: 8% auto auto -5rem;
+  width: 17rem;
+  height: 17rem;
+}
+
+/* Behind the end of the body text, off the right edge. */
+.hero-backdrop .hero-blob-b {
+  inset: 36% -6rem auto auto;
+  width: 18rem;
+  height: 14rem;
+}
+
+/* Low down, behind the buttons and the card. */
+.hero-backdrop .hero-blob-c {
+  inset: auto auto 12% 22%;
+  width: 14rem;
+  height: 14rem;
+}
+
+@media (min-width: 1024px) {
+  .hero-backdrop {
+    display: none;
+  }
+}
+
+/* The still profile card under the buttons: not from `lg` (the floating one
+   is there), and not on a screen too short to hold it with the text. */
+@media (min-width: 1024px), (max-height: 719px) {
+  .hero-compact-card {
+    display: none;
   }
 }
 

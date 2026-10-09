@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useT } from "../../lib/i18n/LanguageProvider";
+import { useSlidingIndicator } from "../../lib/ui/useSlidingIndicator";
 
 // The one header every page uses: a full-width bar that sticks to the top of
 // the viewport, with the wordmark, an optional row of navigation links and a
@@ -19,6 +20,28 @@ export function Wordmark({ className = "" }) {
   );
 }
 
+// The row of links. The current page (aria-current="page") is underlined by
+// one accent bar that slides from link to link, and from page to page: each
+// page mounts its own header, so the bar's last spot is remembered across
+// them (see lib/ui/useSlidingIndicator.js).
+function HeaderNav({ children }) {
+  const t = useT();
+  const { containerRef, barRef } = useSlidingIndicator('[aria-current="page"]', {
+    rememberAs: "site-header",
+  });
+
+  return (
+    <nav
+      ref={containerRef}
+      aria-label={t("common.mainNav")}
+      className="relative hidden lg:flex items-center gap-1"
+    >
+      {children}
+      <span ref={barRef} className="slide-indicator nav-indicator" aria-hidden="true" />
+    </nav>
+  );
+}
+
 export default function SiteHeader({ nav = null, actions = null }) {
   const t = useT();
 
@@ -33,11 +56,7 @@ export default function SiteHeader({ nav = null, actions = null }) {
           <Wordmark />
         </Link>
 
-        {nav && (
-          <nav aria-label={t("common.mainNav")} className="hidden lg:flex items-center gap-1">
-            {nav}
-          </nav>
-        )}
+        {nav && <HeaderNav>{nav}</HeaderNav>}
 
         <div className="ml-auto flex items-center gap-1.5 sm:gap-2">{actions}</div>
       </div>

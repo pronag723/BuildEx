@@ -24,6 +24,7 @@ import { BUILDER_ONBOARDING_START } from "../../lib/onboarding/state";
 import { withBase } from "../home/utils";
 import { Icon } from "../../lib/icons";
 import Avatar from "../../lib/ui/Avatar";
+import { useSlidingIndicator } from "../../lib/ui/useSlidingIndicator";
 import CatalogNavbar from "../builders/components/CatalogNavbar";
 import CatalogMobileMenu from "../builders/components/CatalogMobileMenu";
 import SiteFooter from "../home/components/SiteFooter";
@@ -91,11 +92,15 @@ const ACCOUNT_SECTIONS = [
   { key: "danger" },
 ];
 
+// The selected tab is underlined by one accent bar that slides between tabs
+// (lib/ui/useSlidingIndicator.js), sitting on the row's bottom rule.
 function SectionTabs({ section, setSection }) {
   const t = useT();
+  const { containerRef, barRef } = useSlidingIndicator('[aria-selected="true"]');
   return (
     <div
-      className="mb-6 flex gap-1 border-b border-line/[0.08]"
+      ref={containerRef}
+      className="relative mb-6 flex gap-1 border-b border-line/[0.08]"
       role="tablist"
       aria-label={t("account.sections.aria")}
     >
@@ -108,10 +113,8 @@ function SectionTabs({ section, setSection }) {
             role="tab"
             aria-selected={isActive}
             onClick={() => setSection(s.key)}
-            className={`relative -mb-px h-10 rounded-t-md px-3 text-sm font-medium transition-colors ${
-              isActive
-                ? "text-ink after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:bg-accent"
-                : "text-ink-2 hover:text-ink"
+            className={`-mb-px h-10 rounded-t-md px-3 text-sm font-medium transition-colors ${
+              isActive ? "text-ink" : "text-ink-2 hover:text-ink"
             }`}
           >
             <span className="sm:hidden">{t(`account.sections.${s.key}Short`)}</span>
@@ -119,6 +122,7 @@ function SectionTabs({ section, setSection }) {
           </button>
         );
       })}
+      <span ref={barRef} className="slide-indicator -bottom-px" aria-hidden="true" />
     </div>
   );
 }
@@ -921,16 +925,9 @@ function AccountPageInner() {
 
       <main className="pb-20 pt-8 sm:pt-10">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-6">
-            <h1 className="text-[1.625rem] font-semibold tracking-[-0.02em] sm:text-[1.875rem]">
-              {t("account.intro.title")}
-            </h1>
-            <p className="mt-1.5 text-[15px] text-ink-2">
-              {isBuilder
-                ? t("account.intro.builderBody")
-                : t("account.intro.visitorBody")}
-            </p>
-          </div>
+          <h1 className="mb-6 text-[1.625rem] font-semibold tracking-[-0.02em] sm:text-[1.875rem]">
+            {t("account.intro.title")}
+          </h1>
 
           {/* Section switcher — sits above the avatar and picks which group
               of cards is shown, so the page is no longer one long stack. */}

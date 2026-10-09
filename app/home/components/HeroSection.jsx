@@ -16,6 +16,34 @@ function followPointer(event) {
   card.style.setProperty("--my", `${event.clientY - rect.top}px`);
 }
 
+// The illustrative profile card: what a profile is, with no name, price or
+// portfolio image to invent. From `lg` it floats beside the text; below it, on
+// a screen tall enough to hold it, it sits still under the buttons.
+function ProfileCard({ className = "" }) {
+  const t = useT();
+  return (
+    <div className={`glass-card ${className}`} onPointerMove={followPointer}>
+      <div className="flex items-center gap-3">
+        <span className="glass-icon text-accent-ink">
+          <Icon name="user" size={20} strokeWidth={1.75} />
+        </span>
+        <div className="min-w-0">
+          <div className="font-semibold text-ink">{t("about.hero.cardTitle")}</div>
+          <div className="mt-0.5 text-xs text-ink-2">{t("about.hero.cardMeta")}</div>
+        </div>
+      </div>
+      <p className="mt-4 text-sm leading-relaxed text-ink-2">{t("about.hero.cardBody")}</p>
+      <div className="mt-5 flex items-center justify-between gap-3">
+        <div className="flex flex-wrap gap-1.5">
+          <span className="glass-chip glass-chip-sm">{t("about.hero.chipA")}</span>
+          <span className="glass-chip glass-chip-sm">{t("about.hero.chipB")}</span>
+        </div>
+        <span className="glass-chip glass-chip-accent">{t("about.hero.message")}</span>
+      </div>
+    </div>
+  );
+}
+
 export default function HeroSection() {
   // Real directory figures for the presence badge (and, below `lg`, the line
   // under the buttons). We reuse fetchBuilders (which already applies the
@@ -47,7 +75,15 @@ export default function HeroSection() {
 
   return (
     <section id="hero" className="hero">
-      <div className="mx-auto grid w-full max-w-7xl items-center gap-12 px-4 pb-28 pt-12 sm:px-6 sm:pt-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-16 lg:px-8">
+      {/* Below `lg` the colour shapes sit behind the text itself (from `lg`
+          they live in .hero-visual, under the cards). */}
+      <div className="hero-backdrop" aria-hidden="true">
+        <div className="hero-blob hero-blob-a" />
+        <div className="hero-blob hero-blob-b" />
+        <div className="hero-blob hero-blob-c" />
+      </div>
+
+      <div className="relative z-[1] mx-auto grid w-full max-w-7xl items-center gap-12 px-4 pb-28 pt-12 sm:px-6 sm:pt-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-16 lg:px-8">
         <div className="max-w-2xl">
           <h1 className="max-w-[16ch] text-[2.125rem] font-semibold leading-[1.08] tracking-[-0.03em] sm:text-[2.75rem] lg:text-[3.25rem]">
             {t("about.hero.title")}
@@ -78,6 +114,9 @@ export default function HeroSection() {
               )}
             </p>
           )}
+          <div className="hero-compact-card mt-8 w-full max-w-sm" aria-hidden="true">
+            <ProfileCard className="p-5" />
+          </div>
         </div>
 
         {/* Illustrations of the two things the site does: show you a profile,
@@ -91,25 +130,7 @@ export default function HeroSection() {
           <div className="hero-blob hero-blob-c" aria-hidden="true" />
 
           <div className="hero-float right-2 top-2 w-[22rem]" aria-hidden="true">
-            <div className="glass-card p-6" onPointerMove={followPointer}>
-              <div className="flex items-center gap-3">
-                <span className="glass-icon text-accent-ink">
-                  <Icon name="user" size={20} strokeWidth={1.75} />
-                </span>
-                <div className="min-w-0">
-                  <div className="font-semibold text-ink">{t("about.hero.cardTitle")}</div>
-                  <div className="mt-0.5 text-xs text-ink-2">{t("about.hero.cardMeta")}</div>
-                </div>
-              </div>
-              <p className="mt-4 text-sm leading-relaxed text-ink-2">{t("about.hero.cardBody")}</p>
-              <div className="mt-5 flex items-center justify-between gap-3">
-                <div className="flex flex-wrap gap-1.5">
-                  <span className="glass-chip glass-chip-sm">{t("about.hero.chipA")}</span>
-                  <span className="glass-chip glass-chip-sm">{t("about.hero.chipB")}</span>
-                </div>
-                <span className="glass-chip glass-chip-accent">{t("about.hero.message")}</span>
-              </div>
-            </div>
+            <ProfileCard className="p-6" />
           </div>
 
           <div className="hero-float hero-float-2 left-0 top-[10rem] w-[19.5rem]" aria-hidden="true">

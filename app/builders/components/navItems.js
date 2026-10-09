@@ -17,8 +17,8 @@
 export const catalogNavItems = [
   { path: "/", key: "builders", label: "Builders" },
   { path: "/chats", key: "messages", label: "Messages", auth: true },
-  { path: "/about#projects", key: "showcase", label: "Showcase" },
   { path: "/about#how-it-works", key: "howItWorks", label: "How It Works" },
+  { path: "/about#projects", key: "showcase", label: "Showcase" },
   { path: "/about", key: "about", label: "About" },
 ];
 

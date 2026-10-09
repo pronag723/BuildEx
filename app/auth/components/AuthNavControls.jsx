@@ -165,7 +165,7 @@ export default function AuthNavControls() {
                       setOpen(false);
                       signOut();
                     }}
-                    className={`${MENU_ROW} w-full text-left`}
+                    className={`${MENU_ROW} glass-row-danger w-full text-left`}
                   >
                     <Icon name="logout" size={16} />
                     {t("nav.logOut")}
@@ -235,7 +235,7 @@ export function AuthMobileControls({ onAfter }) {
             onAfter?.();
             signOut();
           }}
-          className="glass-row w-full text-left"
+          className="glass-row glass-row-danger w-full text-left"
         >
           <Icon name="logout" size={17} />
           {t("nav.logOut")}
