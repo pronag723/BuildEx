@@ -135,7 +135,7 @@ export default function HeroSection() {
       <HeroScene />
       <div className="relative z-[1] mx-auto grid w-full max-w-7xl items-center gap-12 px-4 pb-28 pt-12 sm:px-6 sm:pt-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-16 lg:px-8">
         {/* Below `lg` the column is centred; from `lg` it sits left of the cards. */}
-        <div className="mx-auto max-w-2xl text-center lg:mx-0 lg:text-left">
+        <div className="hero-copy mx-auto max-w-2xl text-center lg:mx-0 lg:text-left">
           <h1 className="mx-auto max-w-[16ch] text-[2.125rem] font-semibold leading-[1.08] tracking-[-0.03em] sm:text-[2.75rem] md:text-[3.25rem] lg:mx-0">
             {t("about.hero.title")}
           </h1>

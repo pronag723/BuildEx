@@ -1619,12 +1619,18 @@ a.social-link-row:hover {
 }
 
 /* On the night scene, secondary text is lifted a step so it reads over the
-   picture (the hero, and the header while it is see-through above it). The
-   day scene sits under a pale wash, where the light theme's values read as
-   they are. */
+   picture (the hero, and the header while it is see-through above it). */
 :root:not(.light) .on-scene {
   --ink-2: 190 192 196;
   --ink-3: 150 152 158;
+}
+
+/* On the day scene the hero's own text (not the glass cards under it) is
+   black: the light theme's greys wash out against the trees. */
+:root.light .hero-copy > h1,
+:root.light .hero-copy > p,
+:root.light .hero-copy .btn-ghost {
+  color: rgb(0 0 0);
 }
 
 /* ── The scene ───────────────────────────────────────────────────────────
