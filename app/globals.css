@@ -1619,12 +1619,32 @@ a.social-link-row:hover {
 }
 
 /* On the night scene, secondary text is lifted a step so it reads over the
-   picture (the hero, and the header while it is see-through above it). The
-   day scene sits under a pale wash, where the light theme's values read as
-   they are. */
+   picture (the hero, and the header while it is see-through above it). */
 :root:not(.light) .on-scene {
   --ink-2: 190 192 196;
   --ink-3: 150 152 158;
+}
+
+/* The day picture has no wash over it above the foot, so the hero's copy
+   carries its own: secondary text taken to ink and a step heavier, and a
+   white glow hugging the letters where they cross trees. */
+:root.light .hero-copy {
+  --ink-2: 17 24 39;
+  --ink-3: 51 65 85;
+}
+
+:root.light .hero-copy > :is(h1, p),
+:root.light .hero-copy .btn-ghost {
+  text-shadow:
+    0 0 1px #fff,
+    0 0 4px rgb(255 255 255 / 0.95),
+    0 0 10px rgb(255 255 255 / 0.9),
+    0 0 22px rgb(255 255 255 / 0.75);
+}
+
+:root.light .hero-copy > p,
+:root.light .hero-copy .btn-ghost {
+  font-weight: 500;
 }
 
 /* ── The scene ───────────────────────────────────────────────────────────
@@ -1813,8 +1833,8 @@ a.social-link-row:hover {
 
 /* Over the picture, one wash per theme, crossfading with the pictures: a
    fade at the foot into that theme's page colour, so the next section starts
-   without a seam, and a dimmer (night) or pale wash (day) behind the centred
-   text. */
+   without a seam, and (night only) a dimmer behind the centred text. The day
+   picture is left clear above the foot. */
 .scene-shade {
   transition: opacity var(--dawn) var(--dawn-ease) 0.15s;
 }
@@ -1827,9 +1847,7 @@ a.social-link-row:hover {
 
 .scene-shade-day {
   opacity: 0;
-  background:
-    linear-gradient(180deg, rgb(var(--canvas-day) / 0) 74%, rgb(var(--canvas-day)) 100%),
-    radial-gradient(ellipse 80% 55% at 50% 42%, rgb(var(--canvas-day) / 0.6), rgb(var(--canvas-day) / 0.15));
+  background: linear-gradient(180deg, rgb(var(--canvas-day) / 0) 74%, rgb(var(--canvas-day)) 100%);
 }
 
 :root.light .scene-shade-night {
@@ -1840,8 +1858,8 @@ a.social-link-row:hover {
   opacity: 1;
 }
 
-/* From `lg` the text is on the left: wash that side only, and leave the sky
-   and the cards' side of the scene clear. */
+/* From `lg` the text is on the left: dim that side only at night, and leave
+   the sky and the cards' side of the scene clear. */
 @media (min-width: 1024px) {
   .scene-shade-night {
     background:
@@ -1850,9 +1868,7 @@ a.social-link-row:hover {
   }
 
   .scene-shade-day {
-    background:
-      linear-gradient(180deg, rgb(var(--canvas-day) / 0) 70%, rgb(var(--canvas-day)) 100%),
-      linear-gradient(90deg, rgb(var(--canvas-day) / 0.75), rgb(var(--canvas-day) / 0.35) 45%, rgb(var(--canvas-day) / 0) 70%);
+    background: linear-gradient(180deg, rgb(var(--canvas-day) / 0) 70%, rgb(var(--canvas-day)) 100%);
   }
 }
 
@@ -1860,7 +1876,9 @@ a.social-link-row:hover {
    rather than flip while the night picture is still up. */
 .hero h1,
 .hero p {
-  transition: color 1.4s cubic-bezier(0.45, 0, 0.4, 1) 0.15s;
+  transition:
+    color 1.4s cubic-bezier(0.45, 0, 0.4, 1) 0.15s,
+    text-shadow 1.4s cubic-bezier(0.45, 0, 0.4, 1) 0.15s;
 }
 
 .hero-visual {
