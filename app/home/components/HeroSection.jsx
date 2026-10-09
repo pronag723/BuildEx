@@ -18,7 +18,8 @@ function followPointer(event) {
 
 // The illustrative profile card: what a profile is, with no name, price or
 // portfolio image to invent. From `lg` it floats beside the text; below it, on
-// a screen tall enough to hold it, it sits still under the buttons.
+// a screen tall enough to hold it, it sits still under the centred buttons
+// (beside the reach card from `md`).
 function ProfileCard({ className = "" }) {
   const t = useT();
   return (
@@ -39,6 +40,29 @@ function ProfileCard({ className = "" }) {
           <span className="glass-chip glass-chip-sm">{t("about.hero.chipB")}</span>
         </div>
         <span className="glass-chip glass-chip-accent">{t("about.hero.message")}</span>
+      </div>
+    </div>
+  );
+}
+
+// The builder's own contact links, the other thing the site hands you.
+function ReachCard({ className = "" }) {
+  const t = useT();
+  return (
+    <div className={`glass-card ${className}`} onPointerMove={followPointer}>
+      <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-2">
+        {t("about.hero.reach")}
+      </div>
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        <span className="glass-chip">
+          <Icon name="chat" size={13} /> Discord
+        </span>
+        <span className="glass-chip">
+          <Icon name="send" size={13} /> Telegram
+        </span>
+        <span className="glass-chip glass-chip-accent">
+          <Icon name="chat" size={13} /> {t("about.hero.onBuildEx")}
+        </span>
       </div>
     </div>
   );
@@ -84,14 +108,15 @@ export default function HeroSection() {
       </div>
 
       <div className="relative z-[1] mx-auto grid w-full max-w-7xl items-center gap-12 px-4 pb-28 pt-12 sm:px-6 sm:pt-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-16 lg:px-8">
-        <div className="max-w-2xl">
-          <h1 className="max-w-[16ch] text-[2.125rem] font-semibold leading-[1.08] tracking-[-0.03em] sm:text-[2.75rem] lg:text-[3.25rem]">
+        {/* Below `lg` the column is centred; from `lg` it sits left of the cards. */}
+        <div className="mx-auto max-w-2xl text-center lg:mx-0 lg:text-left">
+          <h1 className="mx-auto max-w-[16ch] text-[2.125rem] font-semibold leading-[1.08] tracking-[-0.03em] sm:text-[2.75rem] md:text-[3.25rem] lg:mx-0">
             {t("about.hero.title")}
           </h1>
-          <p className="mt-5 max-w-md text-[17px] leading-relaxed text-ink-2">
+          <p className="mx-auto mt-5 max-w-md text-[17px] leading-relaxed text-ink-2 lg:mx-0">
             {t("about.hero.body")}
           </p>
-          <div className="mt-8 flex flex-wrap items-center gap-2">
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-2 lg:justify-start">
             <Link href="/" className="btn btn-primary btn-lg">
               {t("about.browseBuilders")}
             </Link>
@@ -114,8 +139,12 @@ export default function HeroSection() {
               )}
             </p>
           )}
-          <div className="hero-compact-card mt-8 w-full max-w-sm" aria-hidden="true">
+          <div
+            className="hero-compact-card mx-auto mt-8 grid w-full max-w-sm gap-4 text-left md:max-w-2xl md:grid-cols-2"
+            aria-hidden="true"
+          >
             <ProfileCard className="p-5" />
+            <ReachCard className="hidden p-5 md:block" />
           </div>
         </div>
 
@@ -134,22 +163,7 @@ export default function HeroSection() {
           </div>
 
           <div className="hero-float hero-float-2 left-0 top-[10rem] w-[19.5rem]" aria-hidden="true">
-            <div className="glass-card p-5" onPointerMove={followPointer}>
-              <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-2">
-                {t("about.hero.reach")}
-              </div>
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                <span className="glass-chip">
-                  <Icon name="chat" size={13} /> Discord
-                </span>
-                <span className="glass-chip">
-                  <Icon name="send" size={13} /> Telegram
-                </span>
-                <span className="glass-chip glass-chip-accent">
-                  <Icon name="chat" size={13} /> {t("about.hero.onBuildEx")}
-                </span>
-              </div>
-            </div>
+            <ReachCard className="p-5" />
           </div>
 
           {presence && (

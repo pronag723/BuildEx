@@ -1571,12 +1571,13 @@ a.social-link-row:hover {
 /* Fills the first screen under the header at every width, with the content
    centred and the scroll-down arrow at its foot (the grid's bottom padding
    keeps the text clear of it; if the text is taller than the screen, the
-   hero grows and the arrow moves down with it). From `lg` the cards sit
-   beside the text. Below it the text has the screen to itself, so the colour
-   shapes move behind it, dimmer (.hero-backdrop), and on a screen tall
-   enough to hold it the profile card sits still under the buttons
-   (.hero-compact-card); on a short one it is left out rather than squeezing
-   the rest. */
+   hero grows and the arrow moves down with it). From `lg` the text and the
+   cards share the full width. Below it the text is centred with the screen to
+   itself, so the colour shapes move behind it, dimmer (.hero-backdrop), framing
+   it from both edges, and on a screen tall enough to hold them the cards sit
+   still under the buttons (.hero-compact-card: the profile card, joined by the
+   reach card from `md`); on a short one they are left out rather than
+   squeezing the rest. */
 .hero {
   /* The colour shapes: the accent and two cooler partners. Light mode takes
      deeper greens, which still show through white glass at low opacity. */
@@ -1611,8 +1612,9 @@ a.social-link-row:hover {
   }
 }
 
-/* Below `lg`: the same shapes behind the text, softer, so the copy stays
-   easy to read over them. */
+/* Below `lg`: the same shapes behind the centred text, softer, so the copy
+   stays easy to read over them. One spills off each edge so the side gutters
+   glow rather than sit blank, and one sits under the cards. */
 .hero-backdrop {
   position: absolute;
   inset: 0;
@@ -1635,18 +1637,19 @@ a.social-link-row:hover {
   height: 17rem;
 }
 
-/* Behind the end of the body text, off the right edge. */
+/* Its mirror, beside the body text, spilling off the right edge. */
 .hero-backdrop .hero-blob-b {
-  inset: 36% -6rem auto auto;
-  width: 18rem;
-  height: 14rem;
+  inset: 14% -5rem auto auto;
+  width: 17rem;
+  height: 17rem;
 }
 
-/* Low down, behind the buttons and the card. */
+/* Low down and centred, under the cards. Placed with left (not a translate),
+   since heroDrift owns transform. */
 .hero-backdrop .hero-blob-c {
-  inset: auto auto 12% 22%;
-  width: 14rem;
-  height: 14rem;
+  inset: auto auto 8% calc(50% - 9rem);
+  width: 18rem;
+  height: 12rem;
 }
 
 @media (min-width: 1024px) {
@@ -1655,8 +1658,8 @@ a.social-link-row:hover {
   }
 }
 
-/* The still profile card under the buttons: not from `lg` (the floating one
-   is there), and not on a screen too short to hold it with the text. */
+/* The still cards under the buttons: not from `lg` (the floating ones are
+   there), and not on a screen too short to hold them with the text. */
 @media (min-width: 1024px), (max-height: 719px) {
   .hero-compact-card {
     display: none;
