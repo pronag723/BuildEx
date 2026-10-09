@@ -12,6 +12,11 @@
 //     "is this a builder?" test — profiles.role is legacy and not consulted.
 //   • Builders whose availability is "busy" (the red end of the slider) are
 //     hidden from the feed entirely, per product spec.
+//   • Builders with no portfolio image are not listed. Onboarding asks for one,
+//     but the account page lets a builder delete them all later, and a card
+//     with nothing to look at is no use in a directory of work. They come back
+//     as soon as they upload an image. A direct link to their profile still
+//     works (fetchBuilderByUsername applies no such rule).
 //   • Builders a moderator has taken down (builder_profiles.is_hidden, migration
 //     0101) are excluded here AND by the RLS policy on builder_profiles. The
 //     filter below is the fast path; the policy is the guarantee — without it,
@@ -74,6 +79,9 @@ function isHiddenFromFeed(builderProfile) {
   if (builderProfile?.is_available === false) return true;
   return false;
 }
+
+// At least one portfolio image, or the builder is left out of the feed.
+const hasPortfolio = (row) => Array.isArray(row.portfolio) && row.portfolio.length > 0;
 
 export function mapRow(row) {
   const bp = row.builder || {};
@@ -142,7 +150,7 @@ export async function fetchBuilders() {
   const builders = error
     ? []
     : (data || [])
-        .filter((row) => row.builder && !isHiddenFromFeed(row.builder))
+        .filter((row) => row.builder && !isHiddenFromFeed(row.builder) && hasPortfolio(row))
         .map(mapRow);
 
   return { builders, error: error || null };
