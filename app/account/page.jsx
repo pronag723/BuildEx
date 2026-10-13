@@ -605,21 +605,82 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
   }
 
   return (
-    <header className="card mb-6 p-5 sm:p-6">
-      {editing ? (
-        <div className="flex flex-col items-start gap-4 sm:flex-row sm:gap-6">
-          <div className="relative mx-auto flex-shrink-0 sm:mx-0">
-            <AvatarUploader
-              userId={user?.id}
-              value={avatarUrl}
-              onChange={setAvatarUrl}
-              onError={setError}
-              fallbackInitial={(profile?.display_name || "B").charAt(0).toUpperCase()}
-              size={112}
-            />
-          </div>
+    <header className="card mb-4 p-4 sm:p-6">
+      {/* Top row: avatar, identity, and the card's action in the corner. */}
+      <div className="flex items-start gap-4 sm:gap-5">
+        {editing ? (
+          <AvatarUploader
+            userId={user?.id}
+            value={avatarUrl}
+            onChange={setAvatarUrl}
+            onError={setError}
+            fallbackInitial={(profile?.display_name || "B").charAt(0).toUpperCase()}
+            size={88}
+          />
+        ) : (
+          <Avatar
+            src={profile?.avatar_url}
+            name={profile?.display_name || "B"}
+            alt={profile?.display_name || ""}
+            className="h-16 w-16 flex-shrink-0 rounded-2xl text-2xl sm:h-20 sm:w-20 sm:text-3xl"
+          />
+        )}
 
-          <div className="w-full min-w-0 space-y-4 sm:flex-1">
+        <div className="min-w-0 flex-1 self-center">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <h2 className="min-w-0 break-words text-xl font-semibold leading-tight tracking-[-0.02em] sm:text-2xl">
+              {profile?.display_name || t("onboarding.identity.nameLabel")}
+            </h2>
+            {isBuilder && (
+              <span className="tag bg-accent/15 text-accent-ink">
+                {t("account.header.builderBadge")}
+              </span>
+            )}
+          </div>
+          {profile?.username && (
+            <p className="mt-1 break-all text-[15px] text-ink-2">@{profile.username}</p>
+          )}
+        </div>
+
+        <div className="flex flex-shrink-0 items-center gap-2">
+          {editing ? (
+            <>
+              <button
+                type="button"
+                onClick={() => setEditing(false)}
+                className="btn btn-ghost btn-sm"
+              >
+                {t("common.cancel")}
+              </button>
+              <button
+                type="button"
+                onClick={save}
+                disabled={saving || !canSave}
+                className="btn btn-primary btn-sm"
+              >
+                {saving && (
+                  <span className="w-3 h-3 rounded-full border-2 border-accent-fg/30 border-t-accent-fg animate-spin" />
+                )}
+                {t("common.save")}
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={startEdit}
+              className="btn btn-outline btn-sm px-2.5 sm:px-3"
+              aria-label={t("account.header.editProfile")}
+            >
+              <Icon name="pencil" size={14} />
+              <span className="hidden sm:inline">{t("account.header.editProfile")}</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {editing ? (
+        <div className="mt-5 space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label htmlFor="acc-display-name" className="onb-label block mb-1.5">
                 {t("onboarding.identity.nameLabel")}
@@ -646,48 +707,22 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
               label={t("account.header.handleLabel")}
               hint={t("account.header.handleHint")}
             />
-            {isBuilder && (
-              <ContactLinkField
-                rows={linkRows}
-                onChange={setLinkRows}
-                label={t("onboarding.links.label")}
-                hint={t("account.header.linksHint")}
-              />
-            )}
           </div>
+          {isBuilder && (
+            <ContactLinkField
+              rows={linkRows}
+              onChange={setLinkRows}
+              label={t("onboarding.links.label")}
+              hint={t("account.header.linksHint")}
+            />
+          )}
         </div>
       ) : (
-        <>
-          {/* Identity: avatar, then the name (with the Builder badge) over the
-              @handle. */}
-          <div className="flex items-center gap-4 sm:gap-5">
-            <Avatar
-              src={profile?.avatar_url}
-              name={profile?.display_name || "B"}
-              alt={profile?.display_name || ""}
-              className="h-20 w-20 flex-shrink-0 rounded-2xl text-3xl sm:h-24 sm:w-24"
-            />
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-                <h2 className="min-w-0 break-words text-xl font-semibold leading-tight tracking-[-0.02em] sm:text-2xl">
-                  {profile?.display_name || t("onboarding.identity.nameLabel")}
-                </h2>
-                {isBuilder && (
-                  <span className="tag bg-accent/15 text-accent-ink">
-                    {t("account.header.builderBadge")}
-                  </span>
-                )}
-              </div>
-              {profile?.username && (
-                <p className="mt-1 break-all text-[15px] text-ink-2">@{profile.username}</p>
-              )}
-            </div>
-          </div>
-
-          {/* A builder always sees the links row, with an empty state that
-              opens Edit — otherwise the feature is undiscoverable until they
-              have added a link. */}
-          {isBuilder && (
+        isBuilder && (
+          <>
+            {/* A builder always sees the links row, with an empty state that
+                opens Edit — otherwise the feature is undiscoverable until
+                they have added a link. */}
             <div className="mt-5">
               <p className="mb-2 text-sm font-medium text-ink-2">
                 {t("account.header.linksLabel")}
@@ -701,18 +736,18 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
                 </button>
               )}
             </div>
-          )}
 
-          {isBuilder && specialties.length > 0 && (
-            <div className="mt-4 flex flex-wrap gap-2">
-              {specialties.map((s) => (
-                <span key={s} className="tag h-8 rounded-lg px-3 text-[13px]">
-                  {styleChipLabel(s, t.lang)}
-                </span>
-              ))}
-            </div>
-          )}
-        </>
+            {specialties.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {specialties.map((s) => (
+                  <span key={s} className="tag h-8 rounded-lg px-3 text-[13px]">
+                    {styleChipLabel(s, t.lang)}
+                  </span>
+                ))}
+              </div>
+            )}
+          </>
+        )
       )}
 
       {error && (
@@ -720,41 +755,6 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
           {error}
         </div>
       )}
-
-      {/* The one action, centred at the foot of the card. */}
-      <div className="mt-6 flex justify-center gap-2">
-        {editing ? (
-          <>
-            <button
-              type="button"
-              onClick={() => setEditing(false)}
-              className="btn btn-ghost"
-            >
-              {t("common.cancel")}
-            </button>
-            <button
-              type="button"
-              onClick={save}
-              disabled={saving || !canSave}
-              className="btn btn-primary min-w-[8rem]"
-            >
-              {saving && (
-                <span className="w-3 h-3 rounded-full border-2 border-accent-fg/30 border-t-accent-fg animate-spin" />
-              )}
-              {t("common.save")}
-            </button>
-          </>
-        ) : (
-          <button
-            type="button"
-            onClick={startEdit}
-            className="btn btn-outline btn-lg w-full max-w-xs"
-          >
-            <Icon name="pencil" size={16} />
-            {t("account.header.editProfile")}
-          </button>
-        )}
-      </div>
     </header>
   );
 }
@@ -765,12 +765,9 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
 function BecomeABuilderCard() {
   const t = useT();
   return (
-    <section className="card p-5 sm:p-6">
-      <h2 className="text-lg font-semibold">{t("account.become.title")}</h2>
-      <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-ink-2">
-        {t("account.become.body")}
-      </p>
-      <Link href={BUILDER_ONBOARDING_START} className="btn btn-primary mt-5">
+    <section className="card flex flex-wrap items-center justify-between gap-3 p-4 sm:px-6">
+      <h2 className="text-base font-semibold">{t("account.become.title")}</h2>
+      <Link href={BUILDER_ONBOARDING_START} className="btn btn-primary">
         {t("account.become.cta")}
       </Link>
     </section>
@@ -911,8 +908,15 @@ function AccountPageInner() {
       <CatalogNavbar mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
       <CatalogMobileMenu mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
 
-      <main className="pt-8 sm:pt-10">
-        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+      <main className="account-main">
+        {/* The dressing room behind the page (decoration only): its lower half,
+            the character and the wardrobe, shows under the cards. */}
+        <div className="account-scene" aria-hidden="true">
+          <img className="scene-night" src={publicAsset("/backgrounds/profile-scene-night.webp")} alt="" decoding="async" />
+          <img className="scene-day" src={publicAsset("/backgrounds/profile-scene-day.webp")} alt="" decoding="async" />
+        </div>
+
+        <div className="relative z-[1] mx-auto max-w-4xl px-4 pt-8 sm:px-6 sm:pt-10 lg:px-8">
           <h1 className="mb-4 text-[2rem] font-extrabold leading-none tracking-[-0.03em] sm:text-[2.75rem]">
             {t("account.intro.titleLead")}{" "}
             <span className="accent-word">{t("account.intro.titleAccent")}</span>
@@ -931,7 +935,7 @@ function AccountPageInner() {
                 onSaved={refresh}
               />
 
-              <div className="space-y-6">
+              <div className="space-y-4">
                 {/* Builder settings edit exactly what signup asks for and
                     nothing more: identity + contact link (in the header above),
                     the bio, the styles, and the portfolio. About is a builder's
@@ -951,15 +955,10 @@ function AccountPageInner() {
           )}
 
           {section === "danger" && (
-            <div className="space-y-6">
+            <div className="space-y-4">
               <AccountActionsSection />
             </div>
           )}
-        </div>
-
-        {/* The dressing room: decoration only. */}
-        <div className="profile-stage" aria-hidden="true">
-          <img src={publicAsset("/backgrounds/profile-stage.webp")} alt="" loading="lazy" decoding="async" />
         </div>
       </main>
 
