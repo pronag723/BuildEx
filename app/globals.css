@@ -1638,14 +1638,14 @@ a.social-link-row:hover {
    /about hero — the voxel studio
    -----------------------------------------------------------------------------
    A white (day) or black (night) studio room with a few floating voxel
-   blocks and a Minecraft character, behind a stacked uppercase headline.
+   blocks and a Minecraft character, beside a stacked uppercase headline.
 
-   On a phone the room is one portrait picture covering the hero. From `sm`
-   it is the same composition on a wider wall: the picture's corner pieces
-   (cubes top left and top right, stairs bottom left), its floor and its
-   three floating blocks, drawn at one scale (--p, see below), and the
-   character cut out and standing on the floor in the right part of the
-   hero, in front of the copy wherever the two meet.
+   On a phone the room is one portrait picture filling the first screen,
+   with a line about BuildEx on the floor under the character's feet. From
+   `sm` it is the same room on a wider wall: the picture's corner pieces
+   (cubes top left and top right, stairs bottom left, a box bottom right) and
+   its floor, drawn at one scale (--p), with the character cut out and
+   standing on the floor right of the copy and three blocks around him.
 
    The hero runs up under the header (which is see-through over it, see
    .site-header[data-over-scene]) and pads its content back down, so the
@@ -1666,6 +1666,20 @@ a.social-link-row:hover {
   min-height: 100vh;
   min-height: 100lvh;
   overflow: hidden;
+}
+
+/* Phone: the copy fills the first screen (the picture), so the blurb starts
+   below it, under the character's feet, and the hero grows to hold it. */
+@media (max-width: 639px) {
+  .hero {
+    flex-direction: column;
+    align-items: stretch;
+    padding-bottom: 5.5rem;
+  }
+
+  .hero-copy {
+    min-height: calc(100svh - var(--header-h) - 14svh);
+  }
 }
 
 @media (min-width: 1024px) {
@@ -1696,41 +1710,25 @@ a.social-link-row:hover {
 }
 
 /* ── The studio scene ────────────────────────────────────────────────────
-   The walls are painted to match the pictures' own walls (sampled from
-   them), night underneath and day on top. Switching the theme cross-fades
-   every day piece in and every night piece out together; it is all CSS on
-   the theme class, so a page opened in either theme shows its scene at rest. */
+   Night underneath, day on top. Switching the theme cross-fades every day
+   piece in and every night piece out together; it is all CSS on the theme
+   class, so a page opened in either theme shows its scene at rest. On a
+   phone the scene's own colour is the pictures' floor (sampled from their
+   last rows), which carries on under the picture behind the blurb. */
 .hero-scene {
   position: absolute;
   inset: 0;
   z-index: 0;
   overflow: hidden;
   pointer-events: none;
-  background: linear-gradient(
-    180deg,
-    rgb(12 12 12) 0%,
-    rgb(11 11 11) 50%,
-    rgb(9 9 9) 70%,
-    rgb(12 12 12) 85%,
-    rgb(20 20 20) 90%,
-    rgb(37 37 39) 100%
-  );
+  background: rgb(35 35 37);
 }
 
 .hero-scene::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    180deg,
-    rgb(243 243 244) 0%,
-    rgb(250 250 250) 18%,
-    rgb(252 251 252) 45%,
-    rgb(246 246 246) 62%,
-    rgb(240 240 242) 82%,
-    rgb(239 238 241) 90%,
-    rgb(241 241 243) 100%
-  );
+  background: rgb(237 237 239);
   opacity: 0;
   transition: opacity var(--dawn) var(--dawn-ease);
 }
@@ -1762,15 +1760,18 @@ a.social-link-row:hover {
   opacity: 1;
 }
 
-/* Phone: the whole picture, ending a little above the hero's foot so the
-   fade there does not eat the character's feet. */
+/* Phone: the whole picture over the first screen, its foot melting into the
+   floor below (the character's soles stay clear of the fade). */
 .scene-full {
   position: absolute;
-  inset: 0 0 6%;
+  inset: 0 0 auto;
   width: 100%;
-  height: 94%;
+  height: 100vh;
+  height: 100svh;
   object-fit: cover;
   object-position: 50% 100%;
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 1.25rem), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 1.25rem), transparent);
 }
 
 .scene-piece,
@@ -1780,28 +1781,58 @@ a.social-link-row:hover {
   display: none;
 }
 
-/* From `sm` every piece is placed in the picture's own pixels (585x1280)
-   times --p, the CSS size of one picture pixel. --p follows the window so
-   the character stays about 60% of the hero's height (his box is 65%), is never wider than
-   the phone picture would draw it, and never larger than his source image
-   (so nothing is upscaled). Top pieces hang from the top of the hero, the
-   stairs stand on the picture's floor line (6% up, as on the phone). */
+/* From `sm` the room is laid out from a few measurements on .hero:
+
+   --floor   where the character's feet and the stairs' base meet the floor,
+             up from the hero's foot (as in the wide reference picture).
+   --p       the CSS size of one pixel of the portrait picture (585x1280),
+             for the corner pieces cut from it: they take about the share of
+             the window the reference gives them, and never more than their
+             pixels (so nothing is upscaled).
+   --foot    the picture's own foot, 55 picture pixels below its floor line.
+   --fig-h   the character's box (hero-figure-*.webp, 303x640; he is 94.5%
+             of its height and his soles are 4% up from its foot). He aims
+             for about 85% of the hero's height, keeps his head below the
+             header, keeps clear of the copy, and is never drawn larger than
+             his render (--fig-src).
+   --cx      his middle: at 68% of the width, unless that would put him over
+             the headline (whose widest line, "CATALOG FOR", is 6.83em) or
+             past the right gutter.
+
+   The three blocks around him are placed from the same numbers, as the
+   reference has them: one above and right of his head, one at his side at
+   shoulder height, and one low between him and the copy. */
 @media (min-width: 640px) {
   .hero {
-    --p: min(100vw / 585, 65vh / 640, 1px);
-    --p: min(100vw / 585, 65lvh / 640, 1px);
-    /* The character's right edge: the content column's right edge. */
-    --fig-right: calc((100% - min(100%, 80rem)) / 2 + 1.5rem);
+    --floor: 8.5%;
+    --p: min(1px, 100lvh / 1013, 100vw / 1154);
+    --foot: calc(var(--floor) - 55 * var(--p));
+    --gutter: 1.5rem;
+    --title-size: max(3.5rem, 6.25vw);
+    --title-w: calc(6.9 * var(--title-size));
+    --fig-src: 640px;
+    --fig-h: min(
+      var(--fig-src),
+      90lvh,
+      96.8lvh - 1.058 * (var(--header-h) + 1.5rem),
+      (100vw - (100vw - min(100vw, 80rem)) / 2 - 2 * var(--gutter) - var(--title-w) - 2rem) / 0.4564
+    );
+    --cx: clamp(
+      (100% - min(100%, 80rem)) / 2 + var(--gutter) + var(--title-w) + 2rem + 0.2197 * var(--fig-h),
+      68%,
+      100% - var(--gutter) - 0.2367 * var(--fig-h)
+    );
   }
 
   .scene-full {
     display: none;
   }
 
-  /* The bare wall; the floor is its own band below. By day its lower part
-     darkens toward the floor as the picture's wall does, row for row (stops
-     placed in picture pixels up from the picture's foot), so the stairs
-     cut from the picture sit on a matching wall. */
+  /* The bare wall; the floor is its own band below. By day the wall
+     brightens toward the middle and darkens toward the floor as the
+     picture's wall does, row for row (lower stops placed in picture pixels
+     up from the picture's foot), so the pieces cut from it sit on a matching
+     wall. */
   .hero-scene {
     background: linear-gradient(180deg, rgb(12 12 12) 0%, rgb(11 11 11) 50%, rgb(9 9 9) 70%);
   }
@@ -1811,24 +1842,24 @@ a.social-link-row:hover {
       180deg,
       rgb(243 243 244) 0%,
       rgb(250 250 250) 18%,
-      rgb(252 251 252) 45%,
-      rgb(250 250 250) calc(94% - 630 * var(--p)),
-      rgb(247 247 247) calc(94% - 530 * var(--p)),
-      rgb(243 243 243) calc(94% - 430 * var(--p)),
-      rgb(240 239 242) calc(94% - 330 * var(--p)),
+      rgb(252 251 252) calc(100% - var(--foot) - 690 * var(--p)),
+      rgb(250 250 250) calc(100% - var(--foot) - 630 * var(--p)),
+      rgb(247 247 247) calc(100% - var(--foot) - 530 * var(--p)),
+      rgb(243 243 243) calc(100% - var(--foot) - 430 * var(--p)),
+      rgb(240 239 242) calc(100% - var(--foot) - 330 * var(--p)),
       rgb(239 238 241) 100%
     );
   }
 
-  /* The floor the character stands on, across the whole hero: from the
-     picture's horizon (130 picture pixels above its foot) down. Its shading
-     is sampled from the pictures: by night a lighter grey plane under a
-     clear horizon, by day a faint crease where wall meets floor. */
+  /* The floor, across the whole hero: from the picture's horizon (130
+     picture pixels above its foot) down. Its shading is sampled from the
+     pictures: by night a lighter grey plane under a clear horizon, by day a
+     faint crease where wall meets floor. */
   .scene-floor {
     display: block;
     position: absolute;
     inset: auto 0 0;
-    height: calc(6% + 130 * var(--p));
+    height: calc(var(--foot) + 130 * var(--p));
   }
 
   .scene-floor::before,
@@ -1902,33 +1933,35 @@ a.social-link-row:hover {
     mask-composite: intersect;
   }
 
+  /* Just the top cube of the picture's right edge (the one below it would
+     sit where the side block floats). */
   .scene-cubes-right {
-    --x: 485;
+    --x: 480;
     --y: 0;
-    --w: 100;
-    --h: 500;
+    --w: 105;
+    --h: 215;
     top: 0;
     right: 0;
     -webkit-mask-image: linear-gradient(to left, #000 80%, transparent),
-      linear-gradient(to bottom, #000 94%, transparent);
+      linear-gradient(to bottom, #000 86%, transparent);
     -webkit-mask-composite: source-in;
     mask-image: linear-gradient(to left, #000 80%, transparent),
-      linear-gradient(to bottom, #000 94%, transparent);
+      linear-gradient(to bottom, #000 86%, transparent);
     mask-composite: intersect;
   }
 
-  /* The stairs. The picture's floating block sits just right of the top
-     step, so the crop shows the top step's column at full height and the
-     rest only from below that block (the last two masks added together);
-     the whole crop fades into the wall on the right and into the floor
-     below the stairs' base. */
+  /* The stairs, standing on the floor line. The picture's floating block
+     sits just right of the top step, so the crop shows the top step's column
+     at full height and the rest only from below that block (the last two
+     masks added together); the whole crop fades into the wall on the right
+     and into the floor below the stairs' base. */
   .scene-stairs {
     --x: 0;
     --y: 812;
     --w: 240;
     --h: 468;
     left: 0;
-    bottom: 6%;
+    bottom: var(--foot);
     -webkit-mask-image: linear-gradient(to right, #000 88%, transparent),
       linear-gradient(to bottom, #000 90%, transparent),
       linear-gradient(to right, #000 38%, transparent 46%),
@@ -1941,67 +1974,69 @@ a.social-link-row:hover {
     mask-composite: intersect, intersect, add;
   }
 
-  /* The three floating blocks, sharp: one under the header, above and to
-     the left of the character, and two that keep their place around him
-     (inside .hero-figure): one off his head, one at his side, between him
-     and the copy. Each bobs on its own clock. */
+  /* The box at the bottom right: the stairs' bottom step, mirrored, on the
+     same floor line. The masks are the stairs' own (mirrored with it), so it
+     fades into the wall on its inner side and into the floor below. */
+  .scene-box-right {
+    --x: 0;
+    --y: 1084;
+    --w: 240;
+    --h: 196;
+    right: 0;
+    bottom: var(--foot);
+    transform: scaleX(-1);
+    -webkit-mask-image: linear-gradient(to right, #000 88%, transparent),
+      linear-gradient(to bottom, #000 82%, transparent);
+    -webkit-mask-composite: source-in;
+    mask-image: linear-gradient(to right, #000 88%, transparent),
+      linear-gradient(to bottom, #000 82%, transparent);
+    mask-composite: intersect;
+  }
+
+  /* The three floating blocks, sharp, in front of the wall. Each is drawn at
+     the character's scale (so at most at its own size) and bobs on its own
+     clock. The head block stays below the header; the side block keeps at
+     least half of itself on screen. */
   .scene-block {
     display: block;
     position: absolute;
+    z-index: 2;
     height: auto;
+    pointer-events: none;
     animation: block-float var(--dur) ease-in-out infinite alternate;
-  }
-
-  .scene-block-far,
-  .scene-block-farther {
-    display: none;
-  }
-
-  .scene-block-top {
-    --dur: 8s;
-    top: calc(145 * var(--p));
-    right: calc(var(--fig-right) + 160 * var(--p));
-    width: calc(100 * var(--p));
   }
 
   .scene-block-head {
     --dur: 7s;
-    top: calc(-96 * var(--p));
-    left: calc(204 * var(--p));
-    width: calc(82 * var(--p));
+    width: calc(var(--fig-h) * 116 / 640);
+    left: calc(var(--cx) + 0.1315 * var(--fig-h));
+    bottom: min(
+      var(--floor) + 0.898 * var(--fig-h),
+      100% - var(--header-h) - 0.2 * var(--fig-h) - 0.5rem
+    );
     animation-delay: -5s;
   }
 
   .scene-block-side {
     --dur: 9.5s;
-    top: calc(390 * var(--p));
-    left: calc(-110 * var(--p));
-    width: calc(80 * var(--p));
+    width: calc(var(--fig-h) * 96 / 640);
+    left: min(var(--cx) + 0.384 * var(--fig-h), 100% - 0.075 * var(--fig-h));
+    bottom: calc(var(--floor) + 0.55 * var(--fig-h));
     animation-delay: -3s;
+  }
+
+  .scene-block-low {
+    --dur: 8s;
+    width: calc(var(--fig-h) * 94 / 640);
+    left: calc(var(--cx) - 0.511 * var(--fig-h));
+    bottom: calc(var(--floor) + 0.166 * var(--fig-h));
   }
 }
 
-/* A very wide wall gets two more blocks, out beyond the character. */
-@media (min-width: 1800px) {
-  .scene-block-far,
-  .scene-block-farther {
-    display: block;
-  }
-
-  .scene-block-far {
-    --dur: 10s;
-    top: 46%;
-    right: calc(var(--fig-right) * 0.45);
-    width: calc(72 * var(--p));
-    animation-delay: -6s;
-  }
-
-  .scene-block-farther {
-    --dur: 11s;
-    top: 72%;
-    right: calc(var(--fig-right) * 0.2);
-    width: calc(60 * var(--p));
-    animation-delay: -2s;
+@media (min-width: 1024px) {
+  .hero {
+    --gutter: 2rem;
+    --title-size: clamp(4rem, 6.25vw, 7rem);
   }
 }
 
@@ -2027,21 +2062,29 @@ a.social-link-row:hover {
   color: rgb(var(--ink));
 }
 
+/* From `sm` each line stays whole, so the character can be kept clear of
+   the widest one (see --cx). */
 @media (min-width: 640px) {
   .hero-title {
-    font-size: clamp(3.5rem, 8.5vw, 5rem);
+    font-size: var(--title-size);
   }
-}
 
-@media (min-width: 1024px) {
-  .hero-title {
-    font-size: clamp(4rem, 6.2vw, 6.25rem);
+  .hero-title > span {
+    white-space: nowrap;
   }
 }
 
 /* By day the headline is near-black so it holds up on the white wall. */
 :root.light .hero-title {
   color: rgb(17 17 17);
+}
+
+.hero-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1.5rem;
+  margin-top: 2rem;
 }
 
 .hero-copy .btn-outline {
@@ -2068,29 +2111,82 @@ a.social-link-row:hover {
   color: rgb(var(--accent-ink));
 }
 
-/* The headline and link change colour with the theme: let them follow the
-   light rather than flip while the night picture is still up. */
+@media (min-width: 640px) {
+  .hero-actions {
+    margin-top: 2.5rem;
+  }
+}
+
+/* On a wide wall the action and the link grow with the headline. */
+@media (min-width: 1024px) {
+  .hero-actions {
+    margin-top: clamp(2rem, 2.6vw, 3rem);
+    gap: clamp(1.5rem, 2.2vw, 2.75rem);
+  }
+
+  .hero-copy .btn-outline {
+    height: clamp(2.75rem, 4vw, 4.5rem);
+    min-width: clamp(16rem, 23vw, 28rem);
+    padding: 0 1.4em;
+    gap: 0.75em;
+    border-width: 2px;
+    border-radius: clamp(12px, 0.8vw, 16px);
+    font-size: clamp(0.9375rem, 1.3vw, 1.375rem);
+  }
+
+  .hero-copy .btn-outline svg {
+    width: 1.2em;
+    height: 1.2em;
+  }
+
+  .hero-link {
+    font-size: clamp(0.9375rem, 1.15vw, 1.3125rem);
+  }
+
+  .hero-link svg {
+    width: 1.1em;
+    height: 1.1em;
+  }
+}
+
+/* Phone only: a line about BuildEx on the floor under the character. */
+.hero-blurb {
+  position: relative;
+  z-index: 2;
+  max-width: 36rem;
+  padding: 0.25rem 1rem 0;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: rgb(var(--ink-2));
+}
+
+@media (min-width: 640px) {
+  .hero-blurb {
+    display: none;
+  }
+}
+
+/* The headline, link and blurb change colour with the theme: let them
+   follow the light rather than flip while the night picture is still up. */
 .hero-title,
-.hero-link {
+.hero-link,
+.hero-blurb {
   transition: color 1.4s cubic-bezier(0.45, 0, 0.4, 1);
 }
 
 /* ── The character ─────────────────────────────────────────────────────────
-   Cut out of the picture and standing on the floor at the picture's scale,
-   at the right of the content column (in line with the header's right
-   edge), as he stands at the right of the phone picture. He is layered over
-   the copy, so where a long headline line reaches him (on narrower windows)
-   he stands in front of its last letters. Click-through, so nothing under
-   him is blocked. */
+   Cut out of the picture and standing on the floor line, his middle at
+   --cx. He is layered over the copy; --cx and --fig-h keep him clear of it.
+   Click-through, so nothing under him is blocked. */
 @media (min-width: 640px) {
   .hero-figure {
     display: block;
     position: absolute;
     z-index: 2;
-    right: var(--fig-right);
-    bottom: calc(6% + 44 * var(--p));
-    width: calc(303 * var(--p));
-    height: calc(640 * var(--p));
+    left: calc(var(--cx) - 0.2367 * var(--fig-h));
+    bottom: calc(var(--floor) - 0.04 * var(--fig-h));
+    width: calc(var(--fig-h) * 303 / 640);
+    height: var(--fig-h);
     pointer-events: none;
   }
 
@@ -2111,12 +2207,6 @@ a.social-link-row:hover {
     bottom: -2%;
     height: 5%;
     background: radial-gradient(closest-side, rgb(0 0 0 / 0.28), transparent);
-  }
-}
-
-@media (min-width: 1024px) {
-  .hero {
-    --fig-right: calc((100% - min(100%, 80rem)) / 2 + 2rem);
   }
 }
 
@@ -2145,6 +2235,14 @@ a.social-link-row:hover {
 .hero-next:hover {
   background: rgb(var(--canvas) / 0.8);
   border-color: rgb(var(--line) / 0.24);
+}
+
+/* On a phone the hero runs on past the first screen (the blurb), so its
+   foot is never under the toolbar. */
+@media (max-width: 639px) {
+  .hero-next {
+    bottom: 1.25rem;
+  }
 }
 
 @keyframes hero-bob {

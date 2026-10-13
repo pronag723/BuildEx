@@ -8,12 +8,11 @@ import { publicAsset } from "../utils";
 // The studio room behind the hero, lit white by day and black by night;
 // toggling the theme cross-fades the two (all CSS — see "The studio scene" in
 // globals.css). On a phone it is the one portrait picture. From `sm` it is the
-// same picture laid out on a wider wall: its corner pieces (cubes at the top
-// left and top right, stairs at the bottom left) cut from it at their natural
-// proportions, its floor, and a sharp floating block under the header (two
-// more on a very wide wall). The character is cut out too and stands on the
-// floor at the right, in front of the copy (in HeroSection), with the
-// picture's other two blocks travelling with him.
+// same room laid out on a wider wall: its corner pieces (cubes at the top left
+// and top right, stairs at the bottom left, and a box at the bottom right made
+// from the stairs' bottom step) cut from it at their natural proportions, and
+// its floor. The character and the floating blocks stand in front of it (in
+// HeroSection).
 function HeroScene() {
   const pictures = {
     "--hero-night": `url(${publicAsset("/backgrounds/hero-night.webp")})`,
@@ -27,9 +26,7 @@ function HeroScene() {
       <div className="scene-piece scene-cubes-left" />
       <div className="scene-piece scene-cubes-right" />
       <div className="scene-piece scene-stairs" />
-      <SceneBlock src={2} className="scene-block-top" />
-      <SceneBlock src={3} className="scene-block-far" />
-      <SceneBlock src={1} className="scene-block-farther" />
+      <div className="scene-piece scene-box-right" />
     </div>
   );
 }
@@ -58,7 +55,7 @@ export default function HeroSection() {
           <span>{t("about.hero.titleLine2")}</span>
           <span className="accent-word">{t("about.hero.titleAccent")}</span>
         </h1>
-        <div className="mt-8 flex flex-col items-start gap-6 sm:mt-10">
+        <div className="hero-actions">
           <Link href="/" className="btn btn-outline btn-lg">
             <Icon name="arrowRight" size={18} strokeWidth={2} />
             {t("about.browseBuilders")}
@@ -70,14 +67,19 @@ export default function HeroSection() {
         </div>
       </div>
 
-      {/* The character stands on the floor at the right (from `sm`), in front
-          of the copy, with two of the picture's blocks around him. */}
+      {/* The character stands on the floor right of the copy (from `sm`),
+          with three of the picture's blocks floating around him: one above
+          his head, one at his side, one low between him and the copy. */}
       <div className="hero-figure" aria-hidden="true">
         <img className="scene-night" src={publicAsset("/backgrounds/hero-figure-night.webp")} alt="" decoding="async" />
         <img className="scene-day" src={publicAsset("/backgrounds/hero-figure-day.webp")} alt="" decoding="async" />
-        <SceneBlock src={1} className="scene-block-head" />
-        <SceneBlock src={3} className="scene-block-side" />
       </div>
+      <SceneBlock src={1} className="scene-block-head" />
+      <SceneBlock src={2} className="scene-block-side" />
+      <SceneBlock src={3} className="scene-block-low" />
+
+      {/* Phone only: a line about BuildEx under the character's feet. */}
+      <p className="hero-blurb">{t("about.hero.blurb")}</p>
 
       <a href="#projects" className="hero-next" aria-label={t("about.hero.scrollAria")}>
         <Icon name="chevronDown" size={20} strokeWidth={2} />
