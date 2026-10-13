@@ -21,7 +21,7 @@ import {
 } from "../../lib/onboarding/constants";
 import { readContactLinks } from "../../lib/onboarding/contactLinks";
 import { BUILDER_ONBOARDING_START } from "../../lib/onboarding/state";
-import { withBase } from "../home/utils";
+import { publicAsset, withBase } from "../home/utils";
 import { Icon } from "../../lib/icons";
 import Avatar from "../../lib/ui/Avatar";
 import { useSlidingIndicator } from "../../lib/ui/useSlidingIndicator";
@@ -100,7 +100,7 @@ function SectionTabs({ section, setSection }) {
   return (
     <div
       ref={containerRef}
-      className="relative mb-6 flex gap-1 border-b border-line/[0.08]"
+      className="relative mb-3 flex gap-4"
       role="tablist"
       aria-label={t("account.sections.aria")}
     >
@@ -113,8 +113,8 @@ function SectionTabs({ section, setSection }) {
             role="tab"
             aria-selected={isActive}
             onClick={() => setSection(s.key)}
-            className={`-mb-px h-10 rounded-t-md px-3 text-sm font-medium transition-colors ${
-              isActive ? "text-ink" : "text-ink-2 hover:text-ink"
+            className={`h-10 px-1 text-[15px] transition-colors ${
+              isActive ? "font-semibold text-ink" : "font-medium text-ink-3 hover:text-ink"
             }`}
           >
             <span className="sm:hidden">{t(`account.sections.${s.key}Short`)}</span>
@@ -122,7 +122,7 @@ function SectionTabs({ section, setSection }) {
           </button>
         );
       })}
-      <span ref={barRef} className="slide-indicator -bottom-px" aria-hidden="true" />
+      <span ref={barRef} className="slide-indicator bottom-0" aria-hidden="true" />
     </div>
   );
 }
@@ -606,10 +606,9 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
 
   return (
     <header className="card mb-6 p-5 sm:p-6">
-      <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 items-start">
-        {/* Avatar */}
-        <div className="relative flex-shrink-0 mx-auto sm:mx-0">
-          {editing ? (
+      {editing ? (
+        <div className="flex flex-col items-start gap-4 sm:flex-row sm:gap-6">
+          <div className="relative mx-auto flex-shrink-0 sm:mx-0">
             <AvatarUploader
               userId={user?.id}
               value={avatarUrl}
@@ -618,95 +617,86 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
               fallbackInitial={(profile?.display_name || "B").charAt(0).toUpperCase()}
               size={112}
             />
-          ) : (
+          </div>
+
+          <div className="w-full min-w-0 space-y-4 sm:flex-1">
+            <div>
+              <label htmlFor="acc-display-name" className="onb-label block mb-1.5">
+                {t("onboarding.identity.nameLabel")}
+              </label>
+              <input
+                id="acc-display-name"
+                type="text"
+                className={`onb-input ${displayName && !nameValid ? "is-error" : ""}`}
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value.slice(0, DISPLAY_NAME_MAX))}
+                maxLength={DISPLAY_NAME_MAX}
+                placeholder={t("onboarding.identity.nameLabel")}
+                autoComplete="off"
+              />
+              <p className="mt-1.5 text-xs text-ink-3">
+                {t("account.header.nameHint")} {trimmedName.length}/{DISPLAY_NAME_MAX}
+              </p>
+            </div>
+            <HandleInput
+              value={handle}
+              onChange={setHandle}
+              currentUserId={user?.id}
+              onValidityChange={setHandleValid}
+              label={t("account.header.handleLabel")}
+              hint={t("account.header.handleHint")}
+            />
+            {isBuilder && (
+              <ContactLinkField
+                rows={linkRows}
+                onChange={setLinkRows}
+                label={t("onboarding.links.label")}
+                hint={t("account.header.linksHint")}
+              />
+            )}
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Identity: avatar, then the name (with the Builder badge) over the
+              @handle. */}
+          <div className="flex items-center gap-4 sm:gap-5">
             <Avatar
               src={profile?.avatar_url}
               name={profile?.display_name || "B"}
               alt={profile?.display_name || ""}
-              className="h-20 w-20 rounded-2xl text-3xl sm:h-24 sm:w-24"
+              className="h-20 w-20 flex-shrink-0 rounded-2xl text-3xl sm:h-24 sm:w-24"
             />
-          )}
-        </div>
-
-        {/* Identity */}
-        <div className="w-full sm:w-auto sm:flex-1 min-w-0 text-center sm:text-left">
-          {editing ? (
-            <div className="space-y-4 text-left">
-              <div>
-                <label htmlFor="acc-display-name" className="onb-label block mb-1.5">
-                  {t("onboarding.identity.nameLabel")}
-                </label>
-                <input
-                  id="acc-display-name"
-                  type="text"
-                  className={`onb-input ${displayName && !nameValid ? "is-error" : ""}`}
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value.slice(0, DISPLAY_NAME_MAX))}
-                  maxLength={DISPLAY_NAME_MAX}
-                  placeholder={t("onboarding.identity.nameLabel")}
-                  autoComplete="off"
-                />
-                <p className="mt-1.5 text-xs text-ink-3">
-                  {t("account.header.nameHint")} {trimmedName.length}/{DISPLAY_NAME_MAX}
-                </p>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                <h2 className="min-w-0 break-words text-xl font-semibold leading-tight tracking-[-0.02em] sm:text-2xl">
+                  {profile?.display_name || t("onboarding.identity.nameLabel")}
+                </h2>
+                {isBuilder && (
+                  <span className="tag bg-accent/15 text-accent-ink">
+                    {t("account.header.builderBadge")}
+                  </span>
+                )}
               </div>
-              <HandleInput
-                value={handle}
-                onChange={setHandle}
-                currentUserId={user?.id}
-                onValidityChange={setHandleValid}
-                label={t("account.header.handleLabel")}
-                hint={t("account.header.handleHint")}
-              />
-              {isBuilder && (
-                <ContactLinkField
-                  rows={linkRows}
-                  onChange={setLinkRows}
-                  label={t("onboarding.links.label")}
-                  hint={t("account.header.linksHint")}
-                />
+              {profile?.username && (
+                <p className="mt-1 break-all text-[15px] text-ink-2">@{profile.username}</p>
               )}
             </div>
-          ) : (
-            <>
-          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2 gap-y-1.5 mb-1.5">
-            <h2 className="min-w-0 break-words text-xl font-semibold leading-tight tracking-[-0.02em] sm:text-2xl">
-              {profile?.display_name || t("onboarding.identity.nameLabel")}
-            </h2>
-            {isBuilder && (
-              <span className="tag bg-accent/15 text-accent-ink">
-                {t("account.header.builderBadge")}
-              </span>
-            )}
           </div>
 
-          {profile?.username && (
-            <p className="mb-4 break-all text-sm text-ink-3">@{profile.username}</p>
-          )}
-
-          {/* Links used to render ONLY when at least one was saved, which meant
-              a builder who had added none saw nothing here at all — no label,
-              no hint — and had no way to discover the feature short of opening
-              Edit and scrolling past the name and handle fields. The section is
-              always present for a builder now, with an empty state that says
-              where to add them. */}
+          {/* A builder always sees the links row, with an empty state that
+              opens Edit — otherwise the feature is undiscoverable until they
+              have added a link. */}
           {isBuilder && (
-            <div className="mb-4">
-              <p className="mb-2 text-[13px] font-medium text-ink-3">
-                {t("onboarding.links.label")}
+            <div className="mt-5">
+              <p className="mb-2 text-sm font-medium text-ink-2">
+                {t("account.header.linksLabel")}
               </p>
               {savedLinks.length > 0 ? (
-                <SocialLinks
-                  contactLinks={builderProfile?.contact_links}
-                  className="justify-center sm:justify-start"
-                />
+                <SocialLinks contactLinks={builderProfile?.contact_links} />
               ) : (
-                <button
-                  type="button"
-                  onClick={startEdit}
-                  className="btn btn-secondary btn-sm border-dashed"
-                >
-                  <Icon name="link" size={13} />
+                <button type="button" onClick={startEdit} className="profile-links-empty">
+                  <Icon name="link" size={16} />
                   {t("account.header.addLinks")}
                 </button>
               )}
@@ -714,59 +704,57 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
           )}
 
           {isBuilder && specialties.length > 0 && (
-            <div className="flex flex-wrap justify-center sm:justify-start gap-2">
+            <div className="mt-4 flex flex-wrap gap-2">
               {specialties.map((s) => (
-                <span key={s} className="tag h-6 px-2 text-xs">
+                <span key={s} className="tag h-8 rounded-lg px-3 text-[13px]">
                   {styleChipLabel(s, t.lang)}
                 </span>
               ))}
             </div>
           )}
-            </>
-          )}
-        </div>
-
-        {/* Edit identity control */}
-        <div className="flex items-center gap-2 self-center sm:self-start mx-auto sm:mx-0">
-          {editing ? (
-            <>
-              <button
-                type="button"
-                onClick={() => setEditing(false)}
-                className="btn btn-ghost btn-sm"
-              >
-                {t("common.cancel")}
-              </button>
-              <button
-                type="button"
-                onClick={save}
-                disabled={saving || !canSave}
-                className="btn btn-primary btn-sm"
-              >
-                {saving && (
-                  <span className="w-3 h-3 rounded-full border-2 border-accent-fg/30 border-t-accent-fg animate-spin" />
-                )}
-                {t("common.save")}
-              </button>
-            </>
-          ) : (
-            <button
-              type="button"
-              onClick={startEdit}
-              className="btn btn-secondary btn-sm"
-            >
-              <Icon name="pencil" size={14} />
-              {t("account.header.editProfile")}
-            </button>
-          )}
-        </div>
-      </div>
+        </>
+      )}
 
       {error && (
         <div role="alert" className="auth-banner auth-banner-error mt-4">
           {error}
         </div>
       )}
+
+      {/* The one action, centred at the foot of the card. */}
+      <div className="mt-6 flex justify-center gap-2">
+        {editing ? (
+          <>
+            <button
+              type="button"
+              onClick={() => setEditing(false)}
+              className="btn btn-ghost"
+            >
+              {t("common.cancel")}
+            </button>
+            <button
+              type="button"
+              onClick={save}
+              disabled={saving || !canSave}
+              className="btn btn-primary min-w-[8rem]"
+            >
+              {saving && (
+                <span className="w-3 h-3 rounded-full border-2 border-accent-fg/30 border-t-accent-fg animate-spin" />
+              )}
+              {t("common.save")}
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={startEdit}
+            className="btn btn-outline btn-lg w-full max-w-xs"
+          >
+            <Icon name="pencil" size={16} />
+            {t("account.header.editProfile")}
+          </button>
+        )}
+      </div>
     </header>
   );
 }
@@ -923,10 +911,11 @@ function AccountPageInner() {
       <CatalogNavbar mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
       <CatalogMobileMenu mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
 
-      <main className="pb-20 pt-8 sm:pt-10">
+      <main className="pt-8 sm:pt-10">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-          <h1 className="mb-6 text-[1.625rem] font-semibold tracking-[-0.02em] sm:text-[1.875rem]">
-            {t("account.intro.title")}
+          <h1 className="mb-4 text-[2rem] font-extrabold leading-none tracking-[-0.03em] sm:text-[2.75rem]">
+            {t("account.intro.titleLead")}{" "}
+            <span className="accent-word">{t("account.intro.titleAccent")}</span>
           </h1>
 
           {/* Section switcher — sits above the avatar and picks which group
@@ -966,6 +955,11 @@ function AccountPageInner() {
               <AccountActionsSection />
             </div>
           )}
+        </div>
+
+        {/* The dressing room: decoration only. */}
+        <div className="profile-stage" aria-hidden="true">
+          <img src={publicAsset("/backgrounds/profile-stage.webp")} alt="" loading="lazy" decoding="async" />
         </div>
       </main>
 

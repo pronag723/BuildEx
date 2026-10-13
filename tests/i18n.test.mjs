@@ -69,8 +69,8 @@ test("Russian plurals pick one / few / many", () => {
   assert.deepEqual(forms("card.builds"), [
     "1 работа", "3 работы", "5 работ", "11 работ", "21 работа", "22 работы", "25 работ",
   ]);
-  assert.deepEqual(forms("about.hero.online").map((s) => s.split(" ").slice(0, 2).join(" ")), [
-    "1 билдер", "3 билдера", "5 билдеров", "11 билдеров", "21 билдер", "22 билдера", "25 билдеров",
+  assert.deepEqual(forms("admin.builders.count"), [
+    "1 профиль", "3 профиля", "5 профилей", "11 профилей", "21 профиль", "22 профиля", "25 профилей",
   ]);
   // English keeps its two forms.
   assert.equal(translate("card.builds", { count: 1 }, "en"), "1 build");
