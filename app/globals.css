@@ -1629,76 +1629,23 @@ a.social-link-row:hover {
   color: rgb(var(--ink));
 }
 
-/* /account sits inside the dressing room: the page takes the room's wall
-   colour, and the picture (the character and the open wardrobe, with the
-   room's corner cubes above) stands at the foot of the page behind the
-   cards. Its top melts into the wall, its lower half shows under the cards
-   (the page's bottom padding), and its floor fades into the footer. The
-   scene is 1280×1200; --scene-w is the width it is drawn at (wider than a
-   phone, cropped around the figures; never wider than 1500px, faded at the
-   sides on a wider window). Day and night cross-fade with the theme. */
+/* /account keeps the footer low on a short page. */
 .account-main {
-  --dawn: 1.4s;
-  --dawn-ease: cubic-bezier(0.45, 0, 0.4, 1);
-  --scene-w: clamp(600px, 100vw, 1500px);
-  position: relative;
-  overflow: hidden;
   min-height: calc(100vh - var(--header-h));
-  padding-bottom: calc(var(--scene-w) * 0.44);
-  background: rgb(10 11 11);
-  transition: background-color var(--dawn) var(--dawn-ease);
-}
-
-:root.light .account-main {
-  background: rgb(246 246 246);
-}
-
-.account-main::after {
-  content: "";
-  position: absolute;
-  inset: auto 0 0;
-  height: calc(var(--scene-w) * 0.05);
-  background: linear-gradient(to bottom, rgb(var(--canvas) / 0), rgb(var(--canvas)));
-  pointer-events: none;
-}
-
-.account-scene {
-  position: absolute;
-  left: 50%;
-  bottom: 0;
-  z-index: 0;
-  width: min(100%, 1500px);
-  height: calc(var(--scene-w) * 0.9375);
-  translate: -50% 0;
-  pointer-events: none;
-  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 18%),
-    linear-gradient(to right, transparent, #000 5%, #000 95%, transparent);
-  -webkit-mask-composite: source-in;
-  mask-image: linear-gradient(to bottom, transparent, #000 18%),
-    linear-gradient(to right, transparent, #000 5%, #000 95%, transparent);
-  mask-composite: intersect;
-}
-
-.account-scene img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: 54% 100%;
 }
 
 /* =============================================================================
    /about hero — the voxel studio
    -----------------------------------------------------------------------------
-   A white (day) or black (night) studio room with floating voxel blocks and a
-   Minecraft character, behind a stacked uppercase headline.
+   A white (day) or black (night) studio room with a few floating voxel
+   blocks and a Minecraft character, behind a stacked uppercase headline.
 
    On a phone the room is one portrait picture covering the hero. From `sm`
-   it is built from pieces so it fills any width: a wall painted to match the
-   picture, the picture's own edge cubes pinned to the window's sides, blocks
-   floating across the whole hero, and the character, cut out and standing
-   in front of the headline.
+   it is the same composition on a wider wall: the picture's corner pieces
+   (cubes top left and top right, stairs bottom left), its floor and its
+   three floating blocks, drawn at one scale (--p, see below), and the
+   character cut out and standing on the floor in the right part of the
+   hero, in front of the copy wherever the two meet.
 
    The hero runs up under the header (which is see-through over it, see
    .site-header[data-over-scene]) and pads its content back down, so the
@@ -1792,21 +1739,26 @@ a.social-link-row:hover {
    day one where it is faded or cut out. */
 .scene-day,
 .scene-night,
-.scene-edge::before,
-.scene-edge::after {
+.scene-piece::before,
+.scene-piece::after,
+.scene-floor::before,
+.scene-floor::after {
   transition: opacity var(--dawn) var(--dawn-ease);
 }
 
 .scene-day,
-.scene-edge::after,
+.scene-piece::after,
+.scene-floor::after,
 :root.light .scene-night,
-:root.light .scene-edge::before {
+:root.light .scene-piece::before,
+:root.light .scene-floor::before {
   opacity: 0;
 }
 
 :root.light .hero-scene::before,
 :root.light .scene-day,
-:root.light .scene-edge::after {
+:root.light .scene-piece::after,
+:root.light .scene-floor::after {
   opacity: 1;
 }
 
@@ -1821,105 +1773,244 @@ a.social-link-row:hover {
   object-position: 50% 100%;
 }
 
-.scene-edge,
+.scene-piece,
+.scene-floor,
 .scene-block,
 .hero-figure {
   display: none;
 }
 
+/* From `sm` every piece is placed in the picture's own pixels (585x1280)
+   times --p, the CSS size of one picture pixel. --p follows the window so
+   the character stays about 60% of the hero's height (his box is 65%), is never wider than
+   the phone picture would draw it, and never larger than his source image
+   (so nothing is upscaled). Top pieces hang from the top of the hero, the
+   stairs stand on the picture's floor line (6% up, as on the phone). */
 @media (min-width: 640px) {
+  .hero {
+    --p: min(100vw / 585, 65vh / 640, 1px);
+    --p: min(100vw / 585, 65lvh / 640, 1px);
+    /* The character's right edge: the content column's right edge. */
+    --fig-right: calc((100% - min(100%, 80rem)) / 2 + 1.5rem);
+  }
+
   .scene-full {
     display: none;
   }
 
-  /* The picture's own edge cubes, cut from it with background-position:
-     the left strip (stairs and the top cube) runs the full height, the
-     right strip holds the two cubes at the top right. Both fade into the
-     wall on their inner side. */
-  .scene-edge {
-    display: block;
-    position: absolute;
+  /* The bare wall; the floor is its own band below. By day its lower part
+     darkens toward the floor as the picture's wall does, row for row (stops
+     placed in picture pixels up from the picture's foot), so the stairs
+     cut from the picture sit on a matching wall. */
+  .hero-scene {
+    background: linear-gradient(180deg, rgb(12 12 12) 0%, rgb(11 11 11) 50%, rgb(9 9 9) 70%);
   }
 
-  .scene-edge::before,
-  .scene-edge::after {
+  .hero-scene::before {
+    background: linear-gradient(
+      180deg,
+      rgb(243 243 244) 0%,
+      rgb(250 250 250) 18%,
+      rgb(252 251 252) 45%,
+      rgb(250 250 250) calc(94% - 630 * var(--p)),
+      rgb(247 247 247) calc(94% - 530 * var(--p)),
+      rgb(243 243 243) calc(94% - 430 * var(--p)),
+      rgb(240 239 242) calc(94% - 330 * var(--p)),
+      rgb(239 238 241) 100%
+    );
+  }
+
+  /* The floor the character stands on, across the whole hero: from the
+     picture's horizon (130 picture pixels above its foot) down. Its shading
+     is sampled from the pictures: by night a lighter grey plane under a
+     clear horizon, by day a faint crease where wall meets floor. */
+  .scene-floor {
+    display: block;
+    position: absolute;
+    inset: auto 0 0;
+    height: calc(6% + 130 * var(--p));
+  }
+
+  .scene-floor::before,
+  .scene-floor::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+  }
+
+  .scene-floor::before {
+    background: linear-gradient(
+      180deg,
+      rgb(24 24 24) 0,
+      rgb(28 28 28) calc(10 * var(--p)),
+      rgb(33 33 35) calc(25 * var(--p)),
+      rgb(29 29 29) calc(42 * var(--p)),
+      rgb(37 37 39) calc(66 * var(--p)),
+      rgb(36 36 38) 100%
+    );
+  }
+
+  .scene-floor::after {
+    background: linear-gradient(
+      180deg,
+      rgb(239 238 241) 0,
+      rgb(243 243 245) calc(32 * var(--p)),
+      rgb(240 239 242) calc(48 * var(--p)),
+      rgb(218 217 222) calc(64 * var(--p)),
+      rgb(232 232 234) calc(80 * var(--p)),
+      rgb(241 241 243) calc(98 * var(--p)),
+      rgb(242 242 244) 100%
+    );
+  }
+
+  /* A rectangle of the picture: --x/--y/--w/--h in picture pixels. Night
+     underneath, day on top; each fades into the wall on its inner sides. */
+  .scene-piece {
+    display: block;
+    position: absolute;
+    width: calc(var(--w) * var(--p));
+    height: calc(var(--h) * var(--p));
+  }
+
+  .scene-piece::before,
+  .scene-piece::after {
     content: "";
     position: absolute;
     inset: 0;
     background-image: var(--hero-night);
     background-repeat: no-repeat;
-    background-size: inherit;
-    background-position: inherit;
+    background-size: calc(585 * var(--p)) calc(1280 * var(--p));
+    background-position: calc(var(--x) * var(--p) * -1) calc(var(--y) * var(--p) * -1);
   }
 
-  .scene-edge::after {
+  .scene-piece::after {
     background-image: var(--hero-day);
   }
 
-  .scene-edge-left {
+  .scene-cubes-left {
+    --x: 0;
+    --y: 0;
+    --w: 200;
+    --h: 175;
     top: 0;
     left: 0;
-    height: 100%;
-    aspect-ratio: 235 / 1280;
-    background-size: auto 100%;
-    background-position: left top;
-    -webkit-mask-image: linear-gradient(to right, #000 55%, transparent);
-    mask-image: linear-gradient(to right, #000 55%, transparent);
+    -webkit-mask-image: linear-gradient(to right, #000 85%, transparent),
+      linear-gradient(to bottom, #000 85%, transparent);
+    -webkit-mask-composite: source-in;
+    mask-image: linear-gradient(to right, #000 85%, transparent),
+      linear-gradient(to bottom, #000 85%, transparent);
+    mask-composite: intersect;
   }
 
-  .scene-edge-right {
+  .scene-cubes-right {
+    --x: 485;
+    --y: 0;
+    --w: 100;
+    --h: 500;
     top: 0;
     right: 0;
-    height: 50%;
-    aspect-ratio: 115 / 495;
-    background-size: auto 258.6%;
-    background-position: right top;
-    -webkit-mask-image: linear-gradient(to right, transparent, #000 45%),
-      linear-gradient(to bottom, #000 72%, transparent);
+    -webkit-mask-image: linear-gradient(to left, #000 80%, transparent),
+      linear-gradient(to bottom, #000 94%, transparent);
     -webkit-mask-composite: source-in;
-    mask-image: linear-gradient(to right, transparent, #000 45%),
-      linear-gradient(to bottom, #000 72%, transparent);
+    mask-image: linear-gradient(to left, #000 80%, transparent),
+      linear-gradient(to bottom, #000 94%, transparent);
     mask-composite: intersect;
   }
 
-  /* The left stairs again, mirrored into the bottom-right corner, so the
-     room has a wall on both sides on a wide screen. */
-  .scene-edge-stairs {
-    right: 0;
-    bottom: 0;
-    height: 36.3%;
-    aspect-ratio: 235 / 465;
-    background-size: auto 275.3%;
-    background-position: left bottom;
-    transform: scaleX(-1);
-    -webkit-mask-image: linear-gradient(to right, #000 55%, transparent),
-      linear-gradient(to bottom, transparent, #000 14%);
-    -webkit-mask-composite: source-in;
-    mask-image: linear-gradient(to right, #000 55%, transparent),
-      linear-gradient(to bottom, transparent, #000 14%);
-    mask-composite: intersect;
+  /* The stairs. The picture's floating block sits just right of the top
+     step, so the crop shows the top step's column at full height and the
+     rest only from below that block (the last two masks added together);
+     the whole crop fades into the wall on the right and into the floor
+     below the stairs' base. */
+  .scene-stairs {
+    --x: 0;
+    --y: 812;
+    --w: 240;
+    --h: 468;
+    left: 0;
+    bottom: 6%;
+    -webkit-mask-image: linear-gradient(to right, #000 88%, transparent),
+      linear-gradient(to bottom, #000 90%, transparent),
+      linear-gradient(to right, #000 38%, transparent 46%),
+      linear-gradient(to bottom, transparent 8%, #000 18%);
+    -webkit-mask-composite: source-in, source-in, source-over;
+    mask-image: linear-gradient(to right, #000 88%, transparent),
+      linear-gradient(to bottom, #000 90%, transparent),
+      linear-gradient(to right, #000 38%, transparent 46%),
+      linear-gradient(to bottom, transparent 8%, #000 18%);
+    mask-composite: intersect, intersect, add;
   }
 
-  /* Floating blocks across the whole hero, each bobbing on its own clock.
-     Size is in vmin so the cloud keeps its density at any window shape. */
+  /* The three floating blocks, sharp: one under the header, above and to
+     the left of the character, and two that keep their place around him
+     (inside .hero-figure): one off his head, one at his side, between him
+     and the copy. Each bobs on its own clock. */
   .scene-block {
     display: block;
     position: absolute;
-    width: calc(var(--size) * 1vmin);
     height: auto;
-    rotate: var(--rot);
-    filter: blur(var(--blur));
-    translate: -50% -50%;
-    animation: block-float var(--dur) ease-in-out var(--delay) infinite alternate;
+    animation: block-float var(--dur) ease-in-out infinite alternate;
+  }
+
+  .scene-block-far,
+  .scene-block-farther {
+    display: none;
+  }
+
+  .scene-block-top {
+    --dur: 8s;
+    top: calc(145 * var(--p));
+    right: calc(var(--fig-right) + 160 * var(--p));
+    width: calc(100 * var(--p));
+  }
+
+  .scene-block-head {
+    --dur: 7s;
+    top: calc(-96 * var(--p));
+    left: calc(204 * var(--p));
+    width: calc(82 * var(--p));
+    animation-delay: -5s;
+  }
+
+  .scene-block-side {
+    --dur: 9.5s;
+    top: calc(390 * var(--p));
+    left: calc(-110 * var(--p));
+    width: calc(80 * var(--p));
+    animation-delay: -3s;
+  }
+}
+
+/* A very wide wall gets two more blocks, out beyond the character. */
+@media (min-width: 1800px) {
+  .scene-block-far,
+  .scene-block-farther {
+    display: block;
+  }
+
+  .scene-block-far {
+    --dur: 10s;
+    top: 46%;
+    right: calc(var(--fig-right) * 0.45);
+    width: calc(72 * var(--p));
+    animation-delay: -6s;
+  }
+
+  .scene-block-farther {
+    --dur: 11s;
+    top: 72%;
+    right: calc(var(--fig-right) * 0.2);
+    width: calc(60 * var(--p));
+    animation-delay: -2s;
   }
 }
 
 @keyframes block-float {
   from {
-    translate: -50% -50%;
+    translate: 0 0;
   }
   to {
-    translate: -50% calc(-50% - 14px);
+    translate: 0 -14px;
   }
 }
 
@@ -1985,23 +2076,26 @@ a.social-link-row:hover {
 }
 
 /* ── The character ─────────────────────────────────────────────────────────
-   Cut out of the picture and standing in front of the headline, his left
-   edge 44% of the way across the content column so he overlaps the ends of
-   the longer lines at any width. Click-through, so nothing under him is
-   blocked. */
+   Cut out of the picture and standing on the floor at the picture's scale,
+   at the right of the content column (in line with the header's right
+   edge), as he stands at the right of the phone picture. He is layered over
+   the copy, so where a long headline line reaches him (on narrower windows)
+   he stands in front of its last letters. Click-through, so nothing under
+   him is blocked. */
 @media (min-width: 640px) {
   .hero-figure {
     display: block;
     position: absolute;
     z-index: 2;
-    bottom: 8%;
-    left: calc((100% - min(100%, 80rem)) / 2 + min(100%, 80rem) * 0.44);
-    height: 80%;
-    aspect-ratio: 303 / 640;
+    right: var(--fig-right);
+    bottom: calc(6% + 44 * var(--p));
+    width: calc(303 * var(--p));
+    height: calc(640 * var(--p));
     pointer-events: none;
   }
 
-  .hero-figure img {
+  .hero-figure > .scene-day,
+  .hero-figure > .scene-night {
     position: absolute;
     inset: 0;
     width: 100%;
@@ -2017,6 +2111,12 @@ a.social-link-row:hover {
     bottom: -2%;
     height: 5%;
     background: radial-gradient(closest-side, rgb(0 0 0 / 0.28), transparent);
+  }
+}
+
+@media (min-width: 1024px) {
+  .hero {
+    --fig-right: calc((100% - min(100%, 80rem)) / 2 + 2rem);
   }
 }
 

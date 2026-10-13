@@ -21,7 +21,7 @@ import {
 } from "../../lib/onboarding/constants";
 import { readContactLinks } from "../../lib/onboarding/contactLinks";
 import { BUILDER_ONBOARDING_START } from "../../lib/onboarding/state";
-import { publicAsset, withBase } from "../home/utils";
+import { withBase } from "../home/utils";
 import { Icon } from "../../lib/icons";
 import Avatar from "../../lib/ui/Avatar";
 import { useSlidingIndicator } from "../../lib/ui/useSlidingIndicator";
@@ -909,14 +909,7 @@ function AccountPageInner() {
       <CatalogMobileMenu mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
 
       <main className="account-main">
-        {/* The dressing room behind the page (decoration only): its lower half,
-            the character and the wardrobe, shows under the cards. */}
-        <div className="account-scene" aria-hidden="true">
-          <img className="scene-night" src={publicAsset("/backgrounds/profile-scene-night.webp")} alt="" decoding="async" />
-          <img className="scene-day" src={publicAsset("/backgrounds/profile-scene-day.webp")} alt="" decoding="async" />
-        </div>
-
-        <div className="relative z-[1] mx-auto max-w-4xl px-4 pt-8 sm:px-6 sm:pt-10 lg:px-8">
+        <div className="mx-auto max-w-4xl px-4 pb-16 pt-8 sm:px-6 sm:pb-24 sm:pt-10 lg:px-8">
           <h1 className="mb-4 text-[2rem] font-extrabold leading-none tracking-[-0.03em] sm:text-[2.75rem]">
             {t("account.intro.titleLead")}{" "}
             <span className="accent-word">{t("account.intro.titleAccent")}</span>
