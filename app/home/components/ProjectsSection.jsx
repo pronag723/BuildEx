@@ -27,7 +27,7 @@ export default function ProjectsSection() {
       id="projects"
       className="mx-auto max-w-7xl scroll-mt-[calc(var(--header-h)+1rem)] px-4 sm:px-6 lg:px-8"
     >
-      <div className="border-t border-line/[0.08] py-14 sm:py-20">
+      <div className="py-14 sm:py-20">
         <div className="mb-6 flex flex-col gap-2 sm:mb-8 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
           <div>
             <h2 className="text-xl font-semibold tracking-[-0.015em] sm:text-2xl">
