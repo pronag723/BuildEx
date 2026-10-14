@@ -3,173 +3,62 @@
 import { useEffect, useRef, useState } from "react";
 import { publicAsset } from "../../home/utils";
 
-// The wardrobe scene under the Profile tab: a Minecraft character beside an
-// open wardrobe on a studio floor, with a few voxel blocks floating at the
+// The wardrobe scene under the Profile tab: a character beside an open
+// wardrobe, seen at an angle, in a studio room with boxes stacked at the
 // sides. Purely decorative (hidden from assistive tech, click-through).
 //
-// It is built from layers so each can move on its own (all CSS — see "The
-// wardrobe scene" in globals.css): the floor rises in first, then the
-// wardrobe, then the character. While the profile card is being edited the
-// doors swing wide, the character leans in to pick an outfit, and the whole
-// scene settles lower and dimmer to give the form the stage.
+// It is the mockup's own room, in layers (all motion is CSS — see "The
+// wardrobe scene" in globals.css):
 //
-// Day and night art sit on top of each other and cross-fade with the theme,
-// as on /about. Until its art is exported (public/backgrounds/account-*.webp,
-// see ART_EXPORTED) the character is the /about figure and the wardrobe is
-// drawn in CSS on the same geometry, so the doors animate either way; art
-// that fails to load falls back the same way. No broken images.
+//   account-room-*      the room: wall, floor and wardrobe, with the
+//                       character and the boxes painted out (1280x642)
+//   account-strip-*     one column of wall and floor, repeated to carry the
+//                       room past the picture's sides on wide screens
+//   account-boxes-*     the boxes stacked at the picture's sides; on a wide
+//                       screen they keep to the window's edges (the
+//                       picture's frame crops them, so the window's should)
+//   account-door-*      the two doors, cut out and laid exactly over
+//                       themselves; while editing they swing further open
+//   account-character-* the character, cut out, laid over where he stood;
+//                       he breathes, and leans toward the wardrobe while
+//                       editing
+//
+// Night and day are separate renders and cross-fade with the theme.
 
 const THEMES = ["night", "day"];
 
-// Flip each to true once its files are in public/backgrounds — until then
-// nothing requests them (no 404s in the console).
-//   character: account-character-{night,day}.webp            606x1280
-//   wardrobe:  account-wardrobe-body-{night,day}.webp         720x1080
-//              account-wardrobe-door-{left,right}-{night,day}.webp  316x1004
-const ART_EXPORTED = { character: false, wardrobe: false };
+// Where each cut-out sits in the room picture: [left, top, right, bottom],
+// in picture pixels.
+const CHARACTER = { night: [266, 54, 473, 536], day: [261, 54, 476, 542] };
+const DOORS = { left: [573, 66, 653, 511], right: [965, 26, 1073, 531] };
+const BOXES = {
+  left: { night: [0, 149, 209, 521], day: [0, 148, 224, 521] },
+  right: { night: [1167, 245, 1280, 512], day: [1158, 238, 1280, 511] },
+};
 
-// Hanging on the rail, left to right (the mockups' coats).
-const COATS = ["#2b2b2d", "#454547", "#e4e1da", "#7f1d2a", "#8e2433", "#565b54"];
+function placed([x0, y0, x1, y1]) {
+  return {
+    left: `calc(${x0} * var(--k))`,
+    top: `calc(${y0} * var(--k))`,
+    width: `calc(${x1 - x0} * var(--k))`,
+    height: `calc(${y1 - y0} * var(--k))`,
+  };
+}
 
-function SceneImage({ src, fallback, className, width, height, onFallback, onMissing }) {
-  const [current, setCurrent] = useState(src);
-  if (!current) return null;
+function Art({ name, theme, box }) {
+  const [x0, y0, x1, y1] = box;
   return (
     <img
-      className={className}
-      src={publicAsset(current)}
-      width={width}
-      height={height}
+      className={`ws-art scene-${theme}`}
+      src={publicAsset(`/backgrounds/account-${name}-${theme}.webp`)}
+      width={x1 - x0}
+      height={y1 - y0}
+      style={placed(box)}
       alt=""
       loading="lazy"
       decoding="async"
       draggable={false}
-      onError={() => {
-        if (fallback && current !== fallback) {
-          setCurrent(fallback);
-          onFallback?.();
-        } else {
-          setCurrent(null);
-          onMissing?.();
-        }
-      }}
     />
-  );
-}
-
-function Character() {
-  // The /about day figure stands 3.3% lower in its box than the night one;
-  // when the character falls back to it, it gets the same lift as there.
-  const [fallbackDay, setFallbackDay] = useState(!ART_EXPORTED.character);
-  return (
-    <div className="ws-enter ws-character" style={{ "--enter-delay": "200ms" }}>
-      <div className="ws-pose">
-        <div className="ws-breathe">
-          {THEMES.map((theme) => (
-            <SceneImage
-              key={theme}
-              className={`scene-${theme}${theme === "day" && fallbackDay ? " ws-figure-day-fallback" : ""}`}
-              src={
-                ART_EXPORTED.character
-                  ? `/backgrounds/account-character-${theme}.webp`
-                  : `/backgrounds/hero-figure-${theme}.webp`
-              }
-              fallback={`/backgrounds/hero-figure-${theme}.webp`}
-              width={606}
-              height={1280}
-              onFallback={theme === "day" ? () => setFallbackDay(true) : undefined}
-            />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function CssCabinet() {
-  return (
-    <div className="ws-cab">
-      <div className="ws-cab-inner">
-        <span className="ws-shelf" style={{ top: "17%" }} />
-        <span className="ws-box" style={{ left: "10%", bottom: "83%", width: "32%" }} />
-        <span className="ws-box" style={{ left: "56%", bottom: "83%", width: "32%" }} />
-        <span className="ws-rail" />
-        <div className="ws-coats">
-          {COATS.map((color, i) => (
-            <span key={i} className="ws-coat" style={{ background: color }} />
-          ))}
-        </div>
-        <span className="ws-shelf" style={{ top: "64%" }} />
-        <span className="ws-divider" />
-        <span className="ws-shelf ws-shelf-half" style={{ top: "80%" }} />
-        <span className="ws-box" style={{ left: "8%", bottom: "20%", width: "34%" }} />
-        <span className="ws-box" style={{ left: "10%", bottom: "2%", width: "36%" }} />
-        <span className="ws-boot" style={{ left: "60%" }} />
-        <span className="ws-boot" style={{ left: "76%" }} />
-      </div>
-    </div>
-  );
-}
-
-function Wardrobe() {
-  // One missing piece of art and the whole wardrobe is drawn in CSS instead,
-  // so the body and its doors always match.
-  const [drawn, setDrawn] = useState(!ART_EXPORTED.wardrobe);
-  const missing = () => setDrawn(true);
-
-  return (
-    <div className="ws-enter ws-wardrobe" style={{ "--enter-delay": "100ms" }}>
-      <div className="ws-body">
-        {drawn ? (
-          <CssCabinet />
-        ) : (
-          THEMES.map((theme) => (
-            <SceneImage
-              key={theme}
-              className={`scene-${theme}`}
-              src={`/backgrounds/account-wardrobe-body-${theme}.webp`}
-              width={720}
-              height={1080}
-              onMissing={missing}
-            />
-          ))
-        )}
-      </div>
-      {["left", "right"].map((side) => (
-        <div key={side} className={`ws-door ws-door-${side}`}>
-          {drawn ? (
-            <span className="ws-door-face" />
-          ) : (
-            THEMES.map((theme) => (
-              <SceneImage
-                key={theme}
-                className={`scene-${theme}`}
-                src={`/backgrounds/account-wardrobe-door-${side}-${theme}.webp`}
-                width={316}
-                height={1004}
-                onMissing={missing}
-              />
-            ))
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// A floating voxel block at the side of the scene (from `sm`).
-function SideBlock({ n, className, delay }) {
-  return (
-    <div className={`ws-enter ws-block-slot ${className}`} style={{ "--enter-delay": delay }}>
-      <img
-        className="ws-block"
-        src={publicAsset(`/backgrounds/hero-block-${n}.webp`)}
-        alt=""
-        loading="lazy"
-        decoding="async"
-        draggable={false}
-      />
-    </div>
   );
 }
 
@@ -189,19 +78,78 @@ export default function WardrobeScene({ editing = false }) {
   }, [editing]);
 
   return (
-    <div
-      className="wardrobe-scene"
-      data-editing={editing ? "" : undefined}
-      aria-hidden="true"
-    >
+    <div className="wardrobe-scene" data-editing={editing ? "" : undefined} aria-hidden="true">
       <div className={`ws-world${moving ? " is-moving" : ""}`}>
-        <div className="ws-enter ws-floor" style={{ "--enter-delay": "0ms" }} />
-        <SideBlock n={3} className="ws-block-a" delay="40ms" />
-        <SideBlock n={1} className="ws-block-b" delay="80ms" />
-        <SideBlock n={2} className="ws-block-c" delay="60ms" />
-        <div className="ws-stage">
-          <Wardrobe />
-          <Character />
+        <div className="ws-enter ws-strip">
+          {THEMES.map((theme) => (
+            <div
+              key={theme}
+              className={`ws-strip-layer scene-${theme}`}
+              style={{ backgroundImage: `url(${publicAsset(`/backgrounds/account-strip-${theme}.webp`)})` }}
+            />
+          ))}
+        </div>
+
+        <div className="ws-enter ws-sides" style={{ "--enter-delay": "60ms" }}>
+          {Object.entries(BOXES).map(([side, boxes]) =>
+            THEMES.map((theme) => {
+              const [x0, y0, x1, y1] = boxes[theme];
+              return (
+                <img
+                  key={`${side}-${theme}`}
+                  className={`ws-boxes ws-boxes-${side} scene-${theme}`}
+                  src={publicAsset(`/backgrounds/account-boxes-${side}-${theme}.webp`)}
+                  width={x1 - x0}
+                  height={y1 - y0}
+                  style={{
+                    top: `calc(${y0} * var(--k))`,
+                    width: `calc(${x1 - x0} * var(--k))`,
+                    height: `calc(${y1 - y0} * var(--k))`,
+                  }}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                  draggable={false}
+                />
+              );
+            })
+          )}
+        </div>
+
+        <div className="ws-room">
+          <div className="ws-enter ws-room-art">
+            {THEMES.map((theme) => (
+              <img
+                key={theme}
+                className={`ws-room-img scene-${theme}`}
+                src={publicAsset(`/backgrounds/account-room-${theme}.webp`)}
+                width={1280}
+                height={642}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                draggable={false}
+              />
+            ))}
+            <div className="ws-glow" />
+            {Object.entries(DOORS).map(([side, box]) => (
+              <div key={side} className={`ws-door ws-door-${side}`} style={placed(box)}>
+                {THEMES.map((theme) => (
+                  <Art key={theme} name={`door-${side}`} theme={theme} box={[0, 0, box[2] - box[0], box[3] - box[1]]} />
+                ))}
+              </div>
+            ))}
+          </div>
+
+          <div className="ws-enter ws-character" style={{ "--enter-delay": "160ms" }}>
+            <div className="ws-pose">
+              <div className="ws-breathe">
+                {THEMES.map((theme) => (
+                  <Art key={theme} name="character" theme={theme} box={CHARACTER[theme]} />
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -619,8 +619,12 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved, onEditingC
 
   return (
     <header ref={cardRef} className="card mb-4 p-4 sm:p-6">
-      {/* Top row: avatar, identity, and the card's action in the corner. */}
-      <div className="flex items-start gap-4 sm:gap-5">
+      {/* Top row: avatar, identity, and the card's action in the corner. On a
+          phone, editing puts Cancel/Save on a row of their own: beside the
+          uploader they would squeeze the name to a letter per line. */}
+      <div
+        className={`flex items-start gap-4 sm:gap-5 ${editing ? "flex-wrap sm:flex-nowrap" : ""}`}
+      >
         {editing ? (
           <AvatarUploader
             userId={user?.id}
@@ -655,7 +659,11 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved, onEditingC
           )}
         </div>
 
-        <div className="flex flex-shrink-0 items-center gap-2">
+        <div
+          className={`flex flex-shrink-0 items-center gap-2 ${
+            editing ? "w-full justify-end sm:w-auto" : ""
+          }`}
+        >
           {editing ? (
             <>
               <button
