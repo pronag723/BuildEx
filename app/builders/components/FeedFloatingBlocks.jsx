@@ -90,9 +90,9 @@ const BLOCKS = [
 
 // Decorative Minecraft blocks floating in the feed's side gutters. They live
 // in a fixed layer behind the content (no layout, no pointer events) and
-// drift with the scroll at their own depth: one passive, rAF-throttled scroll
-// listener writes `--scroll` on the layer and CSS works out every block's
-// transform from it (see .feed-blocks in globals.css).
+// drift with the scroll at their own depth: one passive scroll listener runs
+// a rAF loop that eases `--scroll` toward the page's scroll position, and CSS
+// works out every block's transform from it (see .feed-blocks in globals.css).
 export default function FeedFloatingBlocks() {
   const layerRef = useRef(null);
 
@@ -101,16 +101,51 @@ export default function FeedFloatingBlocks() {
     if (!layer) return undefined;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return undefined;
 
+    // The blocks don't jump to the scroll position: they ease toward it, so a
+    // mouse wheel's 100px steps become one glide, and they settle softly when
+    // the page stops. `--lag` (how far behind they still are) lets the CSS
+    // lean them into the motion while they catch up.
+    const wide = window.matchMedia("(min-width: 1024px)");
+    let current = window.scrollY;
+    let last = 0;
     let frame = 0;
-    const write = () => {
-      frame = 0;
-      layer.style.setProperty("--scroll", String(Math.round(window.scrollY)));
-    };
-    const onScroll = () => {
-      if (!frame) frame = requestAnimationFrame(write);
+
+    const write = (lag) => {
+      layer.style.setProperty("--scroll", current.toFixed(2));
+      layer.style.setProperty("--lag", lag.toFixed(2));
     };
 
-    write();
+    const tick = (now) => {
+      const target = window.scrollY;
+      // Frame-rate independent easing: about 90% of the gap closed in ~280ms
+      // whether the screen runs at 60Hz or 144Hz.
+      const dt = Math.min(64, now - (last || now - 16));
+      last = now;
+      current += (target - current) * (1 - Math.exp(-dt / 120));
+      const lag = target - current;
+
+      if (Math.abs(lag) < 0.1) {
+        current = target;
+        write(0);
+        frame = 0;
+        last = 0;
+        return;
+      }
+      write(lag);
+      frame = requestAnimationFrame(tick);
+    };
+
+    const onScroll = () => {
+      // Below `lg` the layer isn't shown: just keep up, so widening the
+      // window later doesn't send the blocks gliding across the screen.
+      if (!wide.matches) {
+        current = window.scrollY;
+        return;
+      }
+      if (!frame) frame = requestAnimationFrame(tick);
+    };
+
+    write(0);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => {
       window.removeEventListener("scroll", onScroll);

@@ -2670,9 +2670,11 @@ a.social-link-row:hover {
    beside the max-w-7xl column (--gw: the space past the column plus its
    2rem padding), so they never cover a card, a filter or the heading.
 
-   Scroll parallax: the layer's --scroll (px scrolled, written by one
-   rAF-throttled listener) moves each block up at its own --speed and turns
-   it by --spin. Its height wraps with mod(), so a block that leaves the top
+   Scroll parallax: the layer's --scroll (px scrolled, eased toward the
+   page's scroll by a rAF loop) moves each block up at its own --speed and
+   turns it by --spin. While the blocks are still catching up, --lag (px
+   behind) leans each one into the motion, nearer blocks further, and they
+   straighten as they settle. Its height wraps with mod(), so a block that leaves the top
    comes back in from below the fold instead of being gone for good. Inside,
    the cube keeps the hero blocks' idle bob, drift and rock. Nothing shows
    below `lg`, where there is no gutter to put them in. */
@@ -2683,6 +2685,7 @@ a.social-link-row:hover {
 @media (min-width: 1024px) {
   .feed-blocks {
     --scroll: 0;
+    --lag: 0;
     --gw: calc(max(0px, (100% - 80rem) / 2) + 2rem);
     display: block;
     position: fixed;
@@ -2709,12 +2712,17 @@ a.social-link-row:hover {
     transform: translate3d(
         0,
         calc(
-          mod(var(--y) * 1vh - var(--scroll) * var(--speed) * 1px + 80px, 100vh + 160px) -
-            80px
+          mod(var(--y) * 1vh - var(--scroll) * var(--speed) * 1px + 120px, 100vh + 240px) -
+            120px
         ),
         0
       )
-      rotate(calc(var(--scroll) * var(--spin) * 1deg));
+      rotate(
+        calc(
+          var(--scroll) * var(--spin) * 1deg +
+            clamp(-6deg, var(--lag) * var(--speed) * var(--sway) * 0.05deg, 6deg)
+        )
+      );
   }
 
   .feed-block-left {
