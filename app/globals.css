@@ -1640,9 +1640,9 @@ a.social-link-row:hover {
    A white (day) or black (night) studio room with a few floating voxel
    blocks and a Minecraft character, beside a stacked uppercase headline.
 
-   On a phone the room is one portrait picture filling the first screen,
-   with a line about BuildEx on the floor under the character's feet. From
-   `sm` it is the same room on a wider wall: the picture's corner pieces
+   On a phone the room is one portrait picture covering the hero, with the
+   character cut out and laid over himself so he stands in front of the
+   copy. From `sm` it is the same room on a wider wall: the picture's corner pieces
    (cubes top left and top right, stairs bottom left, a box bottom right) and
    its floor, drawn at one scale (--p), with the character cut out and
    standing on the floor right of the copy and three blocks around him.
@@ -1668,20 +1668,6 @@ a.social-link-row:hover {
   overflow: hidden;
 }
 
-/* Phone: the copy fills the first screen (the picture), so the blurb starts
-   below it, under the character's feet, and the hero grows to hold it. */
-@media (max-width: 639px) {
-  .hero {
-    flex-direction: column;
-    align-items: stretch;
-    padding-bottom: 5.5rem;
-  }
-
-  .hero-copy {
-    min-height: calc(100svh - var(--header-h) - 14svh);
-  }
-}
-
 @media (min-width: 1024px) {
   .hero {
     align-items: center;
@@ -1702,6 +1688,22 @@ a.social-link-row:hover {
   pointer-events: none;
 }
 
+/* On a phone the fade goes over the laid-over character as well, as it does
+   over the picture under him, so his feet fade with the floor. From `sm` it
+   stays below his feet: the floor runs on under him, unfaded, as it does in
+   the picture, and the fade only ends the room at the hero's foot. */
+@media (max-width: 639px) {
+  .hero::after {
+    z-index: 2;
+  }
+}
+
+@media (min-width: 640px) {
+  .hero::after {
+    height: max(1rem, var(--floor) - 1.75rem);
+  }
+}
+
 /* On the night scene, secondary text is lifted a step so it reads over the
    picture (the hero, and the header while it is see-through above it). */
 :root:not(.light) .on-scene {
@@ -1712,23 +1714,39 @@ a.social-link-row:hover {
 /* ── The studio scene ────────────────────────────────────────────────────
    Night underneath, day on top. Switching the theme cross-fades every day
    piece in and every night piece out together; it is all CSS on the theme
-   class, so a page opened in either theme shows its scene at rest. On a
-   phone the scene's own colour is the pictures' floor (sampled from their
-   last rows), which carries on under the picture behind the blurb. */
+   class, so a page opened in either theme shows its scene at rest. The
+   walls are painted to match the pictures' own walls (sampled from them). */
 .hero-scene {
   position: absolute;
   inset: 0;
   z-index: 0;
   overflow: hidden;
   pointer-events: none;
-  background: rgb(35 35 37);
+  background: linear-gradient(
+    180deg,
+    rgb(12 12 12) 0%,
+    rgb(11 11 11) 50%,
+    rgb(9 9 9) 70%,
+    rgb(12 12 12) 85%,
+    rgb(20 20 20) 90%,
+    rgb(37 37 39) 100%
+  );
 }
 
 .hero-scene::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: rgb(237 237 239);
+  background: linear-gradient(
+    180deg,
+    rgb(243 243 244) 0%,
+    rgb(250 250 250) 18%,
+    rgb(252 251 252) 45%,
+    rgb(246 246 246) 62%,
+    rgb(240 240 242) 82%,
+    rgb(239 238 241) 90%,
+    rgb(241 241 243) 100%
+  );
   opacity: 0;
   transition: opacity var(--dawn) var(--dawn-ease);
 }
@@ -1760,18 +1778,33 @@ a.social-link-row:hover {
   opacity: 1;
 }
 
-/* Phone: the whole picture over the first screen, its foot melting into the
-   floor below (the character's soles stay clear of the fade). */
-.scene-full {
+/* Phone: the whole picture, ending a little above the hero's foot so the
+   fade there does not eat the character's feet. The laid-over character
+   (.hero-figure-phone) takes the same box and the same cover fit, in front
+   of the copy. */
+.scene-full,
+.hero-figure-phone {
   position: absolute;
-  inset: 0 0 auto;
+  inset: 0 0 6%;
   width: 100%;
-  height: 100vh;
-  height: 100svh;
+  height: 94%;
+}
+
+.scene-full {
   object-fit: cover;
   object-position: 50% 100%;
-  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 1.25rem), transparent);
-  mask-image: linear-gradient(to bottom, #000 calc(100% - 1.25rem), transparent);
+}
+
+.hero-figure-phone {
+  z-index: 2;
+  pointer-events: none;
+}
+
+.hero-figure-phone > svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 
 .scene-piece,
@@ -1824,7 +1857,8 @@ a.social-link-row:hover {
     );
   }
 
-  .scene-full {
+  .scene-full,
+  .hero-figure-phone {
     display: none;
   }
 
@@ -2149,28 +2183,10 @@ a.social-link-row:hover {
   }
 }
 
-/* Phone only: a line about BuildEx on the floor under the character. */
-.hero-blurb {
-  position: relative;
-  z-index: 2;
-  max-width: 36rem;
-  padding: 0.25rem 1rem 0;
-  font-size: 1rem;
-  line-height: 1.6;
-  color: rgb(var(--ink-2));
-}
-
-@media (min-width: 640px) {
-  .hero-blurb {
-    display: none;
-  }
-}
-
-/* The headline, link and blurb change colour with the theme: let them
-   follow the light rather than flip while the night picture is still up. */
+/* The headline and link change colour with the theme: let them follow the
+   light rather than flip while the night picture is still up. */
 .hero-title,
-.hero-link,
-.hero-blurb {
+.hero-link {
   transition: color 1.4s cubic-bezier(0.45, 0, 0.4, 1);
 }
 
@@ -2198,15 +2214,17 @@ a.social-link-row:hover {
     height: 100%;
   }
 
-  /* A soft contact shadow on the floor. */
+  /* A soft contact shadow on the floor, right under his soles (4% up from
+     the box's foot, across his shoes) as in the picture, so he stands on
+     the floor rather than above a shadow. */
   .hero-figure::before {
     content: "";
     position: absolute;
-    left: 6%;
-    right: 2%;
-    bottom: -2%;
-    height: 5%;
-    background: radial-gradient(closest-side, rgb(0 0 0 / 0.28), transparent);
+    left: 12%;
+    right: 8%;
+    bottom: 2%;
+    height: 4.5%;
+    background: radial-gradient(closest-side, rgb(0 0 0 / 0.38), transparent);
   }
 }
 
@@ -2235,14 +2253,6 @@ a.social-link-row:hover {
 .hero-next:hover {
   background: rgb(var(--canvas) / 0.8);
   border-color: rgb(var(--line) / 0.24);
-}
-
-/* On a phone the hero runs on past the first screen (the blurb), so its
-   foot is never under the toolbar. */
-@media (max-width: 639px) {
-  .hero-next {
-    bottom: 1.25rem;
-  }
 }
 
 @keyframes hero-bob {

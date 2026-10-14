@@ -78,8 +78,18 @@ export default function HeroSection() {
       <SceneBlock src={2} className="scene-block-side" />
       <SceneBlock src={3} className="scene-block-low" />
 
-      {/* Phone only: a line about BuildEx under the character's feet. */}
-      <p className="hero-blurb">{t("about.hero.blurb")}</p>
+      {/* Phone: the character again, cut out (the cut-outs are 1:1 crops of
+          the pictures, at 282,600) and laid exactly over himself in the
+          picture — the SVG's "slice" is the picture's object-fit: cover — so
+          he stands in front of the headline where the two meet. */}
+      <div className="hero-figure-phone" aria-hidden="true">
+        <svg className="scene-night" viewBox="0 0 586 1280" preserveAspectRatio="xMidYMax slice">
+          <image href={publicAsset("/backgrounds/hero-figure-night.webp")} x="282" y="600" width="303" height="640" />
+        </svg>
+        <svg className="scene-day" viewBox="0 0 585 1280" preserveAspectRatio="xMidYMax slice">
+          <image href={publicAsset("/backgrounds/hero-figure-day.webp")} x="282" y="600" width="303" height="640" />
+        </svg>
+      </div>
 
       <a href="#projects" className="hero-next" aria-label={t("about.hero.scrollAria")}>
         <Icon name="chevronDown" size={20} strokeWidth={2} />
