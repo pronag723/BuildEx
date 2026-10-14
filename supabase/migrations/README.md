@@ -3,7 +3,7 @@
 Paste each file into the Supabase SQL editor in order, then run. All
 migrations are idempotent (safe to re-run during development).
 
-## Current: the directory revamp (0095–0102)
+## Current: the directory revamp (0095–0103)
 
 BuildEx is a directory now. These are the migrations that made it one — read
 them first. **Everything below the table is history**: 0008–0094 build the
@@ -20,6 +20,7 @@ rather than delete, but nothing in the app touches them.
 | 0100 | Chat abuse controls: rate limits and `conversation_reports` |
 | 0101 | Moderation: `builder_profiles.is_hidden`, enforced in RLS |
 | 0102 | **Revokes EXECUTE on the decommissioned RPCs.** Keeping a function kept it *callable* — Postgres grants EXECUTE to PUBLIC by default, so 13 SECURITY DEFINER functions from removed features were reachable by `anon`, i.e. by anyone holding the publishable key in the site's JS bundle. Deliberately leaves the five predicates that RLS policies (several on `storage.objects`) still reference. |
+| 0103 | **Unblocks account deletion.** `ready_build_purchases` linked to profiles, listings and versions with `ON DELETE RESTRICT`, so anyone who ever bought or sold a ready build got a foreign-key error on Delete account. The links become `ON DELETE SET NULL`: the purchase row is kept as a money record (decommission, never delete) and only loses its link to the departed account. `exactly_one_seller` relaxes to `at_most_one_seller` to allow that. |
 
 > **0101 gotcha.** Its `hidden_by` column gave `profiles` and `builder_profiles`
 > a *second* foreign key. Any PostgREST embed between those two tables must now
