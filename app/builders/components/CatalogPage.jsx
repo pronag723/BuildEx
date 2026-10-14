@@ -22,6 +22,7 @@ import CatalogSearch from "./CatalogSearch";
 import CatalogSort from "./CatalogSort";
 import FiltersMobileModal from "./FiltersMobileModal";
 import BuilderGrid from "./BuilderGrid";
+import FeedFloatingBlocks from "./FeedFloatingBlocks";
 import PaginationControls from "./PaginationControls";
 import SiteFooter from "../../home/components/SiteFooter";
 
@@ -254,6 +255,7 @@ export default function CatalogPage() {
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div className="catalog-root">
+      <FeedFloatingBlocks />
       <CatalogNavbar mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
       <CatalogMobileMenu mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
 
@@ -261,12 +263,11 @@ export default function CatalogPage() {
         <div className="mx-auto max-w-7xl px-4 pb-16 pt-7 sm:px-6 sm:pb-24 sm:pt-10 lg:px-8">
           {/* ── Page header ─────────────────────────────────────────────── */}
           <header className="mb-5 sm:mb-7">
-            <h1 className="text-[1.625rem] font-semibold leading-tight tracking-[-0.02em] sm:text-[2rem]">
-              {t("catalog.heading")}
+            <h1 className="feed-title">
+              {t.rich("catalog.heading", {
+                accent: <span className="accent-word">{t("catalog.headingAccent")}</span>,
+              })}
             </h1>
-            <p className="mt-1.5 max-w-xl text-[15px] leading-relaxed text-ink-2">
-              {t("catalog.subheading")}
-            </p>
           </header>
 
           {/* ── Search + filters ────────────────────────────────────────── */}

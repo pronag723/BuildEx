@@ -8,6 +8,7 @@ import CatalogNavbar from "../../../components/CatalogNavbar";
 import CatalogMobileMenu from "../../../components/CatalogMobileMenu";
 import { publicAsset } from "../../../../home/utils";
 import Avatar from "../../../../../lib/ui/Avatar";
+import FavoriteHeart from "../../../../../lib/ui/FavoriteHeart";
 import { useAuthGate } from "../../../../../lib/auth/useAuthGate";
 import SocialLinks from "../../../components/SocialLinks";
 import { useFavorites } from "../../../../../lib/favorites/FavoritesContext";
@@ -365,16 +366,15 @@ export default function BuilderProfilePage({ builder }) {
               </div>
 
               {canFavorite && builder.id && (
-                <button
-                  type="button"
-                  onClick={() => toggleFavorite(builder.id, "builder")}
-                  aria-pressed={favorited}
+                <FavoriteHeart
+                  favorited={favorited}
+                  onToggle={() => toggleFavorite(builder.id, "builder")}
+                  size={15}
                   aria-label={favorited ? t("card.removeFavorite") : t("card.addFavorite")}
                   className="btn btn-secondary btn-sm flex-shrink-0 px-2.5 sm:px-3"
                 >
-                  <Icon name="heart" size={15} filled={favorited} className={favorited ? "text-accent-ink" : ""} />
                   <span className="hidden sm:inline">{favorited ? t("profile.saved") : t("profile.save")}</span>
-                </button>
+                </FavoriteHeart>
               )}
             </div>
 

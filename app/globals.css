@@ -40,6 +40,7 @@
 
   --danger: 248 113 113;
   --warn: 252 211 77;
+  --heart: 244 63 94;
 
   --shadow-card: 0 0 #0000;
   --shadow-pop: 0 16px 40px -12px rgb(0 0 0 / 0.65), 0 0 0 1px rgb(0 0 0 / 0.25);
@@ -67,6 +68,7 @@
 
   --danger: 185 28 28;
   --warn: 180 83 9;
+  --heart: 225 29 72;
 
   --shadow-card: 0 1px 2px rgb(15 23 42 / 0.05), 0 1px 1px rgb(15 23 42 / 0.03);
   --shadow-pop: 0 16px 40px -12px rgb(15 23 42 / 0.22), 0 0 0 1px rgb(15 23 42 / 0.04);
@@ -774,6 +776,109 @@ select option {
 
 .catalog-root > main {
   flex: 1 0 auto;
+}
+
+/* "Minecraft Builders", at nearly the hero headline's size. It stays on one
+   line down to a 320px phone in either language. */
+.feed-title {
+  font-size: clamp(1.625rem, 8.4vw, 4rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.035em;
+  white-space: nowrap;
+  color: rgb(var(--ink));
+}
+
+/* ── Favourite heart (lib/ui/FavoriteHeart.jsx) ────────────────────────────
+   Saving pops the heart and bursts a ring and eight particles out of it;
+   un-saving only gives it a small squeeze. All of it is transform and
+   opacity, and the burst is skipped under reduced motion. */
+.fav-heart {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.fav-heart[data-fav="on"] {
+  color: rgb(var(--heart));
+}
+
+.fav-heart-icon {
+  display: inline-flex;
+  transition: color 150ms ease;
+}
+
+.fav-heart-icon[data-fx="like"] {
+  animation: fav-pop 450ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.fav-heart-icon[data-fx="unlike"] {
+  animation: fav-unpop 220ms ease-out;
+}
+
+.fav-burst {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  color: rgb(var(--heart));
+}
+
+.fav-burst-ring,
+.fav-burst-particle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+}
+
+.fav-burst-ring {
+  width: 24px;
+  height: 24px;
+  margin: -12px 0 0 -12px;
+  border: 2px solid currentColor;
+  border-radius: 9999px;
+  opacity: 0;
+  animation: fav-ring 600ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+.fav-burst-particle {
+  display: flex;
+  width: 7px;
+  height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  opacity: 0;
+  animation: fav-particle 560ms cubic-bezier(0.15, 0.7, 0.3, 1) 40ms;
+}
+
+.fav-burst-dot {
+  width: 4px;
+  height: 4px;
+  margin: auto;
+  border-radius: 9999px;
+  background: rgb(var(--accent));
+}
+
+@keyframes fav-pop {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.35); }
+  60% { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+
+@keyframes fav-unpop {
+  0% { transform: scale(1); }
+  45% { transform: scale(0.8); }
+  100% { transform: scale(1); }
+}
+
+@keyframes fav-ring {
+  0% { transform: scale(0.3); opacity: 0.85; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+
+@keyframes fav-particle {
+  0% { transform: rotate(var(--a)) translateY(-4px) scale(0.4); opacity: 1; }
+  40% { transform: rotate(var(--a)) translateY(calc(-0.7 * var(--d))) scale(1); opacity: 1; }
+  100% { transform: rotate(var(--a)) translateY(calc(-1 * var(--d))) scale(0); opacity: 0; }
 }
 
 .builder-card {
@@ -2472,6 +2577,189 @@ a.social-link-row:hover {
   --delay: -3.3s;
 }
 
+/* ── Voxel cubes (VoxelCube in app/builders/components/FeedFloatingBlocks)
+   Drawn, not cut from the hero's pictures. Each pixel's class names a shade
+   (a–f) and each variant fills the shades in, as rgb triplets like the
+   colour tokens. The two side faces are darkened by an overlay. */
+.vx {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.vx .vp-a { fill: rgb(var(--vx-a)); }
+.vx .vp-b { fill: rgb(var(--vx-b)); }
+.vx .vp-c { fill: rgb(var(--vx-c)); }
+.vx .vp-d { fill: rgb(var(--vx-d)); }
+.vx .vp-e { fill: rgb(var(--vx-e)); }
+.vx .vp-f { fill: rgb(var(--vx-f)); }
+
+.vx-shade-l {
+  fill: #000;
+  opacity: var(--vx-shade-l, 0.2);
+}
+
+.vx-shade-r {
+  fill: #000;
+  opacity: var(--vx-shade-r, 0.4);
+}
+
+.vx-grass {
+  --vx-a: 106 190 70;
+  --vx-b: 86 160 52;
+  --vx-c: 128 208 86;
+  --vx-d: 134 96 67;
+  --vx-e: 115 80 55;
+  --vx-f: 152 112 79;
+}
+
+.vx-dirt {
+  --vx-d: 134 96 67;
+  --vx-e: 115 80 55;
+  --vx-f: 156 116 82;
+}
+
+.vx-stone {
+  --vx-d: 128 128 128;
+  --vx-e: 108 108 108;
+  --vx-f: 148 148 148;
+}
+
+.vx-planks {
+  --vx-d: 178 138 84;
+  --vx-e: 160 122 72;
+  --vx-f: 122 90 52;
+}
+
+.vx-gold {
+  --vx-a: 252 220 75;
+  --vx-b: 236 186 40;
+  --vx-c: 255 240 140;
+}
+
+/* Obsidian with one glowing face. The glowing face is lit, not shaded. */
+.vx-glow {
+  --vx-a: 45 212 170;
+  --vx-b: 20 184 150;
+  --vx-c: 110 240 205;
+  --vx-d: 52 46 64;
+  --vx-e: 36 32 46;
+  --vx-f: 66 58 80;
+  --vx-shade-r: 0.04;
+  filter: drop-shadow(0 0 6px rgb(45 212 170 / 0.35));
+}
+
+/* By day the side faces need less shade to read as lit from above on white,
+   and obsidian is lifted a step so it is not a black hole. */
+:root.light .vx {
+  --vx-shade-l: 0.12;
+  --vx-shade-r: 0.28;
+}
+
+:root.light .vx-glow {
+  --vx-d: 70 62 88;
+  --vx-e: 54 48 70;
+  --vx-f: 86 78 104;
+  --vx-shade-r: 0.02;
+}
+
+/* ── The feed's side blocks ───────────────────────────────────────────────
+   A fixed layer behind the feed (main and the footer sit above it), so it
+   takes no space and never shifts the layout. Blocks live in the gutters
+   beside the max-w-7xl column (--gw: the space past the column plus its
+   2rem padding), so they never cover a card, a filter or the heading.
+
+   Scroll parallax: the layer's --scroll (px scrolled, written by one
+   rAF-throttled listener) moves each block up at its own --speed and turns
+   it by --spin. Its height wraps with mod(), so a block that leaves the top
+   comes back in from below the fold instead of being gone for good. Inside,
+   the cube keeps the hero blocks' idle bob, drift and rock. Nothing shows
+   below `lg`, where there is no gutter to put them in. */
+.feed-blocks {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .feed-blocks {
+    --scroll: 0;
+    --gw: calc(max(0px, (100% - 80rem) / 2) + 2rem);
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .catalog-root > main,
+  .catalog-root > footer {
+    position: relative;
+    z-index: 1;
+  }
+
+  .feed-block {
+    --size: var(--s);
+    --gx: var(--x);
+    position: absolute;
+    top: 0;
+    width: var(--size);
+    opacity: var(--o);
+    will-change: transform;
+    transform: translate3d(
+        0,
+        calc(
+          mod(var(--y) * 1vh - var(--scroll) * var(--speed) * 1px + 80px, 100vh + 160px) -
+            80px
+        ),
+        0
+      )
+      rotate(calc(var(--scroll) * var(--spin) * 1deg));
+  }
+
+  .feed-block-left {
+    left: calc(var(--size) * 0.25 + var(--gx) * max(0px, var(--gw) - var(--size) * 1.5));
+  }
+
+  .feed-block-right {
+    right: calc(var(--size) * 0.25 + var(--gx) * max(0px, var(--gw) - var(--size) * 1.5));
+  }
+
+  .feed-block > .vx {
+    --sine: cubic-bezier(0.37, 0, 0.63, 1);
+    animation:
+      block-bob var(--bob) var(--sine) var(--delay) infinite alternate,
+      block-drift var(--drift) var(--sine) var(--delay) infinite alternate,
+      block-rock var(--rock) var(--sine) var(--delay) infinite alternate;
+  }
+
+  :root:not(.light) .feed-block {
+    opacity: calc(var(--o) * 0.75);
+  }
+}
+
+/* Between `lg` and 1440px the gutter is only the column's 2rem padding:
+   keep one small, quiet block a side, centred in it. */
+@media (min-width: 1024px) and (max-width: 1439.98px) {
+  .feed-block {
+    display: none;
+  }
+
+  .feed-block-lg {
+    display: block;
+    --size: 18px;
+    --gx: 0.5;
+    --amp: 0.35;
+  }
+}
+
+/* Without mod() a block would scroll away for good: hold it still instead. */
+@supports not (width: mod(3px, 2px)) {
+  .feed-block {
+    transform: translate3d(0, calc(var(--y) * 1vh), 0);
+  }
+}
+
 /* ── The copy ──────────────────────────────────────────────────────────── */
 .hero-title {
   display: flex;
@@ -2701,5 +2989,23 @@ a.social-link-row:hover {
     animation-iteration-count: 1 !important;
     transition-duration: 1ms !important;
     scroll-behavior: auto !important;
+  }
+
+  /* The feed's side blocks hold still: no bob, no parallax. */
+  .feed-block {
+    transform: translate3d(0, calc(var(--y) * 1vh), 0) !important;
+  }
+
+  .feed-block > .vx {
+    animation: none !important;
+  }
+
+  /* A favourite only changes colour: no pop, no burst. */
+  .fav-heart-icon {
+    animation: none !important;
+  }
+
+  .fav-burst {
+    display: none !important;
   }
 }

@@ -8,6 +8,7 @@ import { useT } from "../../../lib/i18n/LanguageProvider";
 import { styleChipLabel } from "../../../lib/i18n/labels.mjs";
 import { Icon } from "../../../lib/icons";
 import Avatar from "../../../lib/ui/Avatar";
+import FavoriteHeart from "../../../lib/ui/FavoriteHeart";
 
 // One builder in the feed. The whole card is the link to their profile, so it
 // carries no separate "View profile" button: what it spends its space on is
@@ -42,11 +43,6 @@ export default function BuilderCard({ builder }) {
   const selectSlide = (e, nextIndex) => {
     stop(e);
     setIndex(nextIndex);
-  };
-
-  const onToggleFavorite = (e) => {
-    stop(e);
-    toggleFavorite(builder.id, "builder");
   };
 
   const onTouchStart = (event) => {
@@ -154,16 +150,15 @@ export default function BuilderCard({ builder }) {
         )}
 
         {canFavorite && (
-          <button
-            type="button"
-            onClick={onToggleFavorite}
-            aria-pressed={favorited}
+          // stopPropagation: the card is a link, and the heart must not follow it.
+          <FavoriteHeart
+            favorited={favorited}
+            onToggle={() => toggleFavorite(builder.id, "builder")}
+            stopPropagation
             aria-label={favorited ? t("card.removeFavorite") : t("card.addFavorite")}
             title={favorited ? t("card.removeFavorite") : t("card.addFavorite")}
             className={`absolute right-2 top-2 z-20 h-8 w-8 ${overlayButton}`}
-          >
-            <Icon name="heart" size={16} filled={favorited} className={favorited ? "text-accent" : ""} />
-          </button>
+          />
         )}
       </div>
 
