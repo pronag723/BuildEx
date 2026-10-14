@@ -1635,6 +1635,589 @@ a.social-link-row:hover {
 }
 
 /* =============================================================================
+   /account — the wardrobe scene (Profile tab)
+   -----------------------------------------------------------------------------
+   A character beside an open wardrobe on a studio floor, edge to edge below
+   the cards, filling the page down to the footer (and never shorter than
+   --stage-h). It is laid out from one unit, --u, the wardrobe's height:
+
+     the character   his box is 1.05u tall (606x1280 art, framed like
+                     hero-figure-*.webp: soles ~5.3% up from its foot)
+     the wardrobe    0.667u x u (720x1080 art); its doors cover the opening
+                     (6% in from the sides, 4% from the top, 93% tall) and
+                     swing out toward us on their outer hinges
+     --g, --s        the gap between him and the wardrobe, and the room each
+                     door takes beside it once swung past square (both in u)
+
+   --u is the largest that fits: never over 520px, at most 74% of the stage
+   (headroom above), and the whole group (--span u) inside the gutters, so on
+   a narrow screen everything scales down together instead of being cropped.
+   ========================================================================== */
+.account-main.has-scene {
+  display: flex;
+  flex-direction: column;
+}
+
+.account-main.has-scene > .account-column {
+  width: 100%;
+}
+
+.wardrobe-scene {
+  --dawn: 300ms;
+  --dawn-ease: ease;
+  --rise: cubic-bezier(0.22, 1, 0.36, 1);
+  --stage-h: clamp(280px, 45vh, 620px);
+  --stage-h: clamp(280px, 45svh, 620px);
+  --floor: calc(var(--stage-h) * 0.14);
+  --g: 0.02;
+  --s: 0.07;
+  --door-rest: 70deg;
+  --door-open: 106deg;
+  --gutter: 0.75rem;
+  --span: calc(0.497 + var(--g) + 2 * var(--s) + 0.667);
+  --u: min(520px, var(--stage-h) * 0.74, (100cqw - 2 * var(--gutter)) / var(--span));
+  --gl: calc(50% - var(--span) * var(--u) / 2);
+
+  /* Night underneath, day on top (see .scene-day / .scene-night). */
+  --cab-frame: 40 40 42;
+  --cab-edge: 56 56 59;
+  --cab-inner: 17 17 18;
+  --cab-shelf: 48 48 51;
+  --cab-box: 72 72 75;
+  --cab-door: 44 44 47;
+  --cab-handle: 150 150 156;
+  --cab-boot: 28 28 30;
+
+  position: relative;
+  flex: 1 0 auto;
+  min-height: var(--stage-h);
+  overflow: hidden;
+  overflow: clip;
+  container-type: inline-size;
+  pointer-events: none;
+  user-select: none;
+}
+
+:root.light .wardrobe-scene {
+  --cab-frame: 246 246 247;
+  --cab-edge: 255 255 255;
+  --cab-inner: 214 214 218;
+  --cab-shelf: 236 236 238;
+  --cab-box: 196 196 200;
+  --cab-door: 243 243 245;
+  --cab-handle: 186 186 192;
+  --cab-boot: 40 40 42;
+}
+
+@media (min-width: 480px) {
+  .wardrobe-scene {
+    --g: 0.05;
+    --s: 0.13;
+    --door-open: 116deg;
+    --gutter: 1.5rem;
+  }
+}
+
+/* Everything that moves as one when the card is edited: the scene settles
+   lower and dimmer so the growing form has the stage, never far enough to
+   push the character's feet out of the band. */
+.ws-world {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 100%;
+  transition:
+    transform 500ms var(--rise),
+    opacity 500ms var(--rise);
+}
+
+.ws-world.is-moving {
+  will-change: transform, opacity;
+}
+
+.wardrobe-scene[data-editing] .ws-world {
+  transform: translateY(min(64px, var(--floor) * 0.8));
+  opacity: 0.6;
+}
+
+/* …and the group steps back a touch (the floor stays edge to edge). */
+.wardrobe-scene[data-editing] .ws-stage {
+  scale: 0.97;
+}
+
+/* On arrival (and on switching back to the Profile tab) each layer fades
+   and rises in, floor first, then the wardrobe, then the character. It uses
+   `translate`, so the layers' own transforms stay free. */
+.ws-enter {
+  animation: ws-rise 600ms var(--rise) var(--enter-delay, 0ms) both;
+}
+
+@keyframes ws-rise {
+  from {
+    opacity: 0;
+    translate: 0 24px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+/* The floor: from a soft crease where it meets the wall down to the front,
+   melting into the page at the bottom. Night and day cross-fade. */
+.ws-floor {
+  position: absolute;
+  inset: auto 0 0;
+  height: calc(var(--floor) + 0.16 * var(--u));
+  -webkit-mask-image: linear-gradient(to bottom, #000 70%, transparent);
+  mask-image: linear-gradient(to bottom, #000 70%, transparent);
+}
+
+.ws-floor::before,
+.ws-floor::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transition: opacity var(--dawn) var(--dawn-ease);
+}
+
+.ws-floor::before {
+  background: linear-gradient(
+    180deg,
+    rgb(21 21 21) 0%,
+    rgb(15 15 15) 9%,
+    rgb(26 26 27) 24%,
+    rgb(32 32 34) 55%,
+    rgb(35 35 37) 100%
+  );
+}
+
+.ws-floor::after {
+  opacity: 0;
+  background: linear-gradient(
+    180deg,
+    rgb(240 241 237) 0%,
+    rgb(224 225 222) 9%,
+    rgb(233 234 231) 24%,
+    rgb(237 238 235) 100%
+  );
+}
+
+:root.light .ws-floor::before {
+  opacity: 0;
+}
+
+:root.light .ws-floor::after {
+  opacity: 1;
+}
+
+/* The character and the wardrobe, standing on the floor line, centred. */
+.ws-stage {
+  position: absolute;
+  z-index: 2;
+  left: var(--gl);
+  bottom: var(--floor);
+  width: calc(var(--span) * var(--u));
+  height: calc(1.1 * var(--u));
+  transform-origin: 50% 100%;
+  transition: scale 500ms var(--rise);
+}
+
+.ws-stage .scene-day,
+.ws-stage .scene-night {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* ── The character ──────────────────────────────────────────────────────── */
+.ws-character {
+  position: absolute;
+  z-index: 2;
+  left: 0;
+  bottom: calc(-0.0557 * var(--u));
+  width: calc(0.497 * var(--u));
+  height: calc(1.05 * var(--u));
+}
+
+/* Leans toward the wardrobe while the card is edited, as if picking an
+   outfit; he moves just after the doors open, and first when they close. */
+.ws-pose {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 95%;
+  transition: transform 560ms var(--rise);
+}
+
+.wardrobe-scene[data-editing] .ws-pose {
+  transform: translateX(calc(0.05 * var(--u))) rotate(2.5deg);
+  transition-delay: 90ms;
+}
+
+/* Contact shadow under his soles (as on /about), moving with him. */
+.ws-pose::before {
+  content: "";
+  position: absolute;
+  left: 4%;
+  right: 4%;
+  bottom: 3.6%;
+  height: 6%;
+  background: radial-gradient(closest-side, rgb(0 0 0 / 0.6), rgb(0 0 0 / 0.22) 60%, transparent);
+}
+
+:root.light .ws-pose::before {
+  background: radial-gradient(closest-side, rgb(0 0 0 / 0.22), rgb(0 0 0 / 0.07) 60%, transparent);
+}
+
+/* A slow breath: a hair taller and back, feet planted. */
+.ws-breathe {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 95%;
+  animation: ws-breathe 3.6s ease-in-out infinite alternate;
+}
+
+@keyframes ws-breathe {
+  to {
+    transform: scaleY(1.006);
+  }
+}
+
+/* The /about day figure's soles sit 3.3% lower in its box than the night
+   one's; when it stands in for the account art it gets the same lift. */
+.ws-breathe > .ws-figure-day-fallback {
+  translate: 0 -3.3%;
+}
+
+/* ── The wardrobe ───────────────────────────────────────────────────────── */
+.ws-wardrobe {
+  position: absolute;
+  z-index: 1;
+  left: calc((0.497 + var(--g) + var(--s)) * var(--u));
+  bottom: 0;
+  width: calc(0.667 * var(--u));
+  height: var(--u);
+  perspective: calc(3.5 * var(--u));
+  --door: var(--door-rest);
+}
+
+.wardrobe-scene[data-editing] .ws-wardrobe {
+  --door: var(--door-open);
+}
+
+/* Its shadow on the floor. */
+.ws-wardrobe::before {
+  content: "";
+  position: absolute;
+  left: -6%;
+  right: -6%;
+  bottom: -3.5%;
+  height: 8%;
+  background: radial-gradient(closest-side, rgb(0 0 0 / 0.55), rgb(0 0 0 / 0.18) 65%, transparent);
+}
+
+:root.light .ws-wardrobe::before {
+  background: radial-gradient(closest-side, rgb(0 0 0 / 0.2), rgb(0 0 0 / 0.06) 65%, transparent);
+}
+
+.ws-body {
+  position: absolute;
+  inset: 0;
+}
+
+/* The inside lights up a little as the doors swing wide. */
+.ws-body::after {
+  content: "";
+  position: absolute;
+  inset: 4% 6% 3%;
+  background: radial-gradient(ellipse 70% 55% at 50% 40%, rgb(255 255 255 / 0.07), transparent);
+  opacity: 0;
+  transition: opacity 500ms var(--rise);
+}
+
+:root.light .ws-body::after {
+  background: radial-gradient(ellipse 70% 55% at 50% 40%, rgb(255 255 255 / 0.45), transparent);
+}
+
+.wardrobe-scene[data-editing] .ws-body::after {
+  opacity: 1;
+}
+
+/* The doors, hinged on the outer edges, swing out toward us: ajar at rest
+   (the inside in view), and past square while editing, out beside the
+   wardrobe. They open first and close last. */
+.ws-door {
+  position: absolute;
+  top: 4%;
+  width: 44%;
+  height: 93%;
+  transition: transform 520ms var(--rise) 90ms;
+}
+
+.wardrobe-scene[data-editing] .ws-door {
+  transition-delay: 0ms;
+}
+
+.ws-door-left {
+  left: 6%;
+  transform-origin: 0 50%;
+  transform: rotateY(calc(-1 * var(--door)));
+}
+
+.ws-door-right {
+  left: 50%;
+  transform-origin: 100% 50%;
+  transform: rotateY(var(--door));
+}
+
+/* Turned further from the light, each door falls into shade. */
+.ws-door::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / 0.32);
+  opacity: 0;
+  transition: opacity 520ms var(--rise);
+}
+
+.wardrobe-scene[data-editing] .ws-door::after {
+  opacity: 1;
+}
+
+/* Until the wardrobe art is exported it is drawn here, on the same
+   geometry, in the scene's palette (night and day cross-fade). */
+.ws-cab,
+.ws-cab-inner,
+.ws-shelf,
+.ws-rail,
+.ws-box,
+.ws-boot,
+.ws-divider,
+.ws-door-face {
+  transition: background-color var(--dawn) var(--dawn-ease), box-shadow var(--dawn) var(--dawn-ease);
+}
+
+.ws-cab {
+  position: absolute;
+  inset: 0;
+  border-radius: 3px;
+  background: rgb(var(--cab-frame));
+  box-shadow:
+    inset 3px 0 0 rgb(var(--cab-edge) / 0.6),
+    inset -4px 0 0 rgb(0 0 0 / 0.18),
+    inset 0 -5px 0 rgb(0 0 0 / 0.2);
+}
+
+.ws-cab-inner {
+  position: absolute;
+  inset: 4% 6% 3%;
+  overflow: hidden;
+  background: rgb(var(--cab-inner));
+  box-shadow: inset 0 14px 18px -10px rgb(0 0 0 / 0.45), inset 6px 0 10px -6px rgb(0 0 0 / 0.35);
+}
+
+.ws-shelf {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2.2%;
+  background: rgb(var(--cab-shelf));
+  box-shadow: 0 3px 4px rgb(0 0 0 / 0.25);
+}
+
+.ws-shelf-half {
+  left: 0;
+  right: 50%;
+}
+
+.ws-divider {
+  position: absolute;
+  left: 49%;
+  width: 2.5%;
+  top: 64%;
+  bottom: 0;
+  background: rgb(var(--cab-shelf));
+}
+
+.ws-box {
+  position: absolute;
+  height: 8%;
+  border-radius: 1px;
+  background: rgb(var(--cab-box));
+  box-shadow: inset 0 3px 0 rgb(255 255 255 / 0.08), inset 0 -3px 0 rgb(0 0 0 / 0.2);
+}
+
+/* Each box's little label. */
+.ws-box::after {
+  content: "";
+  position: absolute;
+  left: 38%;
+  right: 38%;
+  top: 44%;
+  height: 12%;
+  background: rgb(255 255 255 / 0.55);
+}
+
+.ws-rail {
+  position: absolute;
+  left: 3%;
+  right: 3%;
+  top: 23.5%;
+  height: 1.1%;
+  border-radius: 999px;
+  background: rgb(var(--cab-handle));
+}
+
+.ws-coats {
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  top: 24.2%;
+  height: 37%;
+  display: flex;
+  justify-content: space-between;
+}
+
+.ws-coat {
+  position: relative;
+  width: 14.5%;
+  margin-top: 6%;
+  border-radius: 2px 2px 1px 1px;
+  box-shadow: inset 3px 0 0 rgb(255 255 255 / 0.1), inset -3px 0 0 rgb(0 0 0 / 0.25);
+}
+
+/* Its wooden hanger. */
+.ws-coat::before {
+  content: "";
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  top: -12%;
+  height: 12%;
+  background: rgb(120 82 52);
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
+.ws-boot {
+  position: absolute;
+  bottom: 0;
+  width: 12%;
+  height: 10%;
+  border-radius: 1px 1px 0 0;
+  background: rgb(var(--cab-boot));
+  box-shadow: inset 2px 0 0 rgb(255 255 255 / 0.08);
+}
+
+.ws-door-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 2px;
+  background: rgb(var(--cab-door));
+  box-shadow:
+    inset 0 0 0 1px rgb(0 0 0 / 0.18),
+    inset 4px 0 0 rgb(255 255 255 / 0.05);
+}
+
+/* The handle, on each door's free edge. */
+.ws-door-face::after {
+  content: "";
+  position: absolute;
+  top: 40%;
+  width: 7%;
+  height: 16%;
+  border-radius: 999px;
+  background: rgb(var(--cab-handle));
+}
+
+.ws-door-left .ws-door-face::after {
+  right: 9%;
+}
+
+.ws-door-right .ws-door-face::after {
+  left: 9%;
+}
+
+/* ── The side blocks ────────────────────────────────────────────────────────
+   Three of the /about blocks floating at the edges of the wall (from `sm`;
+   below that the character and wardrobe need the width), on the same
+   layered sine waves as there. They keep near the group on a wide screen
+   and stop at the window's edge on a narrow one. */
+.ws-block-slot {
+  display: none;
+  position: absolute;
+  z-index: 1;
+}
+
+.ws-block {
+  display: block;
+  width: 100%;
+  height: auto;
+  --sine: cubic-bezier(0.37, 0, 0.63, 1);
+  animation:
+    block-bob var(--bob) var(--sine) var(--delay) infinite alternate,
+    block-drift var(--drift) var(--sine) var(--delay) infinite alternate,
+    block-rock var(--rock) var(--sine) var(--delay) infinite alternate;
+}
+
+@media (min-width: 640px) {
+  .ws-block-slot {
+    display: block;
+  }
+}
+
+.ws-block-a {
+  --bob: 3.9s;
+  --drift: 6.2s;
+  --rock: 7.7s;
+  --sway: -0.8;
+  --delay: -3.3s;
+  width: calc(0.17 * var(--u));
+  aspect-ratio: 94 / 108;
+  left: max(2%, var(--gl) - 0.62 * var(--u));
+  bottom: calc(var(--floor) + 0.1 * var(--u));
+}
+
+.ws-block-b {
+  --bob: 3.6s;
+  --drift: 5.7s;
+  --rock: 7.3s;
+  --sway: 1;
+  --delay: -2.1s;
+  width: calc(0.2 * var(--u));
+  aspect-ratio: 116 / 128;
+  left: max(2%, var(--gl) - 0.5 * var(--u));
+  bottom: calc(var(--floor) + 0.6 * var(--u));
+}
+
+.ws-block-c {
+  --bob: 4.3s;
+  --drift: 6.9s;
+  --rock: 8.1s;
+  --sway: -1;
+  --delay: -5.4s;
+  width: calc(0.16 * var(--u));
+  aspect-ratio: 96 / 110;
+  right: max(2%, var(--gl) - 0.5 * var(--u));
+  bottom: calc(var(--floor) + 0.42 * var(--u));
+}
+
+/* Reduced motion: no slide, lean or float — the global rule below makes
+   every state change instant; the scene only dims while editing. */
+@media (prefers-reduced-motion: reduce) {
+  .wardrobe-scene[data-editing] .ws-world {
+    transform: none;
+  }
+
+  .wardrobe-scene[data-editing] .ws-pose {
+    transform: none;
+  }
+
+  .wardrobe-scene[data-editing] .ws-stage {
+    scale: none;
+  }
+}
+
+/* =============================================================================
    /about hero — the voxel studio
    -----------------------------------------------------------------------------
    A white (day) or black (night) studio room with a few floating voxel

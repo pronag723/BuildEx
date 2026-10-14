@@ -25,9 +25,11 @@ import { withBase } from "../home/utils";
 import { Icon } from "../../lib/icons";
 import Avatar from "../../lib/ui/Avatar";
 import { useSlidingIndicator } from "../../lib/ui/useSlidingIndicator";
+import { useAnimatedHeight } from "../../lib/ui/useAnimatedHeight";
 import CatalogNavbar from "../builders/components/CatalogNavbar";
 import CatalogMobileMenu from "../builders/components/CatalogMobileMenu";
 import SiteFooter from "../home/components/SiteFooter";
+import WardrobeScene from "./components/WardrobeScene";
 import AvatarUploader from "../onboarding/components/AvatarUploader";
 import ChipGrid from "../onboarding/components/ChipGrid";
 import ContactLinkField, {
@@ -530,10 +532,21 @@ function AccountActionsSection() {
 // ─── Hero header (avatar + identity) ─────────────────────────────────────────
 // Mirrors the public builder profile hero (no banner) so what the builder edits
 // reads like what clients will eventually see.
-function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
+function AccountHeader({ profile, builderProfile, isBuilder, onSaved, onEditingChange }) {
   const { user, updateProfile } = useAuth();
   const t = useT();
   const [editing, setEditing] = useState(false);
+  const cardRef = useRef(null);
+  // The card glides between its read and edit heights instead of jumping, so
+  // whatever sits below it (the wardrobe scene) moves with it.
+  useAnimatedHeight(cardRef, editing);
+
+  // The page's wardrobe scene reacts to editing; tell it, and let it go back
+  // to rest if the card unmounts mid-edit (switching tabs).
+  useEffect(() => {
+    onEditingChange?.(editing);
+  }, [editing, onEditingChange]);
+  useEffect(() => () => onEditingChange?.(false), [onEditingChange]);
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || null);
   const [displayName, setDisplayName] = useState(profile?.display_name || "");
   const [handle, setHandle] = useState(profile?.username || "");
@@ -605,7 +618,7 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved }) {
   }
 
   return (
-    <header className="card mb-4 p-4 sm:p-6">
+    <header ref={cardRef} className="card mb-4 p-4 sm:p-6">
       {/* Top row: avatar, identity, and the card's action in the corner. */}
       <div className="flex items-start gap-4 sm:gap-5">
         {editing ? (
@@ -803,6 +816,7 @@ function AccountPageInner() {
   } = useAuth();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [headerEditing, setHeaderEditing] = useState(false);
   // Top-level account view: "profile" (visuals/identity) or "danger" (account
   // controls + delete). Keep it in the URL so a refresh or a shared account
   // link restores the selected tab.
@@ -908,8 +922,8 @@ function AccountPageInner() {
       <CatalogNavbar mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
       <CatalogMobileMenu mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
 
-      <main className="account-main">
-        <div className="mx-auto max-w-4xl px-4 pb-16 pt-8 sm:px-6 sm:pb-24 sm:pt-10 lg:px-8">
+      <main className={section === "profile" ? "account-main has-scene" : "account-main"}>
+        <div className="account-column mx-auto max-w-4xl px-4 pb-16 pt-8 sm:px-6 sm:pb-24 sm:pt-10 lg:px-8">
           <h1 className="mb-4 text-[2rem] font-extrabold leading-none tracking-[-0.03em] sm:text-[2.75rem]">
             {t("account.intro.titleLead")}{" "}
             <span className="accent-word">{t("account.intro.titleAccent")}</span>
@@ -926,6 +940,7 @@ function AccountPageInner() {
                 builderProfile={builderProfile}
                 isBuilder={isBuilder}
                 onSaved={refresh}
+                onEditingChange={setHeaderEditing}
               />
 
               <div className="space-y-4">
@@ -953,6 +968,10 @@ function AccountPageInner() {
             </div>
           )}
         </div>
+
+        {/* Decorative: a character picking an outfit at an open wardrobe,
+            below the cards and edge to edge. It reacts to Edit profile. */}
+        {section === "profile" && <WardrobeScene editing={headerEditing} />}
       </main>
 
       <SiteFooter />
