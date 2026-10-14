@@ -2053,37 +2053,47 @@ a.social-link-row:hover {
     z-index: 2;
     height: auto;
     pointer-events: none;
-    animation: block-float var(--dur) ease-in-out infinite;
+    --sine: cubic-bezier(0.37, 0, 0.63, 1);
+    animation:
+      block-bob var(--bob) var(--sine) var(--delay) infinite alternate,
+      block-drift var(--drift) var(--sine) var(--delay) infinite alternate,
+      block-rock var(--rock) var(--sine) var(--delay) infinite alternate;
   }
 
   .scene-block-head {
-    --dur: 6.5s;
+    --bob: 3.6s;
+    --drift: 5.7s;
+    --rock: 7.3s;
     --sway: 1;
+    --delay: -2.1s;
     width: calc(var(--fig-h) * 116 / 640);
     left: calc(var(--cx) + 0.1315 * var(--fig-h));
     bottom: min(
       var(--floor) + 0.898 * var(--fig-h),
       100% - var(--header-h) - 0.2 * var(--fig-h) - 0.5rem
     );
-    animation-delay: -5s;
   }
 
   .scene-block-side {
-    --dur: 8s;
+    --bob: 4.3s;
+    --drift: 6.9s;
+    --rock: 8.1s;
     --sway: -1;
+    --delay: -5.4s;
     width: calc(var(--fig-h) * 96 / 640);
     left: min(var(--cx) + 0.384 * var(--fig-h), 100% - 0.075 * var(--fig-h));
     bottom: calc(var(--floor) + 0.55 * var(--fig-h));
-    animation-delay: -3s;
   }
 
   .scene-block-low {
-    --dur: 7.2s;
+    --bob: 3.9s;
+    --drift: 6.2s;
+    --rock: 7.7s;
     --sway: -0.8;
+    --delay: -3.3s;
     width: calc(var(--fig-h) * 94 / 640);
     left: calc(var(--cx) - 0.511 * var(--fig-h));
     bottom: calc(var(--floor) + 0.166 * var(--fig-h));
-    animation-delay: -1.5s;
   }
 }
 
@@ -2094,34 +2104,36 @@ a.social-link-row:hover {
   }
 }
 
-/* Each block drifts on a tilted loop: it rises out to one side, crests a
-   little past the middle, comes back down on the other side and settles
-   with a slight overshoot, rocking a few degrees as it goes. --sway sets
-   which way it leans and loops, --amp how far it travels. */
-@keyframes block-float {
-  0% {
-    translate: 0 0;
-    rotate: 0deg;
+/* Each block floats on three slow sine waves at once: it rises and sinks
+   (--bob), drifts side to side (--drift) and rocks (--rock), each on its own
+   period. The periods never line up, so the path is an ever-changing,
+   unhurried Lissajous curve rather than a loop that visibly restarts, and
+   with sine easing there is no point where it stops or snaps. --sway sets
+   which way it leans, --amp how far it travels. */
+@keyframes block-bob {
+  from {
+    transform: translateY(calc(4px * var(--amp, 1)));
   }
-  22% {
-    translate: calc(7px * var(--sway, 1) * var(--amp, 1)) calc(-9px * var(--amp, 1));
-    rotate: calc(2.5deg * var(--sway, 1));
+  to {
+    transform: translateY(calc(-18px * var(--amp, 1)));
   }
-  48% {
-    translate: calc(3px * var(--sway, 1) * var(--amp, 1)) calc(-24px * var(--amp, 1));
-    rotate: calc(5.5deg * var(--sway, 1));
+}
+
+@keyframes block-drift {
+  from {
+    translate: calc(-6px * var(--sway, 1) * var(--amp, 1)) 0;
   }
-  72% {
-    translate: calc(-6px * var(--sway, 1) * var(--amp, 1)) calc(-14px * var(--amp, 1));
-    rotate: calc(1.5deg * var(--sway, 1));
+  to {
+    translate: calc(6px * var(--sway, 1) * var(--amp, 1)) 0;
   }
-  88% {
-    translate: calc(-3px * var(--sway, 1) * var(--amp, 1)) calc(-2px * var(--amp, 1));
-    rotate: calc(-1deg * var(--sway, 1));
+}
+
+@keyframes block-rock {
+  from {
+    rotate: calc(-2.5deg * var(--sway, 1));
   }
-  100% {
-    translate: 0 0;
-    rotate: 0deg;
+  to {
+    rotate: calc(4.5deg * var(--sway, 1));
   }
 }
 
@@ -2138,26 +2150,36 @@ a.social-link-row:hover {
 .phone-block {
   /* Turns about the block's own middle (set inline, in picture pixels). */
   transform-box: view-box;
-  animation: block-float var(--dur) ease-in-out infinite;
+  --sine: cubic-bezier(0.37, 0, 0.63, 1);
   --amp: 1.3;
+  animation:
+    block-bob var(--bob) var(--sine) var(--delay) infinite alternate,
+    block-drift var(--drift) var(--sine) var(--delay) infinite alternate,
+    block-rock var(--rock) var(--sine) var(--delay) infinite alternate;
 }
 
 .phone-block-1 {
-  --dur: 6.5s;
+  --bob: 3.6s;
+  --drift: 5.7s;
+  --rock: 7.3s;
   --sway: 1;
-  animation-delay: -5s;
+  --delay: -2.1s;
 }
 
 .phone-block-2 {
-  --dur: 8s;
+  --bob: 4.3s;
+  --drift: 6.9s;
+  --rock: 8.1s;
   --sway: -1;
-  animation-delay: -3s;
+  --delay: -5.4s;
 }
 
 .phone-block-3 {
-  --dur: 7.2s;
+  --bob: 3.9s;
+  --drift: 6.2s;
+  --rock: 7.7s;
   --sway: -0.8;
-  animation-delay: -1.5s;
+  --delay: -3.3s;
 }
 
 /* ── The copy ──────────────────────────────────────────────────────────── */
