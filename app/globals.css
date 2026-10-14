@@ -1794,6 +1794,7 @@ a.social-link-row:hover {
    (.hero-figure-phone) takes the same box and the same cover fit, in front
    of the copy. */
 .scene-full,
+.scene-blocks-phone,
 .hero-figure-phone {
   position: absolute;
   inset: 0 0 6%;
@@ -1872,6 +1873,7 @@ a.social-link-row:hover {
   }
 
   .scene-full,
+  .scene-blocks-phone,
   .hero-figure-phone {
     display: none;
   }
@@ -2092,29 +2094,70 @@ a.social-link-row:hover {
   }
 }
 
-/* Each block drifts on a small loop (up, across, back down) and rocks a few
-   degrees as it goes; --sway sets which way it leans. */
+/* Each block drifts on a tilted loop: it rises out to one side, crests a
+   little past the middle, comes back down on the other side and settles
+   with a slight overshoot, rocking a few degrees as it goes. --sway sets
+   which way it leans and loops, --amp how far it travels. */
 @keyframes block-float {
   0% {
     translate: 0 0;
     rotate: 0deg;
   }
-  25% {
-    translate: calc(4px * var(--sway, 1)) -12px;
-    rotate: calc(3deg * var(--sway, 1));
+  22% {
+    translate: calc(7px * var(--sway, 1) * var(--amp, 1)) calc(-9px * var(--amp, 1));
+    rotate: calc(2.5deg * var(--sway, 1));
   }
-  50% {
-    translate: 0 -22px;
-    rotate: calc(5deg * var(--sway, 1));
+  48% {
+    translate: calc(3px * var(--sway, 1) * var(--amp, 1)) calc(-24px * var(--amp, 1));
+    rotate: calc(5.5deg * var(--sway, 1));
   }
-  75% {
-    translate: calc(-4px * var(--sway, 1)) -10px;
-    rotate: calc(2deg * var(--sway, 1));
+  72% {
+    translate: calc(-6px * var(--sway, 1) * var(--amp, 1)) calc(-14px * var(--amp, 1));
+    rotate: calc(1.5deg * var(--sway, 1));
+  }
+  88% {
+    translate: calc(-3px * var(--sway, 1) * var(--amp, 1)) calc(-2px * var(--amp, 1));
+    rotate: calc(-1deg * var(--sway, 1));
   }
   100% {
     translate: 0 0;
     rotate: 0deg;
   }
+}
+
+/* Phone: the same three blocks, floating in the picture itself. Each is
+   lifted out of the picture (the picture, masked to the block) over a patch
+   of wall that hides where it was painted, and drifts on the same loop.
+   SVG user units are picture pixels, a little larger than CSS ones here, so
+   the loop is scaled up to travel about as far on screen. */
+.scene-blocks-phone {
+  z-index: 0;
+  pointer-events: none;
+}
+
+.phone-block {
+  /* Turns about the block's own middle (set inline, in picture pixels). */
+  transform-box: view-box;
+  animation: block-float var(--dur) ease-in-out infinite;
+  --amp: 1.3;
+}
+
+.phone-block-1 {
+  --dur: 6.5s;
+  --sway: 1;
+  animation-delay: -5s;
+}
+
+.phone-block-2 {
+  --dur: 8s;
+  --sway: -1;
+  animation-delay: -3s;
+}
+
+.phone-block-3 {
+  --dur: 7.2s;
+  --sway: -0.8;
+  animation-delay: -1.5s;
 }
 
 /* ── The copy ──────────────────────────────────────────────────────────── */
@@ -2248,15 +2291,18 @@ a.social-link-row:hover {
     height: 100%;
   }
 
-  /* The day cut-out's soles sit lower in its box than the night one's;
-     drop it so both stand on the same line. */
+  /* The day cut-out's soles sit lower in its box (about 2% up) than the
+     night one's (5.3%); raise it so both stand on the same line. */
   .hero-figure > .scene-day {
-    translate: 0 3.3%;
+    translate: 0 -3.3%;
   }
 
-  /* Contact shadows on the floor, centred on his soles (5.3% up from the
-     box's foot): a wide soft one under both shoes and a tight dark one right
-     where they touch, so he stands on the floor rather than above it. */
+  /* Contact shadows, behind him. In the night cut-out his far (left) shoe
+     ends 6.2% up the box, over x 12–52%, and his near (right) one 5.2% up,
+     over x 53–88%. A soft pool spreads back from the soles (up the screen,
+     into the floor behind him) and barely in front of them; under each shoe
+     a tight dark ellipse is centred on its sole, so only its lower half
+     shows, as a dark rim right where the shoe meets the floor. */
   .hero-figure::before,
   .hero-figure::after {
     content: "";
@@ -2265,27 +2311,32 @@ a.social-link-row:hover {
   }
 
   .hero-figure::before {
-    left: 4%;
-    right: 0;
-    bottom: 2.3%;
+    left: 2%;
+    right: 2%;
+    bottom: 4.4%;
     height: 6%;
-    background: radial-gradient(closest-side, rgb(0 0 0 / 0.62), rgb(0 0 0 / 0.28) 55%, transparent);
+    background: radial-gradient(closest-side, rgb(0 0 0 / 0.6), rgb(0 0 0 / 0.25) 60%, transparent);
   }
 
   .hero-figure::after {
-    left: 12%;
-    right: 8%;
-    bottom: 4.2%;
-    height: 2.4%;
-    background: radial-gradient(closest-side, rgb(0 0 0 / 0.8), rgb(0 0 0 / 0.35) 60%, transparent);
+    left: 0;
+    right: 0;
+    bottom: 4.3%;
+    height: 3.1%;
+    background:
+      radial-gradient(closest-side, rgb(0 0 0 / 0.9), rgb(0 0 0 / 0.45) 55%, transparent) left 8% top 0 / 48% 70% no-repeat,
+      radial-gradient(closest-side, rgb(0 0 0 / 0.9), rgb(0 0 0 / 0.45) 55%, transparent) right 8% bottom 0 / 44% 70% no-repeat;
   }
 
+  /* By day his cut-out brings its own soft shadow, so both are fainter. */
   :root.light .hero-figure::before {
     background: radial-gradient(closest-side, rgb(0 0 0 / 0.2), rgb(0 0 0 / 0.07) 60%, transparent);
   }
 
   :root.light .hero-figure::after {
-    background: radial-gradient(closest-side, rgb(0 0 0 / 0.3), transparent);
+    background:
+      radial-gradient(closest-side, rgb(0 0 0 / 0.3), transparent) left 8% top 0 / 48% 70% no-repeat,
+      radial-gradient(closest-side, rgb(0 0 0 / 0.3), transparent) right 8% bottom 0 / 44% 70% no-repeat;
   }
 }
 

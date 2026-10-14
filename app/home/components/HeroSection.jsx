@@ -22,12 +22,73 @@ function HeroScene() {
     <div className="hero-scene" style={pictures} aria-hidden="true">
       <img className="scene-full scene-night" src={publicAsset("/backgrounds/hero-night.webp")} alt="" decoding="async" />
       <img className="scene-full scene-day" src={publicAsset("/backgrounds/hero-day.webp")} alt="" decoding="async" />
+      <PhoneBlocks theme="night" width={586} />
+      <PhoneBlocks theme="day" width={585} />
       <div className="scene-floor" />
       <div className="scene-piece scene-cubes-left" />
       <div className="scene-piece scene-cubes-right" />
       <div className="scene-piece scene-stairs" />
       <div className="scene-piece scene-box-right" />
     </div>
+  );
+}
+
+// Where each floating block is painted in the phone pictures (top-left
+// corner, picture pixels; hero-block-N.webp is its 1:1 cut-out), and its size.
+const PHONE_BLOCKS = {
+  night: [[363, 144], [482, 490], [122, 739]],
+  day: [[362, 140], [480, 494], [122, 748]],
+};
+const BLOCK_SIZES = [[116, 128], [96, 110], [94, 108]];
+// hero-patch-N-<theme>.webp is the wall where block N was, filled in from
+// around it, cut this many pixels wider than the block on every side.
+const PATCH_MARGIN = 18;
+
+// Phone: the picture's three blocks set floating. Laid over the picture with
+// its own cover fit (the SVG's "slice"); each block's spot is papered over
+// with its wall patch, and the block itself — the picture, masked to the
+// block's cut-out — drifts above it.
+function PhoneBlocks({ theme, width }) {
+  const picture = publicAsset(`/backgrounds/hero-${theme}.webp`);
+  return (
+    <svg
+      className={`scene-blocks-phone scene-${theme}`}
+      viewBox={`0 0 ${width} 1280`}
+      preserveAspectRatio="xMidYMax slice"
+    >
+      <defs>
+        {PHONE_BLOCKS[theme].map(([x, y], i) => (
+          <mask key={i} id={`hero-block-${theme}-${i + 1}`} style={{ maskType: "alpha" }}>
+            <image
+              href={publicAsset(`/backgrounds/hero-block-${i + 1}.webp`)}
+              x={x}
+              y={y}
+              width={BLOCK_SIZES[i][0]}
+              height={BLOCK_SIZES[i][1]}
+            />
+          </mask>
+        ))}
+      </defs>
+      {PHONE_BLOCKS[theme].map(([x, y], i) => (
+        <image
+          key={i}
+          href={publicAsset(`/backgrounds/hero-patch-${i + 1}-${theme}.webp`)}
+          x={x - PATCH_MARGIN}
+          y={y - PATCH_MARGIN}
+          width={BLOCK_SIZES[i][0] + 2 * PATCH_MARGIN}
+          height={BLOCK_SIZES[i][1] + 2 * PATCH_MARGIN}
+        />
+      ))}
+      {PHONE_BLOCKS[theme].map(([x, y], i) => (
+        <g
+          key={i}
+          className={`phone-block phone-block-${i + 1}`}
+          style={{ transformOrigin: `${x + BLOCK_SIZES[i][0] / 2}px ${y + BLOCK_SIZES[i][1] / 2}px` }}
+        >
+          <image href={picture} width={width} height="1280" mask={`url(#hero-block-${theme}-${i + 1})`} />
+        </g>
+      ))}
+    </svg>
   );
 }
 
