@@ -93,6 +93,13 @@ export const legalDocuments = {
         "If you publish a builder profile, BuildEx stores what you enter: your handle, display name, description, styles and build types, the contact links you choose to publish, your avatar and banner, and your portfolio images.",
         "BuildEx also stores the messages you send through the site, the builders you favourite, reports you submit, notifications generated for you, and a timestamp of when you were last active, which is what drives the online indicator. Ordinary technical logs are produced by our hosting and database providers."
       ]],
+      ["Google user data", [
+        "If you choose to sign in with Google, BuildEx requests only the basic scopes openid, email and profile. From Google it receives your Google account identifier, your email address, your name and your profile picture. BuildEx does not request access to Gmail, Google Drive, Google Calendar, your contacts or any other Google service, and it never sees your Google password.",
+        "This data is used only to sign you in, to keep your BuildEx account linked to your Google account, to pre-fill the display name and picture on your account (which you can change), and to contact you about your account or a moderation matter. Your Google email address is never shown on your public profile.",
+        "Google user data is not sold, is not used for advertising, is not used to build user profiles for anyone else, and is not used to develop, improve or train artificial-intelligence or machine-learning models. It is not shared with anyone except Supabase, which stores it for us to run sign-in, and where the law requires disclosure.",
+        "BuildEx's use and transfer of information received from Google APIs adheres to the Google API Services User Data Policy, including the Limited Use requirements.",
+        "The data is kept while your BuildEx account exists and is deleted when you delete your account from the account page. You can also revoke BuildEx's access at any time at myaccount.google.com/permissions, or ask for deletion by writing to mcbuildex@gmail.com."
+      ]],
       ["Why it is used", [
         "To create and run your account, to publish your profile if you have one, to deliver your messages and notifications, to show accurate online status, to enforce the Terms of Use and moderate abuse, and to keep the service working and secure.",
         "Depending on where you live, the legal basis for this is the contract between you and BuildEx, our legitimate interest in running a safe directory, your consent where you chose to publish something, or a legal obligation.",

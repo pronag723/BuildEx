@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 
 import {
   filterBuilders,
@@ -268,6 +269,13 @@ export default function CatalogPage() {
                 accent: <span className="accent-word">{t("catalog.headingAccent")}</span>,
               })}
             </h1>
+            <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-ink-2">
+              {t.rich("catalog.intro", {
+                brand: <strong className="font-semibold text-ink">BuildEx</strong>,
+                about: <Link href="/about/" className="underline underline-offset-2 hover:text-ink">{t("catalog.introAbout")}</Link>,
+                privacy: <Link href="/legal/privacy/" className="underline underline-offset-2 hover:text-ink">{t("catalog.introPrivacy")}</Link>,
+              })}
+            </p>
           </header>
 
           {/* ── Search + filters ────────────────────────────────────────── */}
