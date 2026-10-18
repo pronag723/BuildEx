@@ -269,13 +269,6 @@ export default function CatalogPage() {
                 accent: <span className="accent-word">{t("catalog.headingAccent")}</span>,
               })}
             </h1>
-            <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-ink-2">
-              {t.rich("catalog.intro", {
-                brand: <strong className="font-semibold text-ink">BuildEx</strong>,
-                about: <Link href="/about/" className="underline underline-offset-2 hover:text-ink">{t("catalog.introAbout")}</Link>,
-                privacy: <Link href="/legal/privacy/" className="underline underline-offset-2 hover:text-ink">{t("catalog.introPrivacy")}</Link>,
-              })}
-            </p>
           </header>
 
           {/* ── Search + filters ────────────────────────────────────────── */}
@@ -379,7 +372,17 @@ export default function CatalogPage() {
         {...filterProps}
       />
 
-      <SiteFooter />
+      {/* Google's OAuth branding review needs the homepage to say what
+          BuildEx is and link the privacy policy — that is this line. It sits
+          in the footer to keep the feed header clean, but it must stay
+          visible (no sr-only / display:none) or the verification can lapse. */}
+      <SiteFooter
+        intro={t.rich("catalog.intro", {
+          brand: <strong className="font-semibold text-ink-2">BuildEx</strong>,
+          about: <Link href="/about/" className="underline underline-offset-2 hover:text-ink">{t("catalog.introAbout")}</Link>,
+          privacy: <Link href="/legal/privacy/" className="underline underline-offset-2 hover:text-ink">{t("catalog.introPrivacy")}</Link>,
+        })}
+      />
     </div>
   );
 }

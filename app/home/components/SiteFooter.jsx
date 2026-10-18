@@ -12,7 +12,7 @@ import { Wordmark } from "../../components/SiteHeader";
 // The sentence itself is `footer.disclaimer` in lib/i18n/messages/<lang>/
 // footer.mjs. Do not remove it without reading app/legal/documents.js first —
 // the landing copy has to stay consistent with what the legal pages promise.
-export default function SiteFooter() {
+export default function SiteFooter({ intro }) {
   const pathname = usePathname();
   const t = useT();
   const legalCenterHref = pathname.startsWith("/legal")
@@ -29,6 +29,9 @@ export default function SiteFooter() {
             <Wordmark className="!text-base" />
             <p className="text-ink-3">{t("footer.copyright")}</p>
           </div>
+          {intro && (
+            <p className="mt-3 text-xs leading-relaxed text-ink-3">{intro}</p>
+          )}
           <p className="mt-3 text-xs leading-relaxed text-ink-3">
             {t("footer.disclaimer")}
           </p>

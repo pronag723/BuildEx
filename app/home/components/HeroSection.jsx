@@ -121,10 +121,6 @@ export default function HeroSection() {
             <Icon name="arrowRight" size={18} strokeWidth={2} />
             {t("about.browseBuilders")}
           </Link>
-          <a href="#how-it-works" className="hero-link">
-            {t("about.hero.howItWorks")}
-            <Icon name="arrowRight" size={16} strokeWidth={2} />
-          </a>
         </div>
       </div>
 

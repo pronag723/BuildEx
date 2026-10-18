@@ -2812,31 +2812,13 @@ a.social-link-row:hover {
   border-radius: 12px;
 }
 
-.hero-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-size: 0.9375rem;
-  font-weight: 500;
-  color: rgb(var(--ink));
-  transition: color 150ms ease;
-}
-
-.hero-link:hover {
-  color: rgb(var(--accent));
-}
-
-:root.light .hero-link:hover {
-  color: rgb(var(--accent-ink));
-}
-
 @media (min-width: 640px) {
   .hero-actions {
     margin-top: 2.5rem;
   }
 }
 
-/* On a wide wall the action and the link grow with the headline. */
+/* On a wide wall the action grows with the headline. */
 @media (min-width: 1024px) {
   .hero-actions {
     margin-top: clamp(2rem, 2.6vw, 3rem);
@@ -2857,21 +2839,11 @@ a.social-link-row:hover {
     width: 1.2em;
     height: 1.2em;
   }
-
-  .hero-link {
-    font-size: clamp(0.9375rem, 1.15vw, 1.3125rem);
-  }
-
-  .hero-link svg {
-    width: 1.1em;
-    height: 1.1em;
-  }
 }
 
-/* The headline and link change colour with the theme: let them follow the
-   light rather than flip while the night picture is still up. */
-.hero-title,
-.hero-link {
+/* The headline changes colour with the theme: let it follow the light
+   rather than flip while the night picture is still up. */
+.hero-title {
   transition: color 1.4s cubic-bezier(0.45, 0, 0.4, 1);
 }
 
