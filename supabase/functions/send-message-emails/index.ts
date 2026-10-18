@@ -8,11 +8,13 @@
 // which never reaches a client.
 //
 // Deployed with --no-verify-jwt (cron has no user JWT). The caller proves
-// itself with the x-cron-secret header instead, checked against CRON_SECRET.
+// itself with the x-cron-secret header instead. Its expected value is the
+// Vault entry message_emails_cron_secret, which migration 0104 generates inside
+// the database; this function reads it through the service-role-only
+// message_emails_cron_secret() RPC, so the secret is never copied anywhere.
 //
-// Secrets: RESEND_API_KEY, EMAIL_FROM, SITE_URL, CRON_SECRET,
-// UNSUBSCRIBE_SECRET. SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are provided
-// by the platform.
+// Secrets: RESEND_API_KEY, EMAIL_FROM, SITE_URL, UNSUBSCRIBE_SECRET.
+// SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are provided by the platform.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { renderMessageEmail } from "./email.ts";
@@ -52,7 +54,6 @@ interface Config {
   resendKey: string;
   from: string;
   siteUrl: string;
-  cronSecret: string;
   unsubscribeSecret: string;
 }
 
@@ -72,7 +73,6 @@ function readConfig(): { config?: Config; missing: string[] } {
     resendKey: Deno.env.get("RESEND_API_KEY") ?? "",
     from: Deno.env.get("EMAIL_FROM") ?? "",
     siteUrl: (Deno.env.get("SITE_URL") ?? "").replace(/\/+$/, ""),
-    cronSecret: Deno.env.get("CRON_SECRET") ?? "",
     unsubscribeSecret: Deno.env.get("UNSUBSCRIBE_SECRET") ?? "",
   };
   const names: Record<keyof Config, string> = {
@@ -81,7 +81,6 @@ function readConfig(): { config?: Config; missing: string[] } {
     resendKey: "RESEND_API_KEY",
     from: "EMAIL_FROM",
     siteUrl: "SITE_URL",
-    cronSecret: "CRON_SECRET",
     unsubscribeSecret: "UNSUBSCRIBE_SECRET",
   };
   const missing = (Object.keys(values) as (keyof Config)[])
@@ -169,13 +168,18 @@ Deno.serve(async (req) => {
     return json({ error: "Server is not configured", missing }, 500);
   }
 
-  if (!safeEqual(req.headers.get("x-cron-secret") ?? "", config.cronSecret)) {
-    return json({ error: "Unauthorized" }, 401);
-  }
-
   const admin = createClient(config.supabaseUrl, config.serviceKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
+
+  const { data: cronSecret, error: secretError } = await admin.rpc("message_emails_cron_secret");
+  if (secretError || typeof cronSecret !== "string" || !cronSecret) {
+    console.error("send-message-emails: cron secret unavailable:", secretError?.message ?? "empty");
+    return json({ error: "Server is not configured", missing: ["message_emails_cron_secret (run migration 0104)"] }, 500);
+  }
+  if (!safeEqual(req.headers.get("x-cron-secret") ?? "", cronSecret)) {
+    return json({ error: "Unauthorized" }, 401);
+  }
 
   const { data, error } = await admin.rpc("claim_message_emails", { p_limit: BATCH_SIZE });
   if (error) {

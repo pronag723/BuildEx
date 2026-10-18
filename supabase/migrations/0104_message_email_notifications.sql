@@ -22,7 +22,8 @@
 --      language switch.
 --   7. pg_cron + pg_net: every 2 minutes, if anything is due, POST to the Edge
 --      Function with a shared secret. URL and secret live in Supabase Vault —
---      this repository is public, so neither appears in this file.
+--      this repository is public, so neither appears in this file. The secret
+--      is generated here, inside the database, and nobody ever copies it.
 --
 -- Where "read" comes from
 -- -----------------------
@@ -727,13 +728,49 @@ grant execute on function public.init_my_locale(text) to authenticated;
 -- The cron job runs in the database every 2 minutes and costs nothing when
 -- there is nothing to send: the HTTP call is made only if a burst is due.
 --
--- The function URL and the shared secret are read from Supabase Vault at run
--- time. Create them once (see supabase/functions/README.md):
---   select vault.create_secret('https://<ref>.supabase.co/functions/v1/send-message-emails',
---                              'message_emails_function_url');
---   select vault.create_secret('<same value as the CRON_SECRET function secret>',
---                              'message_emails_cron_secret');
--- Until both exist this logs a warning and sends nothing.
+-- Both values the job needs live in Supabase Vault and are read at run time:
+--
+--   message_emails_cron_secret  — the x-cron-secret header. Created just below
+--     with a random value, so it is never typed, pasted or committed. The Edge
+--     Function checks the header against the same Vault entry through
+--     message_emails_cron_secret() (service role only). Rotate it with
+--     vault.update_secret(); nothing else needs to change.
+--   message_emails_function_url — not a secret, but it names the project, so it
+--     stays out of this public file. Create it once:
+--       select vault.create_secret(
+--         'https://<ref>.supabase.co/functions/v1/send-message-emails',
+--         'message_emails_function_url');
+--
+-- Until the URL exists the job logs a warning and sends nothing.
+do $$
+begin
+  if not exists (select 1 from vault.secrets where name = 'message_emails_cron_secret') then
+    -- Two v4 UUIDs: 244 random bits, from a core function (no extension needed).
+    perform vault.create_secret(
+      replace(gen_random_uuid()::text || gen_random_uuid()::text, '-', ''),
+      'message_emails_cron_secret',
+      'x-cron-secret that pg_cron sends to the send-message-emails Edge Function'
+    );
+  end if;
+end;
+$$;
+
+create or replace function public.message_emails_cron_secret()
+returns text
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select ds.decrypted_secret
+    from vault.decrypted_secrets ds
+   where ds.name = 'message_emails_cron_secret'
+   limit 1;
+$$;
+
+revoke all on function public.message_emails_cron_secret() from public, anon, authenticated;
+grant execute on function public.message_emails_cron_secret() to service_role;
+
 create or replace function public._kick_message_email_sender()
 returns void
 language plpgsql
@@ -763,7 +800,7 @@ begin
    limit 1;
 
   if coalesce(v_url, '') = '' or coalesce(v_secret, '') = '' then
-    raise warning 'message emails: Vault secrets message_emails_function_url and message_emails_cron_secret are not both set; nothing sent';
+    raise warning 'message emails: Vault entry message_emails_function_url (or message_emails_cron_secret) is missing; nothing sent';
     return;
   end if;
 
