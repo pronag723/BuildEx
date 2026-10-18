@@ -91,12 +91,12 @@ export const legalDocuments = {
       ["What is collected", [
         "When you sign in with Google or Discord, BuildEx receives an account identifier, your email address, and the display name and picture attached to that account. It does not receive your password.",
         "If you publish a builder profile, BuildEx stores what you enter: your handle, display name, description, styles and build types, the contact links you choose to publish, your avatar and banner, and your portfolio images.",
-        "BuildEx also stores the messages you send through the site, the builders you favourite, reports you submit, notifications generated for you, and a timestamp of when you were last active, which is what drives the online indicator. Ordinary technical logs are produced by our hosting and database providers."
+        "BuildEx also stores the messages you send through the site, the builders you favourite, reports you submit, notifications generated for you, your email-notification setting and preferred language, and a timestamp of when you were last active, which is what drives the online indicator. Ordinary technical logs are produced by our hosting and database providers."
       ]],
       ["Google user data", [
         "If you choose to sign in with Google, BuildEx requests only the basic scopes openid, email and profile. From Google it receives your Google account identifier, your email address, your name and your profile picture. BuildEx does not request access to Gmail, Google Drive, Google Calendar, your contacts or any other Google service, and it never sees your Google password.",
-        "This data is used only to sign you in, to keep your BuildEx account linked to your Google account, to pre-fill the display name and picture on your account (which you can change), and to contact you about your account or a moderation matter. Your Google email address is never shown on your public profile.",
-        "Google user data is not sold, is not used for advertising, is not used to build user profiles for anyone else, and is not used to develop, improve or train artificial-intelligence or machine-learning models. It is not shared with anyone except Supabase, which stores it for us to run sign-in, and where the law requires disclosure.",
+        "This data is used only to sign you in, to keep your BuildEx account linked to your Google account, to pre-fill the display name and picture on your account (which you can change), to email you when a message sent to you on BuildEx goes unread (which you can turn off — see \"Message emails\" below), and to contact you about your account or a moderation matter. Your Google email address is never shown on your public profile.",
+        "Google user data is not sold, is not used for advertising, is not used to build user profiles for anyone else, and is not used to develop, improve or train artificial-intelligence or machine-learning models. It is not shared with anyone except Supabase, which stores it for us to run sign-in, Resend, which receives your email address only to deliver message emails, and where the law requires disclosure.",
         "BuildEx's use and transfer of information received from Google APIs adheres to the Google API Services User Data Policy, including the Limited Use requirements.",
         "The data is kept while your BuildEx account exists and is deleted when you delete your account from the account page. You can also revoke BuildEx's access at any time at myaccount.google.com/permissions, or ask for deletion by writing to mcbuildex@gmail.com."
       ]],
@@ -105,13 +105,18 @@ export const legalDocuments = {
         "Depending on where you live, the legal basis for this is the contract between you and BuildEx, our legitimate interest in running a safe directory, your consent where you chose to publish something, or a legal obligation.",
         "BuildEx does not sell personal data and does not use it for advertising or profiling."
       ]],
+      ["Message emails", [
+        "BuildEx uses the email address on your account to tell you about messages you have not read. If someone messages you and the message is still unread about ten minutes later, BuildEx sends one email with the sender's name, a short preview of the message (a photo is described, not attached) and a link back to the conversation. It does not email you about that conversation again until you have opened it, and it limits how many of these emails anyone receives in an hour and in a day.",
+        "These emails are on for every account by default, because they are part of how messaging works. You can turn them off at any time with the unsubscribe link at the bottom of any of them — no sign-in needed — or under Account → Email notifications. Turning them off does not affect your messages, which stay in BuildEx. Emails are written in the language you last chose on the site.",
+        "The emails are delivered by Resend, which receives your email address and the content of each email for that purpose. BuildEx does not use them for marketing and does not turn on open or click tracking for them. A record of each one — when it was due, whether it was sent, and the preview it carried — is kept for up to 30 days to enforce the limits and to investigate delivery problems."
+      ]],
       ["What is public", [
         "A builder profile is public to anyone on the internet: handle, display name, description, styles, build types, avatar, banner, portfolio images, the contact links you published, and whether you were recently active.",
         "Publishing a Discord handle, Telegram username or any other contact link makes it public. Only publish contact details you are willing for strangers to see and use.",
         "Messages are visible to the people in that conversation, and to a moderator if the conversation is reported. Your email address is not shown on your profile."
       ]],
       ["Who else handles it", [
-        "Supabase hosts the database, authentication and file storage. Google and Discord provide sign-in. The site is served by our web host. These providers process data on our behalf, may do so in other countries, and have their own privacy policies.",
+        "Supabase hosts the database, authentication and file storage. Google and Discord provide sign-in. Resend delivers message emails. The site is served by our web host. These providers process data on our behalf, may do so in other countries, and have their own privacy policies.",
         "Data may also be disclosed where the law requires it, or where it is necessary to investigate abuse or protect someone's safety."
       ]],
       ["Keeping and deleting", [
@@ -120,7 +125,7 @@ export const legalDocuments = {
         "Records of legal acceptances — which version of these documents an account accepted, and when — are kept as evidence that consent was given."
       ]],
       ["Your choices", [
-        "You can edit or delete your profile and its images at any time from your account page, and delete your account there too.",
+        "You can edit or delete your profile and its images at any time from your account page, and delete your account there too. You can turn message emails off from the account page or with the link in any of them.",
         "Subject to local law, you may also ask for access to your data, correction, a copy, deletion, restriction, or to object to processing, by writing to mcbuildex@gmail.com. We may need to confirm who you are first. You can complain to your local data-protection authority.",
         mandatoryRights
       ]],

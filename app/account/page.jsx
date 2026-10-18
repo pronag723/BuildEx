@@ -20,6 +20,7 @@ import {
   STYLES,
 } from "../../lib/onboarding/constants";
 import { readContactLinks } from "../../lib/onboarding/contactLinks";
+import { fetchMyEmailSettings, setEmailOnMessage } from "../../lib/notifications/emailSettings";
 import { BUILDER_ONBOARDING_START } from "../../lib/onboarding/state";
 import { withBase } from "../home/utils";
 import { Icon } from "../../lib/icons";
@@ -358,6 +359,90 @@ function PortfolioSection({ portfolioCount, onSaved }) {
               </div>
             </div>
           ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+// ─── Email notifications ─────────────────────────────────────────────────────
+// One switch: email me when a message stays unread (migration 0104). The flag
+// has no client SELECT grant, so it is read through get_my_email_settings();
+// the address shown is the session's own — the one the server sends to.
+function EmailNotificationsSection() {
+  const { user } = useAuth();
+  const t = useT();
+  // null until loaded, so the switch never flashes "off" before it knows.
+  const [enabled, setEnabled] = useState(null);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+  const email = user?.email || "";
+
+  useEffect(() => {
+    if (!user?.id) return undefined;
+    let cancelled = false;
+    fetchMyEmailSettings().then(({ settings, error: err }) => {
+      if (cancelled) return;
+      if (err || !settings) setLoadFailed(true);
+      else setEnabled(settings.emailOnMessage);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
+  // Optimistic: flip now, put it back if the write fails.
+  async function toggle() {
+    if (enabled === null || saving || !user?.id) return;
+    const next = !enabled;
+    setEnabled(next);
+    setSaving(true);
+    setError(null);
+    const { error: err } = await setEmailOnMessage(user.id, next);
+    setSaving(false);
+    if (err) {
+      setEnabled(!next);
+      setError(t("notifications.email.saveFailed"));
+    }
+  }
+
+  return (
+    <section className="card p-5 sm:p-6">
+      <h2 className="text-lg font-semibold">{t("notifications.email.title")}</h2>
+
+      <div className="mt-4 flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <label htmlFor="email-on-message" className="text-sm font-medium text-ink">
+            {t("notifications.email.toggleLabel")}
+          </label>
+          <p id="email-on-message-hint" className="mt-1 max-w-md text-xs leading-relaxed text-ink-2">
+            {email
+              ? t.rich("notifications.email.toggleHint", {
+                  email: <span className="break-all font-medium text-ink">{email}</span>,
+                })
+              : t("notifications.email.noEmail")}
+          </p>
+        </div>
+        {enabled === null && !loadFailed ? (
+          <span className="skeleton mt-0.5 h-6 w-11 flex-shrink-0 rounded-full" aria-hidden="true" />
+        ) : (
+          <button
+            id="email-on-message"
+            type="button"
+            role="switch"
+            aria-checked={Boolean(enabled)}
+            aria-describedby="email-on-message-hint"
+            disabled={enabled === null || saving || !email}
+            onClick={toggle}
+            className="switch mt-0.5"
+          />
+        )}
+      </div>
+
+      {(loadFailed || error) && (
+        <div role="alert" className="auth-banner auth-banner-error mt-4">
+          {error || t("notifications.email.loadFailed")}
         </div>
       )}
     </section>
@@ -972,6 +1057,7 @@ function AccountPageInner() {
 
           {section === "danger" && (
             <div className="space-y-4">
+              <EmailNotificationsSection />
               <AccountActionsSection />
             </div>
           )}

@@ -6,7 +6,13 @@
 // so it collapses to a single button that shows the current language and
 // flips it. Exactly one of the two is displayed at any width — switched in
 // globals.css (`.lang-switch-full` / `.lang-switch-compact`).
+//
+// For a signed-in user a click here also sets their email language: it is
+// saved to profiles.locale, which message-notification emails are written in.
+// Only this explicit choice saves it (LocaleSync fills it once if empty).
 
+import { useAuth } from "../auth/AuthContext";
+import { saveMyLocale } from "../notifications/emailSettings";
 import { useLanguage, useT } from "./LanguageProvider";
 import { LANGS } from "./translate.mjs";
 
@@ -14,8 +20,15 @@ const NAMES = { en: "English", ru: "Русский" };
 
 export default function LanguageSwitcher({ className = "" }) {
   const { lang, setLang } = useLanguage();
+  const { status, user } = useAuth();
   const t = useT();
   const next = lang === "ru" ? "en" : "ru";
+
+  function choose(code) {
+    setLang(code);
+    // Best effort: a failed save only means emails keep their old language.
+    if (status === "authenticated" && user?.id) void saveMyLocale(user.id, code);
+  }
 
   return (
     <>
@@ -31,7 +44,7 @@ export default function LanguageSwitcher({ className = "" }) {
             lang={code}
             aria-pressed={lang === code}
             aria-label={NAMES[code]}
-            onClick={() => setLang(code)}
+            onClick={() => choose(code)}
             className={`lang-switch-option ${lang === code ? "is-active" : ""}`}
           >
             {code.toUpperCase()}
@@ -41,7 +54,7 @@ export default function LanguageSwitcher({ className = "" }) {
 
       <button
         type="button"
-        onClick={() => setLang(next)}
+        onClick={() => choose(next)}
         aria-label={t("common.languageToggle", {
           current: t(`common.langName.${lang}`),
           next: t(`common.langName.${next}`),

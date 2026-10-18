@@ -3,7 +3,13 @@
 Paste each file into the Supabase SQL editor in order, then run. All
 migrations are idempotent (safe to re-run during development).
 
-## Current: the directory revamp (0095–0103)
+## Since the revamp
+
+| # | What it does |
+|---|---|
+| 0104 | **Message emails.** Emails a recipient once per unread burst per conversation when a chat message stays unread ~10 minutes (`public.message_emails`, the `messages_queue_email` trigger, the service-role `claim_message_emails` / `complete_message_email` RPCs, and a pg_cron → pg_net job). Adds `profiles.email_on_message` (opt-out) and `profiles.locale`, both client-writable by column but not client-readable. "Read" is the `conversation_reads` cursor, not `notifications.read_at`. Needs the Edge Functions, secrets and Vault entries in [`../functions/README.md`](../functions/README.md). |
+
+## The directory revamp (0095–0103)
 
 BuildEx is a directory now. These are the migrations that made it one — read
 them first. **Everything below the table is history**: 0008–0094 build the

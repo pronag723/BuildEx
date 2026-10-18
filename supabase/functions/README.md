@@ -3,13 +3,98 @@
 | Function | Authentication | Purpose |
 |---|---|---|
 | `delete-account` | user JWT validated in-function | Removes a user's Storage files through the Storage API, then permanently deletes their auth account. |
+| `send-message-emails` | `x-cron-secret` header, checked in-function (`verify_jwt = false`) | Emails people about chat messages they have not read. Called by pg_cron (migration 0104); claims due bursts through `claim_message_emails()` and sends them with Resend. |
+| `email-unsubscribe` | signed token, checked in-function (`verify_jwt = false`) | Turns message emails off (or back on) without signing in. Serves the `/unsubscribe/` page and RFC 8058 one-click unsubscribe from mail clients. |
 
 The payment, payout and ready-build functions were removed with the money layer.
 Their database tables are retained deliberately for record-keeping — see
 [`supabase/migrations/0095_decommission_payments.sql`](../migrations/0095_decommission_payments.sql).
 
-Deploy account deletion after linking the project:
+`verify_jwt = false` for each function is set in [`../config.toml`](../config.toml),
+so a plain `functions deploy` keeps it. The `--no-verify-jwt` flags below say the
+same thing explicitly.
+
+## Deploy
+
+After `npx supabase link --project-ref <ref>`:
 
 ```powershell
 npx supabase functions deploy delete-account
+npx supabase functions deploy send-message-emails --no-verify-jwt
+npx supabase functions deploy email-unsubscribe --no-verify-jwt
+```
+
+## Message emails
+
+How it fits together:
+
+1. Every chat message runs the `messages_queue_email` trigger (migration
+   [`0104`](../migrations/0104_message_email_notifications.sql)). It opens an
+   *unread burst* for the recipient and conversation in `public.message_emails`,
+   due 10 minutes later — or does nothing if that conversation already has a
+   burst the recipient has not read.
+2. Every 2 minutes pg_cron runs `_kick_message_email_sender()`. If a burst is
+   due, it POSTs to `send-message-emails` through pg_net, with the function URL
+   and shared secret read from Supabase Vault.
+3. `send-message-emails` calls `claim_message_emails()`, which re-checks the
+   read cursor (`conversation_reads`), the opt-out, reports, moderation and the
+   rate caps, and returns only what should go out — including the recipient's
+   address from `auth.users`, which no client can read.
+4. Each email goes to Resend with `Idempotency-Key: message-email/<burst id>`,
+   `List-Unsubscribe` (pointing at `email-unsubscribe`) and
+   `List-Unsubscribe-Post: List-Unsubscribe=One-Click`. The result is recorded
+   with `complete_message_email()`; temporary failures retry twice (after 5 and
+   10 minutes).
+
+Tunables (delay, per-recipient caps, site-wide daily cap, retries) are
+functions at the top of migration 0104 — edit and re-run the file.
+
+### Secrets
+
+Set with `npx supabase secrets set NAME=value` (or Dashboard → Edge Functions →
+Secrets). `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are provided
+automatically.
+
+| Secret | Used by | Value |
+|---|---|---|
+| `RESEND_API_KEY` | send-message-emails | Resend API key with *Sending access* for the `buildex.builders` domain |
+| `EMAIL_FROM` | send-message-emails | `BuildEx <notifications@buildex.builders>` |
+| `SITE_URL` | both | `https://buildex.builders` (no trailing slash) |
+| `CRON_SECRET` | send-message-emails | long random string; the **same value** goes in Vault as `message_emails_cron_secret` |
+| `UNSUBSCRIBE_SECRET` | both | long random string; rotating it invalidates every unsubscribe link already sent |
+
+### Vault entries (SQL editor)
+
+```sql
+select vault.create_secret(
+  'https://<project-ref>.supabase.co/functions/v1/send-message-emails',
+  'message_emails_function_url'
+);
+select vault.create_secret('<same value as CRON_SECRET>', 'message_emails_cron_secret');
+```
+
+To change one later: `select vault.update_secret(id, '<new value>')` with the id
+from `select id, name from vault.secrets;`.
+
+### Checking on it
+
+```sql
+-- Recent bursts and what happened to them.
+select status, skip_reason, attempts, first_unread_at, due_at, sent_at, last_error
+  from public.message_emails
+ order by created_at desc
+ limit 20;
+
+-- What pg_net got back from the function.
+select id, status_code, content, created
+  from net._http_response
+ order by created desc
+ limit 10;
+
+-- Cron runs.
+select status, return_message, start_time
+  from cron.job_run_details
+ where jobid = (select jobid from cron.job where jobname = 'send-message-emails')
+ order by start_time desc
+ limit 10;
 ```

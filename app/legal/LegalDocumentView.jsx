@@ -19,7 +19,7 @@ export default function LegalDocumentView({ slug }) {
   const t = useT();
   const source = legalDocuments[slug];
   const doc = legalDocumentsFor(t.lang)[slug] || source;
-  const effective = legalEffectiveFor(t.lang);
+  const effective = legalEffectiveFor(t.lang, slug);
   const anchor = (index) => sectionId(source.sections[index][0]);
 
   return (

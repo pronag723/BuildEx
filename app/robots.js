@@ -11,7 +11,8 @@ export default function robots() {
           "/admin/",
           "/chats/",
           "/login/",
-          "/onboarding/"
+          "/onboarding/",
+          "/unsubscribe/"
         ]
       }
     ],

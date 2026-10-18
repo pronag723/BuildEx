@@ -5,10 +5,19 @@ project_id = "buildex"
 
 # ─── Edge Functions ──────────────────────────────────────────────────────────
 # The payment, payout and ready-build functions were removed with the money
-# layer; account deletion is the only Edge Function left.
+# layer. What is left: account deletion and the message-email pair.
 #
-# The function validates the Authorization token with auth.getUser() itself.
+# delete-account validates the Authorization token with auth.getUser() itself.
 # Keep gateway verification off because this project uses asymmetric ES256 keys
 # and the gateway can lag behind Auth's key set during key rotation.
 [functions.delete-account]
+verify_jwt = false
+
+# Both are called without a user JWT: send-message-emails by pg_cron (it checks
+# the x-cron-secret header itself), email-unsubscribe by mail clients' one-click
+# unsubscribe (the signed token is the credential).
+[functions.send-message-emails]
+verify_jwt = false
+
+[functions.email-unsubscribe]
 verify_jwt = false
