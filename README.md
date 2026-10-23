@@ -51,6 +51,12 @@ href — wrap it with `withBase()` from `app/home/utils.js`.
 It is set only as a repository secret for the deploy build; leave it out of
 `.env.local` so local visits aren't counted.
 
+`NEXT_PUBLIC_TURNSTILE_SITE_KEY` (optional) puts Cloudflare Turnstile in front
+of "Send code" on `/login`. Without it no CAPTCHA token is sent, which is what
+local dev needs while CAPTCHA is off in Supabase. It is a repository secret for
+the deploy build. Turn CAPTCHA on in Supabase (Authentication → Attack
+Protection) only after a build with the key is live, or email sign-in breaks.
+
 Other scripts:
 
 ```bash

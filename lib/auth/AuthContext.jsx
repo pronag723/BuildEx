@@ -16,6 +16,8 @@ const AuthContext = createContext({
   configured: false,
   signInWithDiscord: async () => {},
   signInWithGoogle: async () => {},
+  sendEmailCode: async () => {},
+  verifyEmailCode: async () => {},
   signOut: async () => {},
   refresh: async () => {},
   updateProfile: () => {}
@@ -325,6 +327,46 @@ export function AuthProvider({ children }) {
   const signInWithDiscord = useCallback((opts) => signInWithProvider("discord", opts), [signInWithProvider]);
   const signInWithGoogle = useCallback((opts) => signInWithProvider("google", opts), [signInWithProvider]);
 
+  // Email sign-in is a 6-digit code, never a link: with PKCE a link only works
+  // in the browser that asked for it, which breaks phone mail apps, and mail
+  // scanners that pre-open links would burn it. So there is no emailRedirectTo,
+  // and the Magic Link / Confirm signup templates show {{ .Token }} only.
+  //
+  // shouldCreateUser makes sign-in and sign-up one step, like OAuth, and the
+  // response is the same either way, so the form never reveals whether an
+  // address has an account. An address that already belongs to a Google or
+  // Discord account signs in to that account (Supabase links verified emails).
+  //
+  // captchaToken is the Cloudflare Turnstile token, or undefined while
+  // NEXT_PUBLIC_TURNSTILE_SITE_KEY is unset (CAPTCHA must then be off in
+  // Supabase too).
+  const sendEmailCode = useCallback(
+    async (email, { captchaToken } = {}) => {
+      if (!supabase) {
+        return { error: { message: translate("auth.notConfiguredShort") } };
+      }
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: { shouldCreateUser: true, captchaToken }
+      });
+      return { error };
+    },
+    [supabase]
+  );
+
+  // On success Supabase fires SIGNED_IN, the auth stream above flips status to
+  // "authenticated", and the login page redirects from there.
+  const verifyEmailCode = useCallback(
+    async (email, token) => {
+      if (!supabase) {
+        return { error: { message: translate("auth.notConfiguredShort") } };
+      }
+      const { error } = await supabase.auth.verifyOtp({ email, token, type: "email" });
+      return { error };
+    },
+    [supabase]
+  );
+
   const signOut = useCallback(
     async (redirectTo) => {
       if (!supabase) return;
@@ -401,11 +443,13 @@ export function AuthProvider({ children }) {
       configured,
       signInWithDiscord,
       signInWithGoogle,
+      sendEmailCode,
+      verifyEmailCode,
       signOut,
       refresh,
       updateProfile
     }),
-    [status, user, profile, profileLoaded, displayUser, configured, signInWithDiscord, signInWithGoogle, signOut, refresh, updateProfile]
+    [status, user, profile, profileLoaded, displayUser, configured, signInWithDiscord, signInWithGoogle, sendEmailCode, verifyEmailCode, signOut, refresh, updateProfile]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

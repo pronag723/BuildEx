@@ -7,6 +7,7 @@ migrations are idempotent (safe to re-run during development).
 
 | # | What it does |
 |---|---|
+| 0105 | **Email-code sign-in.** A `users_no_password` BEFORE trigger on `auth.users` blanks `encrypted_password` on every insert and password update, and a one-off update clears existing ones: with the Email provider on, anyone could otherwise `signUp({ email, password })` someone else's address and keep a working password once the owner confirms it with a code. Also lowers `message_emails_global_per_day()` from 90 to 60 so sign-in codes always have room in Resend's 100/day. |
 | 0104 | **Message emails.** Emails a recipient once per unread burst per conversation when a chat message stays unread ~10 minutes (`public.message_emails`, the `messages_queue_email` trigger, the service-role `claim_message_emails` / `complete_message_email` RPCs, and a pg_cron → pg_net job). Adds `profiles.email_on_message` (opt-out) and `profiles.locale`, both client-writable by column but not client-readable. "Read" is the `conversation_reads` cursor, not `notifications.read_at`. Needs the Edge Functions, secrets and Vault entries in [`../functions/README.md`](../functions/README.md). |
 
 ## The directory revamp (0095–0103)

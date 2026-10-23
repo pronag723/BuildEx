@@ -90,13 +90,14 @@ export const legalDocuments = {
     sections: [
       ["What is collected", [
         "When you sign in with Google or Discord, BuildEx receives an account identifier, your email address, and the display name and picture attached to that account. It does not receive your password.",
+        "When you sign in with an email code instead, BuildEx keeps the email address you enter as your account's address. See \"Signing in with an email code\" below.",
         "If you publish a builder profile, BuildEx stores what you enter: your handle, display name, description, styles and build types, the contact links you choose to publish, your avatar and banner, and your portfolio images.",
         "BuildEx also stores the messages you send through the site, the builders you favourite, reports you submit, notifications generated for you, your email-notification setting and preferred language, and a timestamp of when you were last active, which is what drives the online indicator. Ordinary technical logs are produced by our hosting and database providers, and page visits are counted without cookies — see \"Visitor statistics\" below."
       ]],
       ["Google user data", [
         "If you choose to sign in with Google, BuildEx requests only the basic scopes openid, email and profile. From Google it receives your Google account identifier, your email address, your name and your profile picture. BuildEx does not request access to Gmail, Google Drive, Google Calendar, your contacts or any other Google service, and it never sees your Google password.",
         "This data is used only to sign you in, to keep your BuildEx account linked to your Google account, to pre-fill the display name and picture on your account (which you can change), to email you when a message sent to you on BuildEx goes unread (which you can turn off — see \"Message emails\" below), and to contact you about your account or a moderation matter. Your Google email address is never shown on your public profile.",
-        "Google user data is not sold, is not used for advertising, is not used to build user profiles for anyone else, and is not used to develop, improve or train artificial-intelligence or machine-learning models. It is not shared with anyone except Supabase, which stores it for us to run sign-in, Resend, which receives your email address only to deliver message emails, and where the law requires disclosure.",
+        "Google user data is not sold, is not used for advertising, is not used to build user profiles for anyone else, and is not used to develop, improve or train artificial-intelligence or machine-learning models. It is not shared with anyone except Supabase, which stores it for us to run sign-in, Resend, which receives your email address only to deliver sign-in codes and message emails, and where the law requires disclosure.",
         "BuildEx's use and transfer of information received from Google APIs adheres to the Google API Services User Data Policy, including the Limited Use requirements.",
         "The data is kept while your BuildEx account exists and is deleted when you delete your account from the account page. You can also revoke BuildEx's access at any time at myaccount.google.com/permissions, or ask for deletion by writing to mcbuildex@gmail.com."
       ]],
@@ -104,6 +105,15 @@ export const legalDocuments = {
         "To create and run your account, to publish your profile if you have one, to deliver your messages and notifications, to show accurate online status, to enforce the Terms of Use and moderate abuse, and to keep the service working and secure.",
         "Depending on where you live, the legal basis for this is the contract between you and BuildEx, our legitimate interest in running a safe directory, your consent where you chose to publish something, or a legal obligation.",
         "BuildEx does not sell personal data and does not use it for advertising or profiling."
+      ]],
+      ["Signing in with an email code", [
+        "Instead of Google or Discord, you can sign in with your email address. BuildEx emails that address a six-digit code; typing it on the login page signs you in, or creates your account if you are new. A code works once and expires after ten minutes. BuildEx has no passwords, so the code is the only way into an account that uses email sign-in.",
+        "BuildEx keeps the address you enter as your account's email address and uses it as described in this policy. It is not shown on your profile, and BuildEx does not derive your handle or display name from it. If the address already belongs to an account you created with Google or Discord, the code signs you in to that same account.",
+        "The codes are delivered by Resend, which receives your email address and the email for that purpose. A sign-in email contains only the code; it carries no marketing and no open or click tracking."
+      ]],
+      ["Bot check on the login page", [
+        "To stop automated sign-ups and abuse of the code emails, the login page uses Cloudflare Turnstile, a bot check run by Cloudflare. While you are on that page, Turnstile reads technical signals from your browser and connection — such as your IP address and browser characteristics — and Cloudflare uses them to tell people from automated traffic. Usually this needs nothing from you; occasionally it asks for a click.",
+        "BuildEx only learns whether the check was passed. Turnstile runs only on the login page, in a frame served by Cloudflare, and Cloudflare processes this data under its own privacy policy and says it does not use it for advertising. The legal basis is our legitimate interest in keeping sign-in secure."
       ]],
       ["Message emails", [
         "BuildEx uses the email address on your account to tell you about messages you have not read. If someone messages you and the message is still unread about ten minutes later, BuildEx sends one email with the sender's name, a short preview of the message (a photo is described, not attached) and a link back to the conversation. It does not email you about that conversation again until you have opened it, and it limits how many of these emails anyone receives in an hour and in a day.",
@@ -116,7 +126,7 @@ export const legalDocuments = {
         "Messages are visible to the people in that conversation, and to a moderator if the conversation is reported. Your email address is not shown on your profile."
       ]],
       ["Who else handles it", [
-        "Supabase hosts the database, authentication and file storage. Google and Discord provide sign-in. Resend delivers message emails. Cloudflare provides visitor statistics. The site is served by our web host. These providers process data on our behalf, may do so in other countries, and have their own privacy policies.",
+        "Supabase hosts the database, authentication and file storage. Google and Discord provide sign-in. Resend delivers sign-in codes and message emails. Cloudflare provides visitor statistics and the bot check on the login page. The site is served by our web host. These providers process data on our behalf, may do so in other countries, and have their own privacy policies.",
         "Data may also be disclosed where the law requires it, or where it is necessary to investigate abuse or protect someone's safety."
       ]],
       ["Keeping and deleting", [
@@ -134,8 +144,8 @@ export const legalDocuments = {
         "This uses no cookies or other browser storage, does not recognise you from one visit to the next or across other websites, and is not linked to your BuildEx account. Like any connection, it reaches Cloudflare from your IP address, which Cloudflare says it does not use to identify or track visitors. BuildEx sees only totals — for example how many visits a page had, or from which countries — never a record of one person's visit. The legal basis is our legitimate interest in knowing how the site is used."
       ]],
       ["Cookies and security", [
-        "BuildEx uses browser storage only for things the site needs to work: your sign-in session, your light or dark theme choice, and a few interface preferences. There are no advertising cookies, and the visitor statistics above use no cookies or browser storage at all. If that ever changes, a consent control will be added where the law requires one.",
-        "Access to data is restricted at the database level so that users can only read and change what is theirs, and public profiles are the only thing served publicly. No system is perfectly secure; if you think an account or the service has been compromised, write to mcbuildex@gmail.com."
+        "BuildEx uses browser storage only for things the site needs to work: your sign-in session, your light or dark theme choice, and a few interface preferences. There are no advertising cookies, and the visitor statistics above use no cookies or browser storage at all. The bot check on the login page runs in Cloudflare's frame under Cloudflare's own terms. If that ever changes, a consent control will be added where the law requires one.",
+        "BuildEx stores no passwords: you sign in through Google, Discord or a one-time code sent to your email. Access to data is restricted at the database level so that users can only read and change what is theirs, and public profiles are the only thing served publicly. No system is perfectly secure; if you think an account or the service has been compromised, write to mcbuildex@gmail.com."
       ]]
     ]
   },

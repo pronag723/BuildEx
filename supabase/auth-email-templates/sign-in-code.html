@@ -1,0 +1,32 @@
+<!--
+  BuildEx sign-in code email. Pasted into BOTH Supabase templates
+  (Authentication → Emails → Templates): "Magic link or OTP" (an address
+  Supabase already knows) and "Confirm sign up" (an address it has never seen).
+  Subject for both: Your BuildEx sign-in code / Код для входа в BuildEx
+
+  Code only, never a link (see sendEmailCode in lib/auth/AuthContext.jsx).
+  Bilingual because a template can't know an existing user's language. The
+  10 minutes must match Email OTP expiration (600 s) under Sign In / Providers →
+  Email. Keep the code out of the subject: it shows in notifications.
+-->
+<div style="margin:0;padding:24px 12px;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#18181b;">
+  <div style="max-width:480px;margin:0 auto;background:#ffffff;border:1px solid #e4e4e7;border-radius:12px;padding:28px 24px;">
+    <p style="margin:0 0 24px;font-size:18px;font-weight:700;">BuildEx</p>
+
+    <p style="margin:0 0 12px;font-size:15px;line-height:1.5;">Your BuildEx sign-in code:</p>
+    <p style="margin:0 0 16px;font-size:32px;line-height:1.2;font-weight:700;letter-spacing:6px;font-family:Menlo,Consolas,'Courier New',monospace;">{{ .Token }}</p>
+    <p style="margin:0 0 8px;font-size:14px;line-height:1.5;color:#3f3f46;">Enter it on the BuildEx login page. It expires in 10 minutes.</p>
+    <p style="margin:0 0 8px;font-size:14px;line-height:1.5;color:#3f3f46;"><strong>Never share this code. BuildEx will never ask you for it.</strong></p>
+    <p style="margin:0;font-size:13px;line-height:1.5;color:#71717a;">If you didn't try to sign in, you can ignore this email.</p>
+
+    <hr style="margin:28px 0;border:0;border-top:1px solid #e4e4e7;">
+
+    <div lang="ru">
+      <p style="margin:0 0 12px;font-size:15px;line-height:1.5;">Ваш код для входа в BuildEx:</p>
+      <p style="margin:0 0 16px;font-size:32px;line-height:1.2;font-weight:700;letter-spacing:6px;font-family:Menlo,Consolas,'Courier New',monospace;">{{ .Token }}</p>
+      <p style="margin:0 0 8px;font-size:14px;line-height:1.5;color:#3f3f46;">Введите его на странице входа BuildEx. Код действует 10 минут.</p>
+      <p style="margin:0 0 8px;font-size:14px;line-height:1.5;color:#3f3f46;"><strong>Никому не сообщайте этот код. BuildEx никогда не попросит его у вас.</strong></p>
+      <p style="margin:0;font-size:13px;line-height:1.5;color:#71717a;">Если вы не пытались войти, просто проигнорируйте это письмо.</p>
+    </div>
+  </div>
+</div>

@@ -71,12 +71,27 @@ jobs:
             echo "NEXT_PUBLIC_CF_ANALYTICS_TOKEN is set (length=${#NEXT_PUBLIC_CF_ANALYTICS_TOKEN})"
           fi
 
+      # The Turnstile site key (public) switches on the bot check in front of
+      # "Send code" on /login. Without it the build sends no CAPTCHA token, so
+      # warn rather than fail: that is right until CAPTCHA is switched on in
+      # Supabase, and once it is, email sign-in breaks without the key.
+      - name: Check Cloudflare Turnstile site key
+        env:
+          NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ secrets.NEXT_PUBLIC_TURNSTILE_SITE_KEY }}
+        run: |
+          if [ -z "$NEXT_PUBLIC_TURNSTILE_SITE_KEY" ]; then
+            echo "::warning::NEXT_PUBLIC_TURNSTILE_SITE_KEY is empty, so this build has no Turnstile on /login and email sign-in sends no CAPTCHA token. If CAPTCHA is on in Supabase (Authentication -> Attack Protection), email sign-in is broken. Add it under Settings -> Secrets and variables -> Actions -> Repository secrets."
+          else
+            echo "NEXT_PUBLIC_TURNSTILE_SITE_KEY is set (length=${#NEXT_PUBLIC_TURNSTILE_SITE_KEY})"
+          fi
+
       - name: Build static site
         run: npm run build
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           NEXT_PUBLIC_CF_ANALYTICS_TOKEN: ${{ secrets.NEXT_PUBLIC_CF_ANALYTICS_TOKEN }}
+          NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ secrets.NEXT_PUBLIC_TURNSTILE_SITE_KEY }}
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

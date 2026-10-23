@@ -7,6 +7,7 @@ import { resolvePostLoginPath, sanitizeRedirect } from "../../../lib/auth/redire
 import { friendlyAuthError } from "../../../lib/auth/errors";
 import { withBase } from "../../home/utils";
 import OAuthButton from "./OAuthButton";
+import EmailCodeForm from "./EmailCodeForm";
 import { stageAccountAcceptance } from "../../../lib/legal/api";
 import { useT } from "../../../lib/i18n/LanguageProvider";
 
@@ -15,6 +16,8 @@ export default function AuthCard() {
   const { status, configured, profile, signInWithDiscord, signInWithGoogle } = useAuth();
   const t = useT();
 
+  // "discord" | "google" while an OAuth redirect starts, or the email form's
+  // "send" | "resend" | "verify". One thing at a time.
   const [pending, setPending] = useState(null);
   const [error, setError] = useState(null);
   const [redirectTarget, setRedirectTarget] = useState("/");
@@ -98,6 +101,22 @@ export default function AuthCard() {
             {t("auth.continueWith", { provider: "Google" })}
           </OAuthButton>
         </div>
+
+        <div className="my-6 flex items-center gap-3 text-xs text-ink-3" aria-hidden="true">
+          <span className="h-px flex-1 bg-line/10" />
+          {t("auth.or")}
+          <span className="h-px flex-1 bg-line/10" />
+        </div>
+
+        <EmailCodeForm
+          disabled={!configured || pending === "discord" || pending === "google"}
+          pending={pending}
+          onPending={(next) => {
+            // The banner above is for OAuth; the email form shows its own errors.
+            if (next) setError(null);
+            setPending(next);
+          }}
+        />
 
         <p className="mt-5 text-xs leading-5 text-ink-3">
           {/* Consent copy lives in lib/i18n/messages/<lang>/auth.mjs ("By
