@@ -375,6 +375,81 @@ select option {
     box-shadow: 0 0 0 3px rgb(var(--accent) / 0.15);
   }
 
+  /* ── One-time code (login) ────────────────────────────────────────────── */
+  /* Six boxes drawn over one transparent input (EmailCodeForm): the input
+     keeps one-time-code autofill and whole-code paste, the boxes show it. */
+  .otp-input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    font-size: 16px; /* below 16px iOS zooms the page on focus */
+    caret-color: transparent;
+    cursor: text;
+  }
+
+  .otp-cells {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+
+  .otp-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 3.25rem;
+    border-radius: 10px;
+    background: rgb(var(--raised));
+    border: 1px solid rgb(var(--line) / 0.1);
+    color: rgb(var(--ink));
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+  }
+
+  .otp-input:hover + .otp-cells .otp-cell,
+  .otp-cell.is-filled {
+    border-color: rgb(var(--line) / 0.18);
+  }
+
+  .otp-cell.is-active {
+    border-color: rgb(var(--accent) / 0.6);
+    box-shadow: 0 0 0 3px rgb(var(--accent) / 0.15);
+  }
+
+  .otp-cell.is-error {
+    border-color: rgb(var(--danger) / 0.7);
+    box-shadow: 0 0 0 3px rgb(var(--danger) / 0.12);
+  }
+
+  .otp-input:disabled + .otp-cells {
+    opacity: 0.45;
+  }
+
+  .otp-caret {
+    width: 2px;
+    height: 1.5rem;
+    border-radius: 1px;
+    background: rgb(var(--accent));
+    animation: otp-caret-blink 1s steps(1) infinite;
+  }
+
+  @keyframes otp-caret-blink {
+    50% {
+      opacity: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .otp-caret {
+      animation: none;
+    }
+  }
+
   /* ── Tags ─────────────────────────────────────────────────────────────── */
   /* Read-only labels (a builder's styles). Square-cornered on purpose. */
   .tag {

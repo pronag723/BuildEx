@@ -5,8 +5,13 @@
 // same, so the form never reveals whether an address has an account.
 //
 // Step "email": address + Turnstile + Send code.
-// Step "code":  the code, Resend code after a 60-second countdown (with a fresh
-//               Turnstile, since tokens are single-use), Use a different email.
+// Step "code":  the code in six boxes, Resend code after a 60-second countdown
+//               (with a fresh Turnstile, since tokens are single-use), Use a
+//               different email.
+//
+// The six boxes are drawn over ONE transparent input rather than being six
+// inputs: autocomplete="one-time-code", pasting a whole code and mobile autofill
+// all fill a single field, and focus never has to hop between boxes.
 //
 // Errors show inside the form, next to the field they are about. AuthCard owns
 // the pending state shared with the OAuth buttons, and redirects once the
@@ -51,6 +56,9 @@ export default function EmailCodeForm({ disabled, pending, onPending }) {
   const [email, setEmail] = useState("");
   const [sentTo, setSentTo] = useState("");
   const [code, setCode] = useState("");
+  const [codeFocused, setCodeFocused] = useState(false);
+  // The last code was rejected: the boxes turn red until the next digit.
+  const [codeRejected, setCodeRejected] = useState(false);
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
   const [captchaToken, setCaptchaToken] = useState(null);
@@ -100,6 +108,7 @@ export default function EmailCodeForm({ disabled, pending, onPending }) {
 
     setSentTo(address);
     setCode("");
+    setCodeRejected(false);
     startCountdown(RESEND_SECONDS);
     setStep("code");
     if (kind === "resend") setNotice(t("auth.email.resent"));
@@ -124,14 +133,19 @@ export default function EmailCodeForm({ disabled, pending, onPending }) {
     if (verifyError) {
       onPending(null);
       setError(friendlyAuthError(verifyError));
+      setCodeRejected(true);
+      setCode("");
       codeInputRef.current?.focus();
-      codeInputRef.current?.select();
     }
     // On success "verify" stays pending until AuthCard's redirect.
   }
 
   function handleCodeChange(event) {
     const next = event.target.value.replace(/\D/g, "").slice(0, CODE_LENGTH);
+    if (codeRejected && next) {
+      setCodeRejected(false);
+      setError(null);
+    }
     setCode(next);
     if (next.length === CODE_LENGTH && next !== code) verify(next);
   }
@@ -145,10 +159,18 @@ export default function EmailCodeForm({ disabled, pending, onPending }) {
     verify(next);
   }
 
+  // The boxes only draw the value, so the caret always sits at its end.
+  function keepCaretAtEnd(event) {
+    const el = event.currentTarget;
+    const end = el.value.length;
+    if (el.selectionStart !== end || el.selectionEnd !== end) el.setSelectionRange(end, end);
+  }
+
   function changeEmail() {
     setError(null);
     setNotice(null);
     setCode("");
+    setCodeRejected(false);
     setStep("email");
   }
 
@@ -221,21 +243,38 @@ export default function EmailCodeForm({ disabled, pending, onPending }) {
         <label htmlFor="auth-code" className="text-sm font-medium text-ink">
           {t("auth.email.codeLabel")}
         </label>
-        <input
-          ref={codeInputRef}
-          id="auth-code"
-          type="text"
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          pattern="[0-9]*"
-          placeholder="000000"
-          value={code}
-          onChange={handleCodeChange}
-          onPaste={handleCodePaste}
-          disabled={disabled}
-          readOnly={pending === "verify"}
-          className="input h-12 text-center font-mono text-xl tracking-[0.4em]"
-        />
+        <div className="relative">
+          <input
+            ref={codeInputRef}
+            id="auth-code"
+            type="text"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            pattern="[0-9]*"
+            value={code}
+            onChange={handleCodeChange}
+            onPaste={handleCodePaste}
+            onSelect={keepCaretAtEnd}
+            onFocus={() => setCodeFocused(true)}
+            onBlur={() => setCodeFocused(false)}
+            disabled={disabled}
+            readOnly={pending === "verify"}
+            aria-invalid={codeRejected || undefined}
+            className="otp-input"
+          />
+          <div className="otp-cells" aria-hidden="true">
+            {Array.from({ length: CODE_LENGTH }, (_, i) => {
+              const digit = code[i] || "";
+              const active = codeFocused && pending !== "verify" && i === Math.min(code.length, CODE_LENGTH - 1);
+              const state = codeRejected ? " is-error" : active ? " is-active" : digit ? " is-filled" : "";
+              return (
+                <span key={i} className={`otp-cell${state}`}>
+                  {digit || (active && <span className="otp-caret" />)}
+                </span>
+              );
+            })}
+          </div>
+        </div>
         {errorBanner}
         {notice && (
           <p role="status" className="text-xs leading-5 text-ink-2">
