@@ -4,7 +4,8 @@
 // it here. Sign-in and sign-up are the same step, and both answers look the
 // same, so the form never reveals whether an address has an account.
 //
-// Step "email": address + Turnstile + Send code.
+// Step "email": address + Turnstile (unseen unless Cloudflare wants a click) +
+//               Send code.
 // Step "code":  the code in six boxes, Resend code after a 60-second countdown
 //               (with a fresh Turnstile, since tokens are single-use), Use a
 //               different email.
@@ -63,6 +64,8 @@ export default function EmailCodeForm({ disabled, pending, onPending }) {
   const [notice, setNotice] = useState(null);
   const [captchaToken, setCaptchaToken] = useState(null);
   const [captchaFailed, setCaptchaFailed] = useState(false);
+  // Turnstile is invisible unless Cloudflare wants a click.
+  const [captchaShown, setCaptchaShown] = useState(false);
   const [resendAt, setResendAt] = useState(0);
   const [now, setNow] = useState(0);
 
@@ -174,17 +177,22 @@ export default function EmailCodeForm({ disabled, pending, onPending }) {
     setStep("email");
   }
 
+  // While hidden, the widget's box is collapsed and pulled up by the column's
+  // gap (gap-3 in both steps), so the invisible check takes no room.
   const turnstile = needsCaptcha && (
     <>
-      <Turnstile
-        ref={turnstileRef}
-        lang={t.lang}
-        onToken={(token) => {
-          setCaptchaToken(token);
-          if (token) setCaptchaFailed(false);
-        }}
-        onLoadError={() => setCaptchaFailed(true)}
-      />
+      <div className={captchaShown ? undefined : "-mt-3 h-0 overflow-hidden"}>
+        <Turnstile
+          ref={turnstileRef}
+          lang={t.lang}
+          onToken={(token) => {
+            setCaptchaToken(token);
+            if (token) setCaptchaFailed(false);
+          }}
+          onInteractive={setCaptchaShown}
+          onLoadError={() => setCaptchaFailed(true)}
+        />
+      </div>
       {captchaFailed && <p className="text-xs leading-5 text-danger">{t("auth.email.captchaLoadFailed")}</p>}
     </>
   );

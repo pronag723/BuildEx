@@ -14,6 +14,10 @@
 // The script is injected by this component, and only the login page renders
 // it, so no other page talks to Cloudflare for this. Tokens are single-use:
 // the caller resets the widget after every send.
+//
+// appearance "interaction-only": the check runs out of sight and the box only
+// appears when Cloudflare wants a click. onInteractive(true/false) tells the
+// caller when it shows and hides, so the caller can keep it out of the layout.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
@@ -51,12 +55,14 @@ function siteTheme() {
   return document.documentElement.classList.contains("light") ? "light" : "dark";
 }
 
-const Turnstile = forwardRef(function Turnstile({ lang, onToken, onLoadError }, ref) {
+const Turnstile = forwardRef(function Turnstile({ lang, onToken, onInteractive, onLoadError }, ref) {
   const containerRef = useRef(null);
   const widgetRef = useRef(null);
   const onTokenRef = useRef(onToken);
+  const onInteractiveRef = useRef(onInteractive);
   const onLoadErrorRef = useRef(onLoadError);
   onTokenRef.current = onToken;
+  onInteractiveRef.current = onInteractive;
   onLoadErrorRef.current = onLoadError;
 
   // Follow the header's theme switch; a re-render costs only a fresh token.
@@ -83,6 +89,7 @@ const Turnstile = forwardRef(function Turnstile({ lang, onToken, onLoadError }, 
     if (!TURNSTILE_SITE_KEY || !theme) return undefined;
     let cancelled = false;
     onTokenRef.current?.(null);
+    onInteractiveRef.current?.(false);
 
     loadTurnstile()
       .then((turnstile) => {
@@ -94,7 +101,10 @@ const Turnstile = forwardRef(function Turnstile({ lang, onToken, onLoadError }, 
           theme,
           language: lang === "ru" ? "ru" : "en",
           size: el.clientWidth >= NORMAL_MIN_WIDTH ? "flexible" : "compact",
+          appearance: "interaction-only",
           callback: (token) => onTokenRef.current?.(token),
+          "before-interactive-callback": () => onInteractiveRef.current?.(true),
+          "after-interactive-callback": () => onInteractiveRef.current?.(false),
           "expired-callback": () => onTokenRef.current?.(null),
           "error-callback": () => onTokenRef.current?.(null)
         });
@@ -106,6 +116,7 @@ const Turnstile = forwardRef(function Turnstile({ lang, onToken, onLoadError }, 
     return () => {
       cancelled = true;
       onTokenRef.current?.(null);
+      onInteractiveRef.current?.(false);
       if (widgetRef.current != null) {
         window.turnstile?.remove(widgetRef.current);
         widgetRef.current = null;
@@ -114,7 +125,7 @@ const Turnstile = forwardRef(function Turnstile({ lang, onToken, onLoadError }, 
   }, [lang, theme]);
 
   if (!TURNSTILE_SITE_KEY) return null;
-  return <div ref={containerRef} className="min-h-[65px] w-full" />;
+  return <div ref={containerRef} className="w-full" />;
 });
 
 export default Turnstile;
