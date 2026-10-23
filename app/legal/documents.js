@@ -91,7 +91,7 @@ export const legalDocuments = {
       ["What is collected", [
         "When you sign in with Google or Discord, BuildEx receives an account identifier, your email address, and the display name and picture attached to that account. It does not receive your password.",
         "If you publish a builder profile, BuildEx stores what you enter: your handle, display name, description, styles and build types, the contact links you choose to publish, your avatar and banner, and your portfolio images.",
-        "BuildEx also stores the messages you send through the site, the builders you favourite, reports you submit, notifications generated for you, your email-notification setting and preferred language, and a timestamp of when you were last active, which is what drives the online indicator. Ordinary technical logs are produced by our hosting and database providers."
+        "BuildEx also stores the messages you send through the site, the builders you favourite, reports you submit, notifications generated for you, your email-notification setting and preferred language, and a timestamp of when you were last active, which is what drives the online indicator. Ordinary technical logs are produced by our hosting and database providers, and page visits are counted without cookies — see \"Visitor statistics\" below."
       ]],
       ["Google user data", [
         "If you choose to sign in with Google, BuildEx requests only the basic scopes openid, email and profile. From Google it receives your Google account identifier, your email address, your name and your profile picture. BuildEx does not request access to Gmail, Google Drive, Google Calendar, your contacts or any other Google service, and it never sees your Google password.",
@@ -116,7 +116,7 @@ export const legalDocuments = {
         "Messages are visible to the people in that conversation, and to a moderator if the conversation is reported. Your email address is not shown on your profile."
       ]],
       ["Who else handles it", [
-        "Supabase hosts the database, authentication and file storage. Google and Discord provide sign-in. Resend delivers message emails. The site is served by our web host. These providers process data on our behalf, may do so in other countries, and have their own privacy policies.",
+        "Supabase hosts the database, authentication and file storage. Google and Discord provide sign-in. Resend delivers message emails. Cloudflare provides visitor statistics. The site is served by our web host. These providers process data on our behalf, may do so in other countries, and have their own privacy policies.",
         "Data may also be disclosed where the law requires it, or where it is necessary to investigate abuse or protect someone's safety."
       ]],
       ["Keeping and deleting", [
@@ -129,8 +129,12 @@ export const legalDocuments = {
         "Subject to local law, you may also ask for access to your data, correction, a copy, deletion, restriction, or to object to processing, by writing to mcbuildex@gmail.com. We may need to confirm who you are first. You can complain to your local data-protection authority.",
         mandatoryRights
       ]],
+      ["Visitor statistics", [
+        "BuildEx uses Cloudflare Web Analytics to count visits and to see which pages are used and how quickly they load. When you open a page, a small script sends Cloudflare the page's address, the address of the page you came from, your browser, operating system and device type, and how long the page took to load; Cloudflare works out your approximate country from the connection. Pages whose address carries a sign-in code or an unsubscribe link are not counted.",
+        "This uses no cookies or other browser storage, does not recognise you from one visit to the next or across other websites, and is not linked to your BuildEx account. Like any connection, it reaches Cloudflare from your IP address, which Cloudflare says it does not use to identify or track visitors. BuildEx sees only totals — for example how many visits a page had, or from which countries — never a record of one person's visit. The legal basis is our legitimate interest in knowing how the site is used."
+      ]],
       ["Cookies and security", [
-        "BuildEx uses browser storage only for things the site needs to work: your sign-in session, your light or dark theme choice, and a few interface preferences. There are no advertising or analytics cookies. If that ever changes, a consent control will be added where the law requires one.",
+        "BuildEx uses browser storage only for things the site needs to work: your sign-in session, your light or dark theme choice, and a few interface preferences. There are no advertising cookies, and the visitor statistics above use no cookies or browser storage at all. If that ever changes, a consent control will be added where the law requires one.",
         "Access to data is restricted at the database level so that users can only read and change what is theirs, and public profiles are the only thing served publicly. No system is perfectly secure; if you think an account or the service has been compromised, write to mcbuildex@gmail.com."
       ]]
     ]

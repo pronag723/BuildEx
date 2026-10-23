@@ -47,6 +47,10 @@ NEXT_PUBLIC_BASE_PATH=
 GitHub Pages). Leave it empty for local work. Never hardcode a leading path in a
 href — wrap it with `withBase()` from `app/home/utils.js`.
 
+`NEXT_PUBLIC_CF_ANALYTICS_TOKEN` (optional) turns on Cloudflare Web Analytics.
+It is set only as a repository secret for the deploy build; leave it out of
+`.env.local` so local visits aren't counted.
+
 Other scripts:
 
 ```bash

@@ -1,6 +1,7 @@
 import "./globals.css";
 import Providers from "./providers";
 import RouteTracker from "./builders/components/RouteTracker";
+import CloudflareAnalytics from "./components/CloudflareAnalytics";
 
 export const metadata = {
   metadataBase: new URL("https://buildex.builders"),
@@ -78,6 +79,7 @@ export default function RootLayout({ children }) {
             knows when a visitor is returning from a profile and should keep its
             shuffled order. Renders nothing. */}
         <RouteTracker />
+        <CloudflareAnalytics />
         <Providers>{children}</Providers>
       </body>
     </html>
