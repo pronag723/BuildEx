@@ -21,8 +21,8 @@ import {
   Sun, Moon,
   // contact link platforms
   AtSign, CirclePlay, Video, Music, Camera, Link2,
-  // moderation console
-  Eye, EyeOff, Calendar,
+  // moderation console, reviews
+  Eye, EyeOff, Calendar, Star,
 } from "lucide-react";
 
 export const ICONS = {
@@ -74,10 +74,11 @@ export const ICONS = {
   camera: Camera,    // Instagram
   link: Link2,       // a website
 
-  // moderation console
+  // moderation console, reviews
   eye: Eye,
   eyeOff: EyeOff,
   calendar: Calendar,
+  star: Star,
 };
 
 /**
