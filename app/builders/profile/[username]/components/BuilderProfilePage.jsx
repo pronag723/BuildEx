@@ -12,18 +12,36 @@ import { useFavorites } from "../../../../../lib/favorites/FavoritesContext";
 import { useScrollLock } from "../../../../../lib/useScrollLock";
 import { useT } from "../../../../../lib/i18n/LanguageProvider";
 import { Icon } from "../../../../../lib/icons";
-import { WORKS_PAGE_SIZE, fetchPriceTiers, fetchWorks, fetchWorksCount } from "../../../../../lib/works/api";
-import { fetchBuilderStats, recordWorkView } from "../../../../../lib/works/engagement";
+import { serverMessage } from "../../../../../lib/i18n/serverText.mjs";
+import { WORKS_PAGE_SIZE, fetchPriceTiers, fetchWork, fetchWorks, fetchWorksCount } from "../../../../../lib/works/api";
+import { fetchBuilderStats, fetchMyLikes, recordWorkView, toggleWorkLike } from "../../../../../lib/works/engagement";
 import ProfileHeader from "./ProfileHeader";
 import ProfileTabs, { PROFILE_TABS } from "./ProfileTabs";
 import WorksGrid from "./WorksGrid";
 import PriceList from "./PriceList";
 import ReviewsPanel from "./ReviewsPanel";
 import ProfileSidebar from "./ProfileSidebar";
-import PhotoLightbox from "./PhotoLightbox";
+import WorkDialog from "./WorkDialog";
+import WorkPage from "./WorkPage";
+import WorkFeed from "./WorkFeed";
 import { WorksGridSkeleton } from "./WorksGrid";
 
 const TOAST_MS = 2600;
+
+const isDesktop = () => typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches;
+
+// Which work view the URL asks for: ?w=<id> is the work itself (a dialog on
+// desktop, its own screen on a phone), ?feed=<id> the phone feed opened at
+// that work. Shareable, and Back steps out of them like any page.
+function readViewerFromUrl() {
+  if (typeof window === "undefined") return null;
+  const params = new URLSearchParams(window.location.search);
+  const w = params.get("w");
+  if (w) return { mode: isDesktop() ? "dialog" : "page", workId: w };
+  const feed = params.get("feed");
+  if (feed && !isDesktop()) return { mode: "feed", workId: feed };
+  return null;
+}
 
 function readTabFromUrl() {
   if (typeof window === "undefined") return "works";
@@ -82,14 +100,46 @@ export default function BuilderProfilePage({ builder }) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [tiers, setTiers] = useState([]);
   const [stats, setStats] = useState(null);
-  const [lightbox, setLightbox] = useState(null); // the open work
+  const [viewer, setViewer] = useState(null); // { mode: "dialog" | "page" | "feed", workId }
+  const [extraWork, setExtraWork] = useState(null); // a ?w= work not in the loaded page
+  const [likedIds, setLikedIds] = useState(() => new Set());
+  const [likeCounts, setLikeCounts] = useState({});
   const [toast, setToast] = useState(null);
   const [showBar, setShowBar] = useState(false);
   const actionsRef = useRef(null);
 
   useEffect(() => {
     setTab(readTabFromUrl());
+    setViewer(readViewerFromUrl());
+    const onPop = () => setViewer(readViewerFromUrl());
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
   }, []);
+
+  // A linked work that is not on the first page of the grid is fetched on its
+  // own — and only shown if it really belongs to this builder.
+  useEffect(() => {
+    if (!viewer || worksLoading || works.some((w) => w.id === viewer.workId)) return undefined;
+    if (extraWork?.id === viewer.workId) return undefined;
+    let cancelled = false;
+    fetchWork(viewer.workId).then(({ work }) => {
+      if (cancelled) return;
+      setExtraWork(work && work.builderId === builder.id && work.photos.length > 0 ? work : null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [viewer, works, worksLoading, extraWork, builder.id]);
+
+  // Which of the loaded works the signed-in visitor has liked.
+  useEffect(() => {
+    if (!userId) {
+      setLikedIds(new Set());
+      return;
+    }
+    const ids = works.map((w) => w.id).concat(extraWork ? [extraWork.id] : []);
+    fetchMyLikes(userId, ids).then(({ likedIds: next }) => setLikedIds(next));
+  }, [userId, works, extraWork]);
 
   const loadStats = useCallback(() => {
     fetchBuilderStats(builder.id).then(({ stats: next }) => setStats(next));
@@ -177,10 +227,126 @@ export default function BuilderProfilePage({ builder }) {
     }
   }, [builder.username, builder.display_name, t]);
 
-  const openWork = useCallback((work) => {
-    setLightbox(work);
-    recordWorkView(work.id);
+  const pushViewerUrl = useCallback((params, replace = false) => {
+    const next = new URLSearchParams(window.location.search);
+    next.delete("w");
+    next.delete("feed");
+    for (const [key, value] of Object.entries(params)) next.set(key, value);
+    const url = `${window.location.pathname}?${next}`;
+    const state = { ...(window.history.state || {}), bxViewer: Object.keys(params).length > 0 };
+    if (replace) window.history.replaceState(state, "", url);
+    else window.history.pushState(state, "", url);
   }, []);
+
+  // Grid tap: the dialog on desktop, the feed on a phone.
+  const openWork = useCallback(
+    (work) => {
+      if (isDesktop()) {
+        // Moving between works inside the dialog replaces the entry, so one
+        // Back always returns to the profile.
+        pushViewerUrl({ w: work.id }, viewer?.mode === "dialog");
+        setViewer({ mode: "dialog", workId: work.id });
+      } else {
+        pushViewerUrl({ feed: work.id });
+        setViewer({ mode: "feed", workId: work.id });
+      }
+    },
+    [pushViewerUrl, viewer]
+  );
+
+  // From the feed's "More about this work", or a work page's "More works".
+  const openWorkPage = useCallback(
+    (work) => {
+      pushViewerUrl({ w: work.id });
+      setViewer({ mode: isDesktop() ? "dialog" : "page", workId: work.id });
+    },
+    [pushViewerUrl]
+  );
+
+  const closeViewer = useCallback(() => {
+    if (window.history.state?.bxViewer) {
+      window.history.back();
+      return;
+    }
+    pushViewerUrl({}, true);
+    setViewer(null);
+  }, [pushViewerUrl]);
+
+  const currentWork = viewer
+    ? works.find((w) => w.id === viewer.workId) || (extraWork?.id === viewer.workId ? extraWork : null)
+    : null;
+
+  // Opening a work counts a view (the server dedups per viewer per day). The
+  // feed counts its own, once a slide has stayed on screen.
+  useEffect(() => {
+    if (currentWork && viewer?.mode !== "feed") recordWorkView(currentWork.id);
+  }, [currentWork, viewer?.mode]);
+
+  const viewedInFeed = useCallback((work) => recordWorkView(work.id), []);
+
+  const likeOf = useCallback(
+    (work) => ({ liked: likedIds.has(work.id), likes: likeCounts[work.id] ?? work.likes }),
+    [likedIds, likeCounts]
+  );
+
+  const toggleLike = useCallback(
+    async (work) => {
+      if (!userId) {
+        gate(() => {});
+        return;
+      }
+      if (isOwner) {
+        setToast(t("profile.viewer.ownLike"));
+        return;
+      }
+      const { liked, likes, error } = await toggleWorkLike(work.id);
+      if (error) {
+        setToast(serverMessage(error, "profile.viewer.likeFailed"));
+        return;
+      }
+      setLikedIds((set) => {
+        const next = new Set(set);
+        if (liked) next.add(work.id);
+        else next.delete(work.id);
+        return next;
+      });
+      if (likes != null) setLikeCounts((map) => ({ ...map, [work.id]: likes }));
+    },
+    [userId, isOwner, gate, t]
+  );
+
+  // "Discuss a similar build": the chat opens with a draft naming this work.
+  const discussWork = useCallback(
+    (work) => {
+      const target = `/chats?to=${encodeURIComponent(builder.username)}&work=${encodeURIComponent(work.id)}`;
+      gate(() => router.push(target), { redirectTo: target });
+    },
+    [gate, router, builder.username]
+  );
+
+  const shareWork = useCallback(
+    async (work) => {
+      const url = `${window.location.origin}${window.location.pathname}?u=${encodeURIComponent(builder.username)}&w=${work.id}`;
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: work.title || builder.display_name, url });
+          return;
+        } catch (error) {
+          if (error?.name === "AbortError") return;
+        }
+      }
+      try {
+        await navigator.clipboard.writeText(url);
+        setToast(t("profile.share.copied"));
+      } catch {
+        setToast(url);
+      }
+    },
+    [builder.username, builder.display_name, t]
+  );
+
+  const tierOf = (work) => (work ? tiers.find((tier) => tier.id === work.priceTierId) || null : null);
+  const moreWorks = currentWork ? works.filter((w) => w.id !== currentWork.id) : [];
 
   return (
     <div className={`catalog-root ${isOwner ? "" : "has-bottom-bar"}`}>
@@ -284,11 +450,54 @@ export default function BuilderProfilePage({ builder }) {
         </div>
       )}
 
-      {lightbox && (
-        <PhotoLightbox
-          photos={lightbox.photos}
-          title={lightbox.title}
-          onClose={() => setLightbox(null)}
+      {viewer?.mode === "feed" && works.length > 0 && (
+        <WorkFeed
+          works={works}
+          startId={viewer.workId}
+          builder={builder}
+          tiers={tiers}
+          hasMore={works.length < worksTotal}
+          likeOf={likeOf}
+          isOwner={isOwner}
+          onToggleLike={toggleLike}
+          onClose={closeViewer}
+          onDetails={openWorkPage}
+          onDiscuss={discussWork}
+          onShare={shareWork}
+          onLoadMore={loadMore}
+          onViewed={viewedInFeed}
+        />
+      )}
+
+      {currentWork && viewer?.mode === "dialog" && (
+        <WorkDialog
+          work={currentWork}
+          builder={builder}
+          tier={tierOf(currentWork)}
+          moreWorks={moreWorks}
+          like={likeOf(currentWork)}
+          isOwner={isOwner}
+          onToggleLike={() => toggleLike(currentWork)}
+          onClose={closeViewer}
+          onOpenWork={openWork}
+          onDiscuss={() => discussWork(currentWork)}
+          onShare={() => shareWork(currentWork)}
+        />
+      )}
+
+      {currentWork && viewer?.mode === "page" && (
+        <WorkPage
+          work={currentWork}
+          builder={builder}
+          tier={tierOf(currentWork)}
+          moreWorks={moreWorks}
+          like={likeOf(currentWork)}
+          isOwner={isOwner}
+          onToggleLike={() => toggleLike(currentWork)}
+          onBack={closeViewer}
+          onOpenWork={openWorkPage}
+          onDiscuss={() => discussWork(currentWork)}
+          onShare={() => shareWork(currentWork)}
         />
       )}
 

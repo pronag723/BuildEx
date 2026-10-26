@@ -47,10 +47,34 @@ import { isOnline } from "../../../lib/presence/api";
 export const PROFILE_SELECT =
   "id, username, display_name, avatar_url, bio, role, created_at, last_seen_at, onboarding_completed_at, " +
   "builder:builder_profiles!builder_profiles_id_fkey!inner(*), " +
-  "portfolio:portfolio_images(id, url, position, alt)";
+  "portfolio:portfolio_images(id, url, position, alt), " +
+  // Works (migration 0106) give the card one cover per build and a real
+  // title. The FK is named: work_likes and portfolio_images also link
+  // profiles and works, so an unnamed embed is ambiguous (PGRST201). RLS
+  // already drops works a moderator took down.
+  "works:works!works_builder_id_fkey(id, title, position, is_pinned, created_at, " +
+  "photos:portfolio_images!portfolio_images_work_id_fkey(url, position))";
 
-// Portfolio images → the lightweight items BuilderCard renders in its carousel.
-function mapPortfolio(rows) {
+const byPosition = (a, b) => (a.position ?? 0) - (b.position ?? 0);
+
+// Works → the lightweight items BuilderCard renders in its carousel: the pinned
+// work first, then the builder's order, each shown by its first photo. Falls
+// back to raw portfolio images when a row carries no works.
+function mapPortfolio(rows, works) {
+  const covers = (works || [])
+    .filter((w) => (w.photos || []).length > 0)
+    .sort(
+      (a, b) =>
+        Number(b.is_pinned) - Number(a.is_pinned) ||
+        byPosition(a, b) ||
+        String(a.created_at).localeCompare(String(b.created_at))
+    )
+    .map((w) => {
+      const url = rewriteStorageUrl(w.photos.slice().sort(byPosition)[0].url);
+      return { id: w.id, title: w.title || "Build", thumbnail: url, images: [url] };
+    });
+  if (covers.length > 0) return covers;
+
   return (rows || [])
     .slice()
     .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
@@ -112,7 +136,7 @@ export function mapRow(row) {
     specialties,
 
     // Portfolio
-    portfolio: mapPortfolio(row.portfolio),
+    portfolio: mapPortfolio(row.portfolio, row.works),
     styles: specialties,
     build_types: buildTypes,
   };

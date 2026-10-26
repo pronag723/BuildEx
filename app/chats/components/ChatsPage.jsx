@@ -28,6 +28,7 @@ import { useT } from "../../../lib/i18n/LanguageProvider";
 import { translate } from "../../../lib/i18n/translate.mjs";
 import { serverMessage } from "../../../lib/i18n/serverText.mjs";
 import MessageThread from "./MessageThread";
+import { fetchWork } from "../../../lib/works/api";
 
 // Inbox row → the peer identity shape MessageThread/ConversationList consume.
 function peerFromConversation(c) {
@@ -132,6 +133,10 @@ export default function ChatsPage() {
   const [activePeer, setActivePeer] = useState(null);
   const [activeConversationMeta, setActiveConversationMeta] = useState(null);
   const [isDraft, setIsDraft] = useState(false);
+  // Text to start the composer with, for one peer: "Discuss a similar build"
+  // on a work links here with ?work=<id>, and the message names that work.
+  // Never sent automatically — the visitor edits or sends it themselves.
+  const [prefill, setPrefill] = useState(null); // { peerId, text }
 
   // Mirror activeConvId into a ref so the long-lived inbox subscription (which
   // only re-binds on auth change) can read the current thread without stale
@@ -219,6 +224,21 @@ export default function ChatsPage() {
         if (peer.id === meId) {
           showNotice(translate("chat.notices.ownProfile"));
           return;
+        }
+        const workId = params.get("work");
+        if (workId) {
+          const { work } = await fetchWork(workId);
+          if (cancelled) return;
+          if (work && work.builderId === peer.id) {
+            const link = `${window.location.origin}${withBase("/builders/profile/")}?u=${encodeURIComponent(peer.username || to)}&w=${work.id}`;
+            setPrefill({
+              peerId: peer.id,
+              text: translate("chat.workDraft", {
+                title: work.title || translate("profile.works.untitled"),
+                link,
+              }),
+            });
+          }
         }
         const existing = rows.find((x) => x.other_id === peer.id);
         if (existing) openConversation(existing.conversation_id, peerFromConversation(existing), existing);
@@ -489,6 +509,7 @@ export default function ChatsPage() {
                       isDraft={isDraft}
                       conversationMeta={activeConversationMeta}
                       reported={threadReported}
+                      initialDraft={prefill && prefill.peerId === activePeer?.id ? prefill.text : ""}
                       onSend={handleSend}
                       onSendImage={handleSendImage}
                       onReport={handleReport}

@@ -70,6 +70,7 @@ export default function MessageThread({
   onSendImage,
   onReport,
   onBack,
+  initialDraft = "",
 }) {
   const t = useT();
   const [draft, setDraft] = useState("");
@@ -92,11 +93,12 @@ export default function MessageThread({
   }, [messages, loading, peer?.id]);
 
   // Reset the composer — and any half-written report — when switching threads.
+  // A thread opened from "Discuss a similar build" starts with that draft.
   useEffect(() => {
-    setDraft("");
+    setDraft(initialDraft || "");
     setReportOpen(false);
     setReportReason("");
-  }, [peer?.id, isDraft]);
+  }, [peer?.id, isDraft, initialDraft]);
 
   // A report needs a thread that exists in the database, so it is offered once
   // the first message has been sent, never on an unsent draft.
