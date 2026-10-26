@@ -1182,6 +1182,26 @@ a.social-tile:active {
   to { opacity: 1; }
 }
 
+/* The phone work screen after a pull switched works: the new one arrives
+   from the side the finger pulled towards. */
+.work-enter-next {
+  animation: work-enter-next 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.work-enter-prev {
+  animation: work-enter-prev 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes work-enter-next {
+  from { transform: translateY(22vh); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes work-enter-prev {
+  from { transform: translateY(-22vh); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
 /* The same links as a list (profile sidebar): platform on the left, the
    handle on the right. */
 .social-link-row {
@@ -3153,7 +3173,9 @@ a.social-link-row:hover {
   /* A like or a save only changes colour: no pop, no burst, no tick. */
   .burst-icon,
   .count-tick,
-  .work-photo-fade {
+  .work-photo-fade,
+  .work-enter-next,
+  .work-enter-prev {
     animation: none !important;
   }
 

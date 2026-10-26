@@ -11,7 +11,7 @@
 
 import {
   // navigation and actions
-  ArrowLeft, ArrowRight, ChevronDown, ChevronLeft, ChevronRight, Menu, X,
+  ArrowLeft, ArrowRight, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Menu, X,
   Search, SlidersHorizontal, Check, Plus, Pencil, Trash2, Upload, Maximize2,
   ExternalLink, RefreshCw, LogOut,
   // people, messaging, account
@@ -32,6 +32,7 @@ export const ICONS = {
   arrowLeft: ArrowLeft,
   arrowRight: ArrowRight,
   chevronDown: ChevronDown,
+  chevronUp: ChevronUp,
   chevronLeft: ChevronLeft,
   chevronRight: ChevronRight,
   menu: Menu,

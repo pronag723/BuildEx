@@ -10,16 +10,73 @@ import { formatPrice, relativeAgo } from "../../../../../lib/works/format.mjs";
 import { Icon } from "../../../../../lib/icons";
 import { tierDuration } from "./PriceList";
 import { LikeButton, WorkCoauthors, WorkFacts, viewsLabel } from "./workParts";
+import { LEAVE_MS, PULL_GO, usePullToSwitch } from "./usePullToSwitch";
+
+const RING = 2 * Math.PI * 17;
+
+// What a pull offers: a ring that fills as the finger travels, turning green
+// once letting go will switch, and the work it leads to.
+function SwitchHint({ work, dir, progress, armed, leaving }) {
+  const t = useT();
+  const label = armed
+    ? t("profile.viewer.releaseToOpen")
+    : t(dir === "next" ? "profile.viewer.nextWork" : "profile.viewer.prevWork");
+  return (
+    <div
+      className="pointer-events-none flex flex-col items-center gap-2"
+      style={{
+        opacity: leaving ? 0 : Math.min(1, progress * 1.4),
+        transform: `translateY(${(1 - progress) * (dir === "next" ? 14 : -14)}px) scale(${0.9 + 0.1 * progress})`,
+        transition: leaving ? "opacity 160ms ease-out" : undefined,
+      }}
+    >
+      <span
+        className={`relative flex h-10 w-10 items-center justify-center rounded-full transition-colors duration-150 ${
+          armed ? "bg-accent text-accent-fg" : "bg-raised text-ink"
+        }`}
+      >
+        <svg className="absolute inset-0 -rotate-90" viewBox="0 0 40 40" aria-hidden="true">
+          <circle
+            cx="20"
+            cy="20"
+            r="17"
+            fill="none"
+            stroke="rgb(var(--accent))"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeDasharray={RING}
+            strokeDashoffset={RING * (1 - progress)}
+          />
+        </svg>
+        <Icon
+          name={dir === "next" ? "chevronUp" : "chevronDown"}
+          size={20}
+          className={`transition-transform duration-200 ${armed ? "scale-110" : ""}`}
+        />
+      </span>
+      <span className="text-xs font-medium text-ink-2">{label}</span>
+      <span className="flex max-w-[260px] items-center gap-2 rounded-xl border border-line/[0.08] bg-surface/95 p-1.5 pr-3 shadow-pop">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={publicAsset(work.photos[0]?.url)} alt="" className="h-8 w-11 flex-shrink-0 rounded-lg object-cover" />
+        <span className="truncate text-[13px] font-semibold text-ink">{work.title || t("profile.works.untitled")}</span>
+      </span>
+    </div>
+  );
+}
 
 // Phone: one work as its own screen over the profile (opened by tapping a
 // card) — a swipeable photo carousel, the details, more of the builder's
 // works, and a fixed bar to save the builder or discuss a similar build.
+// Pulling past the bottom moves on to the next work, past the top back to the
+// previous one (usePullToSwitch).
 export default function WorkPage({
   work,
   builder,
   tier,
   moreWorks,
   worksTotal,
+  prevWork,
+  nextWork,
   like,
   isOwner,
   onToggleLike,
@@ -54,6 +111,32 @@ export default function WorkPage({
 
   const duration = tier ? tierDuration(tier, t) : null;
 
+  const { pull, phase, dir, done } = usePullToSwitch(pageRef, {
+    canPrev: Boolean(prevWork),
+    canNext: Boolean(nextWork),
+    onSwitch: (to) => onOpenWork(to === "next" ? nextWork : prevWork),
+  });
+  const progress = Math.min(1, Math.abs(pull) / PULL_GO);
+  const hintWork = dir === "next" ? nextWork : prevWork;
+  const showHint =
+    hintWork && (phase === "leave" || ((phase === "drag" || phase === "settle") && pull !== 0));
+
+  // The content follows the finger, springs back, or leaves towards the pull.
+  let bodyStyle;
+  if (phase === "drag") bodyStyle = { transform: `translateY(${pull}px)` };
+  else if (phase === "settle")
+    bodyStyle = { transform: "translateY(0)", transition: "transform 320ms cubic-bezier(0.2, 0.8, 0.2, 1)" };
+  else if (phase === "leave")
+    bodyStyle = {
+      transform: `translateY(${dir === "next" ? "-30vh" : "30vh"})`,
+      opacity: 0,
+      transition: `transform ${LEAVE_MS}ms cubic-bezier(0.4, 0, 1, 1), opacity ${LEAVE_MS}ms ease-in`,
+    };
+  // Animations inside (a like's burst, a photo dot) bubble up too.
+  const ownEvent = (handler) => (event) => {
+    if (event.target === event.currentTarget) handler();
+  };
+
   return (
     <div ref={pageRef} className="fixed inset-0 z-[150] overflow-y-auto overscroll-contain bg-canvas pb-24">
       <div className="sticky top-0 z-10 flex h-[52px] items-center justify-between border-b border-line/[0.06] bg-canvas/90 px-1.5 backdrop-blur-md">
@@ -66,6 +149,13 @@ export default function WorkPage({
         </button>
       </div>
 
+      <div
+        key={work.id}
+        style={bodyStyle}
+        className={phase === "enter" ? `work-enter-${dir}` : ""}
+        onAnimationEnd={ownEvent(done)}
+        onTransitionEnd={ownEvent(done)}
+      >
       <div className="relative">
         <div
           ref={scrollerRef}
@@ -179,21 +269,46 @@ export default function WorkPage({
         </div>
       )}
 
-      {!isOwner && (
-        <div className="safe-bottom fixed inset-x-0 bottom-0 flex gap-2 border-t border-line/10 bg-canvas/90 px-4 pt-3 backdrop-blur-md">
-          <SaveButton
-            saved={saved}
-            onToggle={onToggleSave}
-            size={19}
-            aria-label={saved ? t("card.removeFavorite") : t("card.addFavorite")}
-            className="flex w-14 flex-shrink-0 items-center justify-center self-stretch rounded-xl bg-raised text-ink"
-          />
-          <button type="button" onClick={onDiscuss} className="btn btn-primary btn-lg min-w-0 flex-1">
-            <Icon name="chat" size={17} />
-            {t("profile.viewer.discuss")}
-          </button>
+      {nextWork && (
+        <p className="mt-7 flex items-center justify-center gap-1.5 text-xs text-ink-3">
+          <Icon name="chevronUp" size={14} />
+          {t("profile.viewer.swipeHint")}
+        </p>
+      )}
+      </div>
+
+      {showHint && dir === "prev" && (
+        <div className="pointer-events-none fixed inset-x-0 top-[64px] z-10 flex justify-center px-4">
+          <SwitchHint work={hintWork} dir="prev" progress={progress} armed={progress >= 1} leaving={phase === "leave"} />
         </div>
       )}
+
+      <div
+        className={`pointer-events-none fixed inset-x-0 bottom-0 z-10 flex flex-col items-center ${
+          isOwner ? "safe-bottom pb-6" : ""
+        }`}
+      >
+        {showHint && dir === "next" && (
+          <div className="mb-3 px-4">
+            <SwitchHint work={hintWork} dir="next" progress={progress} armed={progress >= 1} leaving={phase === "leave"} />
+          </div>
+        )}
+        {!isOwner && (
+          <div className="safe-bottom pointer-events-auto flex w-full gap-2 border-t border-line/10 bg-canvas/90 px-4 pt-3 backdrop-blur-md">
+            <SaveButton
+              saved={saved}
+              onToggle={onToggleSave}
+              size={19}
+              aria-label={saved ? t("card.removeFavorite") : t("card.addFavorite")}
+              className="flex w-14 flex-shrink-0 items-center justify-center self-stretch rounded-xl bg-raised text-ink"
+            />
+            <button type="button" onClick={onDiscuss} className="btn btn-primary btn-lg min-w-0 flex-1">
+              <Icon name="chat" size={17} />
+              {t("profile.viewer.discuss")}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
