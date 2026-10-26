@@ -8,7 +8,7 @@ import { useT } from "../../../lib/i18n/LanguageProvider";
 import { styleChipLabel } from "../../../lib/i18n/labels.mjs";
 import { Icon } from "../../../lib/icons";
 import Avatar from "../../../lib/ui/Avatar";
-import FavoriteHeart from "../../../lib/ui/FavoriteHeart";
+import SaveButton from "../../../lib/ui/SaveButton";
 
 // One builder in the feed. The whole card is the link to their profile, so it
 // carries no separate "View profile" button: what it spends its space on is
@@ -150,9 +150,9 @@ export default function BuilderCard({ builder }) {
         )}
 
         {canFavorite && (
-          // stopPropagation: the card is a link, and the heart must not follow it.
-          <FavoriteHeart
-            favorited={favorited}
+          // stopPropagation: the card is a link, and the bookmark must not follow it.
+          <SaveButton
+            saved={favorited}
             onToggle={() => toggleFavorite(builder.id, "builder")}
             stopPropagation
             aria-label={favorited ? t("card.removeFavorite") : t("card.addFavorite")}

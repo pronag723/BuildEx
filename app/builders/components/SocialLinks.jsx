@@ -4,7 +4,9 @@
 // A builder's public links. Used on the public profile and on the owner's
 // account page so both show the same thing.
 //
-//   variant="buttons" (default) — a wrapping row of small link buttons.
+//   variant="buttons" (default) — a grid of tiles (two columns on a phone):
+//                                 the platform's tinted icon, its name and
+//                                 the handle.
 //   variant="list"              — one row per link: platform on the left, the
 //                                 handle on the right (the profile's contact
 //                                 panel), under an optional `title`.
@@ -23,6 +25,19 @@ import { readContactLinks } from "../../../lib/onboarding/contactLinks";
 import { useT } from "../../../lib/i18n/LanguageProvider";
 
 const LINK_PROPS = { target: "_blank", rel: "noopener noreferrer nofollow" };
+
+// Each platform's colour as an RGB triplet, tinting its tile's icon so the
+// links read at a glance. Monochrome brands follow the ink colour.
+const PLATFORM_TINTS = {
+  discord: "88 101 242",
+  telegram: "42 171 238",
+  youtube: "255 0 51",
+  twitch: "145 70 255",
+  tiktok: "var(--ink)",
+  instagram: "225 48 108",
+  x: "var(--ink)",
+  other: "var(--accent-ink)",
+};
 
 export default function SocialLinks({ contactLinks, className = "", variant = "buttons", title = null }) {
   const links = readContactLinks(contactLinks);
@@ -68,21 +83,41 @@ export default function SocialLinks({ contactLinks, className = "", variant = "b
   }
 
   return (
-    <div className={`flex flex-wrap gap-2 ${className}`}>
+    <ul className={`grid grid-cols-2 gap-2 sm:grid-cols-3 ${className}`}>
       {links.map((link) => {
-        const label = `${t(`platforms.${link.type}.label`)}: ${link.text}`;
-        return link.href ? (
-          <a key={link.type} href={link.href} {...LINK_PROPS} className="social-link-btn" title={label}>
-            <Icon name={link.icon} size={14} />
-            <span>{link.text}</span>
-          </a>
-        ) : (
-          <span key={link.type} className="social-link-btn select-text" title={label}>
-            <Icon name={link.icon} size={14} />
-            <span>{link.text}</span>
-          </span>
+        const platform = t(`platforms.${link.type}.label`);
+        const body = (
+          <>
+            <span className="social-tile-icon">
+              <Icon name={link.icon} size={17} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[11px] leading-tight text-ink-3">{platform}</span>
+              <span className="mt-0.5 block truncate text-[13px] font-semibold leading-tight text-ink">{link.text}</span>
+            </span>
+          </>
+        );
+        const props = {
+          className: "social-tile",
+          title: `${platform}: ${link.text}`,
+          style: { "--tint": PLATFORM_TINTS[link.type] || PLATFORM_TINTS.other },
+        };
+        return (
+          // An odd last tile takes the whole row on a phone, so the grid never
+          // ends on a half-empty line.
+          <li key={link.type} className="min-w-0 last:odd:col-span-2 sm:last:odd:col-span-1">
+            {link.href ? (
+              <a href={link.href} {...LINK_PROPS} {...props}>
+                {body}
+              </a>
+            ) : (
+              <span {...props} className={`${props.className} select-text`}>
+                {body}
+              </span>
+            )}
+          </li>
         );
       })}
-    </div>
+    </ul>
   );
 }

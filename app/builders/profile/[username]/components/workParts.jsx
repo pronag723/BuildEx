@@ -8,6 +8,7 @@ import { useT } from "../../../../../lib/i18n/LanguageProvider";
 import { daysRange, formatCount, formatPrice } from "../../../../../lib/works/format.mjs";
 import { Icon } from "../../../../../lib/icons";
 import Avatar from "../../../../../lib/ui/Avatar";
+import BurstIcon, { useBurst } from "../../../../../lib/ui/BurstIcon";
 import { publicAsset } from "../../../../home/utils";
 
 const profileHref = (username) => `/builders/profile?u=${encodeURIComponent(username)}`;
@@ -87,18 +88,35 @@ export function discussLabel(tier, t) {
     : t("profile.viewer.discuss");
 }
 
+/**
+ * A work's like: the heart flips, pops and bursts the moment it is tapped (the
+ * parent updates the count optimistically and reconciles with the server),
+ * and a changed count slides in.
+ */
 export function LikeButton({ like, onToggle, className = "", size = 18, showCount = true }) {
   const t = useT();
+  const { fx, play, end } = useBurst();
+  // `onToggle` returns false when it refused (signed out, own work): no pop.
+  const onClick = () => {
+    const kind = like.liked ? "off" : "on";
+    if (onToggle() !== false) play(kind);
+  };
   return (
     <button
       type="button"
-      onClick={onToggle}
+      onClick={onClick}
       aria-pressed={like.liked}
       aria-label={like.liked ? t("profile.viewer.unlike") : t("profile.viewer.like")}
       className={className}
     >
-      <Icon name="heart" size={size} filled={like.liked} className={like.liked ? "text-[rgb(var(--heart))]" : ""} />
-      {showCount && <span>{formatCount(like.likes, t.lang)}</span>}
+      <BurstIcon name="heart" on={like.liked} fx={fx} onBurstEnd={end} size={size} />
+      {showCount && (
+        <span className="tabular-nums">
+          <span key={like.likes} className={fx ? "count-tick" : ""}>
+            {formatCount(like.likes, t.lang)}
+          </span>
+        </span>
+      )}
     </button>
   );
 }

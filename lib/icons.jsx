@@ -24,7 +24,7 @@ import {
   // moderation console, reviews
   Eye, EyeOff, Calendar, Star,
   // builder profile
-  Share2, Pin, Clock, Briefcase, Tag, LayoutGrid,
+  Share2, Pin, Clock, Briefcase, Tag, LayoutGrid, Bookmark,
 } from "lucide-react";
 
 export const ICONS = {
@@ -89,6 +89,7 @@ export const ICONS = {
   briefcase: Briefcase,
   tag: Tag,
   grid: LayoutGrid,
+  bookmark: Bookmark, // a saved builder
 };
 
 /**

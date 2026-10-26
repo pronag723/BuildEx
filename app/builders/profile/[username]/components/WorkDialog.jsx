@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Avatar from "../../../../../lib/ui/Avatar";
+import SaveButton from "../../../../../lib/ui/SaveButton";
 import { publicAsset } from "../../../../home/utils";
 import { useScrollLock } from "../../../../../lib/useScrollLock";
 import { useT } from "../../../../../lib/i18n/LanguageProvider";
@@ -20,6 +21,8 @@ export default function WorkDialog({
   like,
   isOwner,
   onToggleLike,
+  saved,
+  onToggleSave,
   onClose,
   onOpenWork,
   onDiscuss,
@@ -65,12 +68,28 @@ export default function WorkDialog({
         onClick={(event) => event.stopPropagation()}
         className="flex h-[min(760px,92vh)] w-[min(1240px,96vw)] overflow-hidden rounded-2xl border border-line/[0.08] bg-surface shadow-pop"
       >
-        {/* Photos */}
-        <div className="flex min-w-0 flex-1 flex-col bg-black">
+        {/* Photos: the whole photo, with a blurred copy of it filling the
+            space around it instead of black bars. */}
+        <div className="relative isolate flex min-w-0 flex-1 flex-col overflow-hidden bg-black">
+          {photo && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              key={`bg-${photo.id}`}
+              src={publicAsset(photo.url)}
+              alt=""
+              aria-hidden="true"
+              className="work-photo-fade absolute inset-0 -z-10 h-full w-full scale-110 object-cover blur-2xl brightness-[0.55]"
+            />
+          )}
           <div className="relative min-h-0 flex-1">
             {photo && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={publicAsset(photo.url)} alt={title} className="absolute inset-0 h-full w-full object-contain" />
+              <img
+                key={photo.id}
+                src={publicAsset(photo.url)}
+                alt={title}
+                className="work-photo-fade absolute inset-0 h-full w-full object-contain drop-shadow-[0_8px_30px_rgba(0,0,0,0.45)]"
+              />
             )}
             {count > 1 && (
               <>
@@ -87,7 +106,7 @@ export default function WorkDialog({
             )}
           </div>
           {count > 1 && (
-            <div className="hide-scrollbar flex flex-shrink-0 gap-2.5 overflow-x-auto bg-black/60 px-4 py-3">
+            <div className="hide-scrollbar flex flex-shrink-0 gap-2.5 overflow-x-auto bg-black/35 px-4 py-3 backdrop-blur-md">
               {work.photos.map((p, i) => (
                 <button
                   key={p.id}
@@ -170,7 +189,21 @@ export default function WorkDialog({
               <span className="inline-flex items-center gap-1.5">
                 <Icon name="eye" size={17} /> {viewsLabel(work, t)}
               </span>
-              <button type="button" onClick={onShare} className="btn btn-secondary btn-icon ml-auto" aria-label={t("profile.viewer.share")}>
+              {!isOwner && (
+                <SaveButton
+                  saved={saved}
+                  onToggle={onToggleSave}
+                  aria-label={saved ? t("card.removeFavorite") : t("card.addFavorite")}
+                  title={saved ? t("card.removeFavorite") : t("card.addFavorite")}
+                  className="btn btn-secondary btn-icon ml-auto"
+                />
+              )}
+              <button
+                type="button"
+                onClick={onShare}
+                className={`btn btn-secondary btn-icon ${isOwner ? "ml-auto" : ""}`}
+                aria-label={t("profile.viewer.share")}
+              >
                 <Icon name="share" size={16} />
               </button>
             </div>

@@ -68,7 +68,7 @@ export default function CatalogFilters({
             }`}
           >
             <span className="flex items-center gap-2.5">
-              <Icon name="heart" size={16} filled={favoritesOnly} className={favoritesOnly ? "text-accent-ink" : ""} />
+              <Icon name="bookmark" size={16} filled={favoritesOnly} className={favoritesOnly ? "text-[rgb(var(--save))]" : ""} />
               {t("catalog.favoritesOnly")}
             </span>
             {favoriteCount > 0 && (

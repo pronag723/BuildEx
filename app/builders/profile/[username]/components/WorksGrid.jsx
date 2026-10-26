@@ -5,12 +5,20 @@ import { useT } from "../../../../../lib/i18n/LanguageProvider";
 import { formatCount, relativeAgo } from "../../../../../lib/works/format.mjs";
 import { Icon } from "../../../../../lib/icons";
 
-function WorkMeta({ work, className = "" }) {
+// `like` is the visitor's view of it ({ liked, likes }), so a like given in
+// the viewer shows here too.
+function WorkMeta({ work, like, className = "" }) {
   const t = useT();
   return (
     <span className={`flex items-center gap-3 ${className}`}>
       <span className="inline-flex items-center gap-1">
-        <Icon name="heart" size={12} /> {formatCount(work.likes, t.lang)}
+        <Icon
+          name="heart"
+          size={12}
+          filled={like.liked}
+          className={like.liked ? "text-[rgb(var(--heart))]" : ""}
+        />{" "}
+        {formatCount(like.likes, t.lang)}
       </span>
       {work.createdAt && <span>{relativeAgo(work.createdAt, t.lang)}</span>}
     </span>
@@ -18,7 +26,7 @@ function WorkMeta({ work, className = "" }) {
 }
 
 // The first work, large: the builder's pinned one, or simply their first.
-function FeaturedCard({ work, onOpen }) {
+function FeaturedCard({ work, like, onOpen }) {
   const t = useT();
   const cover = work.photos[0];
   return (
@@ -43,13 +51,13 @@ function FeaturedCard({ work, onOpen }) {
         <span className="block truncate text-[17px] font-bold tracking-[-0.01em] lg:text-[22px]">
           {work.title || t("profile.works.untitled")}
         </span>
-        <WorkMeta work={work} className="mt-1 text-xs text-white/80 lg:text-[13px]" />
+        <WorkMeta work={work} like={like} className="mt-1 text-xs text-white/80 lg:text-[13px]" />
       </span>
     </button>
   );
 }
 
-function WorkCard({ work, onOpen }) {
+function WorkCard({ work, like, onOpen }) {
   const t = useT();
   const cover = work.photos[0];
   return (
@@ -81,7 +89,7 @@ function WorkCard({ work, onOpen }) {
       <span className="block truncate text-[13px] font-semibold text-ink lg:text-sm">
         {work.title || t("profile.works.untitled")}
       </span>
-      <WorkMeta work={work} className="-mt-1 text-[11.5px] text-ink-3 lg:text-[12.5px]" />
+      <WorkMeta work={work} like={like} className="-mt-1 text-[11.5px] text-ink-3 lg:text-[12.5px]" />
     </button>
   );
 }
@@ -102,7 +110,7 @@ export function WorksGridSkeleton() {
 
 // Works as cards: the featured one large (full width on a phone, 2×2 from
 // `lg`), the rest in a 4:3 grid — two columns on a phone, four on desktop.
-export default function WorksGrid({ works, total, loading, loadingMore, onOpen, onLoadMore }) {
+export default function WorksGrid({ works, total, loading, loadingMore, likeOf, onOpen, onLoadMore }) {
   const t = useT();
   if (loading) return <WorksGridSkeleton />;
 
@@ -120,9 +128,9 @@ export default function WorksGrid({ works, total, loading, loadingMore, onOpen, 
   return (
     <div>
       <div className="grid grid-cols-2 gap-x-2.5 gap-y-4 lg:grid-cols-4 lg:gap-x-3.5 lg:gap-y-5">
-        <FeaturedCard work={featured} onOpen={onOpen} />
+        <FeaturedCard work={featured} like={likeOf(featured)} onOpen={onOpen} />
         {rest.map((work) => (
-          <WorkCard key={work.id} work={work} onOpen={onOpen} />
+          <WorkCard key={work.id} work={work} like={likeOf(work)} onOpen={onOpen} />
         ))}
       </div>
       {remaining > 0 && (

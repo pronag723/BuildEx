@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Avatar from "../../../../../lib/ui/Avatar";
-import FavoriteHeart from "../../../../../lib/ui/FavoriteHeart";
+import SaveButton from "../../../../../lib/ui/SaveButton";
 import SocialLinks from "../../../components/SocialLinks";
 import { useT } from "../../../../../lib/i18n/LanguageProvider";
 import { formatDate } from "../../../../../lib/i18n/format.mjs";
@@ -54,15 +54,15 @@ export default function ProfileHeader({
 
   const favoriteButton = (withLabel) =>
     canFavorite && builder.id ? (
-      <FavoriteHeart
-        favorited={favorited}
+      <SaveButton
+        saved={favorited}
         onToggle={onToggleFavorite}
         size={16}
         aria-label={favorited ? t("card.removeFavorite") : t("card.addFavorite")}
         className={withLabel ? "btn btn-secondary" : "btn btn-secondary btn-icon"}
       >
         {withLabel && <span>{favorited ? t("profile.saved") : t("profile.save")}</span>}
-      </FavoriteHeart>
+      </SaveButton>
     ) : null;
 
   const shareButton = (

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Avatar from "../../../../../lib/ui/Avatar";
+import SaveButton from "../../../../../lib/ui/SaveButton";
 import { publicAsset } from "../../../../home/utils";
 import { useScrollLock } from "../../../../../lib/useScrollLock";
 import { useT } from "../../../../../lib/i18n/LanguageProvider";
@@ -10,16 +11,20 @@ import { Icon } from "../../../../../lib/icons";
 import { tierDuration } from "./PriceList";
 import { LikeButton, WorkCoauthors, WorkFacts, viewsLabel } from "./workParts";
 
-// Phone: one work as its own screen over the profile — a swipeable photo
-// carousel, the details, and a fixed "discuss a similar build" bar.
+// Phone: one work as its own screen over the profile (opened by tapping a
+// card) — a swipeable photo carousel, the details, more of the builder's
+// works, and a fixed bar to save the builder or discuss a similar build.
 export default function WorkPage({
   work,
   builder,
   tier,
   moreWorks,
+  worksTotal,
   like,
   isOwner,
   onToggleLike,
+  saved,
+  onToggleSave,
   onBack,
   onOpenWork,
   onDiscuss,
@@ -57,7 +62,7 @@ export default function WorkPage({
         </button>
         <span className="text-base font-semibold text-ink">{t("profile.viewer.title")}</span>
         <button type="button" onClick={onShare} className="flex h-11 w-11 items-center justify-center text-ink" aria-label={t("profile.viewer.share")}>
-          <Icon name="share" size={20} />
+          <Icon name="send" size={20} />
         </button>
       </div>
 
@@ -98,14 +103,16 @@ export default function WorkPage({
 
       <div className="space-y-4 px-4 pt-4">
         <div className="flex items-center gap-2.5">
-          <Avatar src={builder.avatar} name={builder.display_name} size={38} />
-          <div className="min-w-0 flex-1">
-            <p className="truncate font-semibold text-ink">{builder.display_name}</p>
-            <p className="truncate text-xs text-ink-3">
-              {relativeAgo(work.createdAt, t.lang)}
-              {builder.online && <span className="text-accent-ink"> · {t("card.online")}</span>}
-            </p>
-          </div>
+          <button type="button" onClick={onBack} className="flex min-w-0 flex-1 items-center gap-2.5 text-left" aria-label={t("profile.viewer.back")}>
+            <Avatar src={builder.avatar} name={builder.display_name} size={38} />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate font-semibold text-ink">{builder.display_name}</span>
+              <span className="block truncate text-xs text-ink-3">
+                {relativeAgo(work.createdAt, t.lang)}
+                {builder.online && <span className="text-accent-ink"> · {t("card.online")}</span>}
+              </span>
+            </span>
+          </button>
           <LikeButton
             like={like}
             onToggle={onToggleLike}
@@ -146,7 +153,16 @@ export default function WorkPage({
 
       {moreWorks.length > 0 && (
         <div className="mt-6">
-          <p className="px-4 text-[15px] font-semibold text-ink">{t("profile.viewer.moreWorks")}</p>
+          <div className="flex items-baseline justify-between gap-3 px-4">
+            <p className="min-w-0 truncate text-[15px] font-semibold text-ink">
+              {t("profile.viewer.moreWorksBy", { name: builder.display_name })}
+            </p>
+            {worksTotal > 1 && (
+              <button type="button" onClick={onBack} className="flex-shrink-0 text-[13px] font-semibold text-accent-ink">
+                {t("profile.viewer.allWorks", { count: worksTotal })}
+              </button>
+            )}
+          </div>
           <div className="hide-scrollbar mt-2.5 flex gap-2.5 overflow-x-auto px-4 pb-2">
             {moreWorks.slice(0, 10).map((w) => (
               <button key={w.id} type="button" onClick={() => onOpenWork(w)} className="w-[150px] flex-shrink-0 text-left">
@@ -164,8 +180,15 @@ export default function WorkPage({
       )}
 
       {!isOwner && (
-        <div className="safe-bottom fixed inset-x-0 bottom-0 border-t border-line/10 bg-canvas/90 px-4 pt-3 backdrop-blur-md">
-          <button type="button" onClick={onDiscuss} className="btn btn-primary btn-lg w-full">
+        <div className="safe-bottom fixed inset-x-0 bottom-0 flex gap-2 border-t border-line/10 bg-canvas/90 px-4 pt-3 backdrop-blur-md">
+          <SaveButton
+            saved={saved}
+            onToggle={onToggleSave}
+            size={19}
+            aria-label={saved ? t("card.removeFavorite") : t("card.addFavorite")}
+            className="flex aspect-square flex-shrink-0 items-center justify-center self-stretch rounded-xl bg-raised text-ink"
+          />
+          <button type="button" onClick={onDiscuss} className="btn btn-primary btn-lg min-w-0 flex-1">
             <Icon name="chat" size={17} />
             {t("profile.viewer.discuss")}
           </button>
