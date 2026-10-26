@@ -17,41 +17,53 @@ export const LEAVE_MS = 200;
  * carousel are left alone: the gesture only starts at an edge, moving away
  * from it, on a vertical drag.
  *
- * Returns { pull, phase, dir, done }:
- *   pull  — signed px the content is pulled (negative = up, towards "next");
+ * The pull itself never goes through React: every finger move calls
+ * `onPull(px, dir)` (signed px, negative = up, towards "next") and the caller
+ * writes styles directly, so dragging re-renders nothing. React state changes
+ * only when something visible switches:
  *   phase — "idle" | "drag" | "settle" (springing back) | "leave" (the work
  *           exits) | "enter" (the new work arrives; call done() when its
  *           entry animation ends);
- *   dir   — "next" | "prev" for the current gesture.
+ *   dir   — "next" | "prev" for the current gesture;
+ *   armed — letting go now would switch.
  *
  * Listeners are attached by hand because React's touch listeners are passive
  * and the pull has to stop the native overscroll with preventDefault.
  */
-export function usePullToSwitch(ref, { canPrev, canNext, onSwitch }) {
-  const [state, setState] = useState({ pull: 0, phase: "idle", dir: null });
+export function usePullToSwitch(ref, { canPrev, canNext, onSwitch, onPull }) {
+  const [state, setState] = useState({ phase: "idle", dir: null, armed: false });
   const live = useRef(state);
-  const opts = useRef({ canPrev, canNext, onSwitch });
-  opts.current = { canPrev, canNext, onSwitch };
+  const opts = useRef({ canPrev, canNext, onSwitch, onPull });
+  opts.current = { canPrev, canNext, onSwitch, onPull };
   const timer = useRef(null);
 
   const update = useCallback((next) => {
-    live.current = { ...live.current, ...next };
-    setState(live.current);
+    const merged = { ...live.current, ...next };
+    if (merged.phase === live.current.phase && merged.dir === live.current.dir && merged.armed === live.current.armed) {
+      return;
+    }
+    live.current = merged;
+    setState(merged);
   }, []);
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return undefined;
     let track = null;
+    let pull = 0;
 
     const atTop = () => el.scrollTop <= 0;
     const atBottom = () => el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
+    const setPull = (px, dir) => {
+      pull = px;
+      opts.current.onPull?.(px, dir);
+    };
 
     const onStart = (event) => {
       track = null;
       if (event.touches.length !== 1 || live.current.phase === "leave") return;
       const p = event.touches[0];
-      track = { x: p.clientX, y: p.clientY, lastY: p.clientY, axis: null, origin: null, dir: null, buzzed: false };
+      track = { x: p.clientX, y: p.clientY, lastY: p.clientY, axis: null, origin: null, dir: null };
     };
 
     const onMove = (event) => {
@@ -81,35 +93,35 @@ export function usePullToSwitch(ref, { canPrev, canNext, onSwitch }) {
       const raw = p.clientY - track.origin;
       const signed = track.dir === "next" ? Math.min(0, raw) : Math.max(0, raw);
       // Back past where the pull began: hand the finger back to scrolling.
-      if (signed === 0 && Math.abs(raw) > 0) {
+      if (signed === 0 && raw !== 0) {
         track.origin = null;
-        update({ pull: 0, phase: "idle" });
+        setPull(0, track.dir);
+        update({ phase: "idle", armed: false });
         return;
       }
 
       event.preventDefault();
       const dist = PULL_MAX * (1 - Math.exp(-Math.abs(signed) / PULL_MAX));
-      if (dist >= PULL_GO && !track.buzzed) {
-        track.buzzed = true;
-        navigator.vibrate?.(8);
-      } else if (dist < PULL_GO) {
-        track.buzzed = false;
-      }
-      update({ pull: track.dir === "next" ? -dist : dist, phase: "drag", dir: track.dir });
+      const armed = dist >= PULL_GO;
+      if (armed && !live.current.armed) navigator.vibrate?.(8);
+      update({ phase: "drag", dir: track.dir, armed });
+      setPull(track.dir === "next" ? -dist : dist, track.dir);
     };
 
     const onEnd = () => {
       const ended = track;
       track = null;
       if (!ended || ended.origin == null) return;
-      if (Math.abs(live.current.pull) >= PULL_GO) {
-        update({ phase: "leave", dir: ended.dir });
+      if (Math.abs(pull) >= PULL_GO) {
+        update({ phase: "leave", dir: ended.dir, armed: true });
         timer.current = window.setTimeout(() => {
           opts.current.onSwitch(ended.dir);
-          update({ pull: 0, phase: "enter", dir: ended.dir });
+          setPull(0, ended.dir);
+          update({ phase: "enter", dir: ended.dir, armed: false });
         }, LEAVE_MS);
       } else {
-        update({ pull: 0, phase: "settle" });
+        setPull(0, ended.dir);
+        update({ phase: "settle", armed: false });
       }
     };
 
