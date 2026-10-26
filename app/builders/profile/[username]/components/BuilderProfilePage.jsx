@@ -23,7 +23,7 @@ import ReviewsPanel from "./ReviewsPanel";
 import ProfileSidebar from "./ProfileSidebar";
 import WorkDialog from "./WorkDialog";
 import WorkPage from "./WorkPage";
-import HeaderBackground from "./HeaderBackground";
+import HeaderBackground, { PROFILE_SCENE_ID } from "./HeaderBackground";
 import { hasHeaderBg } from "../../../../../lib/profile/headerBg.mjs";
 
 const TOAST_MS = 2600;
@@ -52,7 +52,7 @@ export function BuilderProfileSkeleton() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   return (
     <div className="catalog-root">
-      <CatalogNavbar mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
+      <CatalogNavbar mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} overScene={PROFILE_SCENE_ID} />
       <CatalogMobileMenu mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
       <main aria-busy="true">
         <div className="mx-auto max-w-7xl px-4 pb-16 pt-5 sm:px-6 sm:pt-8 lg:px-8">
@@ -389,7 +389,7 @@ export default function BuilderProfilePage({ builder }) {
 
   return (
     <div className={`catalog-root ${isOwner ? "" : "has-bottom-bar"}`}>
-      <CatalogNavbar mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
+      <CatalogNavbar mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} overScene={PROFILE_SCENE_ID} />
       <CatalogMobileMenu mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
 
       <main className={`relative ${hasHeaderBg(builder.headerBg) ? "has-header-bg" : ""}`}>

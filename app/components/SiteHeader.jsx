@@ -44,30 +44,47 @@ function HeaderNav({ children }) {
 }
 
 // `overScene` names a full-bleed picture at the top of the page (the /about
-// hero) that the header may lie over. While it does, the header is see-through:
-// clear at the very top of the page, frosted once the page scrolls under it,
-// and the ordinary bar again once the picture has gone by. Returns "top",
-// "scrolled" or null (not over it). The first render says "top", so the
-// static HTML of a page opened at the top is already right.
+// hero, a builder's profile background) that the header may lie over. While
+// it does, the header is see-through: clear at the very top of the page,
+// frosted once the page scrolls under it, and the ordinary bar again once the
+// picture has gone by. Returns "top", "scrolled" or null (not over it). The
+// first render says "top", so the static HTML of a page opened at the top is
+// already right.
+//
+// The picture may mount after the header (a profile's background arrives with
+// its data, and comes and goes with the builder's choice), so it is looked up
+// on every check, and announces itself with SCENE_EVENT.
+export const SCENE_EVENT = "site-header:scene";
+
+export function announceScene() {
+  window.dispatchEvent(new Event(SCENE_EVENT));
+}
+
 function useOverScene(sceneId, headerRef) {
   const [state, setState] = useState(sceneId ? "top" : null);
 
   useEffect(() => {
-    const scene = sceneId && document.getElementById(sceneId);
-    if (!scene) {
+    if (!sceneId) {
       setState(null);
       return undefined;
     }
     const update = () => {
+      const scene = document.getElementById(sceneId);
+      if (!scene || !headerRef.current) {
+        setState(null);
+        return;
+      }
       const over = scene.getBoundingClientRect().bottom > headerRef.current.offsetHeight;
       setState(!over ? null : window.scrollY > 0 ? "scrolled" : "top");
     };
     update();
     window.addEventListener("scroll", update, { passive: true });
     window.addEventListener("resize", update);
+    window.addEventListener(SCENE_EVENT, update);
     return () => {
       window.removeEventListener("scroll", update);
       window.removeEventListener("resize", update);
+      window.removeEventListener(SCENE_EVENT, update);
     };
   }, [sceneId, headerRef]);
 

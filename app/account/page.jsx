@@ -27,6 +27,7 @@ import AvatarUploader from "../onboarding/components/AvatarUploader";
 import HandleInput from "../onboarding/components/HandleInput";
 import TaggedInWorks from "./components/TaggedInWorks";
 import OwnerProfileEditor from "./components/profile-editor/OwnerProfileEditor";
+import { PROFILE_SCENE_ID } from "../builders/profile/[username]/components/HeaderBackground";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useT } from "../../lib/i18n/LanguageProvider";
@@ -665,7 +666,11 @@ function AccountPageInner() {
 
   return (
     <div className="catalog-root">
-      <CatalogNavbar mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
+      <CatalogNavbar
+        mobileMenuOpen={mobileMenuOpen}
+        setMobileMenuOpen={setMobileMenuOpen}
+        overScene={editorShown ? PROFILE_SCENE_ID : null}
+      />
       <CatalogMobileMenu mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
 
       {/* Builders keep the Profile | Account tabs in one place on both
