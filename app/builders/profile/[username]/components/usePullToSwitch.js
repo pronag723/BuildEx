@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { haptic } from "../../../../../lib/haptics";
 
 // How far the content follows the finger (it slows towards this), and how far
 // it has to travel before letting go switches works.
@@ -103,7 +104,7 @@ export function usePullToSwitch(ref, { canPrev, canNext, onSwitch, onPull }) {
       event.preventDefault();
       const dist = PULL_MAX * (1 - Math.exp(-Math.abs(signed) / PULL_MAX));
       const armed = dist >= PULL_GO;
-      if (armed && !live.current.armed) navigator.vibrate?.(8);
+      if (armed && !live.current.armed) haptic("tick");
       update({ phase: "drag", dir: track.dir, armed });
       setPull(track.dir === "next" ? -dist : dist, track.dir);
     };
@@ -113,6 +114,9 @@ export function usePullToSwitch(ref, { canPrev, canNext, onSwitch, onPull }) {
       track = null;
       if (!ended || ended.origin == null) return;
       if (Math.abs(pull) >= PULL_GO) {
+        // touchend counts as a user gesture on iOS, so this one is felt on
+        // iPhones too (the threshold tick above is Android-only there).
+        haptic("confirm");
         update({ phase: "leave", dir: ended.dir, armed: true });
         timer.current = window.setTimeout(() => {
           opts.current.onSwitch(ended.dir);
