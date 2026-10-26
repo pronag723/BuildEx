@@ -9,7 +9,6 @@ import { getSupabaseClient } from "../../lib/supabase/client";
 import {
   deleteOwnAccount,
   fetchOnboardingState,
-  listPortfolioImages,
   saveBuilderIdentity,
   saveBuilderStyles,
 } from "../../lib/onboarding/api";
@@ -39,7 +38,11 @@ import ContactLinkField, {
 } from "../onboarding/components/ContactLinkField";
 import SocialLinks from "../builders/components/SocialLinks";
 import HandleInput from "../onboarding/components/HandleInput";
-import PortfolioUploader from "../onboarding/components/PortfolioUploader";
+import WorksManager from "../onboarding/components/WorksManager";
+import PriceTiersEditor from "../onboarding/components/PriceTiersEditor";
+import ExperienceField from "../onboarding/components/ExperienceField";
+import TaggedInWorks from "./components/TaggedInWorks";
+import { experienceYears } from "../../lib/works/format.mjs";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useT } from "../../lib/i18n/LanguageProvider";
@@ -132,16 +135,19 @@ function SectionTabs({ section, setSection }) {
 
 // ─── About / bio (shared) ────────────────────────────────────────────────────
 // Only rendered for builders — it is their public pitch.
-function AboutSection({ profile, onSaved }) {
+function AboutSection({ profile, builderProfile, onSaved }) {
   const { user } = useAuth();
   const t = useT();
   const [editing, setEditing] = useState(false);
   const [bio, setBio] = useState(profile?.bio || "");
+  const [buildingSince, setBuildingSince] = useState(builderProfile?.building_since ?? null);
+  const savedYears = experienceYears(builderProfile?.building_since);
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
 
   function startEdit() {
     setBio(profile?.bio || "");
+    setBuildingSince(builderProfile?.building_since ?? null);
     setError(null);
     setEditing(true);
   }
@@ -151,10 +157,11 @@ function AboutSection({ profile, onSaved }) {
     if (!supabase || !user?.id) return;
     setSaving(true);
     setError(null);
-    // Only the bio — saveBuilderIdentity writes exactly the fields it is
-    // handed, so the avatar and name this card doesn't own stay put.
+    // Only the bio and experience — saveBuilderIdentity writes exactly the
+    // fields it is handed, so the avatar and name this card doesn't own stay put.
     const { error: err } = await saveBuilderIdentity(supabase, user.id, {
       bio: bio.trim() || null,
+      buildingSince,
     });
     setSaving(false);
     if (err) {
@@ -190,6 +197,7 @@ function AboutSection({ profile, onSaved }) {
             />
             <p className="mt-1.5 text-xs tabular-nums text-ink-3">{bio.length}/{BIO_MAX}</p>
           </div>
+          <ExperienceField id="acc-building-since" value={buildingSince} onChange={setBuildingSince} />
           {error && <div role="alert" className="auth-banner auth-banner-error">{error}</div>}
         </div>
       ) : (
@@ -199,6 +207,12 @@ function AboutSection({ profile, onSaved }) {
           ) : (
             <p className="text-sm text-ink-3">
               {t.rich("account.about.empty", { edit: <strong>{t("common.edit")}</strong> })}
+            </p>
+          )}
+          {savedYears != null && (
+            <p className="inline-flex items-center gap-1.5 text-sm text-ink-2">
+              <Icon name="briefcase" size={15} className="text-ink-3" />
+              {savedYears === 0 ? t("profile.experienceNew") : t("profile.experience", { count: savedYears })}
             </p>
           )}
         </div>
@@ -287,80 +301,34 @@ function StylesSection({ builderProfile, onSaved }) {
   );
 }
 
-// ─── Portfolio (builders) ───────────────────────────────────────────────────
-function PortfolioSection({ portfolioCount, onSaved }) {
+// ─── Works (builders) ───────────────────────────────────────────────────────
+// Every work on the profile: photos, title, description, co-authors, the price
+// tier it was made under, and which one is pinned as "Best work".
+function WorksSection() {
   const { user } = useAuth();
   const t = useT();
-  const [editing, setEditing] = useState(false);
-  const [error, setError] = useState(null);
-  const [images, setImages] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  const loadImages = useCallback(async () => {
-    const supabase = getSupabaseClient();
-    if (!supabase || !user?.id) return;
-    const { images: rows } = await listPortfolioImages(supabase, user.id);
-    setImages(rows || []);
-    setLoading(false);
-  }, [user?.id]);
-
-  useEffect(() => {
-    loadImages();
-  }, [loadImages, portfolioCount]);
-
   return (
     <section className="card p-5 sm:p-6">
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <h2 className="text-lg font-semibold">{t("profile.portfolio")}</h2>
-          <p className="mt-0.5 text-xs text-ink-3">
-            {t("account.portfolio.subtitle")}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setEditing((v) => !v)}
-          className="btn btn-secondary btn-sm"
-        >
-          <Icon name="pencil" size={14} />
-          {editing ? t("account.portfolio.done") : t("account.portfolio.manage")}
-        </button>
+      <div className="mb-4">
+        <h2 className="text-lg font-semibold">{t("account.works.title")}</h2>
+        <p className="mt-0.5 text-xs text-ink-3">{t("account.works.subtitle")}</p>
       </div>
+      <WorksManager userId={user?.id} />
+    </section>
+  );
+}
 
-      {editing ? (
-        <div>
-          <PortfolioUploader
-            userId={user?.id}
-            onCountChange={() => {
-              loadImages();
-              onSaved?.();
-            }}
-            onError={setError}
-          />
-          {error && (
-            <div role="alert" className="auth-banner auth-banner-error mt-6">
-              {error}
-            </div>
-          )}
-        </div>
-      ) : loading ? (
-        <div className="rounded-lg border border-dashed border-line/15 p-8 text-center text-sm text-ink-3">{t("account.loading")}</div>
-      ) : images.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-line/15 p-8 text-center text-sm text-ink-3">
-          {t.rich("account.portfolio.empty", { manage: <strong>{t("account.portfolio.manage")}</strong> })}
-        </div>
-      ) : (
-        <div className="portfolio-scroll -mx-5 flex gap-3 overflow-x-auto px-5 pb-2 snap-x sm:-mx-6 sm:px-6">
-          {images.map((img) => (
-            <div key={img.id} className="portfolio-card snap-start flex-shrink-0 overflow-hidden rounded-lg bg-raised">
-              <div className="relative aspect-[16/10] overflow-hidden">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={img.url} alt={img.alt || ""} className="w-full h-full object-cover" loading="lazy" />
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+// ─── Price list (builders) ──────────────────────────────────────────────────
+function PricesSection() {
+  const { user } = useAuth();
+  const t = useT();
+  return (
+    <section className="card p-5 sm:p-6">
+      <div className="mb-4">
+        <h2 className="text-lg font-semibold">{t("account.prices.title")}</h2>
+        <p className="mt-0.5 text-xs text-ink-3">{t("account.prices.subtitle")}</p>
+      </div>
+      <PriceTiersEditor userId={user?.id} />
     </section>
   );
 }
@@ -933,7 +901,6 @@ function AccountPageInner() {
   // profiles query that timed out on slow Supabase.
   const profile = authProfile;
   const [builderProfile, setBuilderProfile] = useState(null);
-  const [portfolioCount, setPortfolioCount] = useState(0);
   const [builderLoaded, setBuilderLoaded] = useState(false);
   const [loadError, setLoadError] = useState(null);
 
@@ -951,16 +918,15 @@ function AccountPageInner() {
     setLoadError(null);
     // Refresh AuthContext's profile (background — don't gate render on it).
     refreshAuthProfile?.();
-    // Builder profile + portfolio count: single attempt, no retry. If they
+    // Builder profile: single attempt, no retry. If they
     // fail (TIMEOUT etc.) we still render the page with whatever profile
     // AuthContext has — the user can hit Edit and re-save to retry.
-    const { builderProfile: bp, portfolioCount: pc } = await fetchOnboardingState(
+    const { builderProfile: bp } = await fetchOnboardingState(
       supabase,
       user.id,
       { prefetchedProfile: authProfileRef.current || undefined }
     );
     setBuilderProfile(bp);
-    setPortfolioCount(pc || 0);
     setBuilderLoaded(true);
   }, [user?.id, refreshAuthProfile]);
 
@@ -1044,9 +1010,11 @@ function AccountPageInner() {
                     to appear, so they aren't asked for one. */}
                 {isBuilder && (
                   <>
-                    <AboutSection profile={profile} onSaved={refresh} />
+                    <AboutSection profile={profile} builderProfile={builderProfile} onSaved={refresh} />
                     <StylesSection builderProfile={builderProfile} onSaved={refresh} />
-                    <PortfolioSection portfolioCount={portfolioCount} onSaved={refresh} />
+                    <WorksSection />
+                    <PricesSection />
+                    <TaggedInWorks userId={profile?.id} />
                   </>
                 )}
 

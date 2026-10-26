@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getSupabaseClient } from "../../../../lib/supabase/client";
 import { useAuth } from "../../../../lib/auth/AuthContext";
@@ -13,7 +13,8 @@ import { STEPS } from "../../../../lib/onboarding/state";
 import OnboardingShell from "../../components/OnboardingShell";
 import OnboardingGate from "../../components/OnboardingGate";
 import OnboardingFooter from "../../components/OnboardingFooter";
-import PortfolioUploader from "../../components/PortfolioUploader";
+import WorksManager, { isCompleteWork } from "../../components/WorksManager";
+import PriceTiersEditor from "../../components/PriceTiersEditor";
 import { useT } from "../../../../lib/i18n/LanguageProvider";
 
 export default function BuilderPortfolioPage() {
@@ -31,7 +32,9 @@ function BuilderPortfolioStep({ state }) {
   const { user, updateProfile } = useAuth();
   const t = useT();
 
-  const [count, setCount] = useState(state.portfolioCount || 0);
+  // Complete works — a title and at least one photo. One is enough to finish.
+  const [count, setCount] = useState(0);
+  const onWorksChange = useCallback((works) => setCount(works.filter(isCompleteWork).length), []);
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
 
@@ -64,17 +67,19 @@ function BuilderPortfolioStep({ state }) {
       </div>
 
       <div className="onb-card">
-        <PortfolioUploader
-          userId={user?.id}
-          onCountChange={setCount}
-          onError={setError}
-        />
+        <WorksManager userId={user?.id} onChange={onWorksChange} />
 
         {error && (
           <div role="alert" className="auth-banner auth-banner-error mt-6">
             {error}
           </div>
         )}
+      </div>
+
+      <div className="onb-card mt-6">
+        <h2 className="text-base font-semibold">{t("onboarding.works.pricesTitle")}</h2>
+        <p className="mb-4 mt-1 text-sm text-ink-3">{t("onboarding.works.pricesSubtitle")}</p>
+        <PriceTiersEditor userId={user?.id} />
       </div>
 
       <OnboardingFooter

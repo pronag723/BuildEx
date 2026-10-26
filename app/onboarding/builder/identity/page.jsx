@@ -27,6 +27,7 @@ import ContactLinkField, {
   emptyLinkRows,
   linkRowsValid,
 } from "../../components/ContactLinkField";
+import ExperienceField from "../../components/ExperienceField";
 import HandleInput from "../../components/HandleInput";
 import { useT } from "../../../../lib/i18n/LanguageProvider";
 
@@ -52,6 +53,7 @@ function BuilderIdentityStep({ state }) {
   const [handleValid, setHandleValid] = useState(Boolean(p.username));
   const [avatarUrl, setAvatarUrl] = useState(p.avatar_url || null);
   const [bio, setBio] = useState(p.bio || "");
+  const [buildingSince, setBuildingSince] = useState(state.builderProfile?.building_since ?? null);
   const [linkRows, setLinkRows] = useState(
     savedLinks.length
       ? savedLinks.map(({ type, value }) => ({ type, value }))
@@ -90,6 +92,7 @@ function BuilderIdentityStep({ state }) {
       avatarUrl,
       bio: bio.trim() || null,
       contactLinks: linkRows,
+      buildingSince,
       // Signup: the builder_profiles row must exist for steps 2 and 3.
       ensureBuilderRow: true,
     });
@@ -201,6 +204,11 @@ function BuilderIdentityStep({ state }) {
               {bio.length}/{BIO_MAX}
             </span>
           </div>
+        </div>
+
+        {/* Years building — optional */}
+        <div className="py-5 sm:py-6">
+          <ExperienceField value={buildingSince} onChange={setBuildingSince} />
         </div>
 
         {/* Contact links */}
