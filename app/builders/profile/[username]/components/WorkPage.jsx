@@ -10,58 +10,8 @@ import { formatPrice, relativeAgo } from "../../../../../lib/works/format.mjs";
 import { Icon } from "../../../../../lib/icons";
 import { tierDuration } from "./PriceList";
 import { LikeButton, WorkCoauthors, WorkFacts, viewsLabel } from "./workParts";
-import { LEAVE_MS, PULL_GO, usePullToSwitch } from "./usePullToSwitch";
-
-const RING = 2 * Math.PI * 12;
-const SPRING = "320ms cubic-bezier(0.2, 0.8, 0.2, 1)";
-
-// What a pull offers, as one compact pill: a ring that fills as the finger
-// travels (green once letting go will switch), an arrow towards where that
-// work lies — below for the next, above for the previous — and its title.
-// It sits in a box exactly as tall as the gap the pull has opened, so it never
-// covers the content; the box height, the ring and the pill's fade are
-// written straight to the DOM while dragging (see applyPull).
-function SwitchHint({ boxRef, work, dir, armed }) {
-  const t = useT();
-  const label = armed
-    ? t("profile.viewer.releaseToOpen")
-    : t(dir === "next" ? "profile.viewer.nextWork" : "profile.viewer.prevWork");
-  return (
-    <div
-      ref={boxRef}
-      className="pointer-events-none flex h-0 w-full items-center justify-center overflow-hidden px-4"
-    >
-      <div className="flex min-w-0 max-w-full items-center gap-2.5 rounded-full border border-line/[0.08] bg-surface py-1 pl-1 pr-4 opacity-0 shadow-pop">
-        <span
-          className={`relative flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full transition-colors duration-150 ${
-            armed ? "bg-accent text-accent-fg" : "bg-raised text-ink"
-          }`}
-        >
-          <svg className="absolute inset-0 -rotate-90" viewBox="0 0 32 32" aria-hidden="true">
-            <circle
-              cx="16"
-              cy="16"
-              r="12"
-              fill="none"
-              stroke="rgb(var(--accent))"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeDasharray={RING}
-              strokeDashoffset={RING}
-            />
-          </svg>
-          <Icon name={dir === "next" ? "chevronDown" : "chevronUp"} size={18} />
-        </span>
-        <span className="min-w-0 leading-tight">
-          <span className="block text-[11px] text-ink-3">{label}</span>
-          <span className="block truncate text-[13px] font-semibold text-ink">
-            {work.title || t("profile.works.untitled")}
-          </span>
-        </span>
-      </div>
-    </div>
-  );
-}
+import { usePullToSwitch } from "./usePullToSwitch";
+import { SwitchHint, applyLeaveStyles, applyPullStyles } from "./switchHint";
 
 // Phone: one work as its own screen over the profile (opened by tapping a
 // card) — a swipeable photo carousel, the details, more of the builder's
@@ -117,27 +67,7 @@ export default function WorkPage({
   // Every finger move lands here, outside React: the content follows the
   // finger (or springs back on 0), and the hint's box opens with it.
   const applyPull = useCallback((px, to) => {
-    const spring = px === 0;
-    const body = bodyRef.current;
-    if (body) {
-      body.style.transition = spring ? `transform ${SPRING}` : "none";
-      body.style.transform = `translate3d(0, ${px}px, 0)`;
-    }
-    const box = (to === "next" ? nextBoxRef : prevBoxRef).current;
-    if (!box) return;
-    const d = Math.abs(px);
-    const progress = Math.min(1, d / PULL_GO);
-    box.style.transition = spring ? `height ${SPRING}` : "none";
-    box.style.height = `${d}px`;
-    if (!spring) box.style.opacity = "1";
-    const pill = box.firstElementChild;
-    if (pill) {
-      pill.style.transition = spring ? `opacity ${SPRING}, transform ${SPRING}` : "none";
-      pill.style.opacity = String(Math.min(1, Math.max(0, (d - 20) / 36)));
-      pill.style.transform = `scale(${0.88 + 0.12 * progress})`;
-    }
-    const ring = box.querySelector("circle");
-    if (ring) ring.style.strokeDashoffset = String(RING * (1 - progress));
+    applyPullStyles(bodyRef.current, (to === "next" ? nextBoxRef : prevBoxRef).current, px);
   }, []);
 
   const { phase, dir, armed, done } = usePullToSwitch(pageRef, {
@@ -150,16 +80,7 @@ export default function WorkPage({
 
   // Letting go past the threshold: the work leaves towards the pull.
   useEffect(() => {
-    const body = bodyRef.current;
-    if (phase !== "leave" || !body) return;
-    body.style.transition = `transform ${LEAVE_MS}ms cubic-bezier(0.4, 0, 1, 1), opacity ${LEAVE_MS}ms ease-in`;
-    body.style.transform = `translate3d(0, ${dir === "next" ? "-30vh" : "30vh"}, 0)`;
-    body.style.opacity = "0";
-    const box = (dir === "next" ? nextBoxRef : prevBoxRef).current;
-    if (box) {
-      box.style.transition = "opacity 150ms ease-out";
-      box.style.opacity = "0";
-    }
+    if (phase === "leave") applyLeaveStyles(bodyRef.current, (dir === "next" ? nextBoxRef : prevBoxRef).current, dir);
   }, [phase, dir]);
 
   // Blurring the bars over content that moves every frame is costly on a

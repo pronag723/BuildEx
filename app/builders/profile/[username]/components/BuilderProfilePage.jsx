@@ -260,18 +260,19 @@ export default function BuilderProfilePage({ builder }) {
     ? works.find((w) => w.id === viewer.workId) || (extraWork?.id === viewer.workId ? extraWork : null)
     : null;
 
-  // The works either side of the open one, for the phone screen's pull to
-  // switch. Nearing the end of what is loaded fetches the next page, once.
+  // The works either side of the open one, for switching by a pull (phone) or
+  // the wheel (desktop). Nearing the end of what is loaded fetches the next
+  // page, once.
   const currentIndex = currentWork ? works.findIndex((w) => w.id === currentWork.id) : -1;
   const prevWork = currentIndex > 0 ? works[currentIndex - 1] : null;
   const nextWork = currentIndex >= 0 ? works[currentIndex + 1] || null : null;
   const autoLoadedAt = useRef(-1);
   useEffect(() => {
-    if (viewer?.mode !== "page" || currentIndex < 0 || currentIndex < works.length - 2) return;
+    if (!viewer || currentIndex < 0 || currentIndex < works.length - 2) return;
     if (works.length >= worksTotal || autoLoadedAt.current === works.length) return;
     autoLoadedAt.current = works.length;
     loadMore();
-  }, [viewer?.mode, currentIndex, works.length, worksTotal, loadMore]);
+  }, [viewer, currentIndex, works.length, worksTotal, loadMore]);
 
   // Opening a work counts a view (the server dedups per viewer per day).
   useEffect(() => {
@@ -494,6 +495,8 @@ export default function BuilderProfilePage({ builder }) {
           builder={builder}
           tier={tierOf(currentWork)}
           moreWorks={moreWorks}
+          prevWork={prevWork}
+          nextWork={nextWork}
           like={likeOf(currentWork)}
           isOwner={isOwner}
           onToggleLike={() => toggleLike(currentWork)}

@@ -10,14 +10,20 @@ import { useT } from "../../../../../lib/i18n/LanguageProvider";
 import { relativeAgo } from "../../../../../lib/works/format.mjs";
 import { Icon } from "../../../../../lib/icons";
 import { LikeButton, WorkCoauthors, WorkFacts, discussLabel, viewsLabel } from "./workParts";
+import { SwitchHint, applyLeaveStyles, applyPullStyles } from "./switchHint";
+import { useWheelToSwitch } from "./useWheelToSwitch";
 
 // Desktop: one work in a dialog over the profile — photos on the left with
-// thumbnails of this work only, details and actions on the right.
+// thumbnails of this work only, details and actions on the right. Scrolling
+// the details on past their end moves to the next work, past the top to the
+// previous one (useWheelToSwitch).
 export default function WorkDialog({
   work,
   builder,
   tier,
   moreWorks,
+  prevWork,
+  nextWork,
   like,
   isOwner,
   onToggleLike,
@@ -48,6 +54,38 @@ export default function WorkDialog({
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [count, go, onClose]);
+
+  const detailsRef = useRef(null);
+  const bodyRef = useRef(null);
+  const nextBoxRef = useRef(null);
+  const prevBoxRef = useRef(null);
+  const { phase, dir, armed, done } = useWheelToSwitch(detailsRef, {
+    canPrev: Boolean(prevWork),
+    canNext: Boolean(nextWork),
+    onSwitch: (to) => onOpenWork(to === "next" ? nextWork : prevWork),
+    // Short details that don't fill the column stay put (moving them would
+    // only push the title out of view); the hint opens all the same.
+    onPull: (px, to, step) => {
+      const details = detailsRef.current;
+      const fills = details && details.scrollHeight > details.clientHeight;
+      applyPullStyles(fills ? bodyRef.current : null, (to === "next" ? nextBoxRef : prevBoxRef).current, px, step);
+    },
+  });
+
+  useEffect(() => {
+    if (phase === "leave")
+      applyLeaveStyles(bodyRef.current, (dir === "next" ? nextBoxRef : prevBoxRef).current, dir, "120px");
+  }, [phase, dir]);
+
+  // A switched-to work starts at the top of its details.
+  useEffect(() => {
+    if (detailsRef.current) detailsRef.current.scrollTop = 0;
+  }, [work.id]);
+
+  // Animations inside (a like's burst) bubble up too.
+  const ownEvent = (handler) => (event) => {
+    if (event.target === event.currentTarget) handler();
+  };
 
   if (typeof document === "undefined") return null;
   const photo = work.photos[index];
@@ -148,7 +186,17 @@ export default function WorkDialog({
             </button>
           </div>
 
-          <div className="bx-scroll min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+          {/* The details scroll; scrolling on past an end offers the next or
+              previous work, its hint opening in the gap the content leaves. */}
+          <div className="relative min-h-0 flex-1 overflow-hidden">
+          <div ref={detailsRef} className="bx-scroll absolute inset-0 overflow-y-auto overscroll-contain">
+          <div
+            key={work.id}
+            ref={bodyRef}
+            className={`space-y-4 px-5 py-4 ${phase === "enter" ? `work-enter-${dir}` : ""}`}
+            onAnimationEnd={ownEvent(done)}
+            onTransitionEnd={ownEvent(done)}
+          >
             <div>
               <h2 className="text-[21px] font-bold tracking-[-0.015em] text-ink">{title}</h2>
               {work.description && (
@@ -176,6 +224,36 @@ export default function WorkDialog({
                 </div>
               </div>
             )}
+            {nextWork && (
+              <p className="flex items-center justify-center gap-1.5 pt-2 text-xs text-ink-3">
+                <Icon name="chevronDown" size={14} />
+                {t("profile.viewer.scrollHint")}
+              </p>
+            )}
+          </div>
+          </div>
+          {prevWork && (
+            <div className="pointer-events-none absolute inset-x-0 top-0">
+              <SwitchHint
+                boxRef={prevBoxRef}
+                work={prevWork}
+                dir="prev"
+                armed={armed && dir === "prev"}
+                armedLabelKey="profile.viewer.opening"
+              />
+            </div>
+          )}
+          {nextWork && (
+            <div className="pointer-events-none absolute inset-x-0 bottom-0">
+              <SwitchHint
+                boxRef={nextBoxRef}
+                work={nextWork}
+                dir="next"
+                armed={armed && dir === "next"}
+                armedLabelKey="profile.viewer.opening"
+              />
+            </div>
+          )}
           </div>
 
           <div className="flex-shrink-0 border-t border-line/[0.08] px-5 pb-[18px] pt-3.5">
