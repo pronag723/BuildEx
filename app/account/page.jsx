@@ -10,15 +10,8 @@ import {
   deleteOwnAccount,
   fetchOnboardingState,
   saveBuilderIdentity,
-  saveBuilderStyles,
 } from "../../lib/onboarding/api";
-import {
-  BIO_MAX,
-  DISPLAY_NAME_MAX,
-  DISPLAY_NAME_MIN,
-  STYLES,
-} from "../../lib/onboarding/constants";
-import { readContactLinks } from "../../lib/onboarding/contactLinks";
+import { DISPLAY_NAME_MAX, DISPLAY_NAME_MIN } from "../../lib/onboarding/constants";
 import { fetchMyEmailSettings, setEmailOnMessage } from "../../lib/notifications/emailSettings";
 import { BUILDER_ONBOARDING_START } from "../../lib/onboarding/state";
 import { withBase } from "../home/utils";
@@ -31,62 +24,12 @@ import CatalogMobileMenu from "../builders/components/CatalogMobileMenu";
 import SiteFooter from "../home/components/SiteFooter";
 import WardrobeScene from "./components/WardrobeScene";
 import AvatarUploader from "../onboarding/components/AvatarUploader";
-import ChipGrid from "../onboarding/components/ChipGrid";
-import ContactLinkField, {
-  emptyLinkRows,
-  linkRowsValid,
-} from "../onboarding/components/ContactLinkField";
-import SocialLinks from "../builders/components/SocialLinks";
 import HandleInput from "../onboarding/components/HandleInput";
-import WorksManager from "../onboarding/components/WorksManager";
-import PriceTiersEditor from "../onboarding/components/PriceTiersEditor";
-import ExperienceField from "../onboarding/components/ExperienceField";
 import TaggedInWorks from "./components/TaggedInWorks";
-import { experienceYears } from "../../lib/works/format.mjs";
+import OwnerProfileEditor from "./components/profile-editor/OwnerProfileEditor";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useT } from "../../lib/i18n/LanguageProvider";
-import { styleChipLabel } from "../../lib/i18n/labels.mjs";
-
-function SectionHeader({ title, editing, onEdit, onCancel, onSave, saving, canSave = true }) {
-  const t = useT();
-  return (
-    <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-      <h2 className="text-lg font-semibold">{title}</h2>
-      {editing ? (
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="btn btn-ghost btn-sm"
-          >
-            {t("common.cancel")}
-          </button>
-          <button
-            type="button"
-            onClick={onSave}
-            disabled={saving || !canSave}
-            className="btn btn-primary btn-sm"
-          >
-            {saving && (
-              <span className="w-3 h-3 rounded-full border-2 border-accent-fg/30 border-t-accent-fg animate-spin" />
-            )}
-            {t("common.save")}
-          </button>
-        </div>
-      ) : (
-        <button
-          type="button"
-          onClick={onEdit}
-          className="btn btn-secondary btn-sm"
-        >
-          <Icon name="pencil" size={14} />
-          {t("common.edit")}
-        </button>
-      )}
-    </div>
-  );
-}
 
 // ─── Section switcher ────────────────────────────────────────────────────────
 // The three top-level views of the account page. A segmented control sits above
@@ -100,13 +43,13 @@ const ACCOUNT_SECTIONS = [
 
 // The selected tab is underlined by one accent bar that slides between tabs
 // (lib/ui/useSlidingIndicator.js), sitting on the row's bottom rule.
-function SectionTabs({ section, setSection }) {
+function SectionTabs({ section, setSection, className = "mb-3" }) {
   const t = useT();
   const { containerRef, barRef } = useSlidingIndicator('[aria-selected="true"]');
   return (
     <div
       ref={containerRef}
-      className="relative mb-3 flex gap-4"
+      className={`relative flex gap-4 ${className}`}
       role="tablist"
       aria-label={t("account.sections.aria")}
     >
@@ -130,206 +73,6 @@ function SectionTabs({ section, setSection }) {
       })}
       <span ref={barRef} className="slide-indicator bottom-0" aria-hidden="true" />
     </div>
-  );
-}
-
-// ─── About / bio (shared) ────────────────────────────────────────────────────
-// Only rendered for builders — it is their public pitch.
-function AboutSection({ profile, builderProfile, onSaved }) {
-  const { user } = useAuth();
-  const t = useT();
-  const [editing, setEditing] = useState(false);
-  const [bio, setBio] = useState(profile?.bio || "");
-  const [buildingSince, setBuildingSince] = useState(builderProfile?.building_since ?? null);
-  const savedYears = experienceYears(builderProfile?.building_since);
-  const [error, setError] = useState(null);
-  const [saving, setSaving] = useState(false);
-
-  function startEdit() {
-    setBio(profile?.bio || "");
-    setBuildingSince(builderProfile?.building_since ?? null);
-    setError(null);
-    setEditing(true);
-  }
-
-  async function save() {
-    const supabase = getSupabaseClient();
-    if (!supabase || !user?.id) return;
-    setSaving(true);
-    setError(null);
-    // Only the bio and experience — saveBuilderIdentity writes exactly the
-    // fields it is handed, so the avatar and name this card doesn't own stay put.
-    const { error: err } = await saveBuilderIdentity(supabase, user.id, {
-      bio: bio.trim() || null,
-      buildingSince,
-    });
-    setSaving(false);
-    if (err) {
-      setError(err.message || t("account.errors.saveFailed"));
-      return;
-    }
-    setEditing(false);
-    await onSaved?.();
-  }
-
-  return (
-    <section className="card p-5 sm:p-6">
-      <SectionHeader
-        title={t("account.about.title")}
-        editing={editing}
-        onEdit={startEdit}
-        onCancel={() => setEditing(false)}
-        onSave={save}
-        saving={saving}
-      />
-
-      {editing ? (
-        <div className="space-y-4">
-          <div>
-            <label htmlFor="acc-bio" className="onb-label block mb-1.5">{t("account.about.bio")}</label>
-            <textarea
-              id="acc-bio"
-              className="onb-input onb-textarea"
-              placeholder={t("account.about.placeholder")}
-              value={bio}
-              onChange={(e) => setBio(e.target.value.slice(0, BIO_MAX))}
-              maxLength={BIO_MAX}
-            />
-            <p className="mt-1.5 text-xs tabular-nums text-ink-3">{bio.length}/{BIO_MAX}</p>
-          </div>
-          <ExperienceField id="acc-building-since" value={buildingSince} onChange={setBuildingSince} />
-          {error && <div role="alert" className="auth-banner auth-banner-error">{error}</div>}
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {profile?.bio ? (
-            <p className="max-w-prose text-[15px] leading-7 text-ink-2 break-words whitespace-pre-wrap">{profile.bio}</p>
-          ) : (
-            <p className="text-sm text-ink-3">
-              {t.rich("account.about.empty", { edit: <strong>{t("common.edit")}</strong> })}
-            </p>
-          )}
-          {savedYears != null && (
-            <p className="inline-flex items-center gap-1.5 text-sm text-ink-2">
-              <Icon name="briefcase" size={15} className="text-ink-3" />
-              {savedYears === 0 ? t("profile.experienceNew") : t("profile.experience", { count: savedYears })}
-            </p>
-          )}
-        </div>
-      )}
-    </section>
-  );
-}
-
-// ─── Styles (builders) ──────────────────────────────────────────────────────
-// Exactly what signup step 2 asks for, nothing more. `build_types` is never
-// passed, so whatever an older builder stored there survives untouched.
-function StylesSection({ builderProfile, onSaved }) {
-  const { user } = useAuth();
-  const t = useT();
-  const [editing, setEditing] = useState(false);
-  const [specialties, setSpecialties] = useState(builderProfile?.specialties || []);
-  const [error, setError] = useState(null);
-  const [saving, setSaving] = useState(false);
-
-  function startEdit() {
-    setSpecialties(builderProfile?.specialties || []);
-    setError(null);
-    setEditing(true);
-  }
-
-  async function save() {
-    const supabase = getSupabaseClient();
-    if (!supabase || !user?.id) return;
-    setSaving(true);
-    const { error: err } = await saveBuilderStyles(supabase, user.id, { specialties });
-    setSaving(false);
-    if (err) {
-      setError(err.message || t("account.errors.saveFailed"));
-      return;
-    }
-    setEditing(false);
-    await onSaved?.();
-  }
-
-  const canSave = specialties.length >= 1;
-  const savedSpecs = builderProfile?.specialties || [];
-
-  return (
-    <section className="card p-5 sm:p-6">
-      <SectionHeader
-        title={t("account.styles.title")}
-        editing={editing}
-        onEdit={startEdit}
-        onCancel={() => setEditing(false)}
-        onSave={save}
-        saving={saving}
-        canSave={canSave}
-      />
-
-      {editing ? (
-        <div className="space-y-6">
-          <div>
-            <div className="onb-label mb-3">{t("onboarding.styles.label")}</div>
-            <ChipGrid
-              options={STYLES.map((s) => ({ ...s, label: t(`styles.${s.key}`) }))}
-              value={specialties}
-              onChange={setSpecialties}
-              multi
-              ariaLabel={t("onboarding.styles.label")}
-            />
-          </div>
-          {!canSave && (
-            <p className="text-xs text-ink-3">{t("account.styles.pickOne")}</p>
-          )}
-          {error && <div role="alert" className="auth-banner auth-banner-error">{error}</div>}
-        </div>
-      ) : savedSpecs.length === 0 ? (
-        <p className="text-sm text-ink-3">
-          {t.rich("account.styles.empty", { edit: <strong>{t("common.edit")}</strong> })}
-        </p>
-      ) : (
-        <div className="flex flex-wrap gap-1.5">
-          {savedSpecs.map((sp) => (
-            <span key={sp} className="tag h-6 px-2 text-xs">
-              {styleChipLabel(sp, t.lang)}
-            </span>
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
-
-// ─── Works (builders) ───────────────────────────────────────────────────────
-// Every work on the profile: photos, title, description, co-authors, the price
-// tier it was made under, and which one is pinned as "Best work".
-function WorksSection() {
-  const { user } = useAuth();
-  const t = useT();
-  return (
-    <section className="card p-5 sm:p-6">
-      <div className="mb-4">
-        <h2 className="text-lg font-semibold">{t("account.works.title")}</h2>
-        <p className="mt-0.5 text-xs text-ink-3">{t("account.works.subtitle")}</p>
-      </div>
-      <WorksManager userId={user?.id} />
-    </section>
-  );
-}
-
-// ─── Price list (builders) ──────────────────────────────────────────────────
-function PricesSection() {
-  const { user } = useAuth();
-  const t = useT();
-  return (
-    <section className="card p-5 sm:p-6">
-      <div className="mb-4">
-        <h2 className="text-lg font-semibold">{t("account.prices.title")}</h2>
-        <p className="mt-0.5 text-xs text-ink-3">{t("account.prices.subtitle")}</p>
-      </div>
-      <PriceTiersEditor userId={user?.id} />
-    </section>
   );
 }
 
@@ -583,9 +326,9 @@ function AccountActionsSection() {
 }
 
 // ─── Hero header (avatar + identity) ─────────────────────────────────────────
-// Mirrors the public builder profile hero (no banner) so what the builder edits
-// reads like what clients will eventually see.
-function AccountHeader({ profile, builderProfile, isBuilder, onSaved, onEditingChange }) {
+// For visitors (no builder profile): their name, @handle and avatar. Builders
+// edit all of that on their profile itself (OwnerProfileEditor).
+function AccountHeader({ profile, onSaved, onEditingChange }) {
   const { user, updateProfile } = useAuth();
   const t = useT();
   const [editing, setEditing] = useState(false);
@@ -604,31 +347,18 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved, onEditingC
   const [displayName, setDisplayName] = useState(profile?.display_name || "");
   const [handle, setHandle] = useState(profile?.username || "");
   const [handleValid, setHandleValid] = useState(Boolean(profile?.username));
-  const savedLinks = readContactLinks(builderProfile?.contact_links);
-  const [linkRows, setLinkRows] = useState(
-    savedLinks.length
-      ? savedLinks.map(({ type, value }) => ({ type, value }))
-      : emptyLinkRows()
-  );
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
   const trimmedName = displayName.trim();
   const nameValid =
     trimmedName.length >= DISPLAY_NAME_MIN && trimmedName.length <= DISPLAY_NAME_MAX;
-  const linksOk = linkRowsValid(linkRows);
-  const canSave = nameValid && handleValid && !!handle && linksOk;
-
-  const specialties = builderProfile?.specialties || [];
+  const canSave = nameValid && handleValid && !!handle;
 
   function startEdit() {
     setAvatarUrl(profile?.avatar_url || null);
     setDisplayName(profile?.display_name || "");
     setHandle(profile?.username || "");
     setHandleValid(Boolean(profile?.username));
-    const links = readContactLinks(builderProfile?.contact_links);
-    setLinkRows(
-      links.length ? links.map(({ type, value }) => ({ type, value })) : emptyLinkRows()
-    );
     setError(null);
     setEditing(true);
   }
@@ -639,16 +369,13 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved, onEditingC
     if (!supabase || !user?.id) return;
     setSaving(true);
     setError(null);
-    // Name, handle, avatar and (for builders) the contact link. The bio is the
-    // About card's field and is deliberately not passed, so saving here leaves
-    // it alone.
-    const payload = {
+    // Name, handle and avatar only: no builder fields, so this never creates
+    // a builder_profiles row (which would list a visitor publicly).
+    const { error: err } = await saveBuilderIdentity(supabase, user.id, {
       displayName: trimmedName,
       handle,
       avatarUrl,
-    };
-    if (isBuilder) payload.contactLinks = linkRows;
-    const { error: err } = await saveBuilderIdentity(supabase, user.id, payload);
+    });
     setSaving(false);
     if (err) {
       if (err.code === "23505" || /duplicate|unique/i.test(err.message || "")) {
@@ -701,11 +428,6 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved, onEditingC
             <h2 className="min-w-0 break-words text-xl font-semibold leading-tight tracking-[-0.02em] sm:text-2xl">
               {profile?.display_name || t("onboarding.identity.nameLabel")}
             </h2>
-            {isBuilder && (
-              <span className="tag bg-accent/15 text-accent-ink">
-                {t("account.header.builderBadge")}
-              </span>
-            )}
           </div>
           {profile?.username && (
             <p className="mt-1 break-all text-[15px] text-ink-2">@{profile.username}</p>
@@ -782,47 +504,8 @@ function AccountHeader({ profile, builderProfile, isBuilder, onSaved, onEditingC
               hint={t("account.header.handleHint")}
             />
           </div>
-          {isBuilder && (
-            <ContactLinkField
-              rows={linkRows}
-              onChange={setLinkRows}
-              label={t("onboarding.links.label")}
-              hint={t("account.header.linksHint")}
-            />
-          )}
         </div>
-      ) : (
-        isBuilder && (
-          <>
-            {/* A builder always sees the links row, with an empty state that
-                opens Edit — otherwise the feature is undiscoverable until
-                they have added a link. */}
-            <div className="mt-5">
-              <p className="mb-2 text-sm font-medium text-ink-2">
-                {t("account.header.linksLabel")}
-              </p>
-              {savedLinks.length > 0 ? (
-                <SocialLinks contactLinks={builderProfile?.contact_links} />
-              ) : (
-                <button type="button" onClick={startEdit} className="profile-links-empty">
-                  <Icon name="link" size={16} />
-                  {t("account.header.addLinks")}
-                </button>
-              )}
-            </div>
-
-            {specialties.length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {specialties.map((s) => (
-                  <span key={s} className="tag h-8 rounded-lg px-3 text-[13px]">
-                    {styleChipLabel(s, t.lang)}
-                  </span>
-                ))}
-              </div>
-            )}
-          </>
-        )
-      )}
+      ) : null}
 
       {error && (
         <div role="alert" className="auth-banner auth-banner-error mt-4">
@@ -921,12 +604,14 @@ function AccountPageInner() {
     // Builder profile: single attempt, no retry. If they
     // fail (TIMEOUT etc.) we still render the page with whatever profile
     // AuthContext has — the user can hit Edit and re-save to retry.
-    const { builderProfile: bp } = await fetchOnboardingState(
+    const { builderProfile: bp, error } = await fetchOnboardingState(
       supabase,
       user.id,
       { prefetchedProfile: authProfileRef.current || undefined }
     );
-    setBuilderProfile(bp);
+    // A failed re-read (a timeout after a save) keeps what we had, so the
+    // builder's open editor isn't swapped for the visitor's page.
+    setBuilderProfile((prev) => (error && !bp ? prev : bp));
     setBuilderLoaded(true);
   }, [user?.id, refreshAuthProfile]);
 
@@ -941,6 +626,8 @@ function AccountPageInner() {
   // values in. `builderLoaded` guards the gap before that row has been fetched
   // so we don't flash the "create a builder profile" CTA at a real builder.
   const isBuilder = Boolean(builderProfile);
+  // A builder's Profile tab is their profile itself, edited in place.
+  const editorShown = section === "profile" && isBuilder;
 
   useEffect(() => {
     if (profile && !ACCOUNT_SECTIONS.some((sct) => sct.key === section)) {
@@ -981,60 +668,52 @@ function AccountPageInner() {
       <CatalogNavbar mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
       <CatalogMobileMenu mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
 
-      <main className={section === "profile" ? "account-main has-scene" : "account-main"}>
-        <div className="account-column mx-auto max-w-4xl px-4 pb-16 pt-8 sm:px-6 sm:pb-24 sm:pt-10 lg:px-8">
-          <h1 className="mb-4 text-[2rem] font-extrabold leading-none tracking-[-0.03em] sm:text-[2.75rem]">
-            {t("account.intro.titleLead")}{" "}
-            <span className="accent-word">{t("account.intro.titleAccent")}</span>
-          </h1>
+      {editorShown ? (
+        <OwnerProfileEditor
+          onSaved={refresh}
+          tabs={<SectionTabs section={section} setSection={selectSection} className="" />}
+        />
+      ) : (
+        <main className={section === "profile" ? "account-main has-scene" : "account-main"}>
+          <div className="account-column mx-auto max-w-4xl px-4 pb-16 pt-8 sm:px-6 sm:pb-24 sm:pt-10 lg:px-8">
+            <h1 className="mb-4 text-[2rem] font-extrabold leading-none tracking-[-0.03em] sm:text-[2.75rem]">
+              {t("account.intro.titleLead")}{" "}
+              <span className="accent-word">{t("account.intro.titleAccent")}</span>
+            </h1>
 
-          {/* Section switcher — sits above the avatar and picks which group
-              of cards is shown, so the page is no longer one long stack. */}
-          <SectionTabs section={section} setSection={selectSection} />
+            {/* Section switcher — sits above the avatar and picks which group
+                of cards is shown, so the page is no longer one long stack. */}
+            <SectionTabs section={section} setSection={selectSection} />
 
-          {section === "profile" && (
-            <>
-              <AccountHeader
-                profile={profile}
-                builderProfile={builderProfile}
-                isBuilder={isBuilder}
-                onSaved={refresh}
-                onEditingChange={setHeaderEditing}
-              />
+            {section === "profile" &&
+              (builderLoaded ? (
+                <>
+                  <AccountHeader profile={profile} onSaved={refresh} onEditingChange={setHeaderEditing} />
+                  <div className="space-y-4">
+                    <BecomeABuilderCard />
+                  </div>
+                </>
+              ) : (
+                // Until we know whether this is a builder, don't flash the
+                // visitor's card at someone whose profile is about to open.
+                <div className="card h-40 skeleton" aria-busy="true" />
+              ))}
 
+            {section === "danger" && (
               <div className="space-y-4">
-                {/* Builder settings edit exactly what signup asks for and
-                    nothing more: identity + contact link (in the header above),
-                    the bio, the styles, and the portfolio. About is a builder's
-                    public pitch — someone who isn't listed has nowhere for it
-                    to appear, so they aren't asked for one. */}
-                {isBuilder && (
-                  <>
-                    <AboutSection profile={profile} builderProfile={builderProfile} onSaved={refresh} />
-                    <StylesSection builderProfile={builderProfile} onSaved={refresh} />
-                    <WorksSection />
-                    <PricesSection />
-                    <TaggedInWorks userId={profile?.id} />
-                  </>
-                )}
-
-                {builderLoaded && !isBuilder && <BecomeABuilderCard />}
+                <EmailNotificationsSection />
+                <AccountActionsSection />
+                {/* Works other builders credited this builder on. */}
+                {isBuilder && <TaggedInWorks userId={profile?.id} />}
               </div>
-            </>
-          )}
+            )}
+          </div>
 
-          {section === "danger" && (
-            <div className="space-y-4">
-              <EmailNotificationsSection />
-              <AccountActionsSection />
-            </div>
-          )}
-        </div>
-
-        {/* Decorative: a character picking an outfit at an open wardrobe,
-            below the cards and edge to edge. It reacts to Edit profile. */}
-        {section === "profile" && <WardrobeScene editing={headerEditing} />}
-      </main>
+          {/* Decorative: a character picking an outfit at an open wardrobe,
+              below the cards and edge to edge. It reacts to Edit profile. */}
+          {section === "profile" && builderLoaded && <WardrobeScene editing={headerEditing} />}
+        </main>
+      )}
 
       <SiteFooter />
     </div>

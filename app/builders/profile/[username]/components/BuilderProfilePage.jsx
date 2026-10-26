@@ -17,13 +17,14 @@ import { WORKS_PAGE_SIZE, fetchPriceTiers, fetchWork, fetchWorks, fetchWorksCoun
 import { fetchBuilderStats, fetchMyLikes, recordWorkView, toggleWorkLike } from "../../../../../lib/works/engagement";
 import ProfileHeader from "./ProfileHeader";
 import ProfileTabs, { PROFILE_TABS } from "./ProfileTabs";
-import WorksGrid from "./WorksGrid";
+import WorksMosaic, { WorksMosaicSkeleton } from "./WorksMosaic";
 import PriceList from "./PriceList";
 import ReviewsPanel from "./ReviewsPanel";
 import ProfileSidebar from "./ProfileSidebar";
 import WorkDialog from "./WorkDialog";
 import WorkPage from "./WorkPage";
-import { WorksGridSkeleton } from "./WorksGrid";
+import HeaderBackground from "./HeaderBackground";
+import { hasHeaderBg } from "../../../../../lib/profile/headerBg.mjs";
 
 const TOAST_MS = 2600;
 
@@ -63,7 +64,7 @@ export function BuilderProfileSkeleton() {
             </div>
           </div>
           <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-10">
-            <WorksGridSkeleton />
+            <WorksMosaicSkeleton />
             <div className="hidden h-64 rounded-xl skeleton lg:block" />
           </div>
         </div>
@@ -391,8 +392,9 @@ export default function BuilderProfilePage({ builder }) {
       <CatalogNavbar mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
       <CatalogMobileMenu mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
 
-      <main>
-        <div className="mx-auto max-w-7xl px-4 pb-28 pt-5 sm:px-6 sm:pt-8 lg:px-8 lg:pb-20">
+      <main className={`relative ${hasHeaderBg(builder.headerBg) ? "has-header-bg" : ""}`}>
+        <HeaderBackground bg={builder.headerBg} />
+        <div className="relative mx-auto max-w-7xl px-4 pb-28 pt-5 sm:px-6 sm:pt-8 lg:px-8 lg:pb-20">
           <nav className="hidden min-w-0 items-center gap-1.5 text-sm text-ink-3 lg:flex" aria-label={t("profile.breadcrumb")}>
             <Link href="/" className="flex-shrink-0 rounded-sm transition-colors hover:text-ink">
               {t("nav.builders")}
@@ -437,12 +439,11 @@ export default function BuilderProfilePage({ builder }) {
                 className="pt-4 lg:pt-5"
               >
                 {tab === "works" && (
-                  <WorksGrid
+                  <WorksMosaic
                     works={works}
                     total={worksTotal}
                     loading={worksLoading}
                     loadingMore={loadingMore}
-                    likeOf={likeOf}
                     onOpen={openWork}
                     onLoadMore={loadMore}
                   />

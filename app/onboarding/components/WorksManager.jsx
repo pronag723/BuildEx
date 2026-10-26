@@ -5,16 +5,16 @@ import { publicAsset } from "../../home/utils";
 import { useT } from "../../../lib/i18n/LanguageProvider";
 import { serverMessage } from "../../../lib/i18n/serverText.mjs";
 import { fetchPriceTiers } from "../../../lib/works/api";
-import { fetchMyWorks, reorderWorks, setPinnedWork } from "../../../lib/works/edit";
+import { fetchMyWorks, reorderWorks } from "../../../lib/works/edit";
 import { Icon } from "../../../lib/icons";
 import WorkEditor from "./WorkEditor";
 
 // A work is ready to show when it has a title and at least one photo.
 export const isCompleteWork = (work) => Boolean(work.title) && work.photos.length > 0;
 
-// The builder's works: add, edit, reorder, pin one as "Best work". Used by
-// onboarding (the first work) and /account. onChange gets the list after
-// every change, so the parent can count complete works.
+// The builder's works as a list: add, edit, reorder. Used by onboarding (the
+// first work); /account arranges them on the profile mosaic instead. onChange
+// gets the list after every change, so the parent can count complete works.
 export default function WorksManager({ userId, onChange }) {
   const t = useT();
   const [works, setWorks] = useState(null);
@@ -44,12 +44,6 @@ export default function WorksManager({ userId, onChange }) {
     [next[index], next[target]] = [next[target], next[index]];
     setWorks(next);
     const { error: e } = await reorderWorks(next.map((w) => w.id));
-    if (e) setError(serverMessage(e, "account.errors.saveFailed"));
-    load();
-  };
-
-  const togglePin = async (work) => {
-    const { error: e } = await setPinnedWork(work.pinned ? null : work.id);
     if (e) setError(serverMessage(e, "account.errors.saveFailed"));
     load();
   };
@@ -89,7 +83,6 @@ export default function WorksManager({ userId, onChange }) {
                 </p>
                 <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-ink-3">
                   <span>{t("admin.works.photos", { count: work.photos.length })}</span>
-                  {work.pinned && <span className="text-accent-ink">{t("profile.works.featured")}</span>}
                   {work.removed && <span className="text-warn">{t("account.works.removed")}</span>}
                 </p>
               </div>
@@ -99,16 +92,6 @@ export default function WorksManager({ userId, onChange }) {
                 </button>
                 <button type="button" onClick={() => move(index, 1)} disabled={index === works.length - 1} className="btn btn-ghost btn-icon btn-sm disabled:opacity-30" aria-label={t("account.works.moveDown")}>
                   <Icon name="chevronRight" size={15} className="rotate-90" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => togglePin(work)}
-                  aria-pressed={work.pinned}
-                  className={`btn btn-ghost btn-icon btn-sm ${work.pinned ? "text-accent-ink" : ""}`}
-                  aria-label={work.pinned ? t("account.works.unpin") : t("account.works.pin")}
-                  title={work.pinned ? t("account.works.unpin") : t("account.works.pin")}
-                >
-                  <Icon name="pin" size={15} />
                 </button>
                 <button type="button" onClick={() => setEditing(work)} className="btn btn-secondary btn-sm">
                   <Icon name="pencil" size={14} />

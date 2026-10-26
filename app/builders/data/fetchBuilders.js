@@ -27,6 +27,7 @@
 import { getSupabaseClient } from "../../../lib/supabase/client";
 import { rewriteStorageUrl } from "../../../lib/supabase/storageUrl";
 import { isOnline } from "../../../lib/presence/api";
+import { readHeaderBg } from "../../../lib/profile/headerBg.mjs";
 
 // Columns shared by the feed query and the single-profile query.
 // last_seen_at drives the real online/offline indicator (presence, migration
@@ -52,20 +53,20 @@ export const PROFILE_SELECT =
   // title. The FK is named: work_likes and portfolio_images also link
   // profiles and works, so an unnamed embed is ambiguous (PGRST201). RLS
   // already drops works a moderator took down.
-  "works:works!works_builder_id_fkey(id, title, position, is_pinned, created_at, " +
+  "works:works!works_builder_id_fkey(id, title, position, created_at, " +
   "photos:portfolio_images!portfolio_images_work_id_fkey(url, position))";
 
 const byPosition = (a, b) => (a.position ?? 0) - (b.position ?? 0);
 
-// Works → the lightweight items BuilderCard renders in its carousel: the pinned
-// work first, then the builder's order, each shown by its first photo. Falls
+// Works → the lightweight items BuilderCard renders in its carousel, in the
+// builder's own order (the mosaic's first work leads), each shown by its first
+// photo. Falls
 // back to raw portfolio images when a row carries no works.
 function mapPortfolio(rows, works) {
   const covers = (works || [])
     .filter((w) => (w.photos || []).length > 0)
     .sort(
       (a, b) =>
-        Number(b.is_pinned) - Number(a.is_pinned) ||
         byPosition(a, b) ||
         String(a.created_at).localeCompare(String(b.created_at))
     )
@@ -206,6 +207,8 @@ function mapProfileRow(row) {
     // hidden row from everyone else (0101), so the page can say why it is not
     // public instead of looking normal.
     is_hidden: bp.is_hidden === true,
+    // The header background (migration 0110); "none" until it has run.
+    headerBg: readHeaderBg(bp),
   };
 }
 
@@ -232,6 +235,20 @@ export async function fetchBuilderByUsername(username) {
     // % as wildcards, and handles may contain _. Escaped, it matches exactly.
     .ilike("username", escapeLike(username))
     .maybeSingle();
+
+  if (error) return { builder: null, error };
+  if (!data || !data.builder) return { builder: null, error: null };
+
+  return { builder: mapProfileRow(data), error: null };
+}
+
+// The same shape by id — the owner's editor, whose handle may change while
+// the page is open.
+export async function fetchBuilderById(id) {
+  const supabase = getSupabaseClient();
+  if (!supabase || !id) return { builder: null, error: null };
+
+  const { data, error } = await supabase.from("profiles").select(PROFILE_SELECT).eq("id", id).maybeSingle();
 
   if (error) return { builder: null, error };
   if (!data || !data.builder) return { builder: null, error: null };

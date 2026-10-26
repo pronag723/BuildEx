@@ -42,6 +42,9 @@
   --warn: 252 211 77;
   --heart: 244 63 94;
   --save: 250 204 21;
+  /* Warning text over a photo's dark gradient — the same in both themes,
+     because the gradient is. */
+  --warn-on-image: 250 204 21;
 
   --shadow-card: 0 0 #0000;
   --shadow-pop: 0 16px 40px -12px rgb(0 0 0 / 0.65), 0 0 0 1px rgb(0 0 0 / 0.25);
@@ -1172,6 +1175,245 @@ a.social-tile:active {
   background: rgb(var(--tint) / 0.13);
 }
 
+/* =============================================================================
+   Works mosaic (profile + owner's editor)
+   Square cells — 4 columns on a phone, 8 from lg — with each work spanning
+   2×2, 4×2, 2×4 or 4×4 of them. --cell (the column width) is measured by
+   WorksMosaic; the fallbacks only cover the first paint.
+   ========================================================================== */
+
+.mosaic {
+  --jiggle-a: 0.4deg;
+  --jiggle-base: 0.46s;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-rows: var(--cell, 84px);
+  grid-auto-flow: dense;
+  gap: 6px;
+}
+
+@media (min-width: 1024px) {
+  .mosaic {
+    --jiggle-a: 0.3deg;
+    --jiggle-base: 0.5s;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    grid-auto-rows: var(--cell, 94px);
+    gap: 8px;
+  }
+}
+
+.mosaic-tile {
+  position: relative;
+  min-width: 0;
+}
+
+.mosaic-tile-body {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 16px;
+  background: rgb(var(--raised));
+  scale: 1;
+  transition: scale 280ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 280ms ease;
+}
+
+@media (min-width: 1024px) {
+  .mosaic-tile-body {
+    border-radius: 18px;
+  }
+}
+
+/* Arranging: every tile shrinks a little and sways on its own tempo, phase
+   and direction (set per tile as --jextra / --jdelay / --jdir), so the grid
+   breathes instead of swaying in lockstep. `scale` composes with the
+   keyframes' transform. */
+.mosaic.is-arranging .mosaic-tile-body {
+  scale: 0.97;
+  animation: mosaic-jiggle calc(var(--jiggle-base) + var(--jextra, 0s)) linear var(--jdelay, 0s) infinite
+    var(--jdir, normal);
+}
+
+@media (min-width: 1024px) {
+  .mosaic.is-arranging .mosaic-tile-body {
+    scale: 0.975;
+  }
+}
+
+.mosaic.is-arranging .mosaic-tile {
+  touch-action: none;
+  cursor: grab;
+}
+
+.mosaic.is-arranging .mosaic-tile.is-still .mosaic-tile-body {
+  animation: none;
+  scale: 1;
+}
+
+.mosaic.is-arranging .mosaic-tile.is-lifted {
+  z-index: 5;
+  cursor: grabbing;
+}
+
+.mosaic.is-arranging .mosaic-tile.is-lifted .mosaic-tile-body {
+  scale: 1.05;
+  box-shadow: 0 20px 40px rgb(0 0 0 / 0.6);
+}
+
+@media (min-width: 1024px) {
+  .mosaic.is-arranging .mosaic-tile.is-lifted .mosaic-tile-body {
+    scale: 1.04;
+  }
+}
+
+.mosaic-tile.is-resizing {
+  z-index: 5;
+}
+
+@keyframes mosaic-jiggle {
+  0% { transform: rotate(calc(var(--jiggle-a) * -1)) translate(0, 0); }
+  25% { transform: rotate(0deg) translate(0.4px, -0.3px); }
+  50% { transform: rotate(var(--jiggle-a)) translate(0, -0.5px); }
+  75% { transform: rotate(0deg) translate(-0.4px, -0.2px); }
+  100% { transform: rotate(calc(var(--jiggle-a) * -1)) translate(0, 0); }
+}
+
+/* The "−" and the corner handle pop in when arranging starts. */
+.mosaic-pop {
+  animation: mosaic-pop 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
+@keyframes mosaic-pop {
+  0% { opacity: 0; transform: scale(0.4); }
+  70% { opacity: 1; transform: scale(1.08); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* The outline a resize drag draws. */
+.mosaic-ghost {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 6;
+  pointer-events: none;
+  border: 2px solid rgb(255 255 255 / 0.85);
+  border-radius: 16px;
+  background: rgb(255 255 255 / 0.08);
+}
+
+/* =============================================================================
+   Profile header background (0110)
+   The picture or colour behind the top of the profile; cards that sit on it
+   let a little of it through.
+   ========================================================================== */
+
+.has-header-bg .social-tile {
+  background: rgb(var(--surface) / 0.82);
+  border-color: rgb(var(--line) / 0.1);
+}
+
+.has-header-bg .builder-sidebar-sticky > .card {
+  background: rgb(var(--surface) / 0.86);
+  border-color: rgb(var(--line) / 0.1);
+}
+
+/* =============================================================================
+   Owner's profile editor
+   Every block on the profile is its own button. The cue is quiet: a muted
+   pencil after the block. With a mouse (lg), the pencil sits at reduced
+   opacity and the block gets a soft tint on hover; contact rows only show
+   their pencil on hover.
+   ========================================================================== */
+
+.edit-zone {
+  position: relative;
+  max-width: 100%;
+  border-radius: 8px;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 150ms ease, box-shadow 150ms ease;
+}
+
+.edit-zone:focus-visible,
+.edit-row:focus-visible {
+  outline: 2px solid rgb(var(--accent) / 0.6);
+  outline-offset: 4px;
+}
+
+.edit-pen {
+  flex-shrink: 0;
+  color: rgb(var(--ink-3));
+  transition: opacity 150ms ease, color 150ms ease;
+}
+
+@media (min-width: 1024px) {
+  .edit-zone .edit-pen {
+    opacity: 0.55;
+  }
+
+  .edit-zone:hover {
+    background-color: rgb(var(--line) / 0.045);
+    box-shadow: 0 0 0 8px rgb(var(--line) / 0.045);
+  }
+
+  .edit-zone:hover .edit-pen,
+  .edit-zone:focus-visible .edit-pen {
+    opacity: 1;
+    color: rgb(var(--ink-2));
+  }
+
+  .edit-row .edit-pen {
+    opacity: 0;
+  }
+
+  .edit-row:hover .edit-pen,
+  .edit-row:focus-visible .edit-pen {
+    opacity: 1;
+  }
+}
+
+.edit-row {
+  transition: background-color 150ms ease;
+}
+
+.edit-row:hover {
+  background-color: rgb(var(--line) / 0.05);
+}
+
+/* An inline editor opened in place of the block it edits. */
+.edit-panel {
+  border: 1px solid rgb(var(--accent) / 0.45);
+  border-radius: 14px;
+  background: rgb(var(--surface));
+  padding: 0.75rem;
+  box-shadow: var(--shadow-card);
+}
+
+.popover-rise,
+.edit-panel {
+  animation: popover-rise 0.18s ease-out;
+}
+
+@keyframes popover-rise {
+  0% { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  100% { opacity: 1; transform: none; }
+}
+
+/* The phone's background picker rising from the bottom edge. */
+.sheet-rise {
+  animation: sheet-rise 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes sheet-rise {
+  0% { transform: translateY(100%); }
+  100% { transform: none; }
+}
+
+/* Custom sliders and the colour square (lib/ui/Slider.jsx, ColorPicker.jsx). */
+.ui-slider:focus-visible {
+  box-shadow: 0 0 0 2px rgb(var(--accent) / 0.6);
+}
+
 /* A work's photo fading in when the viewer moves to it. */
 .work-photo-fade {
   animation: work-photo-fade 200ms ease-out;
@@ -1901,27 +2143,6 @@ a.social-link-row:hover {
 
 :root.light .accent-word {
   color: rgb(var(--accent-hover));
-}
-
-/* Account header: the empty links row, a full-width pill that opens Edit. */
-.profile-links-empty {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  width: 100%;
-  height: 2.75rem;
-  padding: 0 1rem;
-  border-radius: 12px;
-  background: rgb(var(--line) / 0.06);
-  color: rgb(var(--ink-2));
-  font-size: 0.875rem;
-  text-align: left;
-  transition: background-color 150ms ease, color 150ms ease;
-}
-
-.profile-links-empty:hover {
-  background: rgb(var(--line) / 0.1);
-  color: rgb(var(--ink));
 }
 
 /* /account keeps the footer low on a short page. */
@@ -3181,5 +3402,11 @@ a.social-link-row:hover {
 
   .burst-fx {
     display: none !important;
+  }
+
+  /* Arranging works: tiles hold still and move instantly. */
+  .mosaic-tile-body,
+  .mosaic-pop {
+    animation: none !important;
   }
 }

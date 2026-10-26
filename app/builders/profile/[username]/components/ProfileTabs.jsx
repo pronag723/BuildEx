@@ -11,8 +11,9 @@ export const PROFILE_TABS = [
 
 // Works / Prices / Reviews. Sticks under the site header on a phone so the
 // tabs stay in reach while scrolling a long grid; on desktop the sidebar does
-// that job and the tabs scroll with the page.
-export default function ProfileTabs({ tab, onChange, worksCount, reviewsCount }) {
+// that job and the tabs scroll with the page. `trailing` sits at the right end
+// of the row on desktop (the owner's works actions).
+export default function ProfileTabs({ tab, onChange, worksCount, reviewsCount, trailing = null }) {
   const t = useT();
   const counts = { works: worksCount, reviews: reviewsCount };
 
@@ -20,7 +21,7 @@ export default function ProfileTabs({ tab, onChange, worksCount, reviewsCount })
     <div
       role="tablist"
       aria-label={t("profile.tabs.label")}
-      className="sticky top-[var(--header-h)] z-30 -mx-4 mt-5 lg:mt-7 grid grid-cols-3 border-b border-line/[0.08] bg-canvas px-4 sm:-mx-6 sm:px-6 lg:static lg:mx-0 lg:flex lg:gap-8 lg:px-0"
+      className="sticky top-[var(--header-h)] z-30 -mx-4 mt-5 lg:mt-7 grid grid-cols-3 border-b border-line/[0.08] bg-canvas px-4 sm:-mx-6 sm:px-6 lg:static lg:mx-0 lg:flex lg:gap-8 lg:bg-transparent lg:px-0"
     >
       {PROFILE_TABS.map(({ key, icon }) => {
         const active = tab === key;
@@ -33,7 +34,7 @@ export default function ProfileTabs({ tab, onChange, worksCount, reviewsCount })
             aria-selected={active}
             aria-controls={`profile-panel-${key}`}
             onClick={() => onChange(key)}
-            className={`-mb-px inline-flex h-11 items-center justify-center gap-1.5 border-b-2 text-[13px] font-semibold transition-colors lg:h-12 lg:justify-start lg:text-sm ${
+            className={`-mb-px inline-flex h-11 flex-shrink-0 items-center whitespace-nowrap justify-center gap-1.5 border-b-2 text-[13px] font-semibold transition-colors lg:h-12 lg:justify-start lg:text-sm ${
               active ? "border-ink text-ink" : "border-transparent text-ink-3 hover:text-ink-2"
             }`}
           >
@@ -43,6 +44,7 @@ export default function ProfileTabs({ tab, onChange, worksCount, reviewsCount })
           </button>
         );
       })}
+      {trailing && <div className="ml-auto hidden min-w-0 items-center gap-2 pl-4 text-right lg:flex">{trailing}</div>}
     </div>
   );
 }

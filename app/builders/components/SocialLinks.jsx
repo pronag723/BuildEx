@@ -11,6 +11,11 @@
 //                                 handle on the right (the profile's contact
 //                                 panel), under an optional `title`.
 //
+// The owner's editor uses the tiles too: with `onItemClick` each tile is a
+// button that opens that link's editor (`selectedType` rings the open one),
+// and `addTile` is appended as the last cell. It renders even with no links,
+// so the editor can offer "Add a contact link".
+//
 // SECURITY. These values are typed by the builder and shown to every visitor.
 // `readContactLinks` (lib/onboarding/contactLinks.js) has already re-validated
 // them and computed `href`, which is null unless the value can safely become a
@@ -28,7 +33,7 @@ const LINK_PROPS = { target: "_blank", rel: "noopener noreferrer nofollow" };
 
 // Each platform's colour as an RGB triplet, tinting its tile's icon so the
 // links read at a glance. Monochrome brands follow the ink colour.
-const PLATFORM_TINTS = {
+export const PLATFORM_TINTS = {
   discord: "88 101 242",
   telegram: "42 171 238",
   youtube: "255 0 51",
@@ -39,12 +44,20 @@ const PLATFORM_TINTS = {
   other: "var(--accent-ink)",
 };
 
-export default function SocialLinks({ contactLinks, className = "", variant = "buttons", title = null }) {
+export default function SocialLinks({
+  contactLinks,
+  className = "",
+  variant = "buttons",
+  title = null,
+  onItemClick = null,
+  selectedType = null,
+  addTile = null,
+}) {
   const links = readContactLinks(contactLinks);
   const t = useT();
 
   // A builder with no published links renders nothing at all.
-  if (links.length === 0) return null;
+  if (links.length === 0 && !addTile) return null;
 
   if (variant === "list") {
     return (
@@ -106,7 +119,19 @@ export default function SocialLinks({ contactLinks, className = "", variant = "b
           // An odd last tile takes the whole row on a phone, so the grid never
           // ends on a half-empty line.
           <li key={link.type} className="min-w-0 last:odd:col-span-2 sm:last:odd:col-span-1">
-            {link.href ? (
+            {onItemClick ? (
+              <button
+                type="button"
+                onClick={() => onItemClick(link)}
+                aria-label={t("account.editor.links.edit", { platform })}
+                className={`${props.className} w-full text-left ${
+                  selectedType === link.type ? "ring-2 ring-accent" : ""
+                }`}
+                style={props.style}
+              >
+                {body}
+              </button>
+            ) : link.href ? (
               <a href={link.href} {...LINK_PROPS} {...props}>
                 {body}
               </a>
@@ -118,6 +143,7 @@ export default function SocialLinks({ contactLinks, className = "", variant = "b
           </li>
         );
       })}
+      {addTile && <li className="min-w-0 last:odd:col-span-2 sm:last:odd:col-span-1">{addTile}</li>}
     </ul>
   );
 }

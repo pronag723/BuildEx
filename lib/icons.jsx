@@ -12,8 +12,8 @@
 import {
   // navigation and actions
   ArrowLeft, ArrowRight, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Menu, X,
-  Search, SlidersHorizontal, Check, Plus, Pencil, Trash2, Upload, Maximize2,
-  ExternalLink, RefreshCw, LogOut,
+  Search, SlidersHorizontal, Check, Plus, Minus, Pencil, Trash2, Upload, Maximize2,
+  ExternalLink, RefreshCw, LogOut, Copy,
   // people, messaging, account
   User, Users, MessageCircle, Send, ImagePlus, Image as ImageIcon, Flag, ShieldCheck,
   Bell, Heart, Hammer, Mail,
@@ -24,7 +24,9 @@ import {
   // moderation console, reviews
   Eye, EyeOff, Calendar, Star,
   // builder profile
-  Share2, Pin, Clock, Briefcase, Tag, LayoutGrid, Bookmark,
+  Share2, Clock, Briefcase, Tag, LayoutGrid, Bookmark,
+  // profile editor
+  CircleAlert, Lock, LayoutDashboard, Ban,
 } from "lucide-react";
 
 export const ICONS = {
@@ -41,6 +43,7 @@ export const ICONS = {
   filters: SlidersHorizontal,
   check: Check,
   plus: Plus,
+  minus: Minus,
   pencil: Pencil,
   trash: Trash2,
   upload: Upload,
@@ -48,6 +51,7 @@ export const ICONS = {
   external: ExternalLink,
   refresh: RefreshCw,
   logout: LogOut,
+  copy: Copy,
 
   // people, messaging, account
   user: User,
@@ -85,12 +89,17 @@ export const ICONS = {
 
   // builder profile
   share: Share2,
-  pin: Pin,
   clock: Clock,
   briefcase: Briefcase,
   tag: Tag,
   grid: LayoutGrid,
   bookmark: Bookmark, // a saved builder
+
+  // profile editor
+  alert: CircleAlert,
+  lock: Lock,
+  arrange: LayoutDashboard,
+  none: Ban,
 };
 
 /**

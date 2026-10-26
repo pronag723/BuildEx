@@ -28,6 +28,11 @@ function Counter({ value, labelKey, className = "" }) {
 // the counters with everything else below; from `lg` the right column carries
 // the name row, counters and description, and the message button and links
 // move to the sticky sidebar.
+//
+// `editor` is the owner's /account editor filling the same layout with
+// editable blocks: { avatar, name, bio, meta, links } nodes. It has no
+// counters and no visitor actions, so on a phone the name block takes the
+// counters' place beside the avatar.
 export default function ProfileHeader({
   builder,
   stats,
@@ -38,6 +43,7 @@ export default function ProfileHeader({
   favorited,
   onToggleFavorite,
   actionsRef,
+  editor = null,
 }) {
   const t = useT();
   const worksCount = stats?.worksCount ?? 0;
@@ -70,6 +76,20 @@ export default function ProfileHeader({
       <Icon name="share" size={16} />
     </button>
   );
+
+  if (editor) {
+    return (
+      <header className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-5 lg:gap-x-7">
+        <div className="relative self-center lg:row-span-2 lg:self-start">{editor.avatar}</div>
+        <div className="min-w-0 self-center lg:self-start">{editor.name}</div>
+        <div className="col-span-2 mt-3.5 min-w-0 lg:col-span-1 lg:col-start-2 lg:mt-3">
+          {editor.bio}
+          {editor.meta}
+          {editor.links}
+        </div>
+      </header>
+    );
+  }
 
   return (
     <header className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-5 lg:gap-x-7">

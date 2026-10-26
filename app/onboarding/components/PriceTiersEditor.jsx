@@ -66,7 +66,9 @@ function TierForm({ initial, onSave, onCancel, saving }) {
 
 // The builder's own price list: named tiers with a "from" price in USD and an
 // optional duration. Shown on the profile's Prices tab and in the sidebar.
-export default function PriceTiersEditor({ userId }) {
+// `onChange` (optional) hears the list after every load, so a page that also
+// needs the tiers (the profile editor's work editor) stays in step.
+export default function PriceTiersEditor({ userId, onChange }) {
   const t = useT();
   const [tiers, setTiers] = useState(null);
   const [editing, setEditing] = useState(null); // tier id, or "new"
@@ -76,7 +78,8 @@ export default function PriceTiersEditor({ userId }) {
   const load = useCallback(async () => {
     const { tiers: rows } = await fetchPriceTiers(userId);
     setTiers(rows);
-  }, [userId]);
+    onChange?.(rows);
+  }, [userId, onChange]);
 
   useEffect(() => {
     if (userId) load();

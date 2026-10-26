@@ -714,11 +714,6 @@ function WorkRow({ work: w, onPatch }) {
             <p className="truncate text-sm font-semibold text-ink">
               {w.title || t("admin.works.untitled")}
             </p>
-            {w.is_pinned && (
-              <span className="rounded-full border border-line/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-ink-2">
-                {t("admin.works.pinned")}
-              </span>
-            )}
             {removed && (
               <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-warn">
                 <Icon name="eyeOff" size={11} /> {t("admin.works.removed")}
