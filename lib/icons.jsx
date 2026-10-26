@@ -23,6 +23,8 @@ import {
   AtSign, CirclePlay, Video, Music, Camera, Link2,
   // moderation console, reviews
   Eye, EyeOff, Calendar, Star,
+  // builder profile
+  Share2, Pin, Clock, Briefcase, Tag, LayoutGrid,
 } from "lucide-react";
 
 export const ICONS = {
@@ -79,6 +81,14 @@ export const ICONS = {
   eyeOff: EyeOff,
   calendar: Calendar,
   star: Star,
+
+  // builder profile
+  share: Share2,
+  pin: Pin,
+  clock: Clock,
+  briefcase: Briefcase,
+  tag: Tag,
+  grid: LayoutGrid,
 };
 
 /**

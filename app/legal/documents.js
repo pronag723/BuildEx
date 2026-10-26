@@ -59,6 +59,12 @@ export const legalDocuments = {
         "You must have the right to publish what you upload. Do not upload someone else's builds, screenshots or renders as your own, and do not upload anything you are not permitted to share.",
         "You can edit or remove your content, or delete your account, from your account page. Deleting an account removes the profile and its images; copies may persist for a time in backups, and messages already sent remain visible to the person you sent them to."
       ]],
+      ["Works, prices and reviews", [
+        "A builder can publish works (photos with a title, description and the people credited as co-authors), a price list and how long they have been building. All of it is entered by the builder. A price on a profile is the builder's own indicative starting price, not an offer by BuildEx; the real price is agreed with the builder and paid to them directly.",
+        "Crediting someone as a co-author links their name to your work. Only credit people who really worked on it; a credited builder can remove their name at any time.",
+        "Reviews are the opinions of the users who wrote them. Before a review can be published, BuildEx checks only that the reviewer and the builder have exchanged messages here. It does not check that any work was done or paid for, or that a review is accurate, and it does not endorse what a review says. Builders cannot delete reviews about them, but anyone can report a review, and a moderator may hide one that breaks these terms or the Community Policy.",
+        "Likes, view counts and reply times are rough indicators produced automatically. They may be incomplete or inaccurate, and they say nothing about the quality of a builder's work."
+      ]],
       ["Acceptable use", [
         "Do not defraud or deceive other users, impersonate anyone, harass, threaten or abuse people, send spam or unsolicited advertising, publish other people's private information, upload malware or harmful files, sell or pass off work that is not yours, scrape or overload the service, attempt to bypass access controls or security, or use BuildEx for anything unlawful.",
         "Contact links on a profile must be genuine ways to reach that user. Using them to send people to phishing pages, malware, or unrelated commercial offers is not allowed."
@@ -120,6 +126,12 @@ export const legalDocuments = {
         "These emails are on for every account by default, because they are part of how messaging works. You can turn them off at any time with the unsubscribe link at the bottom of any of them — no sign-in needed — or under Account → Email notifications. Turning them off does not affect your messages, which stay in BuildEx. Emails are written in the language you last chose on the site.",
         "The emails are delivered by Resend, which receives your email address and the content of each email for that purpose. BuildEx does not use them for marketing and does not turn on open or click tracking for them. A record of each one — when it was due, whether it was sent, and the preview it carried — is kept for up to 30 days to enforce the limits and to investigate delivery problems."
       ]],
+      ["Works, likes, views and reviews", [
+        "If you are a builder, BuildEx stores the works you publish (their photos, titles, descriptions, version, size and duration, and the people you credit as co-authors), your price list and the year you started building. These are public, like the rest of your profile.",
+        "When you like a work, BuildEx stores that your account liked it. Who liked what is not shown to anyone; the builder and visitors see only the total.",
+        "When a work is opened, BuildEx counts one view per viewer per work per day. A signed-in viewer is counted by account. For a visitor who is not signed in, the database computes a one-way hash of the visitor's IP address, the date and a secret value, and keeps only that hash; the IP address itself is not stored. The hashes change every day, cannot be turned back into an IP address, and are deleted within two days — only the total number of views is kept. The builder's own views are not counted. Your browser also remembers, for the length of the tab, which works it has already reported, so they are not reported twice. The legal basis is our legitimate interest in showing builders and visitors how much a work is seen, while preventing inflated counts.",
+        "A review you write is public, together with your display name and avatar, and stays until you delete it or a moderator hides it. To decide whether you may review a builder, BuildEx counts the messages each of you has sent in your conversation and checks when it started; it does not read their content for this. A builder's typical reply time is calculated from the timestamps of messages in their conversations and shown on their profile as a single figure."
+      ]],
       ["What is public", [
         "A builder profile is public to anyone on the internet: handle, display name, description, styles, build types, avatar, banner, portfolio images, the contact links you published, and whether you were recently active.",
         "Publishing a Discord handle, Telegram username or any other contact link makes it public. Only publish contact details you are willing for strangers to see and use.",
@@ -165,6 +177,10 @@ export const legalDocuments = {
       ["Reporting and moderation", [
         "Reports are reviewed by a moderator, who can see the reported conversation. A moderator may hide a profile or an image, restrict or remove an account, or refer something urgent to the relevant authorities.",
         "Moderation is about what is published here and how people behave here. It cannot settle a disagreement about work or money. If you think a decision about your account was wrong, write to mcbuildex@gmail.com and ask for it to be looked at again."
+      ]],
+      ["Reviews", [
+        "Review only a builder you have actually dealt with, and describe your own experience honestly. Do not write fake reviews, reviews of yourself from another account, reviews swapped or paid for, or reviews meant to harass. Do not threaten a bad review to pressure someone, and do not offer anything in exchange for a good one.",
+        "A builder who thinks a review breaks these rules can report it from their profile, as can any signed-in user. A moderator may hide the review. Reviews are not removed because they are negative, only because they break the rules."
       ]],
       ["Copyright complaints", [
         "If you own work that someone has published here without permission, email mcbuildex@gmail.com identifying the work, where the infringing copy is on BuildEx, your contact details, a statement that you believe in good faith that the use is not authorised, a statement that the information is accurate and that you are the owner or authorised to act for them, and your signature.",

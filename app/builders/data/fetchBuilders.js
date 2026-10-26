@@ -174,6 +174,14 @@ function mapProfileRow(row) {
     // written before the CHECK constraint existed can never become a link.
     contact_links: bp.contact_links || null,
     member_since: base.member_since || new Date().toISOString(),
+    // For "last seen 3 h ago" when the builder is offline.
+    last_seen_at: row.last_seen_at || null,
+    // "Building since <year>" (migration 0106) → "N years building".
+    building_since: bp.building_since ?? null,
+    // Only ever true for the builder themselves or an admin: RLS withholds a
+    // hidden row from everyone else (0101), so the page can say why it is not
+    // public instead of looking normal.
+    is_hidden: bp.is_hidden === true,
   };
 }
 
@@ -187,6 +195,8 @@ function mapProfileRow(row) {
 // that into a clean "not found" — so a logged-out visitor with the direct link
 // gets <BuilderNotFound>, while the builder can still open their own page and
 // see that nothing was deleted. Filtering in the query would take that away.
+const escapeLike = (value) => String(value).replace(/[\\%_]/g, "\\$&");
+
 export async function fetchBuilderByUsername(username) {
   const supabase = getSupabaseClient();
   if (!supabase || !username) return { builder: null, error: null };
@@ -194,7 +204,9 @@ export async function fetchBuilderByUsername(username) {
   const { data, error } = await supabase
     .from("profiles")
     .select(PROFILE_SELECT)
-    .ilike("username", username)
+    // ilike, not eq, so the handle is case-insensitive — but ilike treats _ and
+    // % as wildcards, and handles may contain _. Escaped, it matches exactly.
+    .ilike("username", escapeLike(username))
     .maybeSingle();
 
   if (error) return { builder: null, error };
