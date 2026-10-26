@@ -19,6 +19,10 @@ import { WORK_SIZES, moveItem, resizeOutline, snapSize, spanMetrics } from "../.
 // others under it, the corner arc resizes it, "−" removes it. The mosaic owns
 // only the gesture; the order and sizes live with the parent, which gets every
 // change through onLayoutChange and saves them on Done.
+//
+// Pinning holds one work first: the pin button (arranging) moves it to the
+// front, nothing can be dropped in front of it, and dragging it away unpins
+// it. Visitors see a "Pinned" badge on it.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const DRAG_THRESHOLD = 6;
@@ -39,7 +43,7 @@ const jiggleStyle = (i) => ({
   "--jdir": i % 2 ? "reverse" : "normal",
 });
 
-function TileFace({ work, owner, large }) {
+function TileFace({ work, owner, large, showPin }) {
   const t = useT();
   const cover = work.photos[0];
   const untitled = !work.title;
@@ -62,9 +66,18 @@ function TileFace({ work, owner, large }) {
           </span>
         </span>
       )}
-      {work.removed && (
-        <span className="absolute left-2 top-2 inline-flex h-6 items-center gap-1 rounded-md bg-black/65 px-2 text-[11px] font-semibold text-white">
-          <Icon name="eyeOff" size={12} /> {t("profile.works.takenDown")}
+      {((showPin && work.pinned) || work.removed) && (
+        <span className="absolute left-2 top-2 flex flex-col items-start gap-1 lg:left-2.5 lg:top-2.5">
+          {showPin && work.pinned && (
+            <span className="inline-flex h-6 items-center gap-1 rounded-lg bg-black/55 px-2 text-[11px] font-semibold text-white lg:text-xs">
+              <Icon name="pin" size={12} /> {t("profile.works.pinned")}
+            </span>
+          )}
+          {work.removed && (
+            <span className="inline-flex h-6 items-center gap-1 rounded-md bg-black/65 px-2 text-[11px] font-semibold text-white">
+              <Icon name="eyeOff" size={12} /> {t("profile.works.takenDown")}
+            </span>
+          )}
         </span>
       )}
       {(work.title || owner) && cover && (
@@ -260,7 +273,26 @@ export default function WorksMosaic({
     g.over = overId;
     const list = worksRef.current;
     const target = list.find((w) => String(w.id) === overId);
-    if (target) commit(moveItem(list, g.id, target.id), g.id);
+    if (!target) return;
+    // The pinned work keeps the first slot.
+    if (list[0]?.pinned && list[0].id !== g.id && target.id === list[0].id) {
+      placeDragged();
+      return;
+    }
+    const next = moveItem(list, g.id, target.id).map((w, i) =>
+      w.id === g.id && w.pinned && i !== 0 ? { ...w, pinned: false } : w
+    );
+    commit(next, g.id);
+  };
+
+  const togglePin = (work) => {
+    const list = worksRef.current;
+    if (work.pinned) {
+      commit(list.map((w) => (w.id === work.id ? { ...w, pinned: false } : w)));
+      return;
+    }
+    const rest = list.filter((w) => w.id !== work.id).map((w) => (w.pinned ? { ...w, pinned: false } : w));
+    commit([{ ...work, pinned: true }, ...rest]);
   };
 
   const onGridUp = (event) => {
@@ -332,7 +364,7 @@ export default function WorksMosaic({
                 tabIndex={active ? -1 : 0}
                 aria-label={label}
               >
-                <TileFace work={work} owner={owner} large={large} />
+                <TileFace work={work} owner={owner} large={large} showPin={!active} />
                 {editable && !active && (
                   <span className="pointer-events-none absolute right-2.5 top-2.5 hidden h-[30px] items-center gap-1.5 rounded-full bg-black/60 px-3 text-[12.5px] font-semibold text-white opacity-0 transition-opacity duration-150 group-hover:opacity-100 lg:inline-flex">
                     <Icon name="pencil" size={13} strokeWidth={2.2} />
@@ -352,6 +384,20 @@ export default function WorksMosaic({
                     style={{ animationDelay: `${(i * 0.03).toFixed(2)}s` }}
                   >
                     <Icon name="minus" size={12} strokeWidth={3} />
+                  </button>
+                  <button
+                    type="button"
+                    data-nodrag="1"
+                    onClick={() => togglePin(work)}
+                    aria-pressed={Boolean(work.pinned)}
+                    aria-label={t(work.pinned ? "account.editor.works.unpin" : "account.editor.works.pin", { title: label })}
+                    title={t(work.pinned ? "account.editor.works.unpin" : "account.editor.works.pin", { title: label })}
+                    className={`mosaic-pop absolute -right-[7px] -top-[7px] z-[3] flex h-[26px] w-[26px] items-center justify-center rounded-full shadow-[0_2px_6px_rgb(0_0_0/0.5)] lg:-right-2 lg:-top-2 lg:h-7 lg:w-7 ${
+                      work.pinned ? "bg-accent text-accent-fg" : "bg-[#3A3A3A] text-[#EDEDEB]"
+                    }`}
+                    style={{ animationDelay: `${(i * 0.03).toFixed(2)}s` }}
+                  >
+                    <Icon name="pin" size={13} strokeWidth={2.4} filled={Boolean(work.pinned)} />
                   </button>
                   <button
                     type="button"

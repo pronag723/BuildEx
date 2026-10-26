@@ -21,7 +21,7 @@ export default function ProfileTabs({ tab, onChange, worksCount, reviewsCount, t
     <div
       role="tablist"
       aria-label={t("profile.tabs.label")}
-      className="sticky top-[var(--header-h)] z-30 -mx-4 mt-5 lg:mt-7 grid grid-cols-3 border-b border-line/[0.08] bg-canvas px-4 sm:-mx-6 sm:px-6 lg:static lg:mx-0 lg:flex lg:gap-8 lg:bg-transparent lg:px-0"
+      className="sticky top-[var(--header-h)] z-30 -mx-4 mt-5 lg:mt-7 grid grid-cols-3 border-b border-line/[0.08] bg-canvas/80 px-4 backdrop-blur-md sm:-mx-6 sm:px-6 lg:static lg:mx-0 lg:flex lg:gap-8 lg:bg-transparent lg:px-0 lg:backdrop-blur-none"
     >
       {PROFILE_TABS.map(({ key, icon }) => {
         const active = tab === key;

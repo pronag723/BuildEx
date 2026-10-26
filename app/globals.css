@@ -1399,6 +1399,17 @@ a.social-tile:active {
   100% { opacity: 1; transform: none; }
 }
 
+/* /account: what's under the Profile | Account tabs fades in on a switch
+   instead of being swapped in a single frame. */
+.section-enter {
+  animation: section-enter 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes section-enter {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: none; }
+}
+
 /* The phone's background picker rising from the bottom edge. */
 .sheet-rise {
   animation: sheet-rise 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);

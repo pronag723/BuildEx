@@ -13,7 +13,7 @@ import { BUCKETS } from "../../../../lib/onboarding/constants";
 import { hasHeaderBg, storagePathFromUrl } from "../../../../lib/profile/headerBg.mjs";
 import { CONTACT_LINKS_MAX, buildContactLinks, readContactLinks } from "../../../../lib/onboarding/contactLinks";
 import { fetchPriceTiers } from "../../../../lib/works/api";
-import { deleteWork, fetchMyWorks, saveWorksLayout } from "../../../../lib/works/edit";
+import { deleteWork, fetchMyWorks, saveWorksLayout, setPinnedWork } from "../../../../lib/works/edit";
 import { fetchBuilderStats } from "../../../../lib/works/engagement";
 import { DESKTOP_QUERY, useMediaQuery } from "../../../../lib/ui/useMediaQuery";
 import ConfirmDialog from "../../../../lib/ui/ConfirmDialog";
@@ -39,7 +39,8 @@ const TOAST_MS = 2600;
 
 const bgKey = (bg) => (bg ? [bg.kind, bg.color, bg.imageUrl, bg.dim].join("|") : "");
 
-const layoutKey = (works) => (works || []).map((w) => `${w.id}:${w.layoutSize}`).join(",");
+const layoutKey = (works) => (works || []).map((w) => `${w.id}:${w.layoutSize}${w.pinned ? ":pin" : ""}`).join(",");
+const pinnedId = (works) => (works || []).find((w) => w.pinned)?.id || null;
 
 function Presence({ builder, className = "" }) {
   const t = useT();
@@ -104,6 +105,7 @@ export default function OwnerProfileEditor({ tabs, onSaved }) {
   const [removeError, setRemoveError] = useState(null);
   const [toast, setToast] = useState(null);
   const savedLayout = useRef("");
+  const savedPinned = useRef(null);
   // The background being picked, shown live; saved when the picker closes.
   const [bgDraft, setBgDraft] = useState(null);
   // Images uploaded while picking, so the ones that weren't kept get removed.
@@ -127,6 +129,7 @@ export default function OwnerProfileEditor({ tabs, onSaved }) {
     if (error) setToast(serverMessage(error, "account.works.loadFailed"));
     setWorks(rows);
     savedLayout.current = layoutKey(rows);
+    savedPinned.current = pinnedId(rows);
   }, [userId]);
 
   useEffect(() => {
@@ -297,6 +300,7 @@ export default function OwnerProfileEditor({ tabs, onSaved }) {
   const startArrange = () => {
     setEditing(null);
     savedLayout.current = layoutKey(works);
+    savedPinned.current = pinnedId(works);
     setArranging(true);
   };
 
@@ -312,11 +316,18 @@ export default function OwnerProfileEditor({ tabs, onSaved }) {
       works.map((w) => w.id),
       works.map((w) => w.layoutSize)
     );
+    // The pin is its own row-level rule (one per builder), set after the
+    // order so the pinned work is already in front.
+    let pinError = null;
+    if (!error && pinnedId(works) !== savedPinned.current) {
+      ({ error: pinError } = await setPinnedWork(pinnedId(works)));
+    }
     setSavingLayout(false);
-    if (error) {
-      setToast(serverMessage(error, "account.errors.saveFailed"));
+    if (error || pinError) {
+      setToast(serverMessage(error || pinError, "account.errors.saveFailed"));
       return false;
     }
+    savedPinned.current = pinnedId(works);
     savedLayout.current = layoutKey(works);
     setArranging(false);
     setToast(sizesSaved ? t("account.editor.saved") : t("account.editor.works.sizesPending"));
@@ -359,7 +370,7 @@ export default function OwnerProfileEditor({ tabs, onSaved }) {
       <main className="relative">
         <div className={container}>
           {topRow()}
-          <div className="mt-5">
+          <div className="section-enter mt-5">
             {loadFailed ? (
               <div className="card mx-auto max-w-md p-8 text-center">
                 <h2 className="text-lg font-semibold">{t("account.loadError.title")}</h2>
@@ -535,7 +546,7 @@ export default function OwnerProfileEditor({ tabs, onSaved }) {
 
   return (
     <main className={`relative ${hasHeaderBg(bgShown) ? "has-header-bg" : ""}`}>
-      <HeaderBackground bg={bgShown} />
+      <HeaderBackground bg={bgShown} className="section-enter" />
       <div className={container}>
         {topRow(
           <HeaderBackgroundPicker
@@ -552,13 +563,13 @@ export default function OwnerProfileEditor({ tabs, onSaved }) {
         )}
 
         {builder.is_hidden && (
-          <p className="mt-4 flex items-start gap-2 rounded-xl border border-warn/30 bg-warn/10 px-4 py-3 text-sm text-warn">
+          <p className="section-enter mt-4 flex items-start gap-2 rounded-xl border border-warn/30 bg-warn/10 px-4 py-3 text-sm text-warn">
             <Icon name="eyeOff" size={16} className="mt-0.5 flex-shrink-0" />
             {t("profile.hiddenBanner")}
           </p>
         )}
 
-        <div className="mt-3.5 grid grid-cols-1 items-start gap-8 lg:mt-5 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-10 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="section-enter mt-3.5 grid grid-cols-1 items-start gap-8 lg:mt-5 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-10 xl:grid-cols-[minmax(0,1fr)_360px]">
           <div className="min-w-0">
             <ProfileHeader builder={builder} editor={header} />
 
@@ -575,9 +586,14 @@ export default function OwnerProfileEditor({ tabs, onSaved }) {
                 <>
                   {/* Phone toolbar; desktop has these at the end of the tab row. */}
                   {arranging ? (
-                    <div className="mb-3 flex items-center gap-2.5 lg:hidden">
-                      <span className="flex-1">{arrangeHint}</span>
-                      {doneButton()}
+                    // One bar the height of the Add / Arrange row it replaces,
+                    // so the grid below doesn't jump.
+                    <div className="mb-3 flex h-10 items-center gap-2 rounded-[11px] border border-line/10 bg-surface/80 pl-3 pr-1 lg:hidden">
+                      <Icon name="arrange" size={15} className="flex-shrink-0 text-ink-3" />
+                      <span className="min-w-0 flex-1 truncate text-[12.5px] text-ink-2">
+                        {t("account.editor.works.hintShort")}
+                      </span>
+                      {doneButton("btn-sm h-8")}
                     </div>
                   ) : (
                     hasWorks && (

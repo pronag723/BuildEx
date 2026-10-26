@@ -668,11 +668,28 @@ function AccountPageInner() {
       <CatalogNavbar mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
       <CatalogMobileMenu mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
 
+      {/* Builders keep the Profile | Account tabs in one place on both
+          sections (the editor's top row), so switching only swaps what's
+          below them, and that fades in. */}
       {editorShown ? (
         <OwnerProfileEditor
           onSaved={refresh}
           tabs={<SectionTabs section={section} setSection={selectSection} className="" />}
         />
+      ) : isBuilder && section === "danger" ? (
+        <main className="account-main">
+          <div className="relative mx-auto max-w-7xl px-4 pb-16 pt-4 sm:px-6 sm:pb-24 sm:pt-6 lg:px-8">
+            <div className="flex min-h-[38px] items-center">
+              <SectionTabs section={section} setSection={selectSection} className="" />
+            </div>
+            <div className="section-enter mt-5 max-w-3xl space-y-4">
+              <EmailNotificationsSection />
+              <AccountActionsSection />
+              {/* Works other builders credited this builder on. */}
+              <TaggedInWorks userId={profile?.id} />
+            </div>
+          </div>
+        </main>
       ) : (
         <main className={section === "profile" ? "account-main has-scene" : "account-main"}>
           <div className="account-column mx-auto max-w-4xl px-4 pb-16 pt-8 sm:px-6 sm:pb-24 sm:pt-10 lg:px-8">
@@ -688,7 +705,9 @@ function AccountPageInner() {
             {section === "profile" &&
               (builderLoaded ? (
                 <>
-                  <AccountHeader profile={profile} onSaved={refresh} onEditingChange={setHeaderEditing} />
+                  <div className="section-enter">
+                    <AccountHeader profile={profile} onSaved={refresh} onEditingChange={setHeaderEditing} />
+                  </div>
                   <div className="space-y-4">
                     <BecomeABuilderCard />
                   </div>
@@ -700,11 +719,9 @@ function AccountPageInner() {
               ))}
 
             {section === "danger" && (
-              <div className="space-y-4">
+              <div className="section-enter space-y-4">
                 <EmailNotificationsSection />
                 <AccountActionsSection />
-                {/* Works other builders credited this builder on. */}
-                {isBuilder && <TaggedInWorks userId={profile?.id} />}
               </div>
             )}
           </div>
