@@ -105,9 +105,7 @@ export default function ProfileHeader({
         <div className="flex justify-around gap-2 lg:mt-3 lg:justify-start lg:gap-8">
           <Counter value={worksCount} labelKey="profile.stats.works" />
           <Counter value={likesTotal} labelKey="profile.stats.likes" />
-          {viewsTotal > 0 && (
-            <Counter value={viewsTotal} labelKey="profile.stats.views" className="hidden lg:flex" />
-          )}
+          {viewsTotal > 0 && <Counter value={viewsTotal} labelKey="profile.stats.views" />}
           {reviewsCount > 0 && <Counter value={reviewsCount} labelKey="profile.stats.reviews" />}
         </div>
       </div>
@@ -128,12 +126,6 @@ export default function ProfileHeader({
           {experience && (
             <span className="inline-flex items-center gap-1.5">
               <Icon name="briefcase" size={14} className="text-ink-3" /> {experience}
-            </span>
-          )}
-          {viewsTotal > 0 && (
-            <span className="inline-flex items-center gap-1.5 lg:hidden">
-              <Icon name="eye" size={14} className="text-ink-3" />
-              {t("profile.viewsMeta", { count: viewsTotal, n: formatCount(viewsTotal, t.lang) })}
             </span>
           )}
           {memberSince && (

@@ -186,7 +186,7 @@ export default function WorkPage({
             onToggle={onToggleSave}
             size={19}
             aria-label={saved ? t("card.removeFavorite") : t("card.addFavorite")}
-            className="flex aspect-square flex-shrink-0 items-center justify-center self-stretch rounded-xl bg-raised text-ink"
+            className="flex w-14 flex-shrink-0 items-center justify-center self-stretch rounded-xl bg-raised text-ink"
           />
           <button type="button" onClick={onDiscuss} className="btn btn-primary btn-lg min-w-0 flex-1">
             <Icon name="chat" size={17} />
