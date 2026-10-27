@@ -10,38 +10,49 @@
 // which works for any user without a rebuild.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 import BuilderProfilePage, { BuilderProfileSkeleton } from "./[username]/components/BuilderProfilePage";
 import BuilderNotFound from "./[username]/components/BuilderNotFound";
 import { fetchBuilderByUsername } from "../data/fetchBuilders";
 
 export default function ProfileByQueryPage() {
-  const [loading, setLoading] = useState(true);
-  const [builder, setBuilder] = useState(null);
+  return (
+    <Suspense fallback={<BuilderProfileSkeleton />}>
+      <ProfileByQuery />
+    </Suspense>
+  );
+}
+
+// Follows ?u= as it changes: a link from one profile to another (a work's
+// co-author) is a client navigation to this same page, which stays mounted.
+function ProfileByQuery() {
+  const handle = useSearchParams().get("u");
+  const [state, setState] = useState({ handle: undefined, builder: null });
 
   useEffect(() => {
-    const handle = new URLSearchParams(window.location.search).get("u");
     if (!handle) {
-      setLoading(false);
-      return;
+      setState({ handle, builder: null });
+      return undefined;
     }
 
     let cancelled = false;
     fetchBuilderByUsername(handle).then(({ builder: row }) => {
       if (cancelled) return;
-      setBuilder(row || null);
-      setLoading(false);
+      setState({ handle, builder: row || null });
     });
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [handle]);
 
-  if (loading) return <BuilderProfileSkeleton />;
+  if (state.handle !== handle) return <BuilderProfileSkeleton />;
 
-  if (!builder) return <BuilderNotFound />;
+  if (!state.builder) return <BuilderNotFound />;
 
-  return <BuilderProfilePage builder={builder} />;
+  // Keyed so the next builder starts fresh: no open work, works or likes
+  // carried over from the previous profile.
+  return <BuilderProfilePage key={state.builder.id} builder={state.builder} />;
 }
