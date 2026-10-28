@@ -12,6 +12,8 @@ import { useT } from "../../../lib/i18n/LanguageProvider";
 import { getLang } from "../../../lib/i18n/translate.mjs";
 import { formatDate as formatLocaleDate, formatDateTime as formatLocaleDateTime } from "../../../lib/i18n/format.mjs";
 import { serverMessage } from "../../../lib/i18n/serverText.mjs";
+import { relativeAgo } from "../../../lib/works/format.mjs";
+import { isOnline } from "../../../lib/presence/api";
 
 // Dates follow the interface language. Every component that prints one also
 // calls useT(), so a language switch re-renders it with the new locale.
@@ -104,6 +106,28 @@ export function EmptyState({ children }) {
 export function ErrorLine({ children }) {
   if (!children) return null;
   return <p className="text-sm text-danger">{children}</p>;
+}
+
+// When someone was last on the site: profiles.last_seen_at, which the presence
+// heartbeat (lib/presence) stamps every minute while a signed-in tab is open.
+// Inside the presence window it reads "online", like the dot on profiles. Null
+// means the account has not been on since presence shipped.
+export function LastSeen({ iso, className = "" }) {
+  const t = useT();
+  if (isOnline(iso)) {
+    return (
+      <span className={`inline-flex items-center gap-1 text-accent-ink ${className}`}>
+        <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
+        {t("admin.users.online")}
+      </span>
+    );
+  }
+  if (!iso) return <span className={className}>{t("admin.users.neverSeen")}</span>;
+  return (
+    <span className={className} title={formatDateTime(iso)}>
+      {t("admin.users.seen", { when: relativeAgo(iso, t.lang) })}
+    </span>
+  );
 }
 
 // The pill row the report and review queues switch lists with.

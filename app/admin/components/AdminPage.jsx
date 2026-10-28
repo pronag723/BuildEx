@@ -67,6 +67,8 @@ import {
   Avatar,
   EmptyState,
   ErrorLine,
+  PillTabs,
+  LastSeen,
 } from "./shared";
 import TrafficSection from "./TrafficSection";
 import ChatsSection from "./ChatsSection";
@@ -81,6 +83,9 @@ const SECTIONS = [
   { key: "users", icon: "users" },
   { key: "traffic", icon: "chart" },
 ];
+
+// Labels: `admin.users.sort.<key>`.
+const USER_SORTS = [{ key: "newest" }, { key: "active" }];
 
 const REPORT_TABS = [
   { key: "open" },
@@ -336,7 +341,8 @@ function BuilderRow({ builder: b, onPatch }) {
             <p className="text-xs text-ink-3 truncate">@{b.username}</p>
             <p className="mt-1 text-[11px] text-ink-3">
               {t("admin.builders.joined", { date: formatDate(b.joined_at) })} ·{" "}
-              {t("admin.builders.images", { count: b.portfolio_count ?? 0 })}
+              {t("admin.builders.images", { count: b.portfolio_count ?? 0 })} ·{" "}
+              <LastSeen iso={b.last_seen_at} />
             </p>
           </div>
 
@@ -1480,6 +1486,7 @@ function UsersSection({ onOpenChats }) {
   const t = useT();
   const [query, setQuery] = useState("");
   const search = useDebounced(query);
+  const [sort, setSort] = useState("newest");
   const [users, setUsers] = useState(null);
   const [error, setError] = useState(null);
   const requestRef = useRef(0);
@@ -1488,12 +1495,12 @@ function UsersSection({ onOpenChats }) {
     const id = ++requestRef.current;
     setUsers(null);
     setError(null);
-    listAdminUsers(search).then(({ users: rows, error: e }) => {
+    listAdminUsers(search, sort).then(({ users: rows, error: e }) => {
       if (requestRef.current !== id) return; // a newer search already landed
       if (e) setError(errText(e, "admin.errors.loadUsers"));
       setUsers(rows || []);
     });
-  }, [search]);
+  }, [search, sort]);
 
   return (
     <div className="space-y-4">
@@ -1503,6 +1510,15 @@ function UsersSection({ onOpenChats }) {
         placeholder={t("admin.searchPlaceholder")}
         label={t("admin.users.searchAria")}
       />
+
+      <div className="flex flex-wrap items-center gap-2">
+        <PillTabs
+          items={USER_SORTS}
+          value={sort}
+          onChange={setSort}
+          label={(key) => t(`admin.users.sort.${key}`)}
+        />
+      </div>
 
       <ErrorLine>{error}</ErrorLine>
 
@@ -1565,8 +1581,11 @@ function UsersSection({ onOpenChats }) {
                     {t("admin.users.member")}
                   </span>
                 )}
-                <span className="hidden sm:block text-[11px] text-ink-3 w-24 text-right">
-                  {formatDate(u.created_at)}
+                <span className="w-full text-[11px] leading-tight text-ink-3 sm:w-32 sm:text-right">
+                  <LastSeen iso={u.last_seen_at} className="block" />
+                  <span className="block">
+                    {t("admin.users.joined", { date: formatDate(u.created_at) })}
+                  </span>
                 </span>
               </div>
             </div>
