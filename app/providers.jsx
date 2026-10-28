@@ -7,12 +7,14 @@ import { FavoritesProvider } from "../lib/favorites/FavoritesContext";
 import { LanguageProvider } from "../lib/i18n/LanguageProvider";
 import LocaleSync from "../lib/i18n/LocaleSync";
 import LegalAcceptanceRecorder from "./legal/LegalAcceptanceRecorder";
+import TrafficRecorder from "../lib/traffic/TrafficRecorder";
 
 export default function Providers({ children }) {
   return (
     <LanguageProvider>
       <AuthProvider>
         <LegalAcceptanceRecorder />
+        <TrafficRecorder />
         <LocaleSync />
         <UnreadProvider>
           <NotificationsProvider>

@@ -98,7 +98,7 @@ export const legalDocuments = {
         "When you sign in with Google or Discord, BuildEx receives an account identifier, your email address, and the display name and picture attached to that account. It does not receive your password.",
         "When you sign in with an email code instead, BuildEx keeps the email address you enter as your account's address. See \"Signing in with an email code\" below.",
         "If you publish a builder profile, BuildEx stores what you enter: your handle, display name, description, styles and build types, the contact links you choose to publish, your avatar and banner, and your portfolio images.",
-        "BuildEx also stores the messages you send through the site, the builders you favourite, reports you submit, notifications generated for you, your email-notification setting and preferred language, and a timestamp of when you were last active, which is what drives the online indicator. Ordinary technical logs are produced by our hosting and database providers, and page visits are counted without cookies — see \"Visitor statistics\" below."
+        "BuildEx also stores the messages you send through the site, the builders you favourite, reports you submit, notifications generated for you, your email-notification setting and preferred language, and a timestamp of when you were last active, which is what drives the online indicator. Ordinary technical logs are produced by our hosting and database providers. Page visits are counted without cookies — see \"Visitor statistics\" below — and BuildEx records which site or link each visit and each new account came from — see \"Where visitors come from\"."
       ]],
       ["Google user data", [
         "If you choose to sign in with Google, BuildEx requests only the basic scopes openid, email and profile. From Google it receives your Google account identifier, your email address, your name and your profile picture. BuildEx does not request access to Gmail, Google Drive, Google Calendar, your contacts or any other Google service, and it never sees your Google password.",
@@ -108,7 +108,7 @@ export const legalDocuments = {
         "The data is kept while your BuildEx account exists and is deleted when you delete your account from the account page. You can also revoke BuildEx's access at any time at myaccount.google.com/permissions, or ask for deletion by writing to mcbuildex@gmail.com."
       ]],
       ["Why it is used", [
-        "To create and run your account, to publish your profile if you have one, to deliver your messages and notifications, to show accurate online status, to enforce the Terms of Use and moderate abuse, and to keep the service working and secure.",
+        "To create and run your account, to publish your profile if you have one, to deliver your messages and notifications, to show accurate online status, to enforce the Terms of Use and moderate abuse, to understand which sites, searches and links bring people to BuildEx, and to keep the service working and secure.",
         "Depending on where you live, the legal basis for this is the contract between you and BuildEx, our legitimate interest in running a safe directory, your consent where you chose to publish something, or a legal obligation.",
         "BuildEx does not sell personal data and does not use it for advertising or profiling."
       ]],
@@ -135,7 +135,8 @@ export const legalDocuments = {
       ["What is public", [
         "A builder profile is public to anyone on the internet: handle, display name, description, styles, build types, avatar, banner, portfolio images, the contact links you published, and whether you were recently active.",
         "Publishing a Discord handle, Telegram username or any other contact link makes it public. Only publish contact details you are willing for strangers to see and use.",
-        "Messages are visible to the people in that conversation, and to a moderator if the conversation is reported. Your email address is not shown on your profile."
+        "Messages are visible to the people in that conversation and to BuildEx moderators. A moderator reads a conversation when it is reported, and may also read conversations that nobody reported, to look for scams, spam, harassment and other breaches of the Terms of Use or the Community Policy. Every time a moderator opens a conversation, BuildEx records who opened it and when. Messages are not used for advertising or for anything other than running and moderating the service.",
+        "Your email address is not shown on your profile."
       ]],
       ["Who else handles it", [
         "Supabase hosts the database, authentication and file storage. Google and Discord provide sign-in. Resend delivers sign-in codes and message emails. Cloudflare provides visitor statistics and the bot check on the login page. The site is served by our web host. These providers process data on our behalf, may do so in other countries, and have their own privacy policies.",
@@ -143,7 +144,7 @@ export const legalDocuments = {
       ]],
       ["Keeping and deleting", [
         "Account and profile data is kept while the account exists. Deleting your account from the account page removes your profile, your portfolio images and your uploaded files, and is not reversible.",
-        "Messages you have already sent stay in the recipient's conversation. Moderation records and reports may be kept for as long as needed to deal with repeat abuse and to comply with the law. Backups are overwritten on an ordinary schedule.",
+        "Messages you have already sent stay in the recipient's conversation. Moderation records, reports and the record of moderators opening conversations may be kept for as long as needed to deal with repeat abuse and to comply with the law. Backups are overwritten on an ordinary schedule.",
         "Records of legal acceptances — which version of these documents an account accepted, and when — are kept as evidence that consent was given."
       ]],
       ["Your choices", [
@@ -155,8 +156,14 @@ export const legalDocuments = {
         "BuildEx uses Cloudflare Web Analytics to count visits and to see which pages are used and how quickly they load. When you open a page, a small script sends Cloudflare the page's address, the address of the page you came from, your browser, operating system and device type, and how long the page took to load; Cloudflare works out your approximate country from the connection. Pages whose address carries a sign-in code or an unsubscribe link are not counted.",
         "This uses no cookies or other browser storage, does not recognise you from one visit to the next or across other websites, and is not linked to your BuildEx account. Like any connection, it reaches Cloudflare from your IP address, which Cloudflare says it does not use to identify or track visitors. BuildEx sees only totals — for example how many visits a page had, or from which countries — never a record of one person's visit. The legal basis is our legitimate interest in knowing how the site is used."
       ]],
+      ["Where visitors come from", [
+        "Separately from the statistics above, BuildEx records where visits come from. When you open the site in a new browser tab, the site works out how you arrived: the kind of source (a search engine, a social network, another website, a tagged link, or none), its name, any campaign label in the link you followed (such as ?ref= or utm_ tags), the domain of the site you came from, the first page you opened, whether you are on a phone, tablet or computer, and your browser's language. This is stored as one visit record with no IP address, no account and no other identifier. Moving between pages in the same tab is not a new visit.",
+        "So that the counts cannot be inflated, the database computes a one-way hash of your IP address, the date and a secret value, the same way it counts work views. The hash is kept apart from the visit records, changes every day, cannot be turned back into an IP address and is deleted within two days.",
+        "Your browser keeps a note of the most recent source that was not a direct visit, and the tab remembers that its visit was counted. If you then create an account, that source and the time of that visit are stored with your new account, so BuildEx can see which sites and links bring people who sign up. Only BuildEx moderators can see it; it is not shown on your profile and is deleted with your account. Signing in to an account you already have records nothing.",
+        "The legal basis is our legitimate interest in knowing which sites, searches and advertising bring people to BuildEx. You can remove the note at any time by clearing this site's data in your browser."
+      ]],
       ["Cookies and security", [
-        "BuildEx uses browser storage only for things the site needs to work: your sign-in session, your light or dark theme choice, and a few interface preferences. There are no advertising cookies, and the visitor statistics above use no cookies or browser storage at all. The bot check on the login page runs in Cloudflare's frame under Cloudflare's own terms. If that ever changes, a consent control will be added where the law requires one.",
+        "BuildEx uses browser storage for things the site needs to work — your sign-in session, your light or dark theme choice and a few interface preferences — and for the note of how you arrived described in \"Where visitors come from\". There are no advertising cookies, and the Cloudflare visitor statistics use no cookies or browser storage at all. The bot check on the login page runs in Cloudflare's frame under Cloudflare's own terms. If that ever changes, a consent control will be added where the law requires one.",
         "BuildEx stores no passwords: you sign in through Google, Discord or a one-time code sent to your email. Access to data is restricted at the database level so that users can only read and change what is theirs, and public profiles are the only thing served publicly. No system is perfectly secure; if you think an account or the service has been compromised, write to mcbuildex@gmail.com."
       ]]
     ]
@@ -175,7 +182,7 @@ export const legalDocuments = {
         "Report scams, stolen builds, harassment, unsafe content, privacy problems and suspected underage accounts from the conversation itself, or by emailing mcbuildex@gmail.com with links and evidence."
       ]],
       ["Reporting and moderation", [
-        "Reports are reviewed by a moderator, who can see the reported conversation. A moderator may hide a profile or an image, restrict or remove an account, or refer something urgent to the relevant authorities.",
+        "Reports are reviewed by a moderator, who can read the reported conversation. Moderators may also read conversations that nobody reported, to look for scams, spam and abuse; every time a moderator opens a conversation, that is recorded. A moderator may hide a profile or an image, restrict or remove an account, or refer something urgent to the relevant authorities.",
         "Moderation is about what is published here and how people behave here. It cannot settle a disagreement about work or money. If you think a decision about your account was wrong, write to mcbuildex@gmail.com and ask for it to be looked at again."
       ]],
       ["Reviews", [

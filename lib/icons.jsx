@@ -22,7 +22,7 @@ import {
   // contact link platforms
   AtSign, CirclePlay, Video, Music, Camera, Link2,
   // moderation console, reviews
-  Eye, EyeOff, Calendar, Star,
+  Eye, EyeOff, Calendar, Star, ChartColumn, Globe,
   // builder profile
   Share2, Pin, Clock, Briefcase, Tag, LayoutGrid, Bookmark,
   // profile editor
@@ -86,6 +86,8 @@ export const ICONS = {
   eyeOff: EyeOff,
   calendar: Calendar,
   star: Star,
+  chart: ChartColumn,
+  globe: Globe,
 
   // builder profile
   share: Share2,

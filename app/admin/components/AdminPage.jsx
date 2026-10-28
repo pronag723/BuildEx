@@ -5,7 +5,7 @@
 // A dedicated operator surface for admins (profiles.is_admin). The orders,
 // studios and payouts tabs went with the features they served; what BuildEx
 // needs moderating now is a public directory of user-submitted profiles and
-// images, so the console has four sections:
+// images, so the console has six sections:
 //
 //   BUILDERS — every builder profile, searchable. Open the public page, hide or
 //              unhide the profile, take one work down (or put it back), or
@@ -15,10 +15,16 @@
 //   REVIEWS  — the review_reports queue (migration 0108), plus the newest
 //              reviews so a moderator can act before anyone reports one. Hide
 //              or unhide a review; close a report as reviewed or dismissed.
-//   USERS    — a flat account list, enough to find someone by @handle.
+//   USERS    — a flat account list, enough to find someone by @handle, with
+//              where each new account came from and a jump to their chats.
+//   CHATS    — every conversation, searchable by handle or message text, read
+//              in place (ChatsSection.jsx, migration 0111). Opening one is
+//              logged server-side.
+//   TRAFFIC  — where visits and sign-ups come from, plus a tagged-link maker
+//              for ads (TrafficSection.jsx, migration 0111).
 //
 // Everything routes through lib/admin/api.js → the admin RPCs in migrations
-// 0101 and 0108, each of which calls _require_admin() before it does anything. The
+// 0101, 0108 and 0111, each of which calls _require_admin() before it does anything. The
 // `isAdmin` check below decides what to RENDER; it is not what decides what a
 // request is allowed to do.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -45,23 +51,35 @@ import {
 } from "../../../lib/admin/api";
 import { Icon } from "../../../lib/icons";
 import { publicAsset } from "../../home/utils";
-import SharedAvatar from "../../../lib/ui/Avatar";
 import { useScrollLock } from "../../../lib/useScrollLock";
 import SmartText from "../../../lib/ui/SmartText";
 import CatalogNavbar from "../../builders/components/CatalogNavbar";
 import CatalogMobileMenu from "../../builders/components/CatalogMobileMenu";
 import { useT } from "../../../lib/i18n/LanguageProvider";
-import { getLang } from "../../../lib/i18n/translate.mjs";
-import { formatDate as formatLocaleDate, formatDateTime as formatLocaleDateTime } from "../../../lib/i18n/format.mjs";
-import { serverMessage } from "../../../lib/i18n/serverText.mjs";
+import {
+  formatDate,
+  formatDateTime,
+  profileHref,
+  errText,
+  Spinner,
+  SearchBox,
+  useDebounced,
+  Avatar,
+  EmptyState,
+  ErrorLine,
+} from "./shared";
+import TrafficSection from "./TrafficSection";
+import ChatsSection from "./ChatsSection";
 
 // Labels: `admin.sections.<key>`, `admin.reports.tabs.<key>` and
 // `admin.reviews.tabs.<key>`.
 const SECTIONS = [
   { key: "builders", icon: "hammer" },
+  { key: "chats", icon: "chat" },
   { key: "reports", icon: "flag" },
   { key: "reviews", icon: "star" },
   { key: "users", icon: "users" },
+  { key: "traffic", icon: "chart" },
 ];
 
 const REPORT_TABS = [
@@ -74,38 +92,6 @@ const REPORT_TABS = [
 // The review report queue's tabs, plus "latest": every recent review, reported
 // or not.
 const REVIEW_TABS = [...REPORT_TABS, { key: "latest" }];
-
-// Dates follow the interface language. Every component that prints one also
-// calls useT(), so a language switch re-renders it with the new locale.
-function formatDate(iso) {
-  if (!iso) return "—";
-  return formatLocaleDate(iso, getLang(), {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
-function formatDateTime(iso) {
-  if (!iso) return "—";
-  return formatLocaleDateTime(iso, getLang(), {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
-function profileHref(username) {
-  return `/builders/profile?u=${encodeURIComponent(username || "")}`;
-}
-
-// The RPC's own message (mapped to the current language where known), or the
-// dictionary fallback.
-function errText(error, fallbackKey) {
-  return serverMessage(error, fallbackKey);
-}
 
 // ─── Page shell ─────────────────────────────────────────────────────────────
 
@@ -124,18 +110,10 @@ export default function AdminPage() {
       <CatalogMobileMenu mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
 
       <main className="flex-1 px-4 pb-20 pt-8 sm:px-6 sm:pt-10 lg:px-8">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-5xl mx-auto">
           {!ready ? <Spinner /> : !isAdmin ? <NotAuthorized /> : <Console />}
         </div>
       </main>
-    </div>
-  );
-}
-
-function Spinner({ small = false }) {
-  return (
-    <div className={`flex items-center justify-center ${small ? "py-6" : "py-24"}`}>
-      <div className="h-6 w-6 rounded-full border-2 border-line/20 border-t-accent animate-spin" />
     </div>
   );
 }
@@ -158,6 +136,14 @@ function NotAuthorized() {
 function Console() {
   const t = useT();
   const [section, setSection] = useState("builders");
+  // The Users list's "Chats" button opens this section already searched for
+  // that account.
+  const [chatSearch, setChatSearch] = useState("");
+
+  const openChats = useCallback((username) => {
+    setChatSearch(username ? `@${username}` : "");
+    setSection("chats");
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -168,15 +154,21 @@ function Console() {
         </p>
       </header>
 
-      <nav className="flex gap-1 border-b border-line/[0.08]" role="tablist">
+      <nav
+        className="flex gap-1 overflow-x-auto border-b border-line/[0.08] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        role="tablist"
+      >
         {SECTIONS.map((s) => (
           <button
             key={s.key}
             type="button"
             role="tab"
             aria-selected={section === s.key}
-            onClick={() => setSection(s.key)}
-            className={`relative -mb-px inline-flex h-10 items-center gap-1.5 px-3 text-sm font-medium transition-colors ${
+            onClick={() => {
+              if (s.key === "chats") setChatSearch("");
+              setSection(s.key);
+            }}
+            className={`relative inline-flex h-10 shrink-0 items-center gap-1.5 whitespace-nowrap px-3 text-sm font-medium transition-colors ${
               section === s.key
                 ? "text-ink after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:bg-accent"
                 : "text-ink-2 hover:text-ink"
@@ -189,66 +181,13 @@ function Console() {
       </nav>
 
       {section === "builders" && <BuildersSection />}
+      {section === "chats" && <ChatsSection key={chatSearch} initialSearch={chatSearch} />}
       {section === "reports" && <ReportsSection />}
       {section === "reviews" && <ReviewsSection />}
-      {section === "users" && <UsersSection />}
+      {section === "users" && <UsersSection onOpenChats={openChats} />}
+      {section === "traffic" && <TrafficSection />}
     </div>
   );
-}
-
-// ─── Shared bits ────────────────────────────────────────────────────────────
-
-// Debounced search box. The debounce lives here so every section gets the same
-// 250ms feel without repeating the timer.
-function SearchBox({ value, onChange, placeholder, label }) {
-  const t = useT();
-  return (
-    <label className="input flex h-11 items-center gap-2 focus-within:border-accent/60 focus-within:shadow-[0_0_0_3px_rgb(var(--accent)/0.15)]">
-      <Icon name="search" size={16} className="text-ink-3" />
-      <input
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={placeholder}
-        className="w-full bg-transparent outline-none text-sm placeholder:text-ink-3"
-        aria-label={label}
-      />
-      {value && (
-        <button
-          type="button"
-          onClick={() => onChange("")}
-          className="text-xs text-ink-3 hover:text-ink"
-        >
-          {t("admin.clear")}
-        </button>
-      )}
-    </label>
-  );
-}
-
-function useDebounced(value, delay = 250) {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const t = window.setTimeout(() => setDebounced(value), delay);
-    return () => window.clearTimeout(t);
-  }, [value, delay]);
-  return debounced;
-}
-
-function Avatar({ url, name, size = 40 }) {
-  return <SharedAvatar src={url ? publicAsset(url) : null} name={name} size={size} />;
-}
-
-function EmptyState({ children }) {
-  return (
-    <div className="rounded-xl border border-dashed border-line/15 p-8 text-center text-sm text-ink-3">
-      {children}
-    </div>
-  );
-}
-
-function ErrorLine({ children }) {
-  if (!children) return null;
-  return <p className="text-sm text-danger">{children}</p>;
 }
 
 // ─── 1. BUILDERS ────────────────────────────────────────────────────────────
@@ -1537,7 +1476,7 @@ function AdminReviewCard({ review: r, onHidden }) {
 
 // Read-only by design. Finding an account is the job; anything that acts on one
 // belongs in the Builders tab, where the takedown lever already lives.
-function UsersSection() {
+function UsersSection({ onOpenChats }) {
   const t = useT();
   const [query, setQuery] = useState("");
   const search = useDebounced(query);
@@ -1584,9 +1523,28 @@ function UsersSection() {
                 </p>
                 <p className="text-[11px] text-ink-3 truncate">
                   {u.username ? `@${u.username}` : t("admin.users.noHandle")}
+                  {u.signup && (
+                    <span title={t("admin.users.cameFrom")}>
+                      {" · "}
+                      <Icon name="globe" size={11} className="inline -mt-px mr-0.5" />
+                      {t(`admin.traffic.channels.${u.signup.channel}`)}
+                      {(u.signup.source || u.signup.referrer_host) &&
+                        ` · ${u.signup.source || u.signup.referrer_host}`}
+                    </span>
+                  )}
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2 sm:flex-shrink-0">
+                {u.username && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenChats?.(u.username)}
+                    className="inline-flex items-center gap-1 rounded-full border border-line/10 px-2.5 py-1 text-[11px] font-semibold text-ink-2 hover:border-accent/40 hover:text-accent-ink transition-colors"
+                  >
+                    <Icon name="chat" size={12} />
+                    {t("admin.users.chats")}
+                  </button>
+                )}
                 {u.is_admin && (
                   <span className="rounded-full border border-sky-400/30 bg-sky-400/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-sky-300">
                     {t("admin.users.admin")}
