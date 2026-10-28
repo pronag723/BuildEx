@@ -18,13 +18,14 @@ const formFrom = (tier) => ({
   description: tier.description || "",
   daysMin: tier.daysMin ? String(tier.daysMin) : "",
   daysMax: tier.daysMax ? String(tier.daysMax) : "",
-  priceFrom: String(tier.priceFromCents / 100),
+  priceFrom: String(Math.round(tier.priceFromCents / 100)),
 });
 
 function TierForm({ initial, onSave, onCancel, saving }) {
   const t = useT();
   const [form, setForm] = useState(initial);
   const digits = (key, max) => (event) => setForm((f) => ({ ...f, [key]: event.target.value.replace(/\D/g, "").slice(0, max) }));
+  // Whole rubles, 1–100 000 ₽: the column's CHECK (100–10 000 000 kopecks).
   const price = Number(form.priceFrom);
   const daysOk = !form.daysMin || !form.daysMax || Number(form.daysMin) <= Number(form.daysMax);
   const valid = form.name.trim().length > 0 && price >= 1 && price <= 100000 && daysOk;
@@ -42,7 +43,7 @@ function TierForm({ initial, onSave, onCancel, saving }) {
       <div className="grid grid-cols-3 gap-2">
         <div>
           <label className="onb-label mb-1 block" htmlFor="tier-price">{t("account.prices.priceFrom")}</label>
-          <input id="tier-price" inputMode="decimal" value={form.priceFrom} onChange={(e) => setForm((f) => ({ ...f, priceFrom: e.target.value.replace(/[^\d.]/g, "").slice(0, 9) }))} placeholder="150" className="onb-input" />
+          <input id="tier-price" inputMode="numeric" value={form.priceFrom} onChange={digits("priceFrom", 6)} placeholder="2000" className="onb-input" />
         </div>
         <div>
           <label className="onb-label mb-1 block" htmlFor="tier-days-min">{t("account.prices.daysMin")}</label>

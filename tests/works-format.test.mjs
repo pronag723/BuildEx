@@ -20,10 +20,11 @@ test("counters stay exact below a thousand and go compact above", () => {
   assert.equal(formatCount(undefined, "en"), "0");
 });
 
-test("prices are whole dollars unless they carry cents", () => {
-  assert.equal(formatPrice(15000, "en"), "$150");
-  assert.equal(formatPrice(4050, "en"), "$40.50");
-  assert.equal(plain(formatPrice(15000, "ru")), "150 $");
+test("prices are whole rubles", () => {
+  assert.equal(formatPrice(200000, "en"), "₽2,000");
+  assert.equal(plain(formatPrice(200000, "ru")), "2 000 ₽");
+  assert.equal(plain(formatPrice(4050, "ru")), "41 ₽");
+  assert.equal(formatPrice(undefined, "en"), "₽0");
 });
 
 test("experience counts full years from the year someone started building", () => {
