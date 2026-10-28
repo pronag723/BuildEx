@@ -6,6 +6,7 @@ import { isNavActive, catalogNavItemsFor } from "./navItems";
 import { useActiveAboutSection } from "./useActiveAboutSection";
 import AuthNavControls from "../../auth/components/AuthNavControls";
 import { useAuth } from "../../../lib/auth/AuthContext";
+import { useIsBuilder } from "../../../lib/auth/useIsBuilder";
 import { useUnread } from "../../../lib/chat/UnreadContext";
 import { Icon } from "../../../lib/icons";
 import { useT } from "../../../lib/i18n/LanguageProvider";
@@ -20,8 +21,9 @@ export default function CatalogNavbar({ mobileMenuOpen, setMobileMenuOpen, overS
   const pathname = usePathname();
   const aboutSection = useActiveAboutSection();
   const { status } = useAuth();
+  const isBuilder = useIsBuilder();
   const { hasUnread } = useUnread();
-  const navItems = catalogNavItemsFor(status === "authenticated");
+  const navItems = catalogNavItemsFor(status === "authenticated", isBuilder, { bar: true });
   const t = useT();
 
   const nav = navItems.map((item) => (

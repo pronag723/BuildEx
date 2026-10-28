@@ -518,8 +518,9 @@ function AccountHeader({ profile, onSaved, onEditingChange }) {
 }
 
 // ─── Become a builder ───────────────────────────────────────────────────────
-// The ONLY entrance to builder onboarding. Anyone signed in is a visitor until
-// they have a builder_profiles row; this card is what creates one.
+// One of the entrances to builder onboarding (the feed banner and the menu are
+// the others). Anyone signed in is a visitor until they have a
+// builder_profiles row; onboarding step one creates it.
 function BecomeABuilderCard() {
   const t = useT();
   return (

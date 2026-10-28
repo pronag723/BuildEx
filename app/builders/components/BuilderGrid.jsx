@@ -1,5 +1,6 @@
 "use client";
 
+import { Fragment } from "react";
 import BuilderCard from "./BuilderCard";
 import { useT } from "../../../lib/i18n/LanguageProvider";
 
@@ -25,7 +26,11 @@ function CardSkeleton() {
   );
 }
 
-export default function BuilderGrid({ builders, loading = false, hasNarrowing = false, onClearAll }) {
+// A full-width row (`inline`) goes in after this many cards — three rows on a
+// phone, two on desktop — and only when more cards follow it.
+const INLINE_AFTER = 6;
+
+export default function BuilderGrid({ builders, loading = false, hasNarrowing = false, onClearAll, inline = null }) {
   const t = useT();
 
   if (loading) {
@@ -60,8 +65,11 @@ export default function BuilderGrid({ builders, loading = false, hasNarrowing = 
   // turned browsing into scrolling past one builder per screen.
   return (
     <div className={GRID}>
-      {builders.map((builder) => (
-        <BuilderCard key={builder.username} builder={builder} />
+      {builders.map((builder, i) => (
+        <Fragment key={builder.username}>
+          <BuilderCard builder={builder} />
+          {inline && i === INLINE_AFTER - 1 && builders.length > INLINE_AFTER && inline}
+        </Fragment>
       ))}
     </div>
   );

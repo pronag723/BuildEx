@@ -6,6 +6,7 @@ import { isNavActive, catalogNavItemsFor } from "./navItems";
 import { useActiveAboutSection } from "./useActiveAboutSection";
 import { AuthMobileControls } from "../../auth/components/AuthNavControls";
 import { useAuth } from "../../../lib/auth/AuthContext";
+import { useIsBuilder } from "../../../lib/auth/useIsBuilder";
 import { useUnread } from "../../../lib/chat/UnreadContext";
 import { useT } from "../../../lib/i18n/LanguageProvider";
 
@@ -16,8 +17,9 @@ export default function CatalogMobileMenu({ mobileMenuOpen, setMobileMenuOpen })
   const pathname = usePathname();
   const aboutSection = useActiveAboutSection();
   const { status } = useAuth();
+  const isBuilder = useIsBuilder();
   const { hasUnread } = useUnread();
-  const navItems = catalogNavItemsFor(status === "authenticated");
+  const navItems = catalogNavItemsFor(status === "authenticated", isBuilder);
   const t = useT();
   const close = () => setMobileMenuOpen(false);
 

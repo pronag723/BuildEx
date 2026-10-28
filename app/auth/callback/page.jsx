@@ -13,8 +13,7 @@
 // There is no registration behind sign-in any more, so nothing else happens
 // here — a brand-new account already has a usable profiles row by the time
 // AuthContext settles (lib/auth/profile.js → ensureProfile). Someone who signed
-// in with nowhere particular to be lands on /account, where they can carry on
-// filling their profile in.
+// in with nowhere particular to be lands on the feed.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { Suspense, useEffect, useState } from "react";
@@ -32,10 +31,10 @@ export default function AuthCallbackPage() {
   );
 }
 
-// The page the user was heading for before signing in, or their profile when
-// there wasn't one (see resolvePostLoginPath).
+// The page the user was heading for before signing in, or the feed when there
+// wasn't one (see resolvePostLoginPath).
 function readTarget(profile) {
-  if (typeof window === "undefined") return "/account";
+  if (typeof window === "undefined") return "/";
   const params = new URLSearchParams(window.location.search);
   return resolvePostLoginPath(profile, params.get("redirect"));
 }

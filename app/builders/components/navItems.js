@@ -1,3 +1,5 @@
+import { BUILDER_ONBOARDING_START } from "../../../lib/onboarding/state";
+
 // Shared catalog nav definition + active-state logic for the desktop navbar and
 // the mobile burger menu. Paths are stored WITHOUT the deployment basePath;
 // callers wrap them with withBase() for hrefs, and compare against
@@ -12,6 +14,13 @@
 // catalogNavItemsFor() below. Without it the bar held three links and looked
 // half-empty next to the controls on the right.
 //
+// `notBuilder: true` marks an item for everyone who isn't a builder yet,
+// guests included: "Become a builder" is the way into onboarding now that
+// signing in lands on the feed rather than /account. In the desktop bar it is
+// guests-only — a signed-in visitor's bar already carries Messages plus the
+// avatar and name, and at 1024px a sixth Russian label pushes the header off
+// the screen — so AuthNavControls repeats it in the account menu instead.
+//
 // `key` names the item's label in the `nav` dictionary namespace
 // (lib/i18n/messages/<lang>/nav.mjs); `label` is the English original.
 export const catalogNavItems = [
@@ -20,11 +29,21 @@ export const catalogNavItems = [
   { path: "/about#how-it-works", key: "howItWorks", label: "How It Works" },
   { path: "/about#projects", key: "showcase", label: "Showcase" },
   { path: "/about", key: "about", label: "About" },
+  { path: BUILDER_ONBOARDING_START, key: "becomeBuilder", label: "Become a builder", notBuilder: true },
 ];
 
-/** The nav a visitor should see. `signedIn` unlocks the account-only entries. */
-export function catalogNavItemsFor(signedIn) {
-  return catalogNavItems.filter((item) => !item.auth || signedIn);
+/**
+ * The nav a visitor should see. `signedIn` unlocks the account-only entries;
+ * `isBuilder` (true / false / null while unknown, from useIsBuilder) shows the
+ * builder opt-in only once we know they aren't one. `bar` is the desktop
+ * header, where the opt-in is shown to guests only (see above).
+ */
+export function catalogNavItemsFor(signedIn, isBuilder = null, { bar = false } = {}) {
+  return catalogNavItems.filter(
+    (item) =>
+      (!item.auth || signedIn) &&
+      (!item.notBuilder || (isBuilder === false && !(bar && signedIn)))
+  );
 }
 
 /** /about, with or without the trailing slash the static export adds. */

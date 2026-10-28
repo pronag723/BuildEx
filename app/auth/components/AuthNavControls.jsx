@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useAuth } from "../../../lib/auth/AuthContext";
+import { useIsBuilder } from "../../../lib/auth/useIsBuilder";
+import { BUILDER_ONBOARDING_START } from "../../../lib/onboarding/state";
 import { useUnread } from "../../../lib/chat/UnreadContext";
 import NotificationsBell from "../../notifications/components/NotificationsBell";
 import { Icon } from "../../../lib/icons";
@@ -18,6 +20,7 @@ const MENU_ROW = "glass-row glass-row-sm";
 export default function AuthNavControls() {
   const { status, displayUser, profile, signOut } = useAuth();
   const isAdmin = profile?.is_admin === true;
+  const isBuilder = useIsBuilder();
   const { hasUnread, unreadTotal } = useUnread();
   const t = useT();
   const [open, setOpen] = useState(false);
@@ -144,6 +147,19 @@ export default function AuthNavControls() {
                       </span>
                     )}
                   </Link>
+                  {/* The desktop bar keeps this for guests only (navItems.js). */}
+                  {isBuilder === false && (
+                    <Link
+                      role="menuitem"
+                      href={BUILDER_ONBOARDING_START}
+                      tabIndex={open ? 0 : -1}
+                      onClick={() => setOpen(false)}
+                      className={MENU_ROW}
+                    >
+                      <Icon name="hammer" size={16} />
+                      <span>{t("nav.becomeBuilder")}</span>
+                    </Link>
+                  )}
                   {isAdmin && (
                     <Link
                       role="menuitem"

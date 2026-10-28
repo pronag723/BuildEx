@@ -23,6 +23,7 @@ import CatalogSearch from "./CatalogSearch";
 import CatalogSort from "./CatalogSort";
 import FiltersMobileModal from "./FiltersMobileModal";
 import BuilderGrid from "./BuilderGrid";
+import { BecomeBuilderBanner, BecomeBuilderInline, useBuilderPrompt } from "./BecomeBuilderPrompt";
 import FeedFloatingBlocks from "./FeedFloatingBlocks";
 import PaginationControls from "./PaginationControls";
 import SiteFooter from "../../home/components/SiteFooter";
@@ -239,6 +240,9 @@ export default function CatalogPage() {
 
   const hasNarrowing = activeFilterCount > 0 || Boolean(query);
 
+  // "Are you a builder?" — a banner until dismissed, then a row in the grid.
+  const builderPrompt = useBuilderPrompt();
+
   // Shared filter props passed to the drawer
   const filterProps = {
     selectedStyles,
@@ -315,6 +319,8 @@ export default function CatalogPage() {
             ))}
           </div>
 
+          {builderPrompt.mode === "banner" && <BecomeBuilderBanner onDismiss={builderPrompt.dismiss} />}
+
           {/* ── Result count + sort ────────────────────────────────────────
               relative + z-30 so the sort menu paints above the grid. */}
           <div className="relative z-30 mb-4 mt-6 flex min-h-[2rem] items-center justify-between gap-3 sm:mb-5">
@@ -352,6 +358,7 @@ export default function CatalogPage() {
             loading={buildersLoading}
             hasNarrowing={hasNarrowing}
             onClearAll={handleClearAll}
+            inline={builderPrompt.mode === "inline" ? <BecomeBuilderInline /> : null}
           />
 
           {!buildersLoading && (
