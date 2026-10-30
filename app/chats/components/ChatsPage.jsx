@@ -11,19 +11,27 @@ import { withBase } from "../../home/utils";
 import CatalogNavbar from "../../builders/components/CatalogNavbar";
 import CatalogMobileMenu from "../../builders/components/CatalogMobileMenu";
 import {
+  fetchAnnouncementsSummary,
   fetchMessages,
   getOrCreateConversation,
   haveIReportedConversation,
+  isSupportConversation,
   listConversations,
+  markAnnouncementsRead,
   markConversationRead,
+  openSupportThread,
   reportConversation,
   resolveProfileByUsername,
   sendMessage,
   sendImageMessage,
+  setAnnouncementsMuted,
+  setConversationMuted,
   subscribeToConversation,
   subscribeToInbox,
 } from "../../../lib/chat/api";
 import ConversationList from "./ConversationList";
+import NewChatDialog from "./NewChatDialog";
+import UpdatesChannel from "./UpdatesChannel";
 import { useT } from "../../../lib/i18n/LanguageProvider";
 import { translate } from "../../../lib/i18n/translate.mjs";
 import { serverMessage } from "../../../lib/i18n/serverText.mjs";
@@ -59,8 +67,13 @@ const LIST_DEFAULT = 340;
 const LIST_COMPACT_BELOW = 200;
 const LIST_WIDTH_KEY = "buildex-chats-list-width";
 
+// ?c= values for the two pinned threads. The support thread also answers to
+// its real id (that is what bell and email links carry).
+const UPDATES_KEY = "updates";
+const SUPPORT_KEY = "support";
+
 export default function ChatsPage() {
-  const { status, user, displayUser } = useAuth();
+  const { status, user } = useAuth();
   const t = useT();
   const { refresh: refreshUnread, setActiveConversation } = useUnread();
   useRequireAuth(); // bounces to /login (preserving ?to/?c) when unauthenticated
@@ -83,8 +96,12 @@ export default function ChatsPage() {
     const update = () => setIsDesktop(mq.matches);
     update();
     mq.addEventListener("change", update);
-    const saved = Number(window.localStorage.getItem(LIST_WIDTH_KEY));
-    if (saved >= LIST_MIN && saved <= LIST_MAX) setListWidth(saved);
+    try {
+      const saved = Number(window.localStorage.getItem(LIST_WIDTH_KEY));
+      if (saved >= LIST_MIN && saved <= LIST_MAX) setListWidth(saved);
+    } catch {
+      // Storage blocked — keep the default width.
+    }
     return () => mq.removeEventListener("change", update);
   }, []);
 
@@ -109,7 +126,11 @@ export default function ChatsPage() {
       draggingRef.current = false;
       document.body.style.userSelect = "";
       document.body.style.cursor = "";
-      window.localStorage.setItem(LIST_WIDTH_KEY, String(Math.round(listWidthRef.current)));
+      try {
+        window.localStorage.setItem(LIST_WIDTH_KEY, String(Math.round(listWidthRef.current)));
+      } catch {
+        // Storage blocked — the width just isn't remembered.
+      }
     }
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
@@ -129,6 +150,9 @@ export default function ChatsPage() {
   const [conversations, setConversations] = useState([]);
   const [convLoading, setConvLoading] = useState(true);
 
+  // What the right pane shows: a direct thread, the support thread, the
+  // updates channel, or nothing yet.
+  const [activeKind, setActiveKind] = useState(null); // 'direct' | 'support' | 'updates' | null
   const [activeConvId, setActiveConvId] = useState(null);
   const [activePeer, setActivePeer] = useState(null);
   const [activeConversationMeta, setActiveConversationMeta] = useState(null);
@@ -137,6 +161,13 @@ export default function ChatsPage() {
   // on a work links here with ?work=<id>, and the message names that work.
   // Never sent automatically — the visitor edits or sends it themselves.
   const [prefill, setPrefill] = useState(null); // { peerId, text }
+
+  // The pinned system threads (0112). Until that migration runs, the summary
+  // RPC does not exist and both rows stay hidden.
+  const [systemAvailable, setSystemAvailable] = useState(false);
+  const [updatesSummary, setUpdatesSummary] = useState(null);
+  const [supportTopic, setSupportTopic] = useState(null);
+  const [newChatOpen, setNewChatOpen] = useState(false);
 
   // Mirror activeConvId into a ref so the long-lived inbox subscription (which
   // only re-binds on auth change) can read the current thread without stale
@@ -171,14 +202,15 @@ export default function ChatsPage() {
     noticeTimer.current = setTimeout(() => setNotice(null), 3500);
   }, []);
 
-  const replaceUrl = useCallback((convId) => {
-    const qs = convId ? `?c=${encodeURIComponent(convId)}` : "";
+  const replaceUrl = useCallback((key) => {
+    const qs = key ? `?c=${encodeURIComponent(key)}` : "";
     window.history.replaceState(window.history.state, "", withBase(`/chats${qs}`));
   }, []);
 
   const openConversation = useCallback(
     (convId, peer, meta = null) => {
       setIsDraft(false);
+      setActiveKind(isSupportConversation(meta) ? "support" : "direct");
       setActivePeer(peer);
       setActiveConversationMeta(meta);
       setActiveConvId(convId);
@@ -190,11 +222,53 @@ export default function ChatsPage() {
 
   const openDraft = useCallback((peer) => {
     setIsDraft(true);
+    setActiveKind("direct");
     setActivePeer(peer);
     setActiveConversationMeta(null);
     setActiveConvId(null);
     setMessages([]);
     setMobileView("thread");
+  }, []);
+
+  // Support: the existing thread if there is one, otherwise an unsent draft
+  // that becomes a thread with the first message (open_support_thread).
+  const openSupport = useCallback(
+    (rows) => {
+      const existing = (rows || []).find(isSupportConversation);
+      setActivePeer(null);
+      setActiveKind("support");
+      setMobileView("thread");
+      if (existing) {
+        setIsDraft(false);
+        setActiveConversationMeta(existing);
+        setActiveConvId(existing.conversation_id);
+        replaceUrl(existing.conversation_id);
+      } else {
+        setIsDraft(true);
+        setActiveConversationMeta(null);
+        setActiveConvId(null);
+        setMessages([]);
+        replaceUrl(SUPPORT_KEY);
+      }
+    },
+    [replaceUrl]
+  );
+
+  const openUpdates = useCallback(() => {
+    setIsDraft(false);
+    setActiveKind("updates");
+    setActivePeer(null);
+    setActiveConversationMeta(null);
+    setActiveConvId(null);
+    setMessages([]);
+    setMobileView("thread");
+    replaceUrl(UPDATES_KEY);
+  }, [replaceUrl]);
+
+  const loadSummary = useCallback(async () => {
+    const { summary, available } = await fetchAnnouncementsSummary();
+    setSystemAvailable(available);
+    if (summary) setUpdatesSummary(summary);
   }, []);
 
   // ── One-time init: load the inbox, then honour ?to / ?c ─────────────────────
@@ -209,7 +283,7 @@ export default function ChatsPage() {
       const to = params.get("to");
       const c = params.get("c");
 
-      const { conversations: rows } = await listConversations();
+      const [{ conversations: rows }] = await Promise.all([listConversations(), loadSummary()]);
       if (cancelled) return;
       setConversations(rows);
       setConvLoading(false);
@@ -243,16 +317,21 @@ export default function ChatsPage() {
         const existing = rows.find((x) => x.other_id === peer.id);
         if (existing) openConversation(existing.conversation_id, peerFromConversation(existing), existing);
         else openDraft(peer);
+      } else if (c === UPDATES_KEY) {
+        openUpdates();
+      } else if (c === SUPPORT_KEY) {
+        openSupport(rows);
       } else if (c) {
         const conv = rows.find((x) => x.conversation_id === c);
-        if (conv) openConversation(conv.conversation_id, peerFromConversation(conv), conv);
+        if (conv && isSupportConversation(conv)) openSupport(rows);
+        else if (conv) openConversation(conv.conversation_id, peerFromConversation(conv), conv);
       }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [status, meId, openConversation, openDraft, showNotice]);
+  }, [status, meId, openConversation, openDraft, openSupport, openUpdates, loadSummary, showNotice]);
 
   // ── Load + subscribe to the active conversation's messages ──────────────────
   useEffect(() => {
@@ -292,7 +371,7 @@ export default function ChatsPage() {
   // previous thread's answer can never flash on the new one.
   useEffect(() => {
     setThreadReported(false);
-    if (!activeConvId) return undefined;
+    if (!activeConvId || activeKind !== "direct") return undefined;
     let cancelled = false;
     haveIReportedConversation(activeConvId).then((yes) => {
       if (!cancelled) setThreadReported(yes);
@@ -300,7 +379,7 @@ export default function ChatsPage() {
     return () => {
       cancelled = true;
     };
-  }, [activeConvId]);
+  }, [activeConvId, activeKind]);
 
   // ── Live-refresh the inbox as messages land in any of my threads ────────────
   useEffect(() => {
@@ -324,6 +403,27 @@ export default function ChatsPage() {
 
   useEffect(() => () => clearTimeout(noticeTimer.current), []);
 
+  // The thread that will receive the message, created on the first one: a
+  // direct thread through get_or_create_conversation (rate limited by 0100),
+  // the support thread through open_support_thread.
+  const ensureConversation = useCallback(async () => {
+    if (activeConvId) return activeConvId;
+    const { conversationId, error } =
+      activeKind === "support"
+        ? await openSupportThread(supportTopic)
+        : await getOrCreateConversation(activePeer.id);
+    if (error || !conversationId) {
+      showNotice(serverMessage(error, "chat.notices.startFailed"));
+      return null;
+    }
+    setActiveConvId(conversationId);
+    setIsDraft(false);
+    replaceUrl(conversationId);
+    return conversationId;
+  }, [activeConvId, activeKind, activePeer, supportTopic, replaceUrl, showNotice]);
+
+  const canSend = activeKind === "support" || Boolean(activePeer);
+
   // ── Send (creates the thread lazily on the very first message) ──────────────
   // Returns { error } so the composer can put a rejected message back in the
   // box. That matters now that get_or_create_conversation can legitimately say
@@ -332,21 +432,11 @@ export default function ChatsPage() {
   // RPC's message is written for a person, so it goes to the toast as-is.
   const handleSend = useCallback(
     async (body) => {
-      if (!activePeer || !meId || sending) return { error: null };
+      if (!canSend || !meId || sending) return { error: null };
       setSending(true);
       try {
-        let convId = activeConvId;
-        if (!convId) {
-          const { conversationId, error } = await getOrCreateConversation(activePeer.id);
-          if (error || !conversationId) {
-            showNotice(serverMessage(error, "chat.notices.startFailed"));
-            return { error: error || new Error("No conversation") };
-          }
-          convId = conversationId;
-          setActiveConvId(convId);
-          setIsDraft(false);
-          replaceUrl(convId);
-        }
+        const convId = await ensureConversation();
+        if (!convId) return { error: new Error("No conversation") };
 
         const { message, error } = await sendMessage(convId, meId, body);
         if (error || !message) {
@@ -364,28 +454,18 @@ export default function ChatsPage() {
         setSending(false);
       }
     },
-    [activePeer, meId, sending, activeConvId, replaceUrl, showNotice]
+    [canSend, meId, sending, ensureConversation, showNotice]
   );
 
   // Send a photo. Mirrors handleSend (lazy thread creation + optimistic append +
   // inbox refresh) but routes through sendImageMessage.
   const handleSendImage = useCallback(
     async (file) => {
-      if (!activePeer || !meId || sending || !file) return;
+      if (!canSend || !meId || sending || !file) return;
       setSending(true);
       try {
-        let convId = activeConvId;
-        if (!convId) {
-          const { conversationId, error } = await getOrCreateConversation(activePeer.id);
-          if (error || !conversationId) {
-            showNotice(serverMessage(error, "chat.notices.startFailed"));
-            return;
-          }
-          convId = conversationId;
-          setActiveConvId(convId);
-          setIsDraft(false);
-          replaceUrl(convId);
-        }
+        const convId = await ensureConversation();
+        if (!convId) return;
 
         const { message, error } = await sendImageMessage(convId, meId, file);
         if (error || !message) {
@@ -402,7 +482,7 @@ export default function ChatsPage() {
         setSending(false);
       }
     },
-    [activePeer, meId, sending, activeConvId, replaceUrl, showNotice]
+    [canSend, meId, sending, ensureConversation, showNotice]
   );
 
   // Report the open thread. The RPC's errors are written for a person to read
@@ -427,12 +507,78 @@ export default function ChatsPage() {
     [activeConvId, showNotice]
   );
 
+  // The open thread's inbox row — fresher than the snapshot taken when it was
+  // opened (presence, mute, support status all move).
+  const activeRow =
+    (activeConvId && conversations.find((c) => c.conversation_id === activeConvId)) ||
+    activeConversationMeta;
+  const activeMuted = Boolean(activeRow?.is_muted);
+
+  const handleToggleMute = useCallback(async () => {
+    if (!activeConvId) return;
+    const next = !activeMuted;
+    const { muted, error } = await setConversationMuted(activeConvId, next);
+    if (error) {
+      showNotice(serverMessage(error, "chat.notices.muteFailed"));
+      return;
+    }
+    setConversations((prev) =>
+      prev.map((c) => (c.conversation_id === activeConvId ? { ...c, is_muted: muted } : c))
+    );
+    refreshUnread();
+    showNotice(translate(muted ? "chat.notices.muted" : "chat.notices.unmuted"));
+  }, [activeConvId, activeMuted, refreshUnread, showNotice]);
+
+  const handleUpdatesRead = useCallback(() => {
+    markAnnouncementsRead().then(() =>
+      setUpdatesSummary((s) => (s ? { ...s, unread: 0 } : s))
+    );
+  }, []);
+
+  const handleToggleUpdatesMute = useCallback(async () => {
+    const next = !updatesSummary?.muted;
+    const { muted, error } = await setAnnouncementsMuted(next);
+    if (error) {
+      showNotice(serverMessage(error, "chat.notices.muteFailed"));
+      return;
+    }
+    setUpdatesSummary((s) => ({ ...(s || {}), muted }));
+  }, [updatesSummary?.muted, showNotice]);
+
+  const closeNewChat = useCallback(() => setNewChatOpen(false), []);
+
   const handleSelect = useCallback(
     (conv) => openConversation(conv.conversation_id, peerFromConversation(conv), conv),
     [openConversation]
   );
 
-  const showThreadPane = Boolean(activePeer);
+  // A person picked from search or "New chat": their thread if one exists,
+  // otherwise a draft that becomes one on the first message.
+  const handleStartWith = useCallback(
+    (person) => {
+      setNewChatOpen(false);
+      if (!person?.id || person.id === meId) return;
+      const existing = conversations.find(
+        (c) => c.other_id === person.id || (person.conversation_id && c.conversation_id === person.conversation_id)
+      );
+      if (existing) openConversation(existing.conversation_id, peerFromConversation(existing), existing);
+      else
+        openDraft({
+          id: person.id,
+          username: person.username,
+          display_name: person.display_name,
+          avatar_url: person.avatar_url,
+          last_seen_at: person.last_seen_at,
+        });
+    },
+    [conversations, meId, openConversation, openDraft]
+  );
+
+  const directConversations = conversations.filter((c) => !isSupportConversation(c));
+  const supportRow = conversations.find(isSupportConversation) || null;
+  const showThreadPane = activeKind === "support" || activeKind === "updates" || Boolean(activePeer);
+  const activeKey = activeKind === "updates" ? UPDATES_KEY : activeKind === "support" ? SUPPORT_KEY : activeConvId;
+  const compact = isDesktop && listWidth < LIST_COMPACT_BELOW;
 
   // ── Auth gating: keep the chrome, show a spinner until we know who's here ───
   const authReady = status === "authenticated" && meId;
@@ -461,23 +607,44 @@ export default function ChatsPage() {
                     showThreadPane && mobileView === "thread" ? "hidden" : "flex"
                   } lg:flex w-full lg:w-80 xl:w-96 flex-shrink-0 flex-col border-r border-line/[0.08] min-h-0`}
                 >
-                  {isDesktop && listWidth < LIST_COMPACT_BELOW ? (
+                  {compact ? (
                     <div className="flex h-14 flex-shrink-0 items-center justify-center border-b border-line/[0.08]">
-                      <span title={t("nav.messages")} aria-label={t("nav.messages")} className="text-ink-2">
-                        <Icon name="chat" size={20} />
-                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setNewChatOpen(true)}
+                        className="btn btn-ghost btn-icon"
+                        title={t("chat.newChat.title")}
+                        aria-label={t("chat.newChat.title")}
+                      >
+                        <Icon name="newChat" size={19} />
+                      </button>
                     </div>
                   ) : (
-                    <div className="flex h-14 flex-shrink-0 items-center border-b border-line/[0.08] px-4">
-                      <h1 className="text-base font-semibold">{t("nav.messages")}</h1>
+                    <div className="flex h-14 flex-shrink-0 items-center gap-2 px-4">
+                      <h1 className="flex-1 text-base font-semibold">{t("nav.messages")}</h1>
+                      <button
+                        type="button"
+                        onClick={() => setNewChatOpen(true)}
+                        className="btn btn-ghost btn-icon -mr-1.5"
+                        title={t("chat.newChat.title")}
+                        aria-label={t("chat.newChat.title")}
+                      >
+                        <Icon name="newChat" size={19} />
+                      </button>
                     </div>
                   )}
                   <ConversationList
-                    conversations={conversations}
+                    conversations={directConversations}
                     loading={convLoading}
-                    activeId={activeConvId}
+                    activeKey={activeKey}
                     onSelect={handleSelect}
-                    compact={isDesktop && listWidth < LIST_COMPACT_BELOW}
+                    systemAvailable={systemAvailable}
+                    updates={updatesSummary}
+                    support={supportRow}
+                    onOpenUpdates={openUpdates}
+                    onOpenSupport={() => openSupport(conversations)}
+                    onStartWith={handleStartWith}
+                    compact={compact}
                   />
                 </aside>
 
@@ -499,20 +666,37 @@ export default function ChatsPage() {
                     showThreadPane && mobileView === "thread" ? "flex" : "hidden"
                   } lg:flex flex-1 flex-col min-w-0 min-h-0`}
                 >
-                  {showThreadPane ? (
+                  {activeKind === "updates" ? (
+                    <UpdatesChannel
+                      muted={Boolean(updatesSummary?.muted)}
+                      onToggleMute={handleToggleUpdatesMute}
+                      onRead={handleUpdatesRead}
+                      onBack={() => setMobileView("list")}
+                    />
+                  ) : showThreadPane ? (
                     <MessageThread
+                      mode={activeKind === "support" ? "support" : "direct"}
                       peer={activePeer}
+                      peerLastSeenAt={activeRow?.other_last_seen_at ?? activePeer?.last_seen_at ?? null}
+                      peerIsBuilder={
+                        typeof activeRow?.other_is_builder === "boolean" ? activeRow.other_is_builder : null
+                      }
                       messages={messages}
                       meId={meId}
                       loading={messagesLoading && messages.length === 0}
                       sending={sending}
                       isDraft={isDraft}
-                      conversationMeta={activeConversationMeta}
+                      conversationMeta={activeRow}
                       reported={threadReported}
+                      muted={activeMuted}
+                      supportStatus={activeRow?.support_status ?? null}
+                      supportTopic={supportTopic}
+                      onPickSupportTopic={setSupportTopic}
                       initialDraft={prefill && prefill.peerId === activePeer?.id ? prefill.text : ""}
                       onSend={handleSend}
                       onSendImage={handleSendImage}
                       onReport={handleReport}
+                      onToggleMute={handleToggleMute}
                       onBack={() => {
                         setMobileView("list");
                       }}
@@ -526,6 +710,10 @@ export default function ChatsPage() {
                           cta: <span className="font-medium text-ink">{t("profile.contactBuilder")}</span>,
                         })}
                       </p>
+                      <button type="button" onClick={() => setNewChatOpen(true)} className="btn btn-secondary btn-sm mt-4">
+                        <Icon name="newChat" size={15} />
+                        {t("chat.newChat.title")}
+                      </button>
                     </div>
                   )}
                 </section>
@@ -535,6 +723,7 @@ export default function ChatsPage() {
         </div>
       </main>
 
+      <NewChatDialog open={newChatOpen} onClose={closeNewChat} onPick={handleStartWith} />
       <Toast message={notice} />
     </div>
   );

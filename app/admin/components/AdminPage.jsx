@@ -5,7 +5,7 @@
 // A dedicated operator surface for admins (profiles.is_admin). The orders,
 // studios and payouts tabs went with the features they served; what BuildEx
 // needs moderating now is a public directory of user-submitted profiles and
-// images, so the console has six sections:
+// images, so the console has eight sections:
 //
 //   BUILDERS — every builder profile, searchable. Open the public page, hide or
 //              unhide the profile, take one work down (or put it back), or
@@ -22,9 +22,13 @@
 //              logged server-side.
 //   TRAFFIC  — where visits and sign-ups come from, plus a tagged-link maker
 //              for ads (TrafficSection.jsx, migration 0111).
+//   SUPPORT  — every user's support thread by status, answered in place
+//              (SupportSection.jsx, migration 0112).
+//   UPDATES  — write, preview and publish posts to the "BuildEx Updates"
+//              channel, optionally with a bell to everyone (UpdatesSection.jsx).
 //
 // Everything routes through lib/admin/api.js → the admin RPCs in migrations
-// 0101, 0108 and 0111, each of which calls _require_admin() before it does anything. The
+// 0101, 0108, 0111 and 0112, each of which calls _require_admin() before it does anything. The
 // `isAdmin` check below decides what to RENDER; it is not what decides what a
 // request is allowed to do.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -49,6 +53,7 @@ import {
   resolveReviewReport,
   listAdminUsers,
 } from "../../../lib/admin/api";
+import { chatImageUrl } from "../../../lib/chat/api";
 import { Icon } from "../../../lib/icons";
 import { publicAsset } from "../../home/utils";
 import { useScrollLock } from "../../../lib/useScrollLock";
@@ -72,16 +77,20 @@ import {
 } from "./shared";
 import TrafficSection from "./TrafficSection";
 import ChatsSection from "./ChatsSection";
+import SupportSection from "./SupportSection";
+import UpdatesSection from "./UpdatesSection";
 
 // Labels: `admin.sections.<key>`, `admin.reports.tabs.<key>` and
 // `admin.reviews.tabs.<key>`.
 const SECTIONS = [
   { key: "builders", icon: "hammer" },
   { key: "chats", icon: "chat" },
+  { key: "support", icon: "support" },
   { key: "reports", icon: "flag" },
   { key: "reviews", icon: "star" },
   { key: "users", icon: "users" },
   { key: "traffic", icon: "chart" },
+  { key: "updates", icon: "verified" },
 ];
 
 // Labels: `admin.users.sort.<key>`.
@@ -138,9 +147,21 @@ function NotAuthorized() {
   );
 }
 
+// A bell for a new support message links to /admin?section=support&c=<id>.
+function initialSection() {
+  if (typeof window === "undefined") return { section: "builders", conversation: null };
+  const params = new URLSearchParams(window.location.search);
+  const section = params.get("section");
+  return {
+    section: SECTIONS.some((s) => s.key === section) ? section : "builders",
+    conversation: section === "support" ? params.get("c") : null,
+  };
+}
+
 function Console() {
   const t = useT();
-  const [section, setSection] = useState("builders");
+  const [initial] = useState(initialSection);
+  const [section, setSection] = useState(initial.section);
   // The Users list's "Chats" button opens this section already searched for
   // that account.
   const [chatSearch, setChatSearch] = useState("");
@@ -191,6 +212,8 @@ function Console() {
       {section === "reviews" && <ReviewsSection />}
       {section === "users" && <UsersSection onOpenChats={openChats} />}
       {section === "traffic" && <TrafficSection />}
+      {section === "support" && <SupportSection initialConversation={initial.conversation} />}
+      {section === "updates" && <UpdatesSection />}
     </div>
   );
 }
@@ -1035,7 +1058,8 @@ function ReportParty({ label, name, username, avatar, isBuilder, isHidden }) {
 function AdminMessage({ message: m }) {
   const t = useT();
   const name = m.sender_display_name || m.sender_username || t("admin.reports.user");
-  const isImage = m.msg_type === "image" && m.meta?.url;
+  const imageUrl = m.msg_type === "image" ? chatImageUrl(m.meta) : null;
+  const isImage = Boolean(imageUrl);
 
   return (
     <li className="flex items-start gap-2.5">
@@ -1049,7 +1073,7 @@ function AdminMessage({ message: m }) {
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={publicAsset(m.meta.url)}
+              src={imageUrl}
               alt={m.body || t("chat.photo")}
               className="mt-1 rounded-xl max-h-48 w-auto object-cover border border-line/10"
               loading="lazy"

@@ -27,6 +27,8 @@ import {
   Share2, Pin, Clock, Briefcase, Tag, LayoutGrid, Bookmark,
   // profile editor
   CircleAlert, Lock, LayoutDashboard, Ban,
+  // chat: system threads, new chat, thread menu
+  LifeBuoy, BadgeCheck, SquarePen, Ellipsis, BellOff,
 } from "lucide-react";
 
 export const ICONS = {
@@ -103,6 +105,13 @@ export const ICONS = {
   lock: Lock,
   arrange: LayoutDashboard,
   none: Ban,
+
+  // chat: system threads, new chat, thread menu
+  support: LifeBuoy,
+  verified: BadgeCheck, // the official updates channel
+  newChat: SquarePen,
+  more: Ellipsis,
+  bellOff: BellOff,
 };
 
 /**

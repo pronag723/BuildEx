@@ -44,12 +44,13 @@ export function UnreadProvider({ children }) {
     setActiveConvId(convId || null);
   }, []);
 
-  // Total unread, excluding the open thread (read live, never badged).
+  // Total unread, excluding the open thread (read live, never badged) and
+  // threads the user muted (their own badge stays, grey, in the inbox).
   const unreadTotal = useMemo(
     () =>
       (conversations || []).reduce(
         (sum, c) =>
-          c.conversation_id === activeConvId
+          c.conversation_id === activeConvId || c.is_muted
             ? sum
             : sum + (Number(c.unread_count) || 0),
         0

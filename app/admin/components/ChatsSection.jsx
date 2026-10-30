@@ -23,8 +23,8 @@ import {
   getAdminConversationMessages,
   CONVERSATIONS_PAGE_SIZE,
 } from "../../../lib/admin/api";
+import { chatImageUrl } from "../../../lib/chat/api";
 import { Icon } from "../../../lib/icons";
-import { publicAsset } from "../../home/utils";
 import { useT } from "../../../lib/i18n/LanguageProvider";
 import { formatDate as formatLocaleDate, formatTime, relativeStamp } from "../../../lib/i18n/format.mjs";
 import {
@@ -409,7 +409,8 @@ function ThreadMessage({ message: m, side, showName, term }) {
   const t = useT();
   const right = side === "b";
   const name = m.sender_display_name || m.sender_username || t("admin.reports.user");
-  const isImage = m.msg_type === "image" && m.meta?.url;
+  const imageUrl = m.msg_type === "image" ? chatImageUrl(m.meta) : null;
+  const isImage = Boolean(imageUrl);
 
   // Anything that is neither text nor a photo is a system line (the order
   // events of the old marketplace still sit in some threads).
@@ -433,10 +434,10 @@ function ThreadMessage({ message: m, side, showName, term }) {
           }`}
         >
           {isImage && (
-            <a href={publicAsset(m.meta.url)} target="_blank" rel="noopener noreferrer" className="block">
+            <a href={imageUrl} target="_blank" rel="noopener noreferrer" className="block">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={publicAsset(m.meta.url)}
+                src={imageUrl}
                 alt={m.body || t("chat.photo")}
                 className="mb-1 max-h-60 w-auto rounded-xl border border-line/10 object-cover"
                 loading="lazy"
