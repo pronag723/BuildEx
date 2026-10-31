@@ -73,6 +73,16 @@ export default function SupportSection({ initialConversation = null }) {
     load();
   }, [load]);
 
+  // Opening a thread reads it, so its badge goes as soon as it is selected.
+  useEffect(() => {
+    if (!selectedId) return;
+    setThreads((rows) =>
+      rows?.some((x) => x.conversation_id === selectedId && x.unread_count > 0)
+        ? rows.map((x) => (x.conversation_id === selectedId ? { ...x, unread_count: 0 } : x))
+        : rows
+    );
+  }, [selectedId, threads]);
+
   const listed = (threads || []).find((x) => x.conversation_id === selectedId) || null;
   useEffect(() => {
     if (listed) setSelectedRow(listed);
