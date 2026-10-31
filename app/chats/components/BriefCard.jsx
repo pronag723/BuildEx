@@ -275,6 +275,8 @@ export default function BriefCard({ order, message, role, peerName, review, acti
   }
   const s = order.status;
   const closed = s === "cancelled" || s === "declined";
+  const isResponse = Boolean(message?.meta?.response);
+  const responseWorks = Array.isArray(message?.meta?.works) ? message.meta.works : [];
   const mineAsClient = role === "client";
   const remindedRecently =
     order.last_reminded_at && Date.now() - new Date(order.last_reminded_at).getTime() < 24 * 3600 * 1000;
@@ -291,6 +293,17 @@ export default function BriefCard({ order, message, role, peerName, review, acti
         </button>
         <button type="button" onClick={() => actions.decline(order)} className="btn btn-ghost btn-sm">
           {t("orders.actions.decline")}
+        </button>
+      </div>
+    );
+  } else if (s === "pending" && isResponse) {
+    // A builder answered the client's public request: the next move is the
+    // builder's price, so the client can only talk or say no.
+    footer = (
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="mr-auto text-xs text-ink-3">{t("orders.hints.responded", { name: peerName })}</p>
+        <button type="button" onClick={() => actions.cancel(order)} className="btn btn-ghost btn-sm">
+          {t("orders.actions.notInterested")}
         </button>
       </div>
     );
@@ -415,7 +428,9 @@ export default function BriefCard({ order, message, role, peerName, review, acti
       className={`card my-2 w-full max-w-md scroll-mt-24 overflow-hidden ${closed ? "opacity-70" : ""}`}
     >
       <div className="flex items-center gap-2 px-4 pt-3">
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-ink-3">{t("orders.brief.label")}</span>
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-ink-3">
+          {isResponse ? t("orders.brief.responseLabel") : t("orders.brief.label")}
+        </span>
         <StatusTag status={s} />
         {message?.created_at && (
           <span className="ml-auto text-[11px] tabular-nums text-ink-3">{formatTime(message.created_at, t.lang)}</span>
@@ -423,6 +438,16 @@ export default function BriefCard({ order, message, role, peerName, review, acti
       </div>
       <div className={`px-4 pb-3 pt-2 ${closed ? "[&_h3]:line-through" : ""}`}>
         <BriefSummary brief={brief} order={order} />
+        {responseWorks.length > 0 && (
+          <div className="mt-3">
+            <p className="text-[11px] text-ink-3">{t("orders.brief.builderWorks")}</p>
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {responseWorks.map((id) => (
+                <RefThumb key={id} item={{ kind: "work", work_id: id }} />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
       {footer && <div className="border-t border-line/[0.06] px-4 py-3">{footer}</div>}
     </article>

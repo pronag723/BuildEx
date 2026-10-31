@@ -5,7 +5,7 @@
 // A dedicated operator surface for admins (profiles.is_admin). The orders,
 // studios and payouts tabs went with the features they served; what BuildEx
 // needs moderating now is a public directory of user-submitted profiles and
-// images, so the console has eight sections:
+// images, so the console has nine sections:
 //
 //   BUILDERS — every builder profile, searchable. Open the public page, hide or
 //              unhide the profile, take one work down (or put it back), or
@@ -26,6 +26,8 @@
 //              (SupportSection.jsx, migration 0112).
 //   UPDATES  — write, preview and publish posts to the "BuildEx Updates"
 //              channel, optionally with a bell to everyone (UpdatesSection.jsx).
+//   COMMUNITY — reports on public requests and Showcase works (migration
+//              0116); hide a request from the board (CommunitySection.jsx).
 //
 // Everything routes through lib/admin/api.js → the admin RPCs in migrations
 // 0101, 0108, 0111 and 0112, each of which calls _require_admin() before it does anything. The
@@ -79,6 +81,7 @@ import TrafficSection from "./TrafficSection";
 import ChatsSection from "./ChatsSection";
 import SupportSection from "./SupportSection";
 import UpdatesSection from "./UpdatesSection";
+import CommunitySection from "./CommunitySection";
 
 // Labels: `admin.sections.<key>`, `admin.reports.tabs.<key>` and
 // `admin.reviews.tabs.<key>`.
@@ -91,6 +94,7 @@ const SECTIONS = [
   { key: "users", icon: "users" },
   { key: "traffic", icon: "chart" },
   { key: "updates", icon: "verified" },
+  { key: "community", icon: "grid" },
 ];
 
 // Labels: `admin.users.sort.<key>`.
@@ -214,6 +218,7 @@ function Console() {
       {section === "traffic" && <TrafficSection />}
       {section === "support" && <SupportSection initialConversation={initial.conversation} />}
       {section === "updates" && <UpdatesSection />}
+      {section === "community" && <CommunitySection />}
     </div>
   );
 }

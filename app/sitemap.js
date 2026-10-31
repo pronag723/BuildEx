@@ -12,6 +12,11 @@ export default function sitemap() {
       priority: 1
     },
     {
+      url: `${baseUrl}/community/`,
+      changeFrequency: "daily",
+      priority: 0.8
+    },
+    {
       url: `${baseUrl}/about/`,
       changeFrequency: "monthly",
       priority: 0.7

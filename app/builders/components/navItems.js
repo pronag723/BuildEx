@@ -25,9 +25,8 @@ import { BUILDER_ONBOARDING_START } from "../../../lib/onboarding/state";
 // (lib/i18n/messages/<lang>/nav.mjs); `label` is the English original.
 export const catalogNavItems = [
   { path: "/", key: "builders", label: "Builders" },
+  { path: "/community", key: "community", label: "Community" },
   { path: "/chats", key: "messages", label: "Messages", auth: true },
-  { path: "/about#how-it-works", key: "howItWorks", label: "How It Works" },
-  { path: "/about#projects", key: "showcase", label: "Showcase" },
   { path: "/about", key: "about", label: "About" },
   { path: BUILDER_ONBOARDING_START, key: "becomeBuilder", label: "Become a builder", notBuilder: true },
 ];

@@ -57,7 +57,7 @@ function SystemLine({ message, label }) {
 // Labels: `orders.events.<event>`.
 const ORDER_EVENTS = [
   "brief_edited", "offered", "taken", "offer_accepted", "offer_rejected",
-  "declined", "delivered", "completed", "cancelled", "reminded",
+  "declined", "delivered", "completed", "cancelled", "reminded", "chosen_other",
 ];
 
 function orderEventLabel(message, mine, peerName, t) {

@@ -8,6 +8,7 @@ import { styleChipLabel } from "../../../lib/i18n/labels.mjs";
 import { useScrollLock } from "../../../lib/useScrollLock";
 import { chatImageUrl } from "../../../lib/chat/api";
 import { uploadBriefPhoto } from "../../../lib/orders/api";
+import { fetchSavedWorks } from "../../../lib/community/api";
 import {
   BRIEF_BUILD_TYPES,
   BRIEF_DELIVERY,
@@ -78,6 +79,9 @@ export default function BriefBuilder({ open, mode = "new", peerName, userId, ini
   const [linkDraft, setLinkDraft] = useState("");
   const [showErrors, setShowErrors] = useState(false);
   const [uploadError, setUploadError] = useState(null);
+  // "From saved" (stage 4): the works the client bookmarked in the Showcase.
+  const [savedOpen, setSavedOpen] = useState(false);
+  const [savedWorks, setSavedWorks] = useState(null);
   const fileRef = useRef(null);
   useScrollLock(open);
 
@@ -90,7 +94,19 @@ export default function BriefBuilder({ open, mode = "new", peerName, userId, ini
     setShowErrors(false);
     setLinkDraft("");
     setUploadError(null);
+    setSavedOpen(false);
   }, [open, initial, mode]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!savedOpen || savedWorks !== null) return undefined;
+    fetchSavedWorks().then(({ works }) => {
+      if (!cancelled) setSavedWorks(works || []);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [savedOpen, savedWorks]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -162,7 +178,12 @@ export default function BriefBuilder({ open, mode = "new", peerName, userId, ini
     if (!error) onClose();
   }
 
-  const title = mode === "edit" ? t("orders.builder.editTitle") : t("orders.builder.title", { name: peerName });
+  const title =
+    mode === "edit"
+      ? t("orders.builder.editTitle")
+      : mode === "public"
+        ? t("orders.builder.publicTitle")
+        : t("orders.builder.title", { name: peerName });
 
   const formBody = (
     <div className="space-y-6">
@@ -419,6 +440,53 @@ export default function BriefBuilder({ open, mode = "new", peerName, userId, ini
               <input ref={fileRef} type="file" accept="image/*" multiple onChange={addPhotos} className="hidden" />
             </div>
             {uploadError && <p className="mt-1.5 text-xs text-danger">{uploadError}</p>}
+            <button
+              type="button"
+              onClick={() => setSavedOpen((v) => !v)}
+              aria-expanded={savedOpen}
+              className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-ink-2 hover:text-ink"
+            >
+              <Icon name="bookmark" size={13} />
+              {t("orders.builder.fromSaved")}
+            </button>
+            {savedOpen && (
+              <div className="mt-2 rounded-lg border border-line/[0.08] p-2">
+                {savedWorks === null ? (
+                  <div className="h-14 w-14 rounded-lg skeleton" />
+                ) : savedWorks.length === 0 ? (
+                  <p className="text-xs text-ink-3">{t("orders.builder.savedEmpty")}</p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {savedWorks.map((w) => {
+                      const on = form.refs.some((r) => r.kind === "work" && r.work_id === w.id);
+                      return (
+                        <button
+                          key={w.id}
+                          type="button"
+                          title={w.title || w.builder.displayName}
+                          aria-pressed={on}
+                          disabled={!on && form.refs.length >= BRIEF_LIMITS.refs}
+                          onClick={() =>
+                            setForm((f) => ({
+                              ...f,
+                              refs: on
+                                ? f.refs.filter((r) => !(r.kind === "work" && r.work_id === w.id))
+                                : [...f.refs, { kind: "work", work_id: w.id }],
+                            }))
+                          }
+                          className={`h-14 w-14 overflow-hidden rounded-lg border-2 disabled:opacity-40 ${on ? "border-accent" : "border-transparent"}`}
+                        >
+                          {w.cover && (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={w.cover} alt={w.title || ""} className="h-full w-full object-cover" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
             <div className="mt-2 flex gap-2">
               <input
                 value={linkDraft}
@@ -488,7 +556,9 @@ export default function BriefBuilder({ open, mode = "new", peerName, userId, ini
                 <p className="text-sm text-ink-3">{t("orders.builder.previewEmpty")}</p>
               )}
             </div>
-            <p className="mt-3 text-xs leading-relaxed text-ink-3">{t("orders.builder.termsHint")}</p>
+            <p className="mt-3 text-xs leading-relaxed text-ink-3">
+              {mode === "public" ? t("orders.builder.publicHint") : t("orders.builder.termsHint")}
+            </p>
           </aside>
         </div>
 
@@ -501,7 +571,7 @@ export default function BriefBuilder({ open, mode = "new", peerName, userId, ini
           </button>
           <button type="button" onClick={submit} disabled={busy || uploading} className="btn btn-primary w-full sm:w-auto">
             {busy && <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-accent-fg/30 border-t-accent-fg" />}
-            {mode === "edit" ? t("orders.builder.save") : t("orders.builder.send")}
+            {mode === "edit" ? t("orders.builder.save") : mode === "public" ? t("orders.builder.publish") : t("orders.builder.send")}
           </button>
         </footer>
       </div>
