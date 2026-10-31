@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import SmartText from "../../../lib/ui/SmartText";
 import { chatImageUrl, isPublicBuilder, SUPPORT_TOPICS } from "../../../lib/chat/api";
@@ -16,6 +16,7 @@ import Avatar from "../../../lib/ui/Avatar";
 import { PresenceAvatar, SupportAvatar } from "./ChatAvatars";
 import BriefCard from "./BriefCard";
 import OrderStrip from "./OrderStrip";
+import { PreviewCard, PreviewComposer, Viewer3D } from "./Preview3D";
 import { activeOrder, DECLINE_REASONS, formatRub, shortDate } from "../../../lib/orders/brief.mjs";
 
 // Pinned at the very top of every thread. The old version of this notice
@@ -155,9 +156,9 @@ function ThreadMenu({ items }) {
   );
 }
 
-// The composer's "+": attach a photo, or write a brief when the other side is
-// a builder.
-function AttachMenu({ disabled, canBrief, onPhoto, onBrief }) {
+// The composer's "+": a photo, a 3D preview, or a brief when the other side
+// is a builder. Support threads only take photos.
+function AttachMenu({ disabled, canBrief, canPreview, onPhoto, onPreview, onBrief }) {
   const t = useT();
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -174,7 +175,7 @@ function AttachMenu({ disabled, canBrief, onPhoto, onBrief }) {
     };
   }, [open]);
 
-  if (!canBrief) {
+  if (!canBrief && !canPreview) {
     return (
       <button
         type="button"
@@ -223,7 +224,8 @@ function AttachMenu({ disabled, canBrief, onPhoto, onBrief }) {
       {open && (
         <div role="menu" className="menu-panel popover-rise absolute bottom-12 left-0 z-30 w-64 p-1.5">
           {item("photo", t("chat.attachPhoto"), t("chat.attachPhotoHint"), onPhoto)}
-          {item("briefcase", t("chat.attachBrief"), t("chat.attachBriefHint"), onBrief)}
+          {canPreview && item("cube", t("chat.attachPreview"), t("chat.attachPreviewHint"), onPreview)}
+          {canBrief && item("briefcase", t("chat.attachBrief"), t("chat.attachBriefHint"), onBrief)}
         </div>
       )}
     </div>
@@ -308,6 +310,7 @@ export default function MessageThread({
   myReview = null,
   orderActions = null,
   onOpenBrief,
+  onSendPreview,
 }) {
   const t = useT();
   const isSupport = mode === "support";
@@ -316,6 +319,10 @@ export default function MessageThread({
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState("");
   const [reporting, setReporting] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [viewerMeta, setViewerMeta] = useState(null);
+  const closeViewer = useCallback(() => setViewerMeta(null), []);
+  const closePreview = useCallback(() => setPreviewOpen(false), []);
   const scrollRef = useRef(null);
   const taRef = useRef(null);
   const fileRef = useRef(null);
@@ -562,6 +569,19 @@ export default function MessageThread({
 
             // Order events and system lines render as a neutral centred line,
             // not as left/right chat bubbles. Day chip still leads if needed.
+            if (m.msg_type === "preview") {
+              const mine = m.sender_id === meId;
+              return (
+                <div key={m.id}>
+                  {showDay && <DayChip iso={m.created_at} />}
+                  <div className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
+                    <PreviewCard message={m} mine={mine} onOpen={setViewerMeta} />
+                    <span className="px-1 text-[10px] tabular-nums text-ink-3">{formatTime(m.created_at, t.lang)}</span>
+                  </div>
+                </div>
+              );
+            }
+
             if (m.msg_type === "brief") {
               const order = ordersById[m.meta?.order_id];
               const role = order ? (order.client_id === meId ? "client" : "builder") : null;
@@ -708,7 +728,9 @@ export default function MessageThread({
           <AttachMenu
             disabled={sending || !canWrite}
             canBrief={canBrief}
+            canPreview={!isSupport && typeof onSendPreview === "function"}
             onPhoto={() => fileRef.current?.click()}
+            onPreview={() => setPreviewOpen(true)}
             onBrief={onOpenBrief}
           />
           <textarea
@@ -785,6 +807,9 @@ export default function MessageThread({
           </div>
         </div>
       )}
+
+      <PreviewComposer open={previewOpen} onClose={closePreview} onSend={onSendPreview} />
+      <Viewer3D meta={viewerMeta} onClose={closeViewer} />
 
       {lightboxUrl && (
         <div

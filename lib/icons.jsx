@@ -29,6 +29,8 @@ import {
   CircleAlert, Lock, LayoutDashboard, Ban,
   // chat: system threads, new chat, thread menu
   LifeBuoy, BadgeCheck, SquarePen, Ellipsis, BellOff,
+  // chat: 3D previews
+  Box,
 } from "lucide-react";
 
 export const ICONS = {
@@ -112,6 +114,7 @@ export const ICONS = {
   newChat: SquarePen,
   more: Ellipsis,
   bellOff: BellOff,
+  cube: Box, // a 3D preview
 };
 
 /**

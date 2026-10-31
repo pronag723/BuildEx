@@ -52,6 +52,7 @@ import {
   updateBrief,
 } from "../../../lib/orders/api";
 import { briefToForm, emptyBrief } from "../../../lib/orders/brief.mjs";
+import { sendPreviewMessage, uploadPreview } from "../../../lib/preview/api";
 import BriefBuilder from "./BriefBuilder";
 import { DeclineDialog, NoteDialog, TakeOrderDialog } from "./OrderDialogs";
 
@@ -548,6 +549,31 @@ export default function ChatsPage() {
     [canSend, meId, sending, ensureConversation, showNotice]
   );
 
+  // Send a 3D preview: upload the preview and its picture to the sender's own
+  // folder, then post the card (send_preview_message, 0115).
+  const handleSendPreview = useCallback(
+    async ({ bytes, thumb, meta, caption }) => {
+      if (!canSend || !meId) return { error: new Error("No conversation") };
+      const convId = await ensureConversation();
+      if (!convId) return { error: new Error("No conversation") };
+      const up = await uploadPreview(meId, bytes, thumb);
+      if (up.error) {
+        showNotice(serverMessage(up.error, "chat.notices.previewFailed"));
+        return { error: up.error };
+      }
+      const { message, error } = await sendPreviewMessage(convId, { path: up.path, thumb: up.thumb, meta, caption });
+      if (error || !message) {
+        showNotice(serverMessage(error, "chat.notices.previewFailed"));
+        return { error: error || new Error("Not sent") };
+      }
+      setMessages((prev) => (prev.some((m) => m.id === message.id) ? prev : [...prev, message]));
+      const { conversations: rows } = await listConversations();
+      setConversations(rows);
+      return { error: null };
+    },
+    [canSend, meId, ensureConversation, showNotice]
+  );
+
   // Report the open thread. The RPC's errors are written for a person to read
   // (already reported, daily cap, empty reason), so they go straight to the
   // toast; the dialog stays open on failure and closes on success.
@@ -844,6 +870,7 @@ export default function ChatsPage() {
                       myReview={myReview}
                       orderActions={orderActions}
                       onOpenBrief={activeKind === "direct" ? openBriefNew : undefined}
+                      onSendPreview={activeKind === "direct" ? handleSendPreview : undefined}
                     />
                   ) : (
                     <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
