@@ -816,9 +816,11 @@ export default function ChatsPage() {
                       mode={activeKind === "support" ? "support" : "direct"}
                       peer={activePeer}
                       peerLastSeenAt={activeRow?.other_last_seen_at ?? activePeer?.last_seen_at ?? null}
-                      peerIsBuilder={
-                        typeof activeRow?.other_is_builder === "boolean" ? activeRow.other_is_builder : null
-                      }
+                      // Not the inbox's other_is_builder: that comes from a definer
+                      // function and is true for a builder a moderator hid. The
+                      // thread asks builder_profiles itself, under RLS, so a hidden
+                      // builder gets no brief button and no dead profile link.
+                      peerIsBuilder={null}
                       messages={messages}
                       meId={meId}
                       loading={messagesLoading && messages.length === 0}
