@@ -37,6 +37,23 @@ import { translate } from "../../../lib/i18n/translate.mjs";
 import { serverMessage } from "../../../lib/i18n/serverText.mjs";
 import MessageThread from "./MessageThread";
 import { fetchWork } from "../../../lib/works/api";
+import {
+  answerOffer,
+  cancelOrder,
+  completeOrder,
+  declineOrder,
+  deliverOrder,
+  fetchConversationOrders,
+  fetchMyReview,
+  remindClient,
+  reviewOrder,
+  sendBrief,
+  takeOrder,
+  updateBrief,
+} from "../../../lib/orders/api";
+import { briefToForm, emptyBrief } from "../../../lib/orders/brief.mjs";
+import BriefBuilder from "./BriefBuilder";
+import { DeclineDialog, NoteDialog, TakeOrderDialog } from "./OrderDialogs";
 
 // Inbox row → the peer identity shape MessageThread/ConversationList consume.
 function peerFromConversation(c) {
@@ -160,7 +177,17 @@ export default function ChatsPage() {
   // Text to start the composer with, for one peer: "Discuss a similar build"
   // on a work links here with ?work=<id>, and the message names that work.
   // Never sent automatically — the visitor edits or sends it themselves.
-  const [prefill, setPrefill] = useState(null); // { peerId, text }
+  const [prefill, setPrefill] = useState(null); // { peerId, text, workId }
+
+  // Orders in the open thread (0114), the brief builder, and the dialogs
+  // behind the order card's buttons.
+  const [orders, setOrders] = useState([]);
+  const [myReview, setMyReview] = useState(null);
+  const [briefDialog, setBriefDialog] = useState(null); // { mode, order?, initial }
+  const [takeTarget, setTakeTarget] = useState(null);
+  const [declineTarget, setDeclineTarget] = useState(null);
+  const [deliverTarget, setDeliverTarget] = useState(null);
+  const [cancelTarget, setCancelTarget] = useState(null);
 
   // The pinned system threads (0112). Until that migration runs, the summary
   // RPC does not exist and both rows stay hidden.
@@ -307,6 +334,7 @@ export default function ChatsPage() {
             const link = `${window.location.origin}${withBase("/builders/profile/")}?u=${encodeURIComponent(peer.username || to)}&w=${work.id}`;
             setPrefill({
               peerId: peer.id,
+              workId: work.id,
               text: translate("chat.workDraft", {
                 title: work.title || translate("profile.works.untitled"),
                 link,
@@ -358,6 +386,10 @@ export default function ChatsPage() {
       setMessages((prev) =>
         prev.some((m) => m.id === row.id) ? prev : [...prev, row]
       );
+      // A brief or an order step changed an order in this thread.
+      if (row.msg_type === "brief" || (row.msg_type === "system" && row.meta?.order_id)) {
+        fetchConversationOrders(activeConvId).then(({ orders: rows }) => setOrders(rows));
+      }
       if (row.sender_id !== meId) markConversationRead(activeConvId).then(refreshUnread);
     });
 
@@ -366,6 +398,37 @@ export default function ChatsPage() {
       unsub();
     };
   }, [activeConvId, meId, refreshUnread]);
+
+  // The orders in the open thread, and — for a client with a completed order —
+  // their review of this builder, so the card can show the form or "thanks".
+  const loadOrders = useCallback(async (convId) => {
+    if (!convId) {
+      setOrders([]);
+      return [];
+    }
+    const { orders: rows } = await fetchConversationOrders(convId);
+    setOrders(rows);
+    return rows;
+  }, []);
+
+  useEffect(() => {
+    setOrders([]);
+    setMyReview(null);
+    if (!activeConvId || activeKind !== "direct") return;
+    loadOrders(activeConvId);
+  }, [activeConvId, activeKind, loadOrders]);
+
+  const reviewBuilderId = orders.find((o) => o.status === "completed" && o.client_id === meId)?.builder_id || null;
+  useEffect(() => {
+    let cancelled = false;
+    if (!reviewBuilderId) return undefined;
+    fetchMyReview(reviewBuilderId).then(({ review }) => {
+      if (!cancelled) setMyReview(review);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [reviewBuilderId]);
 
   // Has this thread already been reported by me? Resets to false first so the
   // previous thread's answer can never flash on the new one.
@@ -509,6 +572,81 @@ export default function ChatsPage() {
 
   // The open thread's inbox row — fresher than the snapshot taken when it was
   // opened (presence, mute, support status all move).
+  // ── Briefs and orders ─────────────────────────────────────────────────────
+  // Every action resolves to { error }: the dialog stays open on failure, and
+  // the RPC's own words reach the toast.
+  const runOrderAction = useCallback(
+    async (call, okKey) => {
+      const { error } = await call();
+      if (error) {
+        showNotice(serverMessage(error, "orders.notices.failed"));
+        return { error };
+      }
+      if (okKey) showNotice(translate(okKey));
+      await loadOrders(activeConvIdRef.current);
+      return { error: null };
+    },
+    [loadOrders, showNotice]
+  );
+
+  const openBriefNew = useCallback(() => {
+    const initial = emptyBrief();
+    if (prefill?.workId && prefill.peerId === activePeer?.id) {
+      initial.refs = [{ kind: "work", work_id: prefill.workId }];
+    }
+    setBriefDialog({ mode: "new", initial });
+  }, [prefill, activePeer]);
+
+  const closeBriefDialog = useCallback(() => setBriefDialog(null), []);
+
+  const submitBrief = useCallback(
+    async (payload) => {
+      if (briefDialog?.mode === "edit") {
+        return runOrderAction(() => updateBrief(briefDialog.order.id, payload), "orders.notices.briefSaved");
+      }
+      if (!activePeer?.id) return { error: new Error("No builder") };
+      const { conversationId, error } = await sendBrief(activePeer.id, payload);
+      if (error || !conversationId) {
+        showNotice(serverMessage(error, "orders.notices.briefFailed"));
+        return { error: error || new Error("Not sent") };
+      }
+      if (conversationId !== activeConvId) {
+        setActiveConvId(conversationId);
+        setIsDraft(false);
+        replaceUrl(conversationId);
+      } else {
+        await loadOrders(conversationId);
+        const { messages: rows } = await fetchMessages(conversationId);
+        setMessages((prev) => mergeMessages(prev, rows, conversationId));
+      }
+      const { conversations: rows } = await listConversations();
+      setConversations(rows);
+      showNotice(translate("orders.notices.briefSent"));
+      return { error: null };
+    },
+    [briefDialog, activePeer, activeConvId, replaceUrl, loadOrders, runOrderAction, showNotice]
+  );
+
+  const orderActions = {
+    take: (order) => setTakeTarget(order),
+    decline: (order) => setDeclineTarget(order),
+    edit: (order) => setBriefDialog({ mode: "edit", order, initial: briefToForm(order.brief) }),
+    cancel: (order) => setCancelTarget(order),
+    deliver: (order) => setDeliverTarget(order),
+    answer: (order, accept) =>
+      runOrderAction(() => answerOffer(order.id, accept), accept ? "orders.notices.accepted" : null),
+    complete: (order) => runOrderAction(() => completeOrder(order.id), "orders.notices.completed"),
+    remind: (order) => runOrderAction(() => remindClient(order.id), "orders.notices.reminded"),
+    review: async (order, rating, body) => {
+      const result = await runOrderAction(() => reviewOrder(order.id, rating, body), "orders.notices.reviewed");
+      if (!result.error) {
+        const { review } = await fetchMyReview(order.builder_id);
+        setMyReview(review);
+      }
+      return result;
+    },
+  };
+
   const activeRow =
     (activeConvId && conversations.find((c) => c.conversation_id === activeConvId)) ||
     activeConversationMeta;
@@ -700,6 +838,10 @@ export default function ChatsPage() {
                       onBack={() => {
                         setMobileView("list");
                       }}
+                      orders={activeKind === "direct" ? orders : []}
+                      myReview={myReview}
+                      orderActions={orderActions}
+                      onOpenBrief={activeKind === "direct" ? openBriefNew : undefined}
                     />
                   ) : (
                     <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
@@ -724,6 +866,53 @@ export default function ChatsPage() {
       </main>
 
       <NewChatDialog open={newChatOpen} onClose={closeNewChat} onPick={handleStartWith} />
+      <BriefBuilder
+        open={Boolean(briefDialog)}
+        mode={briefDialog?.mode}
+        initial={briefDialog?.initial}
+        peerName={activePeer?.display_name || activePeer?.username || t("common.member")}
+        userId={meId}
+        onClose={closeBriefDialog}
+        onSubmit={submitBrief}
+      />
+      <TakeOrderDialog
+        order={takeTarget}
+        onClose={() => setTakeTarget(null)}
+        onSubmit={(order, price, deadline) =>
+          runOrderAction(async () => {
+            const res = await takeOrder(order.id, price, deadline);
+            if (!res.error) {
+              showNotice(translate(res.status === "offered" ? "orders.notices.offered" : "orders.notices.taken"));
+            }
+            return res;
+          })
+        }
+      />
+      <DeclineDialog
+        order={declineTarget}
+        onClose={() => setDeclineTarget(null)}
+        onSubmit={(order, reason, note) => runOrderAction(() => declineOrder(order.id, reason, note), "orders.notices.declined")}
+      />
+      <NoteDialog
+        open={Boolean(deliverTarget)}
+        title={t("orders.deliver.title")}
+        body={t("orders.deliver.body")}
+        placeholder={t("orders.deliver.placeholder")}
+        confirmLabel={t("orders.deliver.confirm")}
+        maxLength={500}
+        onClose={() => setDeliverTarget(null)}
+        onSubmit={(note) => runOrderAction(() => deliverOrder(deliverTarget.id, note), "orders.notices.delivered")}
+      />
+      <NoteDialog
+        open={Boolean(cancelTarget)}
+        title={t("orders.cancel.title")}
+        body={t("orders.cancel.body")}
+        placeholder={t("orders.cancel.placeholder")}
+        confirmLabel={t("orders.cancel.confirm")}
+        danger
+        onClose={() => setCancelTarget(null)}
+        onSubmit={(note) => runOrderAction(() => cancelOrder(cancelTarget.id, note), "orders.notices.cancelled")}
+      />
       <Toast message={notice} />
     </div>
   );

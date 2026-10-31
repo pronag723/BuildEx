@@ -14,6 +14,9 @@ import { isOnline } from "../../../lib/presence/api";
 import { Icon } from "../../../lib/icons";
 import Avatar from "../../../lib/ui/Avatar";
 import { PresenceAvatar, SupportAvatar } from "./ChatAvatars";
+import BriefCard from "./BriefCard";
+import OrderStrip from "./OrderStrip";
+import { activeOrder, DECLINE_REASONS, formatRub, shortDate } from "../../../lib/orders/brief.mjs";
 
 // Pinned at the very top of every thread. The old version of this notice
 // promised that BuildEx would review the conversation to settle a dispute — a
@@ -46,6 +49,25 @@ function SystemLine({ message, label }) {
       </span>
     </div>
   );
+}
+
+// The text of an order step's system line (migration 0114), written from the
+// reader's side: "you" for their own steps, the other person's name otherwise.
+// Labels: `orders.events.<event>`.
+const ORDER_EVENTS = [
+  "brief_edited", "offered", "taken", "offer_accepted", "offer_rejected",
+  "declined", "delivered", "completed", "cancelled", "reminded",
+];
+
+function orderEventLabel(message, mine, peerName, t) {
+  const meta = message.meta || {};
+  if (!ORDER_EVENTS.includes(meta.event)) return null;
+  return t(`orders.events.${meta.event}`, {
+    who: mine ? t("orders.events.you") : peerName,
+    price: meta.price_rub ? formatRub(meta.price_rub, t.lang) : "",
+    date: meta.deadline ? shortDate(meta.deadline, t.lang) : "",
+    reason: DECLINE_REASONS.includes(meta.reason) ? t(`orders.declineReasons.${meta.reason}`) : "",
+  });
 }
 
 function dayLabel(iso, t) {
@@ -133,6 +155,99 @@ function ThreadMenu({ items }) {
   );
 }
 
+// The composer's "+": attach a photo, or write a brief when the other side is
+// a builder.
+function AttachMenu({ disabled, canBrief, onPhoto, onBrief }) {
+  const t = useT();
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return undefined;
+    const onDown = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("touchstart", onDown);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("touchstart", onDown);
+    };
+  }, [open]);
+
+  if (!canBrief) {
+    return (
+      <button
+        type="button"
+        onClick={onPhoto}
+        disabled={disabled}
+        className="btn btn-ghost h-11 w-11 flex-shrink-0 p-0"
+        aria-label={t("chat.sendPhoto")}
+        title={t("chat.sendPhoto")}
+      >
+        <Icon name="photo" size={20} />
+      </button>
+    );
+  }
+
+  const item = (icon, label, hint, onClick) => (
+    <button
+      type="button"
+      role="menuitem"
+      onClick={() => {
+        setOpen(false);
+        onClick();
+      }}
+      className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-line/[0.06]"
+    >
+      <Icon name={icon} size={18} className="text-ink-2" />
+      <span className="min-w-0">
+        <span className="block text-sm text-ink">{label}</span>
+        <span className="block text-xs text-ink-3">{hint}</span>
+      </span>
+    </button>
+  );
+
+  return (
+    <div ref={ref} className="relative flex-shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        disabled={disabled}
+        className="btn btn-ghost h-11 w-11 p-0"
+        aria-label={t("chat.attach")}
+        aria-haspopup="menu"
+        aria-expanded={open}
+      >
+        <Icon name="plus" size={20} />
+      </button>
+      {open && (
+        <div role="menu" className="menu-panel popover-rise absolute bottom-12 left-0 z-30 w-64 p-1.5">
+          {item("photo", t("chat.attachPhoto"), t("chat.attachPhotoHint"), onPhoto)}
+          {item("briefcase", t("chat.attachBrief"), t("chat.attachBriefHint"), onBrief)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// The opening of a new thread with a builder (stage-0 proposal П1): the brief
+// is the quickest way to a useful first answer, so it is offered before the
+// first message rather than hidden behind "+".
+function BriefIntro({ peerName, onBrief }) {
+  const t = useT();
+  return (
+    <div className="mx-auto max-w-sm py-6 text-center">
+      <p className="text-sm font-semibold">{t("orders.intro.title", { name: peerName })}</p>
+      <p className="mt-1.5 text-xs leading-relaxed text-ink-2">{t("orders.intro.body")}</p>
+      <button type="button" onClick={onBrief} className="btn btn-primary btn-sm mt-4">
+        <Icon name="briefcase" size={15} />
+        {t("orders.intro.cta")}
+      </button>
+      <p className="mt-3 text-[11px] text-ink-3">{t("orders.intro.orWrite")}</p>
+    </div>
+  );
+}
+
 // The opening of an empty support thread: what support is for, the four
 // topics, and the two things people most often write in about that support
 // cannot actually fix.
@@ -189,6 +304,10 @@ export default function MessageThread({
   onToggleMute,
   onBack,
   initialDraft = "",
+  orders = [],
+  myReview = null,
+  orderActions = null,
+  onOpenBrief,
 }) {
   const t = useT();
   const isSupport = mode === "support";
@@ -320,6 +439,15 @@ export default function MessageThread({
   const peerHasProfile = typeof peerIsBuilder === "boolean" ? peerIsBuilder : lookedUpBuilder;
   const profileHref = peer?.username ? `/builders/profile?u=${encodeURIComponent(peer.username)}` : null;
   const online = isOnline(peerLastSeenAt);
+  const canBrief = !isSupport && peerHasProfile && typeof onOpenBrief === "function";
+  const ordersById = Object.fromEntries((orders || []).map((o) => [o.id, o]));
+  const openOrder = activeOrder(orders);
+  // "Ask a question" / "I have remarks" just hand the conversation back to the
+  // composer.
+  const actions = orderActions && {
+    ...orderActions,
+    ask: () => taRef.current?.focus(),
+  };
 
   // While a support request is closed, its last "Request closed" line says how
   // to reopen it: just write again.
@@ -397,6 +525,8 @@ export default function MessageThread({
         <ThreadMenu items={menuItems} />
       </div>
 
+      {!isSupport && <OrderStrip order={openOrder} />}
+
       {/* Messages */}
       <div ref={scrollRef} className="bx-scroll flex-1 overflow-y-auto px-3 py-5 space-y-1 min-h-0 sm:px-5">
         {!loading && !isSupport && <SafetyNotice />}
@@ -408,6 +538,9 @@ export default function MessageThread({
           isSupport ? (
             <SupportIntro topic={supportTopic} onPickTopic={(key) => onPickSupportTopic?.(key)} />
           ) : (
+            canBrief ? (
+              <BriefIntro peerName={peerName} onBrief={onOpenBrief} />
+            ) : (
             <div className="flex flex-col items-center justify-center text-center px-6 py-10">
               <Avatar src={peer?.avatar_url ? publicAsset(peer.avatar_url) : null} name={peerName} size={56} />
               <p className="font-semibold text-sm mt-3">{peerName}</p>
@@ -418,6 +551,7 @@ export default function MessageThread({
                 {t("chat.startOfConversation")}
               </p>
             </div>
+            )
           )
         ) : (
           messages.map((m, i) => {
@@ -428,8 +562,29 @@ export default function MessageThread({
 
             // Order events and system lines render as a neutral centred line,
             // not as left/right chat bubbles. Day chip still leads if needed.
+            if (m.msg_type === "brief") {
+              const order = ordersById[m.meta?.order_id];
+              const role = order ? (order.client_id === meId ? "client" : "builder") : null;
+              return (
+                <div key={m.id}>
+                  {showDay && <DayChip iso={m.created_at} />}
+                  <div className={`flex ${m.sender_id === meId ? "justify-end" : "justify-start"}`}>
+                    <BriefCard
+                      order={order}
+                      message={m}
+                      role={role}
+                      peerName={peerName}
+                      review={myReview}
+                      actions={actions}
+                    />
+                  </div>
+                </div>
+              );
+            }
+
             if (m.msg_type === "order_event" || m.msg_type === "system") {
               const closing = m.msg_type === "system" && m.meta?.event === "support_closed";
+              const orderLabel = m.msg_type === "system" ? orderEventLabel(m, m.sender_id === meId, peerName, t) : null;
               return (
                 <div key={m.id}>
                   {showDay && <DayChip iso={m.created_at} />}
@@ -440,7 +595,7 @@ export default function MessageThread({
                         ? t("chat.orderUpdate")
                         : closing
                           ? t("chat.support.closedLine")
-                          : undefined
+                          : orderLabel ?? undefined
                     }
                   />
                   {i === lastClosedIndex && (
@@ -550,16 +705,12 @@ export default function MessageThread({
             onChange={onPickImage}
             className="hidden"
           />
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
+          <AttachMenu
             disabled={sending || !canWrite}
-            className="btn btn-ghost h-11 w-11 flex-shrink-0 p-0"
-            aria-label={t("chat.sendPhoto")}
-            title={t("chat.sendPhoto")}
-          >
-            <Icon name="photo" size={20} />
-          </button>
+            canBrief={canBrief}
+            onPhoto={() => fileRef.current?.click()}
+            onBrief={onOpenBrief}
+          />
           <textarea
             ref={taRef}
             value={draft}
