@@ -5,10 +5,11 @@
 //
 // One header item, sections down the left like channels in Discord. A section
 // is shown only once it has something to show (stage-0 proposal П7): today
-// that is the Showcase (every public work) and "Looking for a builder" (public
-// briefs); "Saved" appears for signed-in people, and the updates channel and
-// the rules are plain links. Sections live in ?s= because the site is a static
-// export.
+// that is the Showcase (every public work), "Looking for a builder" (public
+// briefs) and Discussions (questions, guides and ideas in one section); "Saved"
+// and "My topics" appear for signed-in people, and the updates channel and the
+// rules are plain links. Sections live in ?s= (and an open topic in &t=)
+// because the site is a static export.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useCallback, useEffect, useState } from "react";
@@ -22,18 +23,27 @@ import CatalogNavbar from "../../builders/components/CatalogNavbar";
 import CatalogMobileMenu from "../../builders/components/CatalogMobileMenu";
 import ShowcaseSection from "./ShowcaseSection";
 import RequestsSection from "./RequestsSection";
+import DiscussionsSection from "./DiscussionsSection";
+import TopicView from "./TopicView";
 
 // Labels: `community.sections.<key>`.
 const SECTIONS = [
   { key: "showcase", icon: "grid" },
   { key: "requests", icon: "briefcase" },
+  { key: "discussions", icon: "chat" },
 ];
-const MY_SECTIONS = [{ key: "saved", icon: "bookmark", auth: true }];
+const MY_SECTIONS = [
+  { key: "saved", icon: "bookmark", auth: true },
+  { key: "mytopics", icon: "pencil", auth: true },
+];
 
-function readSection() {
-  if (typeof window === "undefined") return "showcase";
-  const s = new URLSearchParams(window.location.search).get("s");
-  return [...SECTIONS, ...MY_SECTIONS].some((x) => x.key === s) ? s : "showcase";
+function readLocation() {
+  if (typeof window === "undefined") return { section: "showcase", topic: null };
+  const params = new URLSearchParams(window.location.search);
+  const s = params.get("s");
+  const topic = params.get("t");
+  const section = [...SECTIONS, ...MY_SECTIONS].some((x) => x.key === s) ? s : "showcase";
+  return { section, topic: section === "discussions" || section === "mytopics" ? topic : null };
 }
 
 export default function CommunityPage() {
@@ -43,20 +53,35 @@ export default function CommunityPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   useScrollLock(mobileMenuOpen);
   const [section, setSection] = useState("showcase");
+  const [topic, setTopic] = useState(null);
 
   useEffect(() => {
-    setSection(readSection());
-    const onPop = () => setSection(readSection());
-    window.addEventListener("popstate", onPop);
-    return () => window.removeEventListener("popstate", onPop);
+    const apply = () => {
+      const loc = readLocation();
+      setSection(loc.section);
+      setTopic(loc.topic);
+    };
+    apply();
+    window.addEventListener("popstate", apply);
+    return () => window.removeEventListener("popstate", apply);
   }, []);
 
   const go = useCallback((key) => {
     setSection(key);
+    setTopic(null);
     const url = key === "showcase" ? "/community" : `/community?s=${key}`;
     window.history.pushState(window.history.state, "", withBase(url));
     window.scrollTo({ top: 0 });
   }, []);
+
+  const openTopic = useCallback(
+    (id) => {
+      setTopic(id);
+      window.history.pushState(window.history.state, "", withBase(`/community?s=${section === "mytopics" ? "mytopics" : "discussions"}&t=${id}`));
+      window.scrollTo({ top: 0 });
+    },
+    [section]
+  );
 
   const mine = MY_SECTIONS.filter((s) => !s.auth || signedIn);
   const item = (s) => (
@@ -131,6 +156,12 @@ export default function CommunityPage() {
           {section === "showcase" && <ShowcaseSection key="showcase" mode="all" />}
           {section === "saved" && <ShowcaseSection key="saved" mode="saved" />}
           {section === "requests" && <RequestsSection />}
+          {(section === "discussions" || section === "mytopics") &&
+            (topic ? (
+              <TopicView key={topic} topicId={topic} onBack={() => go(section)} />
+            ) : (
+              <DiscussionsSection key={section} scope={section === "mytopics" ? "mine" : "all"} onOpenTopic={openTopic} />
+            ))}
         </main>
       </div>
     </div>

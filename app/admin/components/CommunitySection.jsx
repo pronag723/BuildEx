@@ -3,14 +3,14 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // BuildEx — Moderator console: Community (migration 0116)
 //
-// Reports on public content — requests on "Looking for a builder" and works in
-// the Showcase. A request can be hidden from the board right here; a work is
+// Reports on public content — requests on "Looking for a builder", works in
+// the Showcase, and discussion topics and replies (0117). A request can be hidden from the board right here; a work is
 // taken down from the Builders tab, where the rest of that builder's works are.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { listCommunityReports, resolveCommunityReport, setBriefHidden } from "../../../lib/community/api";
+import { listCommunityReports, resolveCommunityReport, setBriefHidden, setForumHidden } from "../../../lib/community/api";
 import { useT } from "../../../lib/i18n/LanguageProvider";
 import { formatDateTime, errText, Spinner, EmptyState, ErrorLine, PillTabs, RefreshButton } from "./shared";
 
@@ -77,6 +77,18 @@ export default function CommunitySection() {
               <p className="whitespace-pre-wrap break-words text-[13px] text-ink-2">{r.reason}</p>
               <p className="text-[11px] text-ink-3">{t("admin.community.by", { name: r.reporter_username || "—" })}</p>
               <div className="flex flex-wrap gap-2">
+                {(r.target_type === "topic" || r.target_type === "reply") && (
+                  <>
+                    <button type="button" onClick={() => act(() => setForumHidden(r.target_type, r.target_id, !r.target_hidden))} className="btn btn-secondary btn-sm">
+                      {r.target_hidden ? t("community.topic.unhide") : t("community.topic.hide")}
+                    </button>
+                    {r.topic_id && (
+                      <Link href={`/community?s=discussions&t=${r.topic_id}`} className="btn btn-ghost btn-sm">
+                        {t("admin.community.openTopic")}
+                      </Link>
+                    )}
+                  </>
+                )}
                 {r.target_type === "brief" && (
                   <button type="button" onClick={() => act(() => setBriefHidden(r.target_id, !r.target_hidden))} className="btn btn-secondary btn-sm">
                     {r.target_hidden ? t("community.requests.unhide") : t("community.requests.hide")}
