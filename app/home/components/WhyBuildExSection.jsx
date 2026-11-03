@@ -11,6 +11,8 @@ import { useT } from "../../../lib/i18n/LanguageProvider";
 // lists themselves are `about.why.does` / `about.why.doesNot` in the
 // dictionaries (lib/i18n/messages/<lang>/about.mjs).
 
+const PARTNER_URL = "https://discord.gg/helpingworld";
+
 function ClaimList({ positive, title, items }) {
   return (
     <div>
@@ -46,6 +48,21 @@ export default function WhyBuildExSection() {
             <ClaimList positive title={t("about.why.doesTitle")} items={t("about.why.does")} />
             <ClaimList title={t("about.why.doesNotTitle")} items={t("about.why.doesNot")} />
           </div>
+        </div>
+        {/* A link swapped for an ad on the partner's server. It is marked as a
+            partner link and rel="sponsored" so it reads as an ad, not as us
+            vouching for anyone — that would contradict the list above. */}
+        <div className="mt-10 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm lg:ml-[calc((100%-4rem)/3+4rem)]">
+          <span className="text-xs uppercase tracking-wide text-ink-3">{t("about.why.partnerLabel")}</span>
+          <a
+            href={PARTNER_URL}
+            target="_blank"
+            rel="sponsored noopener noreferrer"
+            className="inline-flex items-center gap-1.5 font-medium text-ink-2 hover:text-ink"
+          >
+            {t("about.why.partnerName")}
+            <Icon name="external" size={14} />
+          </a>
         </div>
       </div>
     </section>
