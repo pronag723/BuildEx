@@ -52,16 +52,16 @@ export default function WhyBuildExSection() {
         {/* A link swapped for an ad on the partner's server. It is marked as a
             partner link and rel="sponsored" so it reads as an ad, not as us
             vouching for anyone — that would contradict the list above. */}
-        <div className="mt-10 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm lg:ml-[calc((100%-4rem)/3+4rem)]">
-          <span className="text-xs uppercase tracking-wide text-ink-3">{t("about.why.partnerLabel")}</span>
+        <div className="mt-10 flex flex-wrap items-center gap-x-4 gap-y-1 lg:ml-[calc((100%-4rem)/3+4rem)]">
+          <span className="text-sm font-semibold uppercase tracking-wide text-accent-ink">{t("about.why.partnerLabel")}</span>
           <a
             href={PARTNER_URL}
             target="_blank"
             rel="sponsored noopener noreferrer"
-            className="inline-flex items-center gap-1.5 font-medium text-ink-2 hover:text-ink"
+            className="inline-flex items-center gap-2 text-lg font-semibold text-ink hover:text-accent-ink"
           >
             {t("about.why.partnerName")}
-            <Icon name="external" size={14} />
+            <Icon name="external" size={18} />
           </a>
         </div>
       </div>
