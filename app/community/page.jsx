@@ -10,8 +10,11 @@ export default function Page() {
   return (
     <Suspense
       fallback={
-        <main className="flex min-h-screen items-center justify-center px-4">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-line/20 border-t-accent" />
+        <main aria-busy="true" className="mx-auto w-full max-w-3xl space-y-3 px-4 pt-20">
+          <div className="skeleton h-5 w-40 rounded" />
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="skeleton h-16 rounded-xl" />
+          ))}
         </main>
       }
     >

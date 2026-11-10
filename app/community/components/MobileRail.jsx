@@ -13,27 +13,35 @@ import { useT } from "../../../lib/i18n/LanguageProvider";
 import { Icon } from "../../../lib/icons";
 import { SPACES } from "./channels";
 import { CategoryList } from "./CommunitySidebar";
+import { spaceHasUnread, useUnread } from "./unread";
 
+// The left bar is Discord's: tall on the active space, a short pill on one
+// with something new. A dot on the tile's corner says the same at a glance.
 function RailTile({ space, active, onPick }) {
   const t = useT();
+  const { status } = useAuth();
+  const isNew = spaceHasUnread(space.key, status === "authenticated", useUnread());
   const label = t(`community.spaces.${space.key}`);
   return (
     <div className="relative flex w-full justify-center py-1">
       <span
         aria-hidden="true"
-        className={`absolute left-0 top-1/2 w-1 -translate-y-1/2 rounded-r-full bg-ink transition-all ${active ? "h-9 opacity-100" : "h-2 opacity-0"}`}
+        className={`absolute left-0 top-1/2 w-1 -translate-y-1/2 rounded-r-full bg-ink transition-all motion-reduce:transition-none ${
+          active ? "h-9 opacity-100" : isNew ? "h-2 opacity-100" : "h-2 opacity-0"
+        }`}
       />
       <button
         type="button"
         onClick={() => onPick(space.key)}
         aria-pressed={active}
-        aria-label={label}
+        aria-label={isNew ? `${label}, ${t("community.shell.unread")}` : label}
         title={label}
-        className={`flex h-12 w-12 items-center justify-center transition-[border-radius,background-color,color] duration-150 ${
+        className={`relative flex h-12 w-12 items-center justify-center transition-[border-radius,background-color,color] duration-150 motion-reduce:transition-none ${
           active ? "rounded-2xl bg-accent text-accent-fg" : "rounded-[1.5rem] bg-raised text-ink-2 hover:rounded-2xl hover:bg-line/[0.12] hover:text-ink"
         }`}
       >
         <Icon name={space.icon} size={22} />
+        {isNew && !active && <span aria-hidden="true" className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full bg-red-500 ring-2 ring-canvas" />}
       </button>
     </div>
   );

@@ -111,10 +111,19 @@ export default function SavedSection({ onBack, onOpenTopic }) {
           {TABS.map((key) => (
             <button
               key={key}
+              id={`saved-tab-${key}`}
               type="button"
               role="tab"
               aria-selected={tab === key}
+              aria-controls="saved-panel"
+              tabIndex={tab === key ? 0 : -1}
               onClick={() => setTab(key)}
+              onKeyDown={(e) => {
+                if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+                const next = TABS[(TABS.indexOf(key) + (e.key === "ArrowRight" ? 1 : TABS.length - 1)) % TABS.length];
+                setTab(next);
+                document.getElementById(`saved-tab-${next}`)?.focus();
+              }}
               className={`inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-[13px] font-medium transition-colors ${tab === key ? "bg-surface text-ink shadow-card" : "text-ink-2 hover:text-ink"}`}
             >
               <Icon name={key === "works" ? "grid" : "bookmark"} size={14} />
@@ -122,7 +131,9 @@ export default function SavedSection({ onBack, onOpenTopic }) {
             </button>
           ))}
         </div>
-        {tab === "works" ? <ShowcaseSection key="saved" mode="saved" embedded /> : <SavedPostsAndTopics onOpenTopic={onOpenTopic} />}
+        <div id="saved-panel" role="tabpanel" aria-labelledby={`saved-tab-${tab}`}>
+          {tab === "works" ? <ShowcaseSection key="saved" mode="saved" embedded /> : <SavedPostsAndTopics onOpenTopic={onOpenTopic} />}
+        </div>
       </div>
     </>
   );

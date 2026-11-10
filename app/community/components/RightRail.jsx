@@ -48,11 +48,15 @@ export default function RightRail({ channel, topic, onOpenTopic }) {
   const spec = CHANNELS[channel];
   const kind = spec && spec.kind !== undefined ? spec.kind : null;
   const [rail, setRail] = useState(EMPTY);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
     fetchCommunityRail(kind).then(({ rail: data }) => {
-      if (!cancelled) setRail(data || EMPTY);
+      if (cancelled) return;
+      setRail(data || EMPTY);
+      setLoading(false);
     });
     return () => {
       cancelled = true;
@@ -86,6 +90,15 @@ export default function RightRail({ channel, topic, onOpenTopic }) {
             </Link>
           )}
         </Block>
+      )}
+
+      {loading && (
+        <div aria-hidden="true" className="space-y-2">
+          <div className="skeleton h-2.5 w-24 rounded" />
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="skeleton h-9 rounded-lg" />
+          ))}
+        </div>
       )}
 
       {showPinned && (

@@ -5,6 +5,7 @@
 // the bottom. The whole row is the button; there are no buttons inside it.
 // Rows sit in a `.feed` list divided by hairlines (see FeedList).
 
+import { useT } from "../../../lib/i18n/LanguageProvider";
 import { Icon } from "../../../lib/icons";
 import Avatar from "../../../lib/ui/Avatar";
 
@@ -43,6 +44,7 @@ export function FeedSkeleton({ rows = 4 }) {
  * @param {boolean} [p.muted]  closed or hidden items
  */
 export default function FeedRow({ author, time, title, text, chips, image, metrics = [], status, pinned, muted, onClick }) {
+  const t = useT();
   return (
     <li>
       <button
@@ -56,7 +58,12 @@ export default function FeedRow({ author, time, title, text, chips, image, metri
             <span className="truncate font-medium text-ink-2">{author.name}</span>
             <span aria-hidden="true">·</span>
             <span className="flex-shrink-0">{time}</span>
-            {pinned && <Icon name="pin" size={12} className="ml-1 flex-shrink-0" />}
+            {pinned && (
+              <>
+                <Icon name="pin" size={12} className="ml-1 flex-shrink-0" />
+                <span className="sr-only">{t("community.topic.pinned")}</span>
+              </>
+            )}
             {status && <span className="ml-auto flex-shrink-0 pl-2">{status}</span>}
           </p>
           <h3 className={`mt-0.5 text-[15px] font-semibold leading-snug [overflow-wrap:anywhere] ${muted ? "text-ink-2" : "text-ink"}`}>{title}</h3>
@@ -67,7 +74,8 @@ export default function FeedRow({ author, time, title, text, chips, image, metri
               {metrics.map((m) => (
                 <span key={m.icon + (m.label || "")} className="inline-flex items-center gap-1 tabular-nums" title={m.label}>
                   <Icon name={m.icon} size={13} />
-                  {m.value}
+                  <span aria-hidden={m.label ? "true" : undefined}>{m.value}</span>
+                  {m.label && <span className="sr-only">{m.label}</span>}
                 </span>
               ))}
             </p>

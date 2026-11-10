@@ -199,7 +199,7 @@ export default function DiscussionsSection({ channel, kind = null, scope = "all"
               {visible.map((topic) => {
                 const name = topic.author_display_name || topic.author_username || t("common.member");
                 const metrics = [{ icon: "chat", value: topic.reply_count, label: t("community.topic.replies", { count: topic.reply_count }) }];
-                if (topic.helpful_count > 0) metrics.push({ icon: "star", value: topic.helpful_count, label: t("community.topic.helpful") });
+                if (topic.helpful_count > 0) metrics.push({ icon: "star", value: topic.helpful_count, label: t("community.rail.helpfulCount", { count: topic.helpful_count }) });
                 return (
                   <FeedRow
                     key={topic.id}

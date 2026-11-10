@@ -29,12 +29,11 @@ import {
   reportContent,
   setForumHidden,
   setTopicPinned,
-  toggleHelpful,
-  toggleTopicSave,
 } from "../../../lib/community/api";
 import Toast from "../../components/Toast";
 import ReportDialog from "./ReportDialog";
 import { CHANNELS } from "./channels";
+import { useForumToggles } from "./useForumToggles";
 
 function Author({ name, avatar, isBuilder, username, at, edited, size = 28 }) {
   const t = useT();
@@ -208,6 +207,8 @@ export default function PostView({ postId, onBack, onLoaded }) {
     window.setTimeout(() => setNotice(null), 3000);
   }, []);
 
+  const { toggleTopicHelpful, toggleReplyHelpful, toggleSave } = useForumToggles(setData, showNotice);
+
   const load = useCallback(async () => {
     const { topic, replies } = await fetchTopic(postId);
     setData(topic && topic.kind === "showcase" ? { topic, replies } : { missing: true });
@@ -321,7 +322,7 @@ export default function PostView({ postId, onBack, onLoaded }) {
             active={r.helpful_by_me}
             disabled={!signedIn || ownReply}
             label={`${t("community.topic.helpful")}${r.helpful_count ? ` · ${r.helpful_count}` : ""}`}
-            onClick={() => run(() => toggleHelpful("reply", r.id))}
+            onClick={() => toggleReplyHelpful(r)}
           />
           {signedIn && <ActionButton icon="chat" label={t("community.topic.quote")} onClick={() => { setQuote(r); taRef.current?.focus(); }} />}
           {ownReply && <ActionButton icon="pencil" label={t("common.edit")} onClick={() => setEditing(r.id)} />}
@@ -350,20 +351,12 @@ export default function PostView({ postId, onBack, onLoaded }) {
               disabled={!signedIn || mine}
               className={post.helpful_by_me ? "text-[rgb(var(--heart))]" : ""}
               label={`${t("community.showcase.like")}${post.helpful_count ? ` · ${post.helpful_count}` : ""}`}
-              onClick={() => run(() => toggleHelpful("topic", post.id))}
+              onClick={() => toggleTopicHelpful(post)}
             />
             {signedIn && (
               <SaveButton
                 saved={post.saved_by_me}
-                onToggle={async () => {
-                  const { error } = await toggleTopicSave(post.id);
-                  if (error) {
-                    showNotice(serverMessage(error, "community.errors.failed"));
-                    return { ok: false };
-                  }
-                  await load();
-                  return { ok: true };
-                }}
+                onToggle={() => toggleSave(post)}
                 size={14}
                 aria-label={post.saved_by_me ? t("community.topic.saved") : t("community.topic.save")}
                 className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2 text-xs font-medium text-ink-3 hover:bg-line/[0.06] hover:text-ink"

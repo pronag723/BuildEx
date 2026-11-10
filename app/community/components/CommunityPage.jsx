@@ -15,7 +15,7 @@
 // the address when the viewer landed here directly.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../../lib/auth/AuthContext";
 import { useScrollLock } from "../../../lib/useScrollLock";
 import { useT } from "../../../lib/i18n/LanguageProvider";
@@ -33,12 +33,44 @@ import RequestsSection from "./RequestsSection";
 import DiscussionsSection from "./DiscussionsSection";
 import TopicView from "./TopicView";
 import PostView from "./PostView";
+import { UnreadContext, useChannelUnread } from "./unread";
 
 const EDGE = 24; // px from the left edge where a back swipe may start
 const SWIPE = 72; // px of travel that counts as a swipe
 
 function depthOf() {
   return Number(window.history.state?.cDepth) || 0;
+}
+
+// Typing somewhere: shortcuts stay out of the way.
+function isTyping(el) {
+  return Boolean(el) && (el.isContentEditable || /^(input|textarea|select)$/i.test(el.tagName));
+}
+
+// Shown until the layout (desktop or phone) is known: a sidebar and a feed
+// from 1024px, the phone's rail and channel list below.
+function ShellSkeleton() {
+  return (
+    <main aria-busy="true" className="mx-auto flex w-full max-w-[1440px]">
+      <div className="hidden w-60 flex-shrink-0 space-y-3 border-r border-line/[0.08] p-4 lg:block">
+        <div className="skeleton h-4 w-32 rounded" />
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="skeleton h-6 rounded-md" style={{ width: `${60 + ((i * 13) % 35)}%` }} />
+        ))}
+      </div>
+      <div className="flex w-[68px] flex-shrink-0 flex-col items-center gap-2 pt-3 lg:hidden">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="skeleton h-12 w-12 rounded-[1.5rem]" />
+        ))}
+      </div>
+      <div className="min-w-0 flex-1 space-y-3 p-4 lg:p-6">
+        <div className="skeleton h-5 w-40 rounded" />
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="skeleton h-16 rounded-xl" />
+        ))}
+      </div>
+    </main>
+  );
 }
 
 function ChannelContent({ channel, onBack, onOpenTopic }) {
@@ -60,7 +92,7 @@ function ChannelContent({ channel, onBack, onOpenTopic }) {
 
 export default function CommunityPage() {
   const t = useT();
-  const { status } = useAuth();
+  const { status, user } = useAuth();
   const desktop = useIsDesktop();
   const wide = useMediaQuery("(min-width: 1280px)");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -69,12 +101,16 @@ export default function CommunityPage() {
   const [space, setSpace] = useState("home");
   const [topicData, setTopicData] = useState(null);
   const touch = useRef(null);
+  const moved = useRef(false); // the viewer navigated: focus follows
 
   useEffect(() => {
     const first = readLocation();
     setLoc(first);
     if (first.channel) setSpace(CHANNELS[first.channel].space || "home");
-    const onPop = () => setLoc(readLocation());
+    const onPop = () => {
+      moved.current = true;
+      setLoc(readLocation());
+    };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, []);
@@ -91,6 +127,7 @@ export default function CommunityPage() {
     const depth = depthOf();
     const state = { ...(window.history.state || {}), cDepth: replace ? depth : depth + 1 };
     window.history[replace ? "replaceState" : "pushState"](state, "", withBase(url));
+    moved.current = true;
     setLoc(readLocation());
     window.scrollTo({ top: 0 });
   }, []);
@@ -131,14 +168,49 @@ export default function CommunityPage() {
   const channel = loc.channel || (desktop ? DEFAULT_CHANNEL : null);
   const topic = loc.topic;
   const showNav = desktop === false && !channel;
+  const unread = useChannelUnread(channel, user?.id || null, status !== "loading" && desktop !== null);
+  const unreadValue = useMemo(() => ({ unread }), [unread]);
+
+  // After a navigation the channel (or the topic) takes focus, so a keyboard
+  // or screen-reader user lands on what they opened rather than on the link
+  // they left. Not on the first load: the page opens where the browser puts it.
+  useEffect(() => {
+    if (!moved.current) return;
+    moved.current = false;
+    window.requestAnimationFrame(() => document.getElementById("community-channel")?.focus({ preventScroll: true }));
+  }, [loc]);
+
+  // Esc closes an open topic or post (unless a dialog or menu is open, or a
+  // reply is half written); "/" focuses the channel search.
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === "Escape" && topic) {
+        if (mobileMenuOpen || document.querySelector('[aria-modal="true"], .profile-menu.open')) return;
+        const el = document.activeElement;
+        if (isTyping(el) && el.value) return;
+        goBack();
+        return;
+      }
+      if (e.key === "/" && !isTyping(e.target)) {
+        const field = [...document.querySelectorAll("[data-channel-search]")].find((x) => x.offsetParent !== null);
+        if (!field) return;
+        e.preventDefault();
+        field.focus();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [topic, goBack, mobileMenuOpen]);
 
   return (
     <div className="catalog-root">
       <CatalogNavbar mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
       <CatalogMobileMenu mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
 
+      <UnreadContext.Provider value={unreadValue}>
       {desktop === null ? (
-        <main aria-busy="true" />
+        <ShellSkeleton />
       ) : showNav ? (
         <main>
           <MobileRail space={space} onPickSpace={setSpace} active={null} onGo={go} />
@@ -146,7 +218,12 @@ export default function CommunityPage() {
       ) : (
         <main className="mx-auto flex w-full max-w-[1440px]" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
           <CommunitySidebar active={channel} onGo={go} />
-          <section className="min-w-0 flex-1" aria-label={t(`community.channels.${channel}.name`)}>
+          <section
+            id="community-channel"
+            tabIndex={-1}
+            className="min-w-0 flex-1 outline-none"
+            aria-label={topic && topicData?.title ? topicData.title : t(`community.channels.${channel}.name`)}
+          >
             {topic ? (
               <>
                 <ChannelHeader channel={channel} onBack={goBack} thread={topicData?.title || t("community.shell.topic")} />
@@ -165,6 +242,7 @@ export default function CommunityPage() {
           {wide && <RightRail channel={channel} topic={topic ? topicData : null} onOpenTopic={openTopic} />}
         </main>
       )}
+      </UnreadContext.Provider>
     </div>
   );
 }

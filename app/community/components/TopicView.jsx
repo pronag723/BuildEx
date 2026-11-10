@@ -26,13 +26,12 @@ import {
   reportContent,
   setForumHidden,
   setTopicPinned,
-  toggleHelpful,
-  toggleTopicSave,
 } from "../../../lib/community/api";
 import Toast from "../../components/Toast";
 import ReportDialog from "./ReportDialog";
 import { KindTag } from "./DiscussionsSection";
 import { CHANNELS } from "./channels";
+import { useForumToggles } from "./useForumToggles";
 
 function Author({ name, avatar, isBuilder, username, at, edited }) {
   const t = useT();
@@ -123,6 +122,8 @@ export default function TopicView({ topicId, channel = "discussions", onBack, on
     setNotice(msg);
     window.setTimeout(() => setNotice(null), 3000);
   }, []);
+
+  const { toggleTopicHelpful, toggleReplyHelpful, toggleSave } = useForumToggles(setData, showNotice);
 
   const load = useCallback(async () => {
     const { topic, replies } = await fetchTopic(topicId);
@@ -251,7 +252,7 @@ export default function TopicView({ topicId, channel = "discussions", onBack, on
               active={r.helpful_by_me}
               disabled={!signedIn || ownReply}
               label={`${t("community.topic.helpful")}${r.helpful_count ? ` · ${r.helpful_count}` : ""}`}
-              onClick={() => run(() => toggleHelpful("reply", r.id))}
+              onClick={() => toggleReplyHelpful(r)}
             />
             {signedIn && (
               <ActionButton
@@ -335,7 +336,7 @@ export default function TopicView({ topicId, channel = "discussions", onBack, on
               active={topic.helpful_by_me}
               disabled={!signedIn || mine}
               label={`${t("community.topic.helpful")}${topic.helpful_count ? ` · ${topic.helpful_count}` : ""}`}
-              onClick={() => run(() => toggleHelpful("topic", topic.id))}
+              onClick={() => toggleTopicHelpful(topic)}
             />
             {signedIn && (
               <ActionButton
@@ -343,7 +344,7 @@ export default function TopicView({ topicId, channel = "discussions", onBack, on
                 filled={topic.saved_by_me}
                 active={topic.saved_by_me}
                 label={topic.saved_by_me ? t("community.topic.saved") : t("community.topic.save")}
-                onClick={() => run(() => toggleTopicSave(topic.id))}
+                onClick={() => toggleSave(topic)}
               />
             )}
             {mine && <ActionButton icon="pencil" label={t("common.edit")} onClick={() => setEditing("topic")} />}

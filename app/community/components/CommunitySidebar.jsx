@@ -10,19 +10,32 @@ import { useT } from "../../../lib/i18n/LanguageProvider";
 import { Icon } from "../../../lib/icons";
 import Avatar from "../../../lib/ui/Avatar";
 import { CHANNELS, categoriesFor, useCollapsedCategories } from "./channels";
+import { useUnread } from "./unread";
 
 export function ChannelRow({ channelKey, active, onGo, dense = false }) {
   const t = useT();
   const c = CHANNELS[channelKey];
   const label = t(`community.channels.${channelKey}.slug`);
-  const base = `flex w-full items-center gap-2 rounded-lg px-2 text-left transition-colors ${dense ? "h-8 text-[13.5px]" : "h-11 text-sm"} ${
-    active ? "bg-line/[0.08] font-medium text-ink" : "text-ink-2 hover:bg-line/[0.05] hover:text-ink"
+  const isNew = useUnread().has(channelKey) && !active;
+  const base = `relative flex w-full items-center gap-2 rounded-lg px-2 text-left transition-colors ${dense ? "h-8 text-[13.5px]" : "h-11 text-sm"} ${
+    active ? "bg-line/[0.08] font-medium text-ink" : isNew ? "font-semibold text-ink hover:bg-line/[0.05]" : "text-ink-2 hover:bg-line/[0.05] hover:text-ink"
   }`;
   const inner = (
     <>
-      <Icon name={c.icon} size={dense ? 15 : 17} className={`flex-shrink-0 ${active ? "text-ink" : "text-ink-3"}`} />
+      <Icon name={c.icon} size={dense ? 15 : 17} className={`flex-shrink-0 ${active || isNew ? "text-ink" : "text-ink-3"}`} />
       <span className="truncate">{label}</span>
-      {c.href && <Icon name="external" size={12} className="ml-auto flex-shrink-0 text-ink-3" />}
+      {c.href && (
+        <>
+          <Icon name="external" size={12} className="ml-auto flex-shrink-0 text-ink-3" />
+          <span className="sr-only">{t("community.shell.opensElsewhere")}</span>
+        </>
+      )}
+      {isNew && (
+        <>
+          <span aria-hidden="true" className="ml-auto h-2 w-2 flex-shrink-0 rounded-full bg-ink" />
+          <span className="sr-only">{t("community.shell.unread")}</span>
+        </>
+      )}
     </>
   );
   if (c.href) {

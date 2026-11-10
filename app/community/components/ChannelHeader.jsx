@@ -20,15 +20,15 @@ const BAR_TOP = "sticky top-[var(--header-h)] z-20 border-b border-line/[0.08] b
 function SortControl({ sort }) {
   const t = useT();
   return (
-    <div role="tablist" aria-label={t("community.shell.sortAria")} className="inline-flex flex-shrink-0 rounded-lg bg-line/[0.06] p-0.5">
+    <div role="radiogroup" aria-label={t("community.shell.sortAria")} className="inline-flex flex-shrink-0 rounded-lg bg-line/[0.06] p-0.5">
       {sort.options.map((key) => {
         const on = sort.value === key;
         return (
           <button
             key={key}
             type="button"
-            role="tab"
-            aria-selected={on}
+            role="radio"
+            aria-checked={on}
             onClick={() => sort.onChange(key)}
             className={`h-8 rounded-md px-2.5 text-xs font-medium transition-colors ${on ? "bg-surface text-ink shadow-card" : "text-ink-2 hover:text-ink"}`}
           >
@@ -40,19 +40,34 @@ function SortControl({ sort }) {
   );
 }
 
-function SearchField({ search, className = "" }) {
+// `/` focuses it (CommunityPage); Esc inside it clears it. The desktop field
+// shows the shortcut as a key cap while it is empty.
+function SearchField({ search, className = "", showKey = false }) {
   const t = useT();
   return (
     <label className={`relative block ${className}`}>
       <Icon name="search" size={15} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-3" />
       <input
         type="search"
+        data-channel-search=""
         value={search.value}
         onChange={(e) => search.onChange(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape" && search.value) {
+            e.preventDefault();
+            search.onChange("");
+          }
+        }}
         placeholder={search.placeholder || t("community.shell.searchPlaceholder")}
         aria-label={t("community.shell.searchAria")}
-        className="input h-9 pl-8 pr-3 text-[13px]"
+        aria-keyshortcuts="/"
+        className={`input h-9 pl-8 text-[13px] ${showKey ? "pr-8" : "pr-3"}`}
       />
+      {showKey && !search.value && (
+        <kbd aria-hidden="true" className="pointer-events-none absolute right-2 top-1/2 flex h-5 min-w-[1.25rem] -translate-y-1/2 items-center justify-center rounded border border-line/15 px-1 font-sans text-[11px] text-ink-3">
+          /
+        </kbd>
+      )}
     </label>
   );
 }
@@ -144,7 +159,7 @@ export default function ChannelHeader({ channel, onBack, search, sort, action, t
           </p>
           {!thread && (
             <div className="flex flex-shrink-0 items-center gap-2">
-              {search && <SearchField search={search} className="w-44 xl:w-56" />}
+              {search && <SearchField search={search} className="w-44 xl:w-56" showKey />}
               {sort && <SortControl sort={sort} />}
               <ActionButton action={action} />
             </div>
