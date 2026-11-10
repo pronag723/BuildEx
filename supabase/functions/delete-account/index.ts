@@ -145,6 +145,7 @@ Deno.serve(async (req) => {
       removeFilesAtPrefix(admin, "portfolios", userId),
       removeFilesAtPrefix(admin, "chat-media", userId),
       removeFilesAtPrefix(admin, "chat-previews", userId),
+      removeFilesAtPrefix(admin, "community-media", userId),
       ...(orders || []).flatMap((order) => [
         removeFilesAtPrefix(admin, "deliverables", order.id),
         removeFilesAtPrefix(admin, "order_previews", order.id),

@@ -1,13 +1,11 @@
 "use client";
 
-// The right column (≥1280px): real data only. The author of an open topic,
-// what is pinned in the current channel, the most helpful topics started this
-// week, and a short rules block. A block that has nothing to show is not
-// rendered.
-//
-// "Popular this week" is read from the top of list_forum_topics(sort=top) and
-// trimmed to the last seven days, which is exact while the forum is small;
-// stage 2 replaces it (and adds "Active members") with one RPC.
+// The right column (≥1280px): real data only, from one call to
+// community_rail (migration 0118). The author of an open topic or post, what
+// is pinned in the current channel, the most helpful topics and posts of the
+// last seven days, the most active members of the last seven days (by posts
+// and replies, no ranks), and a short rules block. A block with nothing to
+// show is not rendered.
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -17,10 +15,10 @@ import { relativeAgo } from "../../../lib/works/format.mjs";
 import { Icon } from "../../../lib/icons";
 import Avatar from "../../../lib/ui/Avatar";
 import { publicAsset } from "../../home/utils";
-import { fetchTopics } from "../../../lib/community/api";
+import { fetchCommunityRail } from "../../../lib/community/api";
 import { CHANNELS, channelForKind } from "./channels";
 
-const WEEK = 7 * 24 * 60 * 60 * 1000;
+const EMPTY = { pinned: [], popular: [], active: [] };
 
 function Block({ title, children }) {
   return (
@@ -34,9 +32,12 @@ function Block({ title, children }) {
 function TopicLink({ topic, onOpen, meta }) {
   return (
     <li>
-      <button type="button" onClick={() => onOpen(topic.id, channelForKind(topic.kind))} className="block w-full rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-line/[0.05]">
-        <span className="line-clamp-2 text-[13px] font-medium leading-snug text-ink">{topic.title}</span>
-        <span className="mt-0.5 block text-[11px] text-ink-3">{meta}</span>
+      <button type="button" onClick={() => onOpen(topic.id, channelForKind(topic.kind))} className="flex w-full gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-line/[0.05]">
+        <Icon name={CHANNELS[channelForKind(topic.kind)]?.icon || "hash"} size={14} className="mt-0.5 flex-shrink-0 text-ink-3" />
+        <span className="min-w-0">
+          <span className="line-clamp-2 text-[13px] font-medium leading-snug text-ink">{topic.title}</span>
+          <span className="mt-0.5 block text-[11px] text-ink-3">{meta}</span>
+        </span>
       </button>
     </li>
   );
@@ -45,37 +46,21 @@ function TopicLink({ topic, onOpen, meta }) {
 export default function RightRail({ channel, topic, onOpenTopic }) {
   const t = useT();
   const spec = CHANNELS[channel];
-  const forum = spec && spec.kind !== undefined;
-  const [pinned, setPinned] = useState([]);
-  const [popular, setPopular] = useState([]);
+  const kind = spec && spec.kind !== undefined ? spec.kind : null;
+  const [rail, setRail] = useState(EMPTY);
 
   useEffect(() => {
     let cancelled = false;
-    if (!forum) {
-      setPinned([]);
-      return undefined;
-    }
-    fetchTopics({ kind: spec.kind, sort: "active" }).then(({ topics }) => {
-      if (!cancelled) setPinned(topics.filter((x) => x.pinned).slice(0, 5));
+    fetchCommunityRail(kind).then(({ rail: data }) => {
+      if (!cancelled) setRail(data || EMPTY);
     });
     return () => {
       cancelled = true;
     };
-  }, [forum, spec?.kind]);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetchTopics({ sort: "top" }).then(({ topics }) => {
-      if (cancelled) return;
-      const since = Date.now() - WEEK;
-      setPopular(topics.filter((x) => x.helpful_count > 0 && new Date(x.created_at).getTime() >= since).slice(0, 5));
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  }, [kind]);
 
   const authorName = topic ? topic.author_display_name || topic.author_username || t("common.member") : null;
+  const showPinned = spec && spec.kind !== undefined && rail.pinned.length > 0;
 
   return (
     <aside className="sticky top-[var(--header-h)] hidden h-fit max-h-[calc(100dvh-var(--header-h))] w-72 flex-shrink-0 space-y-6 overflow-y-auto border-l border-line/[0.08] px-5 py-5 xl:block">
@@ -91,7 +76,9 @@ export default function RightRail({ channel, topic, onOpenTopic }) {
           <p className="mt-2.5 text-xs leading-relaxed text-ink-3">
             {t("community.topic.authorSince", { date: formatDate(topic.author_joined, t.lang, { month: "long", year: "numeric" }) })}
             {" · "}
-            {t("community.topic.authorTopics", { count: topic.author_topics })}
+            {topic.kind === "showcase"
+              ? t("community.topic.authorPosts", { count: topic.author_posts ?? 0 })
+              : t("community.topic.authorTopics", { count: topic.author_topics ?? 0 })}
           </p>
           {topic.author_is_builder && topic.author_username && (
             <Link href={`/builders/profile?u=${encodeURIComponent(topic.author_username)}`} className="btn btn-secondary btn-sm mt-3 w-full">
@@ -101,20 +88,20 @@ export default function RightRail({ channel, topic, onOpenTopic }) {
         </Block>
       )}
 
-      {pinned.length > 0 && (
+      {showPinned && (
         <Block title={t("community.rail.pinned")}>
           <ul className="-mx-2 space-y-0.5">
-            {pinned.map((x) => (
+            {rail.pinned.map((x) => (
               <TopicLink key={x.id} topic={x} onOpen={onOpenTopic} meta={t("community.topic.replies", { count: x.reply_count })} />
             ))}
           </ul>
         </Block>
       )}
 
-      {popular.length > 0 && (
+      {rail.popular.length > 0 && (
         <Block title={t("community.rail.popular")}>
           <ul className="-mx-2 space-y-0.5">
-            {popular.map((x) => (
+            {rail.popular.map((x) => (
               <TopicLink
                 key={x.id}
                 topic={x}
@@ -122,6 +109,34 @@ export default function RightRail({ channel, topic, onOpenTopic }) {
                 meta={`${t("community.rail.helpfulCount", { count: x.helpful_count })} · ${relativeAgo(x.created_at, t.lang)}`}
               />
             ))}
+          </ul>
+        </Block>
+      )}
+
+      {rail.active.length > 0 && (
+        <Block title={t("community.rail.active")}>
+          <ul className="space-y-1.5">
+            {rail.active.map((m) => {
+              const name = m.display_name || m.username || t("common.member");
+              const inner = (
+                <>
+                  <Avatar src={m.avatar_url ? publicAsset(m.avatar_url) : null} name={name} size={26} />
+                  <span className="min-w-0 flex-1 truncate text-[13px] text-ink">{name}</span>
+                  <span className="flex-shrink-0 text-[11px] tabular-nums text-ink-3">{t("community.rail.activeCount", { count: m.count })}</span>
+                </>
+              );
+              return (
+                <li key={m.username || name}>
+                  {m.is_builder && m.username ? (
+                    <Link href={`/builders/profile?u=${encodeURIComponent(m.username)}`} className="-mx-2 flex items-center gap-2 rounded-lg px-2 py-1 transition-colors hover:bg-line/[0.05]">
+                      {inner}
+                    </Link>
+                  ) : (
+                    <div className="-mx-2 flex items-center gap-2 px-2 py-1">{inner}</div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </Block>
       )}

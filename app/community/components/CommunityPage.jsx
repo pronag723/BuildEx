@@ -27,10 +27,12 @@ import CommunitySidebar from "./CommunitySidebar";
 import MobileRail from "./MobileRail";
 import ChannelHeader from "./ChannelHeader";
 import RightRail from "./RightRail";
-import ShowcaseSection from "./ShowcaseSection";
+import ShowcasePosts from "./ShowcasePosts";
+import SavedSection from "./SavedSection";
 import RequestsSection from "./RequestsSection";
 import DiscussionsSection from "./DiscussionsSection";
 import TopicView from "./TopicView";
+import PostView from "./PostView";
 
 const EDGE = 24; // px from the left edge where a back swipe may start
 const SWIPE = 72; // px of travel that counts as a swipe
@@ -41,15 +43,11 @@ function depthOf() {
 
 function ChannelContent({ channel, onBack, onOpenTopic }) {
   const spec = CHANNELS[channel];
-  if (channel === "showcase" || channel === "saved") {
-    return (
-      <>
-        <ChannelHeader channel={channel} onBack={onBack} />
-        <div className="px-4 py-4 sm:px-6">
-          <ShowcaseSection key={channel} mode={channel === "saved" ? "saved" : "all"} embedded />
-        </div>
-      </>
-    );
+  if (channel === "showcase") {
+    return <ShowcasePosts onBack={onBack} onOpenPost={(id) => onOpenTopic(id, "showcase")} />;
+  }
+  if (channel === "saved") {
+    return <SavedSection onBack={onBack} onOpenTopic={onOpenTopic} />;
   }
   if (channel === "requests") {
     return <RequestsSection onBack={onBack} />;
@@ -153,7 +151,11 @@ export default function CommunityPage() {
               <>
                 <ChannelHeader channel={channel} onBack={goBack} thread={topicData?.title || t("community.shell.topic")} />
                 <div className="px-4 pb-6 pt-4 sm:px-6">
-                  <TopicView key={topic} topicId={topic} channel={channel} onBack={goBack} onLoaded={setTopicData} />
+                  {channel === "showcase" ? (
+                    <PostView key={topic} postId={topic} onBack={goBack} onLoaded={setTopicData} />
+                  ) : (
+                    <TopicView key={topic} topicId={topic} channel={channel} onBack={goBack} onLoaded={setTopicData} />
+                  )}
                 </div>
               </>
             ) : (

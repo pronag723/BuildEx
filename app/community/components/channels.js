@@ -17,7 +17,7 @@ import { useCallback, useEffect, useState } from "react";
 export const CHANNELS = {
   rules: { key: "rules", icon: "shield", category: "important", href: "/legal/community" },
   updates: { key: "updates", icon: "verified", category: "important", href: "/chats?c=updates", auth: true },
-  showcase: { key: "showcase", icon: "grid", category: "community", space: "showcase" },
+  showcase: { key: "showcase", icon: "grid", category: "community", space: "showcase", kind: "showcase" },
   requests: { key: "requests", icon: "briefcase", category: "community", space: "requests" },
   questions: { key: "questions", icon: "help", category: "discussions", space: "discussions", kind: "question" },
   guides: { key: "guides", icon: "book", category: "discussions", space: "discussions", kind: "guide" },
@@ -47,10 +47,11 @@ export const SPACES = [
 
 export const DEFAULT_CHANNEL = "showcase";
 
-// Channels whose feed is forum topics: a topic (`&t=`) can be open in them.
+// Channels whose feed is forum topics (a Showcase post is one of kind
+// 'showcase'): a topic (`&t=`) can be open in them.
 export function hasTopics(key) {
   const c = CHANNELS[key];
-  return Boolean(c) && (c.kind !== undefined || key === "mytopics");
+  return Boolean(c) && (c.kind !== undefined || key === "mytopics" || key === "saved");
 }
 
 // The channel a topic of this kind belongs to (used by the right column).
