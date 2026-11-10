@@ -107,7 +107,7 @@ export default function SavedSection({ onBack, onOpenTopic }) {
     <>
       <ChannelHeader channel="saved" onBack={onBack} />
       <div className="px-4 pb-24 pt-4 sm:px-6 lg:pb-10">
-        <div role="tablist" aria-label={t("community.saved.tabsAria")} className="mb-4 inline-flex rounded-lg bg-line/[0.06] p-0.5">
+        <div role="tablist" aria-label={t("community.saved.tabsAria")} className="segmented mb-4">
           {TABS.map((key) => (
             <button
               key={key}
@@ -124,7 +124,6 @@ export default function SavedSection({ onBack, onOpenTopic }) {
                 setTab(next);
                 document.getElementById(`saved-tab-${next}`)?.focus();
               }}
-              className={`inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-[13px] font-medium transition-colors ${tab === key ? "bg-surface text-ink shadow-card" : "text-ink-2 hover:text-ink"}`}
             >
               <Icon name={key === "works" ? "grid" : "bookmark"} size={14} />
               {t(`community.saved.tabs.${key}`)}

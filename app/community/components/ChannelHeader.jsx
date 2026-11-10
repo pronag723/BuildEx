@@ -20,7 +20,7 @@ const BAR_TOP = "sticky top-[var(--header-h)] z-20 border-b border-line/[0.08] b
 function SortControl({ sort }) {
   const t = useT();
   return (
-    <div role="radiogroup" aria-label={t("community.shell.sortAria")} className="inline-flex flex-shrink-0 rounded-lg bg-line/[0.06] p-0.5">
+    <div role="radiogroup" aria-label={t("community.shell.sortAria")} className="segmented">
       {sort.options.map((key) => {
         const on = sort.value === key;
         return (
@@ -30,7 +30,6 @@ function SortControl({ sort }) {
             role="radio"
             aria-checked={on}
             onClick={() => sort.onChange(key)}
-            className={`h-8 rounded-md px-2.5 text-xs font-medium transition-colors ${on ? "bg-surface text-ink shadow-card" : "text-ink-2 hover:text-ink"}`}
           >
             {sort.labels[key]}
           </button>

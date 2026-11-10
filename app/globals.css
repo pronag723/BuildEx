@@ -499,6 +499,95 @@ select option {
     color: rgb(var(--accent-ink));
   }
 
+  /* Community filters and pickers (styles, build types, "Mine", kinds).
+     Filled and borderless, a notch quieter than a button. The chosen one is
+     inverted — ink on the page colour — rather than green, so the accent is
+     left to the channel's primary action. Hover only where there is a real
+     pointer, so a tapped chip on a phone doesn't stay lit. */
+  .filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    flex-shrink: 0;
+    height: 2rem;
+    padding: 0 0.75rem;
+    border-radius: 8px;
+    background: rgb(var(--line) / 0.06);
+    color: rgb(var(--ink-2));
+    font-size: 0.8125rem;
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+    transition: background-color 150ms ease, color 150ms ease;
+  }
+
+  @media (hover: hover) {
+    .filter-chip:not(:disabled):not([aria-pressed="true"]):not([aria-checked="true"]):hover {
+      background: rgb(var(--line) / 0.11);
+      color: rgb(var(--ink));
+    }
+  }
+
+  .filter-chip[aria-pressed="true"],
+  .filter-chip[aria-checked="true"] {
+    background: rgb(var(--ink));
+    color: rgb(var(--canvas));
+  }
+
+  .filter-chip:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  /* A small segmented control (sort order, the Saved tabs): a hairline
+     outline around the options, the chosen one tinted. The tint is the line
+     colour, so it reads lighter on the dark canvas and darker on the light
+     one, never the same as the track. */
+  .segmented {
+    display: inline-flex;
+    flex-shrink: 0;
+    gap: 2px;
+    padding: 2px;
+    border-radius: 10px;
+    border: 1px solid rgb(var(--line) / 0.1);
+  }
+
+  .segmented > button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    height: 1.75rem;
+    padding: 0 0.625rem;
+    border-radius: 7px;
+    color: rgb(var(--ink-3));
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+    transition: background-color 150ms ease, color 150ms ease;
+  }
+
+  @media (hover: hover) {
+    .segmented > button:hover {
+      color: rgb(var(--ink));
+    }
+  }
+
+  .segmented > button[aria-checked="true"],
+  .segmented > button[aria-selected="true"] {
+    background: rgb(var(--line) / 0.1);
+    color: rgb(var(--ink));
+  }
+
+  /* A row of chips that scrolls sideways on a phone fades out at both edges
+     instead of being cut. The fades sit over the row's own 16px gutters. */
+  @media (max-width: 639px) {
+    .chip-row {
+      -webkit-mask-image: linear-gradient(to right, transparent, #000 1rem, #000 calc(100% - 1.5rem), transparent);
+      mask-image: linear-gradient(to right, transparent, #000 1rem, #000 calc(100% - 1.5rem), transparent);
+    }
+  }
+
   /* An on/off setting: <button role="switch" aria-checked>. A pill track
      with a white knob — white reads on the grey "off" track in both themes
      and on the green "on" track. The off outline (ink-3) and the on fill

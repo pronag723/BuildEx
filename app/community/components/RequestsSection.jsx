@@ -360,17 +360,17 @@ export default function RequestsSection({ onBack }) {
       <ChannelHeader channel="requests" onBack={onBack} search={{ value: query, onChange: setQuery }} action={action} />
 
       <div className="px-4 pb-24 pt-4 sm:px-6 lg:pb-10">
-        <div className="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0 [&::-webkit-scrollbar]:hidden">
+        <div className="chip-row -mx-4 mb-4 flex gap-1.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0 [&::-webkit-scrollbar]:hidden">
           {signedIn && (
-            <button type="button" onClick={() => setMine((v) => !v)} aria-pressed={mine} className="tag-toggle">
+            <button type="button" onClick={() => setMine((v) => !v)} aria-pressed={mine} className="filter-chip">
               {t("community.requests.mine")}
             </button>
           )}
-          <button type="button" onClick={() => setType(null)} aria-pressed={!type} className="tag-toggle">
+          <button type="button" onClick={() => setType(null)} aria-pressed={!type} className="filter-chip">
             {t("community.requests.allTypes")}
           </button>
           {BRIEF_BUILD_TYPES.map((key) => (
-            <button key={key} type="button" onClick={() => setType(type === key ? null : key)} aria-pressed={type === key} className="tag-toggle">
+            <button key={key} type="button" onClick={() => setType(type === key ? null : key)} aria-pressed={type === key} className="filter-chip">
               {t(`buildTypes.${key}`)}
             </button>
           ))}

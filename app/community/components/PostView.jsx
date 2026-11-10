@@ -145,7 +145,7 @@ function EditPost({ post, onCancel, onSave }) {
         {STYLES.map((s) => {
           const on = styles.includes(s.key);
           return (
-            <button key={s.key} type="button" aria-pressed={on} disabled={!on && styles.length >= POST_MAX_STYLES} onClick={() => setStyles((prev) => (on ? prev.filter((k) => k !== s.key) : [...prev, s.key]))} className="tag-toggle disabled:opacity-40">
+            <button key={s.key} type="button" aria-pressed={on} disabled={!on && styles.length >= POST_MAX_STYLES} onClick={() => setStyles((prev) => (on ? prev.filter((k) => k !== s.key) : [...prev, s.key]))} className="filter-chip">
               {styleChipLabel(s.key, t.lang)}
             </button>
           );

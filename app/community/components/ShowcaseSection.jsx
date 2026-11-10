@@ -184,8 +184,8 @@ export default function ShowcaseSection({ mode = "all", embedded = false }) {
               </button>
             ))}
           </div>
-          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0 [&::-webkit-scrollbar]:hidden">
-            <button type="button" onClick={() => setStyle(null)} aria-pressed={!style} className={`tag-toggle ${!style ? "border-accent/60 bg-raised text-ink" : ""}`}>
+          <div className="chip-row -mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0 [&::-webkit-scrollbar]:hidden">
+            <button type="button" onClick={() => setStyle(null)} aria-pressed={!style} className="filter-chip">
               {t("community.showcase.allStyles")}
             </button>
             {STYLES.map((s) => (
@@ -194,7 +194,7 @@ export default function ShowcaseSection({ mode = "all", embedded = false }) {
                 type="button"
                 onClick={() => setStyle(style === s.key ? null : s.key)}
                 aria-pressed={style === s.key}
-                className={`tag-toggle ${style === s.key ? "border-accent/60 bg-raised text-ink" : ""}`}
+                className="filter-chip"
               >
                 {styleChipLabel(s.key, t.lang)}
               </button>

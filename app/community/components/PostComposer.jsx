@@ -286,7 +286,7 @@ export default function PostComposer({ open, onClose, onCreated }) {
             <p className="mb-1.5 text-sm font-medium">
               {t("community.post.styles")} <span className="font-normal text-ink-3">· {t("community.post.optional")}</span>
             </p>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5">
               {STYLES.map((s) => {
                 const on = styles.includes(s.key);
                 return (
@@ -296,7 +296,7 @@ export default function PostComposer({ open, onClose, onCreated }) {
                     aria-pressed={on}
                     disabled={!on && styles.length >= POST_MAX_STYLES}
                     onClick={() => setStyles((prev) => (on ? prev.filter((k) => k !== s.key) : [...prev, s.key]))}
-                    className="tag-toggle disabled:opacity-40"
+                    className="filter-chip"
                   >
                     {styleChipLabel(s.key, t.lang)}
                   </button>

@@ -79,8 +79,8 @@ function NewTopicDialog({ open, initialKind, onClose, onCreated }) {
             <p className="mb-1.5 text-sm font-medium">{t("community.discussions.kindLabel")}</p>
             <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t("community.discussions.kindLabel")}>
               {TOPIC_KINDS.map((k) => (
-                <button key={k} type="button" role="radio" aria-checked={kind === k} aria-pressed={kind === k} onClick={() => setKind(k)} className="tag-toggle">
-                  <Icon name={CHANNELS[channelForKind(k)].icon} size={14} className="mr-1.5" />
+                <button key={k} type="button" role="radio" aria-checked={kind === k} aria-pressed={kind === k} onClick={() => setKind(k)} className="filter-chip">
+                  <Icon name={CHANNELS[channelForKind(k)].icon} size={14} />
                   {t(`community.discussions.kinds.${k}`)}
                 </button>
               ))}
