@@ -1,0 +1,182 @@
+"use client";
+
+// The top of a channel. On a desktop: `# name`, the description, and on the
+// right the channel search, the sort and the channel's one primary action. On
+// a phone: a compact `← # name` bar, the search and sort on a second line, and
+// the primary action as a floating button at the bottom right.
+//
+// With `thread` set (a topic is open) the header shows the channel on a
+// desktop and `← <topic title>` on a phone, without tools or action.
+
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import Link from "next/link";
+import { useT } from "../../../lib/i18n/LanguageProvider";
+import { Icon } from "../../../lib/icons";
+import { CHANNELS } from "./channels";
+
+const BAR_TOP = "sticky top-[var(--header-h)] z-20 border-b border-line/[0.08] bg-canvas";
+
+function SortControl({ sort }) {
+  const t = useT();
+  return (
+    <div role="tablist" aria-label={t("community.shell.sortAria")} className="inline-flex flex-shrink-0 rounded-lg bg-line/[0.06] p-0.5">
+      {sort.options.map((key) => {
+        const on = sort.value === key;
+        return (
+          <button
+            key={key}
+            type="button"
+            role="tab"
+            aria-selected={on}
+            onClick={() => sort.onChange(key)}
+            className={`h-8 rounded-md px-2.5 text-xs font-medium transition-colors ${on ? "bg-surface text-ink shadow-card" : "text-ink-2 hover:text-ink"}`}
+          >
+            {sort.labels[key]}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function SearchField({ search, className = "" }) {
+  const t = useT();
+  return (
+    <label className={`relative block ${className}`}>
+      <Icon name="search" size={15} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-3" />
+      <input
+        type="search"
+        value={search.value}
+        onChange={(e) => search.onChange(e.target.value)}
+        placeholder={search.placeholder || t("community.shell.searchPlaceholder")}
+        aria-label={t("community.shell.searchAria")}
+        className="input h-9 pl-8 pr-3 text-[13px]"
+      />
+    </label>
+  );
+}
+
+function ActionButton({ action, className = "" }) {
+  if (!action) return null;
+  const inner = (
+    <>
+      <Icon name={action.icon || "plus"} size={15} />
+      {action.label}
+    </>
+  );
+  return action.href ? (
+    <Link href={action.href} className={`btn btn-primary btn-sm ${className}`}>
+      {inner}
+    </Link>
+  ) : (
+    <button type="button" onClick={action.onClick} className={`btn btn-primary btn-sm ${className}`}>
+      {inner}
+    </button>
+  );
+}
+
+// The phone's floating action button, rendered on body so it is never caught
+// in a transformed or clipped ancestor.
+function Fab({ action }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted || !action) return null;
+  const cls =
+    "fixed right-4 z-40 flex h-14 w-14 items-center justify-center rounded-2xl bg-accent text-accent-fg shadow-pop transition-transform active:scale-95 lg:hidden";
+  const style = { bottom: "max(1rem, env(safe-area-inset-bottom))" };
+  return createPortal(
+    action.href ? (
+      <Link href={action.href} aria-label={action.label} title={action.label} style={style} className={cls}>
+        <Icon name={action.icon || "plus"} size={24} />
+      </Link>
+    ) : (
+      <button type="button" onClick={action.onClick} aria-label={action.label} title={action.label} style={style} className={cls}>
+        <Icon name={action.icon || "plus"} size={24} />
+      </button>
+    ),
+    document.body
+  );
+}
+
+// The phone's compact bar: a 44px back target and a title.
+export function MobileBar({ onBack, children, right }) {
+  const t = useT();
+  return (
+    <div className={`${BAR_TOP} flex h-12 items-center gap-1 px-2 lg:hidden`}>
+      <button type="button" onClick={onBack} className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg text-ink-2 hover:bg-line/[0.06] hover:text-ink" aria-label={t("community.shell.back")}>
+        <Icon name="arrowLeft" size={20} />
+      </button>
+      <div className="flex min-w-0 flex-1 items-center gap-1.5 text-[15px] font-semibold">{children}</div>
+      {right}
+    </div>
+  );
+}
+
+/**
+ * @param {object} p
+ * @param {string} p.channel  a key of CHANNELS
+ * @param {() => void} p.onBack  the phone's back
+ * @param {{ value, onChange, placeholder? }} [p.search]
+ * @param {{ value, options: string[], labels: Record<string,string>, onChange }} [p.sort]
+ * @param {{ label, icon?, href?, onClick? }} [p.action]
+ * @param {string} [p.thread]  an open topic's title
+ */
+export default function ChannelHeader({ channel, onBack, search, sort, action, thread = null }) {
+  const t = useT();
+  const c = CHANNELS[channel];
+  const name = t(`community.channels.${channel}.slug`);
+  const description = t(`community.channels.${channel}.description`);
+  const tools = !thread && (search || sort);
+
+  return (
+    <>
+      {/* Desktop */}
+      <header className={`${BAR_TOP} hidden lg:block`}>
+        <div className="flex min-h-[3.5rem] items-center gap-3 px-6">
+          <h1 className="flex min-w-0 flex-shrink-0 items-center gap-1 text-[15px] font-semibold">
+            <Icon name="hash" size={18} className="text-ink-3" />
+            <span className="truncate">{name}</span>
+          </h1>
+          <span className="h-5 w-px flex-shrink-0 bg-line/10" aria-hidden="true" />
+          <p className="min-w-0 flex-1 truncate text-[13px] text-ink-3" title={description}>
+            {description}
+          </p>
+          {!thread && (
+            <div className="flex flex-shrink-0 items-center gap-2">
+              {search && <SearchField search={search} className="w-44 xl:w-56" />}
+              {sort && <SortControl sort={sort} />}
+              <ActionButton action={action} />
+            </div>
+          )}
+        </div>
+      </header>
+
+      {/* Phone */}
+      {thread ? (
+        <MobileBar onBack={onBack}>
+          <span className="truncate">{thread}</span>
+        </MobileBar>
+      ) : (
+        <div className={`${BAR_TOP} lg:hidden`}>
+          <div className="flex h-12 items-center gap-1 px-2">
+            <button type="button" onClick={onBack} className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg text-ink-2 hover:bg-line/[0.06] hover:text-ink" aria-label={t("community.shell.back")}>
+              <Icon name="arrowLeft" size={20} />
+            </button>
+            <h1 className="flex min-w-0 flex-1 items-center gap-1 text-[15px] font-semibold">
+              <Icon name={c?.icon || "hash"} size={17} className="flex-shrink-0 text-ink-3" />
+              <span className="truncate">{name}</span>
+            </h1>
+          </div>
+          {tools && (
+            <div className="flex items-center gap-2 px-4 pb-2.5">
+              {search && <SearchField search={search} className="min-w-0 flex-1" />}
+              {sort && <SortControl sort={sort} />}
+            </div>
+          )}
+        </div>
+      )}
+      {!thread && <Fab action={action} />}
+    </>
+  );
+}

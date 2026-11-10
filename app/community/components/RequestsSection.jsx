@@ -5,7 +5,7 @@
 // builder, and a builder responds with a message and up to three works —
 // which opens their chat with the client, the brief already in it as an order.
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useAuth } from "../../../lib/auth/AuthContext";
@@ -18,6 +18,7 @@ import Avatar from "../../../lib/ui/Avatar";
 import { publicAsset } from "../../home/utils";
 import { relativeAgo } from "../../../lib/works/format.mjs";
 import { fetchWorks } from "../../../lib/works/api";
+import { chatImageUrl } from "../../../lib/chat/api";
 import { BRIEF_BUILD_TYPES, budgetText, sizeText } from "../../../lib/orders/brief.mjs";
 import { BUILDER_ONBOARDING_START } from "../../../lib/onboarding/state";
 import {
@@ -33,6 +34,9 @@ import { BriefSummary } from "../../chats/components/BriefCard";
 import BriefBuilder from "../../chats/components/BriefBuilder";
 import Toast from "../../components/Toast";
 import ReportDialog from "./ReportDialog";
+import ChannelHeader from "./ChannelHeader";
+import EmptyState from "./EmptyState";
+import FeedRow, { FeedList, FeedSkeleton } from "./FeedRow";
 
 // Labels: `community.requests.status.<status>`.
 function StatusText({ status }) {
@@ -49,36 +53,31 @@ function RequestRow({ brief, onOpen }) {
   const size = sizeText(brief);
   const budget = budgetText(brief, t.lang, t);
   const name = brief.author_display_name || brief.author_username || t("common.member");
+  const photo = (Array.isArray(brief.refs) ? brief.refs : []).find((r) => r.kind === "photo" && r.path);
+  const metrics =
+    brief.is_mine && brief.responses !== null
+      ? [{ icon: "chat", value: brief.responses, label: t("community.requests.responses", { count: brief.responses }) }]
+      : [];
   return (
-    <button
-      type="button"
-      onClick={() => onOpen(brief)}
-      className={`card flex w-full gap-4 p-4 text-left transition-colors hover:border-line/20 ${brief.status !== "open" ? "opacity-70" : ""}`}
-    >
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <StatusText status={brief.status} />
-          {brief.hidden && <span className="tag text-danger">{t("community.requests.hiddenTag")}</span>}
-          {brief.is_mine && brief.responses !== null && (
-            <span className="text-xs text-ink-3">{t("community.requests.responses", { count: brief.responses })}</span>
-          )}
-        </div>
-        <h3 className="mt-1 truncate text-[15px] font-semibold">{brief.title}</h3>
-        <div className="mt-1.5 flex flex-wrap gap-1.5">
+    <FeedRow
+      author={{ name, avatar: brief.author_avatar_url ? publicAsset(brief.author_avatar_url) : null }}
+      time={relativeAgo(brief.created_at, t.lang)}
+      title={brief.title}
+      text={brief.description}
+      status={<StatusText status={brief.status} />}
+      muted={brief.status !== "open" || brief.hidden}
+      image={photo ? chatImageUrl({ path: photo.path }) : null}
+      chips={
+        <>
           <span className="tag">{t(`buildTypes.${brief.build_type}`)}</span>
           {size && <span className="tag">{size}</span>}
-        </div>
-        <div className="mt-2.5 flex items-center gap-2 text-xs text-ink-3">
-          <Avatar src={brief.author_avatar_url ? publicAsset(brief.author_avatar_url) : null} name={name} size={18} />
-          <span className="truncate">{name}</span>
-          <span>· {relativeAgo(brief.created_at, t.lang)}</span>
-        </div>
-      </div>
-      <div className="flex-shrink-0 text-right">
-        <p className="text-sm font-semibold">{budget || t("orders.brief.noBudget")}</p>
-        <p className="mt-0.5 text-[11px] text-ink-3">{t("orders.brief.budget")}</p>
-      </div>
-    </button>
+          <span className="tag font-semibold text-ink">{budget || t("orders.brief.noBudget")}</span>
+          {brief.hidden && <span className="tag text-danger">{t("community.requests.hiddenTag")}</span>}
+        </>
+      }
+      metrics={metrics}
+      onClick={() => onOpen(brief)}
+    />
   );
 }
 
@@ -306,12 +305,18 @@ function RequestPanel({ brief, onClose, onChanged, showNotice }) {
   );
 }
 
-export default function RequestsSection() {
+function matches(brief, q) {
+  if (!q) return true;
+  return [brief.title, brief.description, brief.author_display_name, brief.author_username].join(" ").toLowerCase().includes(q);
+}
+
+export default function RequestsSection({ onBack }) {
   const t = useT();
   const { status, user } = useAuth();
   const signedIn = status === "authenticated";
   const [type, setType] = useState(null);
   const [mine, setMine] = useState(false);
+  const [query, setQuery] = useState("");
   const [briefs, setBriefs] = useState(null);
   const [more, setMore] = useState(false);
   const [open, setOpen] = useState(null);
@@ -343,72 +348,62 @@ export default function RequestsSection() {
   const closeComposer = useCallback(() => setComposer(false), []);
   const closePanel = useCallback(() => setOpen(null), []);
 
+  const q = query.trim().toLowerCase();
+  const visible = useMemo(() => (briefs || []).filter((b) => matches(b, q)), [briefs, q]);
+
+  const action = signedIn
+    ? { label: t("community.requests.publish"), icon: "plus", onClick: () => setComposer(true) }
+    : { label: t("community.requests.publish"), icon: "plus", href: `/login?redirect=${encodeURIComponent("/community?s=requests")}` };
+
   return (
-    <section>
-      <header className="mb-4 flex flex-wrap items-start gap-3">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-xl font-semibold">{t("community.sections.requests")}</h1>
-          <p className="mt-1 text-sm text-ink-2">{t("community.requests.subtitle")}</p>
-        </div>
-        {signedIn ? (
-          <button type="button" onClick={() => setComposer(true)} className="btn btn-primary">
-            <Icon name="plus" size={16} />
-            {t("community.requests.publish")}
-          </button>
-        ) : (
-          <Link href={`/login?redirect=${encodeURIComponent("/community?s=requests")}`} className="btn btn-primary">
-            {t("community.requests.publish")}
-          </Link>
-        )}
-      </header>
+    <>
+      <ChannelHeader channel="requests" onBack={onBack} search={{ value: query, onChange: setQuery }} action={action} />
 
-      <div className="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0 [&::-webkit-scrollbar]:hidden">
-        {signedIn && (
-          <button type="button" onClick={() => setMine((v) => !v)} aria-pressed={mine} className={`tag-toggle ${mine ? "border-accent/60 bg-raised text-ink" : ""}`}>
-            {t("community.requests.mine")}
-          </button>
-        )}
-        <button type="button" onClick={() => setType(null)} aria-pressed={!type} className={`tag-toggle ${!type ? "border-accent/60 bg-raised text-ink" : ""}`}>
-          {t("community.requests.allTypes")}
-        </button>
-        {BRIEF_BUILD_TYPES.map((key) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setType(type === key ? null : key)}
-            aria-pressed={type === key}
-            className={`tag-toggle ${type === key ? "border-accent/60 bg-raised text-ink" : ""}`}
-          >
-            {t(`buildTypes.${key}`)}
-          </button>
-        ))}
-      </div>
-
-      {briefs === null ? (
-        <div className="space-y-3">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="card h-28 skeleton" />
-          ))}
-        </div>
-      ) : briefs.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-line/15 px-6 py-14 text-center">
-          <p className="text-sm font-medium">{t(mine ? "community.requests.emptyMineTitle" : "community.requests.emptyTitle")}</p>
-          <p className="mx-auto mt-1 max-w-sm text-xs leading-relaxed text-ink-3">{t("community.requests.emptyBody")}</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {briefs.map((b) => (
-            <RequestRow key={b.id} brief={b} onOpen={setOpen} />
-          ))}
-          {more && (
-            <div className="flex justify-center pt-3">
-              <button type="button" onClick={loadMore} className="btn btn-secondary">
-                {t("community.showMore")}
-              </button>
-            </div>
+      <div className="px-4 pb-24 pt-4 sm:px-6 lg:pb-10">
+        <div className="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0 [&::-webkit-scrollbar]:hidden">
+          {signedIn && (
+            <button type="button" onClick={() => setMine((v) => !v)} aria-pressed={mine} className="tag-toggle">
+              {t("community.requests.mine")}
+            </button>
           )}
+          <button type="button" onClick={() => setType(null)} aria-pressed={!type} className="tag-toggle">
+            {t("community.requests.allTypes")}
+          </button>
+          {BRIEF_BUILD_TYPES.map((key) => (
+            <button key={key} type="button" onClick={() => setType(type === key ? null : key)} aria-pressed={type === key} className="tag-toggle">
+              {t(`buildTypes.${key}`)}
+            </button>
+          ))}
         </div>
-      )}
+
+        {briefs === null ? (
+          <FeedSkeleton rows={3} />
+        ) : briefs.length === 0 ? (
+          <EmptyState
+            icon="briefcase"
+            title={t(mine ? "community.requests.emptyMineTitle" : "community.requests.emptyTitle")}
+            body={t("community.requests.emptyBody")}
+            action={action}
+          />
+        ) : visible.length === 0 ? (
+          <EmptyState icon="search" title={t("community.shell.noMatches")} body={t("community.shell.noMatchesBody")} />
+        ) : (
+          <>
+            <FeedList>
+              {visible.map((b) => (
+                <RequestRow key={b.id} brief={b} onOpen={setOpen} />
+              ))}
+            </FeedList>
+            {more && !q && (
+              <div className="mt-4 flex justify-center">
+                <button type="button" onClick={loadMore} className="btn btn-secondary">
+                  {t("community.showMore")}
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
 
       <RequestPanel brief={open} onClose={closePanel} onChanged={load} showNotice={showNotice} />
       <BriefBuilder
@@ -429,6 +424,6 @@ export default function RequestsSection() {
         }}
       />
       <Toast message={notice} />
-    </section>
+    </>
   );
 }

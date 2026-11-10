@@ -31,6 +31,8 @@ import {
   LifeBuoy, BadgeCheck, SquarePen, Ellipsis, BellOff,
   // chat: 3D previews
   Box,
+  // community: channels and the phone rail
+  Hash, CircleHelp, BookOpen, Lightbulb, House,
 } from "lucide-react";
 
 export const ICONS = {
@@ -115,6 +117,14 @@ export const ICONS = {
   more: Ellipsis,
   bellOff: BellOff,
   cube: Box, // a 3D preview
+
+  // community: the "#" before a channel name, the three kinds of topic, the
+  // phone rail's home space
+  hash: Hash,
+  help: CircleHelp,  // questions
+  book: BookOpen,    // guides
+  bulb: Lightbulb,   // ideas
+  home: House,
 };
 
 /**

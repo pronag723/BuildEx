@@ -1,169 +1,168 @@
 "use client";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// BuildEx — Community (/community, stage 4)
+// BuildEx — Community (/community)
 //
-// One header item, sections down the left like channels in Discord. A section
-// is shown only once it has something to show (stage-0 proposal П7): today
-// that is the Showcase (every public work), "Looking for a builder" (public
-// briefs) and Discussions (questions, guides and ideas in one section); "Saved"
-// and "My topics" appear for signed-in people, and the updates channel and the
-// rules are plain links. Sections live in ?s= (and an open topic in &t=)
-// because the site is a static export.
+// Laid out like a Discord server. On a desktop: a channel sidebar, the channel
+// itself, and from 1280px a right column with pinned and popular topics. On a
+// phone: two screens — a navigation screen (a rail of spaces plus the space's
+// channel list) and the channel, full screen, with a topic as a third level.
+//
+// Channels live in `?s=` and an open topic in `&t=` (static export, so query
+// params instead of routes; see channels.js). Every push records its depth in
+// history.state so the phone's back control can walk real history (the
+// hardware back button then does the same thing), and falls back to replacing
+// the address when the viewer landed here directly.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "../../../lib/auth/AuthContext";
 import { useScrollLock } from "../../../lib/useScrollLock";
 import { useT } from "../../../lib/i18n/LanguageProvider";
-import { Icon } from "../../../lib/icons";
 import { withBase } from "../../home/utils";
 import CatalogNavbar from "../../builders/components/CatalogNavbar";
 import CatalogMobileMenu from "../../builders/components/CatalogMobileMenu";
+import { CHANNELS, DEFAULT_CHANNEL, channelForKind, channelHref, hasTopics, readLocation, useIsDesktop, useMediaQuery } from "./channels";
+import CommunitySidebar from "./CommunitySidebar";
+import MobileRail from "./MobileRail";
+import ChannelHeader from "./ChannelHeader";
+import RightRail from "./RightRail";
 import ShowcaseSection from "./ShowcaseSection";
 import RequestsSection from "./RequestsSection";
 import DiscussionsSection from "./DiscussionsSection";
 import TopicView from "./TopicView";
 
-// Labels: `community.sections.<key>`.
-const SECTIONS = [
-  { key: "showcase", icon: "grid" },
-  { key: "requests", icon: "briefcase" },
-  { key: "discussions", icon: "chat" },
-];
-const MY_SECTIONS = [
-  { key: "saved", icon: "bookmark", auth: true },
-  { key: "mytopics", icon: "pencil", auth: true },
-];
+const EDGE = 24; // px from the left edge where a back swipe may start
+const SWIPE = 72; // px of travel that counts as a swipe
 
-function readLocation() {
-  if (typeof window === "undefined") return { section: "showcase", topic: null };
-  const params = new URLSearchParams(window.location.search);
-  const s = params.get("s");
-  const topic = params.get("t");
-  const section = [...SECTIONS, ...MY_SECTIONS].some((x) => x.key === s) ? s : "showcase";
-  return { section, topic: section === "discussions" || section === "mytopics" ? topic : null };
+function depthOf() {
+  return Number(window.history.state?.cDepth) || 0;
+}
+
+function ChannelContent({ channel, onBack, onOpenTopic }) {
+  const spec = CHANNELS[channel];
+  if (channel === "showcase" || channel === "saved") {
+    return (
+      <>
+        <ChannelHeader channel={channel} onBack={onBack} />
+        <div className="px-4 py-4 sm:px-6">
+          <ShowcaseSection key={channel} mode={channel === "saved" ? "saved" : "all"} embedded />
+        </div>
+      </>
+    );
+  }
+  if (channel === "requests") {
+    return <RequestsSection onBack={onBack} />;
+  }
+  if (channel === "mytopics") {
+    return <DiscussionsSection key="mine" channel="mytopics" scope="mine" onBack={onBack} onOpenTopic={onOpenTopic} />;
+  }
+  return <DiscussionsSection key={channel} channel={channel} kind={spec?.kind ?? null} onBack={onBack} onOpenTopic={onOpenTopic} />;
 }
 
 export default function CommunityPage() {
   const t = useT();
   const { status } = useAuth();
-  const signedIn = status === "authenticated";
+  const desktop = useIsDesktop();
+  const wide = useMediaQuery("(min-width: 1280px)");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   useScrollLock(mobileMenuOpen);
-  const [section, setSection] = useState("showcase");
-  const [topic, setTopic] = useState(null);
+  const [loc, setLoc] = useState({ channel: null, topic: null });
+  const [space, setSpace] = useState("home");
+  const [topicData, setTopicData] = useState(null);
+  const touch = useRef(null);
 
   useEffect(() => {
-    const apply = () => {
-      const loc = readLocation();
-      setSection(loc.section);
-      setTopic(loc.topic);
-    };
-    apply();
-    window.addEventListener("popstate", apply);
-    return () => window.removeEventListener("popstate", apply);
+    const first = readLocation();
+    setLoc(first);
+    if (first.channel) setSpace(CHANNELS[first.channel].space || "home");
+    const onPop = () => setLoc(readLocation());
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
   }, []);
 
-  const go = useCallback((key) => {
-    setSection(key);
-    setTopic(null);
-    const url = key === "showcase" ? "/community" : `/community?s=${key}`;
-    window.history.pushState(window.history.state, "", withBase(url));
+  // A guest who signs out while in "Mine" is sent to the default channel.
+  useEffect(() => {
+    if (status === "unauthenticated" && loc.channel && CHANNELS[loc.channel].auth) {
+      window.history.replaceState(window.history.state, "", withBase("/community"));
+      setLoc({ channel: null, topic: null });
+    }
+  }, [status, loc.channel]);
+
+  const navigate = useCallback((url, { replace = false } = {}) => {
+    const depth = depthOf();
+    const state = { ...(window.history.state || {}), cDepth: replace ? depth : depth + 1 };
+    window.history[replace ? "replaceState" : "pushState"](state, "", withBase(url));
+    setLoc(readLocation());
     window.scrollTo({ top: 0 });
   }, []);
 
+  const go = useCallback((key) => navigate(channelHref(key)), [navigate]);
+
   const openTopic = useCallback(
-    (id) => {
-      setTopic(id);
-      window.history.pushState(window.history.state, "", withBase(`/community?s=${section === "mytopics" ? "mytopics" : "discussions"}&t=${id}`));
-      window.scrollTo({ top: 0 });
+    (id, inChannel = null) => {
+      const ch = inChannel || (hasTopics(loc.channel) ? loc.channel : channelForKind(null));
+      setTopicData(null);
+      navigate(channelHref(ch, id));
     },
-    [section]
+    [navigate, loc.channel]
   );
 
-  const mine = MY_SECTIONS.filter((s) => !s.auth || signedIn);
-  const item = (s) => (
-    <button
-      key={s.key}
-      type="button"
-      onClick={() => go(s.key)}
-      aria-current={section === s.key ? "page" : undefined}
-      className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors ${
-        section === s.key ? "bg-raised font-medium text-ink" : "text-ink-2 hover:bg-line/[0.06] hover:text-ink"
-      }`}
-    >
-      <Icon name={s.icon} size={16} className={section === s.key ? "text-ink" : "text-ink-3"} />
-      {t(`community.sections.${s.key}`)}
-    </button>
-  );
+  // The phone's back: one level up through history when we pushed it, else
+  // by replacing the address (the viewer arrived here from a link).
+  const goBack = useCallback(() => {
+    if (depthOf() > 0) {
+      window.history.back();
+      return;
+    }
+    navigate(loc.topic ? channelHref(loc.channel) : "/community", { replace: true });
+  }, [loc, navigate]);
+
+  const onTouchStart = (e) => {
+    const p = e.touches[0];
+    touch.current = p && p.clientX <= EDGE ? { x: p.clientX, y: p.clientY } : null;
+  };
+  const onTouchEnd = (e) => {
+    const start = touch.current;
+    touch.current = null;
+    const p = e.changedTouches[0];
+    if (!start || !p || desktop) return;
+    if (p.clientX - start.x > SWIPE && Math.abs(p.clientY - start.y) < 60) goBack();
+  };
+
+  const channel = loc.channel || (desktop ? DEFAULT_CHANNEL : null);
+  const topic = loc.topic;
+  const showNav = desktop === false && !channel;
 
   return (
     <div className="catalog-root">
       <CatalogNavbar mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
       <CatalogMobileMenu mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
 
-      <div className="mx-auto flex w-full max-w-7xl gap-8 px-4 pb-20 pt-6 sm:px-6 lg:px-8">
-        {/* Sections — desktop */}
-        <aside className="sticky top-[calc(var(--header-h)+1.5rem)] hidden h-fit w-56 flex-shrink-0 lg:block">
-          <nav aria-label={t("community.navAria")} className="space-y-0.5">
-            {SECTIONS.map(item)}
-            {mine.length > 0 && (
-              <>
-                <p className="px-2.5 pb-1 pt-4 text-[11px] font-medium uppercase tracking-wider text-ink-3">
-                  {t("community.mine")}
-                </p>
-                {mine.map(item)}
-              </>
-            )}
-            <div className="my-3 h-px bg-line/[0.06]" />
-            {signedIn && (
-              <Link
-                href="/chats?c=updates"
-                className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-ink-2 transition-colors hover:bg-line/[0.06] hover:text-ink"
-              >
-                <Icon name="verified" size={16} className="text-ink-3" />
-                {t("community.updates")}
-              </Link>
-            )}
-            <Link
-              href="/legal/community"
-              className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-ink-2 transition-colors hover:bg-line/[0.06] hover:text-ink"
-            >
-              <Icon name="shield" size={16} className="text-ink-3" />
-              {t("community.rules")}
-            </Link>
-          </nav>
-        </aside>
-
-        <main className="min-w-0 flex-1">
-          {/* Sections — phone */}
-          <div className="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] lg:hidden [&::-webkit-scrollbar]:hidden">
-            {[...SECTIONS, ...mine].map((s) => (
-              <button
-                key={s.key}
-                type="button"
-                onClick={() => go(s.key)}
-                aria-pressed={section === s.key}
-                className={`tag-toggle ${section === s.key ? "border-accent/60 bg-raised text-ink" : ""}`}
-              >
-                {t(`community.sections.${s.key}`)}
-              </button>
-            ))}
-          </div>
-
-          {section === "showcase" && <ShowcaseSection key="showcase" mode="all" />}
-          {section === "saved" && <ShowcaseSection key="saved" mode="saved" />}
-          {section === "requests" && <RequestsSection />}
-          {(section === "discussions" || section === "mytopics") &&
-            (topic ? (
-              <TopicView key={topic} topicId={topic} onBack={() => go(section)} />
-            ) : (
-              <DiscussionsSection key={section} scope={section === "mytopics" ? "mine" : "all"} onOpenTopic={openTopic} />
-            ))}
+      {desktop === null ? (
+        <main aria-busy="true" />
+      ) : showNav ? (
+        <main>
+          <MobileRail space={space} onPickSpace={setSpace} active={null} onGo={go} />
         </main>
-      </div>
+      ) : (
+        <main className="mx-auto flex w-full max-w-[1440px]" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+          <CommunitySidebar active={channel} onGo={go} />
+          <section className="min-w-0 flex-1" aria-label={t(`community.channels.${channel}.name`)}>
+            {topic ? (
+              <>
+                <ChannelHeader channel={channel} onBack={goBack} thread={topicData?.title || t("community.shell.topic")} />
+                <div className="px-4 pb-6 pt-4 sm:px-6">
+                  <TopicView key={topic} topicId={topic} channel={channel} onBack={goBack} onLoaded={setTopicData} />
+                </div>
+              </>
+            ) : (
+              <ChannelContent key={channel} channel={channel} onBack={goBack} onOpenTopic={openTopic} />
+            )}
+          </section>
+          {wide && <RightRail channel={channel} topic={topic ? topicData : null} onOpenTopic={openTopic} />}
+        </main>
+      )}
     </div>
   );
 }

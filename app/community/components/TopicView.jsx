@@ -1,16 +1,17 @@
 "use client";
 
-// One discussion topic: breadcrumbs, the post, a flat list of replies (a reply
-// can quote another), the best answer on a solved question, a composer pinned
-// to the bottom, and a small card about the author. Text is plain with links
-// (SmartText turns BuildEx links into labelled chips).
+// One discussion topic, opened in the channel column like a thread: a back
+// control (the phone has its bar in the header), the post, a flat list of
+// replies (a reply can quote another), the best answer on a solved question,
+// and a composer pinned to the bottom. The author card is in the right column
+// (RightRail), fed by `onLoaded`. Text is plain with links (SmartText turns
+// BuildEx links into labelled chips).
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "../../../lib/auth/AuthContext";
 import { useT } from "../../../lib/i18n/LanguageProvider";
 import { serverMessage } from "../../../lib/i18n/serverText.mjs";
-import { formatDate } from "../../../lib/i18n/format.mjs";
 import { relativeAgo } from "../../../lib/works/format.mjs";
 import { Icon } from "../../../lib/icons";
 import Avatar from "../../../lib/ui/Avatar";
@@ -31,6 +32,7 @@ import {
 import Toast from "../../components/Toast";
 import ReportDialog from "./ReportDialog";
 import { KindTag } from "./DiscussionsSection";
+import { CHANNELS } from "./channels";
 
 function Author({ name, avatar, isBuilder, username, at, edited }) {
   const t = useT();
@@ -102,7 +104,7 @@ function EditBox({ initialTitle, initialBody, withTitle, onCancel, onSave }) {
   );
 }
 
-export default function TopicView({ topicId, onBack }) {
+export default function TopicView({ topicId, channel = "discussions", onBack, onLoaded }) {
   const t = useT();
   const { status, user, profile } = useAuth();
   const signedIn = status === "authenticated";
@@ -125,7 +127,8 @@ export default function TopicView({ topicId, onBack }) {
   const load = useCallback(async () => {
     const { topic, replies } = await fetchTopic(topicId);
     setData(topic ? { topic, replies } : { missing: true });
-  }, [topicId]);
+    if (topic) onLoaded?.(topic);
+  }, [topicId, onLoaded]);
 
   useEffect(() => {
     setData(null);
@@ -143,19 +146,34 @@ export default function TopicView({ topicId, onBack }) {
     return true;
   }
 
+  const backLabel = t("community.shell.backTo", { channel: t(`community.channels.${channel}.slug`) });
+  const backControl = (
+    <button type="button" onClick={onBack} className="mb-3 hidden h-8 items-center gap-1.5 rounded-lg px-2 text-xs font-medium text-ink-3 transition-colors hover:bg-line/[0.06] hover:text-ink lg:inline-flex">
+      <Icon name="arrowLeft" size={14} />
+      <Icon name={CHANNELS[channel]?.icon || "hash"} size={13} />
+      {backLabel}
+    </button>
+  );
+
   if (data === null) {
     return (
-      <div className="space-y-3">
-        <div className="skeleton h-4 w-40 rounded" />
-        <div className="card h-48 skeleton" />
+      <div>
+        {backControl}
+        <div className="space-y-3">
+          <div className="card h-48 skeleton" />
+          <div className="card h-24 skeleton" />
+        </div>
       </div>
     );
   }
   if (data.missing) {
     return (
-      <div className="rounded-xl border border-dashed border-line/15 px-6 py-14 text-center">
-        <p className="text-sm font-medium">{t("community.topic.missing")}</p>
-        <button type="button" onClick={onBack} className="btn btn-secondary btn-sm mt-4">{t("community.topic.back")}</button>
+      <div>
+        {backControl}
+        <div className="rounded-xl border border-dashed border-line/15 px-6 py-14 text-center">
+          <p className="text-sm font-medium">{t("community.topic.missing")}</p>
+          <button type="button" onClick={onBack} className="btn btn-secondary btn-sm mt-4">{backLabel}</button>
+        </div>
       </div>
     );
   }
@@ -271,13 +289,9 @@ export default function TopicView({ topicId, onBack }) {
   }
 
   return (
-    <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_260px]">
+    <div>
       <div className="min-w-0">
-        <nav aria-label={t("community.topic.breadcrumbs")} className="mb-3 flex flex-wrap items-center gap-1 text-xs text-ink-3">
-          <button type="button" onClick={onBack} className="hover:text-ink">{t("community.sections.discussions")}</button>
-          <Icon name="chevronRight" size={12} />
-          <span>{t(`community.discussions.kindsPlural.${topic.kind}`)}</span>
-        </nav>
+        {backControl}
 
         <article className="card p-5">
           <div className="flex flex-wrap items-center gap-2">
@@ -358,7 +372,7 @@ export default function TopicView({ topicId, onBack }) {
         )}
 
         {/* Composer, pinned to the bottom while reading */}
-        <div className="sticky bottom-0 z-10 -mx-4 mt-4 border-t border-line/[0.08] bg-canvas px-4 py-3 sm:mx-0 sm:rounded-t-xl sm:border-x">
+        <div className="safe-bottom sticky bottom-0 z-10 -mx-4 mt-4 border-t border-line/[0.08] bg-canvas px-4 pt-3 sm:-mx-6 sm:px-6 lg:mx-0 lg:rounded-t-xl lg:border-x lg:px-4">
           {signedIn ? (
             <>
               {quote && (
@@ -388,36 +402,13 @@ export default function TopicView({ topicId, onBack }) {
           ) : (
             <div className="flex items-center gap-3">
               <p className="flex-1 text-sm text-ink-2">{t("community.topic.signInToReply")}</p>
-              <Link href={`/login?redirect=${encodeURIComponent(`/community?s=discussions&t=${topic.id}`)}`} className="btn btn-primary btn-sm">
+              <Link href={`/login?redirect=${encodeURIComponent(`/community?s=${channel}&t=${topic.id}`)}`} className="btn btn-primary btn-sm">
                 {t("community.requests.signIn")}
               </Link>
             </div>
           )}
         </div>
       </div>
-
-      <aside className="hidden h-fit xl:block">
-        <div className="card p-4">
-          <p className="text-xs font-medium uppercase tracking-wider text-ink-3">{t("community.topic.authorTitle")}</p>
-          <div className="mt-3 flex items-center gap-2.5">
-            <Avatar src={topic.author_avatar_url ? publicAsset(topic.author_avatar_url) : null} name={authorName} size={40} />
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold">{authorName}</p>
-              {topic.author_username && <p className="truncate text-xs text-ink-3">@{topic.author_username}</p>}
-            </div>
-          </div>
-          <p className="mt-3 text-xs text-ink-3">
-            {t("community.topic.authorSince", { date: formatDate(topic.author_joined, t.lang, { month: "long", year: "numeric" }) })}
-            {" · "}
-            {t("community.topic.authorTopics", { count: topic.author_topics })}
-          </p>
-          {topic.author_is_builder && topic.author_username && (
-            <Link href={`/builders/profile?u=${encodeURIComponent(topic.author_username)}`} className="btn btn-secondary btn-sm mt-3 w-full">
-              {t("chat.profile")}
-            </Link>
-          )}
-        </div>
-      </aside>
 
       <ReportDialog
         open={Boolean(report)}

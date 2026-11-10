@@ -20,6 +20,7 @@ import { fetchSavedWorks, fetchShowcase, reportContent, SHOWCASE_PAGE, toggleWor
 import { STYLES } from "../../builders/data/offers";
 import Toast from "../../components/Toast";
 import ReportDialog from "./ReportDialog";
+import EmptyState from "./EmptyState";
 
 function WorkTile({ work, signedIn, onLike, onSave, onReport }) {
   const t = useT();
@@ -88,7 +89,7 @@ function WorkTile({ work, signedIn, onLike, onSave, onReport }) {
   );
 }
 
-export default function ShowcaseSection({ mode = "all" }) {
+export default function ShowcaseSection({ mode = "all", embedded = false }) {
   const t = useT();
   const { status } = useAuth();
   const signedIn = status === "authenticated";
@@ -158,10 +159,12 @@ export default function ShowcaseSection({ mode = "all" }) {
 
   return (
     <section>
-      <header className="mb-4">
-        <h1 className="text-xl font-semibold">{t(saved ? "community.sections.saved" : "community.sections.showcase")}</h1>
-        <p className="mt-1 text-sm text-ink-2">{t(saved ? "community.saved.subtitle" : "community.showcase.subtitle")}</p>
-      </header>
+      {!embedded && (
+        <header className="mb-4">
+          <h1 className="text-xl font-semibold">{t(saved ? "community.sections.saved" : "community.sections.showcase")}</h1>
+          <p className="mt-1 text-sm text-ink-2">{t(saved ? "community.saved.subtitle" : "community.showcase.subtitle")}</p>
+        </header>
+      )}
 
       {!saved && (
         <div className="mb-4 space-y-3">
@@ -213,12 +216,12 @@ export default function ShowcaseSection({ mode = "all" }) {
           ))}
         </div>
       ) : works.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-line/15 px-6 py-14 text-center">
-          <p className="text-sm font-medium">{t(saved ? "community.saved.emptyTitle" : "community.showcase.emptyTitle")}</p>
-          <p className="mx-auto mt-1 max-w-sm text-xs leading-relaxed text-ink-3">
-            {t(saved ? "community.saved.emptyBody" : "community.showcase.emptyBody")}
-          </p>
-        </div>
+        <EmptyState
+          icon={saved ? "bookmark" : "grid"}
+          title={t(saved ? "community.saved.emptyTitle" : "community.showcase.emptyTitle")}
+          body={t(saved ? "community.saved.emptyBody" : "community.showcase.emptyBody")}
+          action={saved ? { label: t("community.channels.showcase.name"), icon: "grid", href: "/community?s=showcase" } : null}
+        />
       ) : (
         <>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
