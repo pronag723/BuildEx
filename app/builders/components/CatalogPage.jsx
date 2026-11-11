@@ -24,7 +24,6 @@ import CatalogSort from "./CatalogSort";
 import FiltersMobileModal from "./FiltersMobileModal";
 import BuilderGrid from "./BuilderGrid";
 import { BecomeBuilderBanner, BecomeBuilderInline, useBuilderPrompt } from "./BecomeBuilderPrompt";
-import FeedFloatingBlocks from "./FeedFloatingBlocks";
 import PaginationControls from "./PaginationControls";
 import SiteFooter from "../../home/components/SiteFooter";
 
@@ -256,7 +255,6 @@ export default function CatalogPage() {
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div className="catalog-root">
-      <FeedFloatingBlocks />
       <CatalogNavbar mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
       <CatalogMobileMenu mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
 
