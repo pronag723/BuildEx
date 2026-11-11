@@ -33,6 +33,7 @@ import RequestsSection from "./RequestsSection";
 import DiscussionsSection from "./DiscussionsSection";
 import TopicView from "./TopicView";
 import PostView from "./PostView";
+import RulesSection from "./RulesSection";
 import { UnreadContext, useChannelUnread } from "./unread";
 
 const EDGE = 24; // px from the left edge where a back swipe may start
@@ -73,8 +74,11 @@ function ShellSkeleton() {
   );
 }
 
-function ChannelContent({ channel, onBack, onOpenTopic }) {
+function ChannelContent({ channel, rule, onBack, onOpenTopic }) {
   const spec = CHANNELS[channel];
+  if (channel === "rules") {
+    return <RulesSection rule={rule} onBack={onBack} />;
+  }
   if (channel === "showcase") {
     return <ShowcasePosts onBack={onBack} onOpenPost={(id) => onOpenTopic(id, "showcase")} />;
   }
@@ -97,7 +101,7 @@ export default function CommunityPage() {
   const wide = useMediaQuery("(min-width: 1280px)");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   useScrollLock(mobileMenuOpen);
-  const [loc, setLoc] = useState({ channel: null, topic: null });
+  const [loc, setLoc] = useState({ channel: null, topic: null, rule: null });
   const [space, setSpace] = useState("home");
   const [topicData, setTopicData] = useState(null);
   const touch = useRef(null);
@@ -119,7 +123,7 @@ export default function CommunityPage() {
   useEffect(() => {
     if (status === "unauthenticated" && loc.channel && CHANNELS[loc.channel].auth) {
       window.history.replaceState(window.history.state, "", withBase("/community"));
-      setLoc({ channel: null, topic: null });
+      setLoc({ channel: null, topic: null, rule: null });
     }
   }, [status, loc.channel]);
 
@@ -236,7 +240,7 @@ export default function CommunityPage() {
                 </div>
               </>
             ) : (
-              <ChannelContent key={channel} channel={channel} onBack={goBack} onOpenTopic={openTopic} />
+              <ChannelContent key={channel} channel={channel} rule={loc.rule} onBack={goBack} onOpenTopic={openTopic} />
             )}
           </section>
           {wide && <RightRail channel={channel} topic={topic ? topicData : null} onOpenTopic={openTopic} />}

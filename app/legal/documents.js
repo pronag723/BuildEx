@@ -200,9 +200,25 @@ export const legalDocuments = {
         "Post to the Showcase only builds you made yourself, or made together with the people you name. Screenshots and renders of someone else's build, downloaded maps and pictures found online are not yours to post, even with credit. A moderator may hide a post, and an account that keeps posting other people's work may be removed.",
         "Keep posts to builds: no advertising, no referral links, no unrelated pictures. Comments follow the same rules as replies in discussions."
       ]],
+      ["Library", [
+        "The Library is for free materials: schematics, structures and other files anyone may download and use. Upload only work you made yourself, or work whose author lets you share it for free — say so in the description, with any conditions the author set. Do not upload paid or leaked builds, someone else's files without permission, or anything you would charge for.",
+        "Upload only the file types the form accepts (schematics, structures and archives of them). No programs, mods with hidden code, malware or files that do something other than what the description says. Download at your own risk: BuildEx does not check what is inside a file. A moderator may remove any item, and an account that uploads harmful or stolen files may be removed."
+      ]],
+      ["Contests", [
+        "Anyone may announce a contest. Write the rules, the deadline, how the winner is chosen and what the prize is before the contest starts, and keep to them. The organiser alone is responsible for the contest and for delivering the prizes; BuildEx is not a party to a contest unless a moderator has marked the post official.",
+        "Do not use a contest to collect personal data, to demand payment for taking part, or to promote gambling. Entries follow the Showcase rules: your own builds only. A moderator may hide a contest that breaks these rules or whose organiser does not deliver what was promised."
+      ]],
+      ["Global chat", [
+        "The global chat is one shared room for the whole community: talk, joke, share how your builds are going. Anyone can read it and everyone signed in can write there, so treat it as a public place. The community rules apply in full.",
+        "No spam, flooding, advertising, begging, or links meant to lure people elsewhere. How often you can send messages is limited. Report a message from the chat itself; a moderator may hide messages and restrict an account from the chat or from the site."
+      ]],
       ["Discussions", [
-        "Pick the right kind — question, guide or idea — and give the topic a clear title. Keep replies on the topic; quote what you answer.",
+        "Pick the right kind — question, guide, suggestion or team search — and give the topic a clear title. Keep replies on the topic; quote what you answer. Suggestions are ideas for improving BuildEx itself.",
         "Share only guides and screenshots that are yours or that you have permission to share. No advertising, referral links or posts that only exist to promote a service outside BuildEx."
+      ]],
+      ["Team search", [
+        "Use team search to find people to build with: say what the project is, who you are looking for and what each side can expect, including whether the work is paid. Be honest about how big the project is and that it is real.",
+        "Do not post offers that ask the people who join to pay, collect contacts in bulk, or recruit for anything other than Minecraft building. Agreements you make with a team are between you and them; the safety advice above applies."
       ]],
       ["Requests and responses", [
         "Post a request only for a build you actually want made, describe it honestly, and keep one request per job. Do not post ads, links to other marketplaces, or requests meant to collect builders' contacts.",

@@ -13,7 +13,8 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useT } from "../../../lib/i18n/LanguageProvider";
 import { Icon } from "../../../lib/icons";
-import { CHANNELS } from "./channels";
+import { withBase } from "../../home/utils";
+import { CHANNELS, pushCommunity, ruleHref } from "./channels";
 
 const BAR_TOP = "sticky top-[var(--header-h)] z-20 border-b border-line/[0.08] bg-canvas";
 
@@ -127,6 +128,32 @@ export function MobileBar({ onBack, children, right }) {
   );
 }
 
+// "Channel rules": opens the rules channel at this channel's own section.
+function RulesLink({ rule, compact = false }) {
+  const t = useT();
+  const href = ruleHref(rule);
+  return (
+    <a
+      href={withBase(href)}
+      onClick={(e) => {
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+        e.preventDefault();
+        pushCommunity(href);
+      }}
+      title={t("community.rules.channelRules")}
+      aria-label={t("community.rules.channelRules")}
+      className={
+        compact
+          ? "flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg text-ink-3 hover:bg-line/[0.06] hover:text-ink"
+          : "inline-flex h-8 flex-shrink-0 items-center gap-1.5 rounded-lg px-2 text-[13px] text-ink-3 transition-colors hover:bg-line/[0.06] hover:text-ink"
+      }
+    >
+      <Icon name="shield" size={compact ? 18 : 15} />
+      {!compact && <span className="hidden xl:inline">{t("community.rules.channelRulesShort")}</span>}
+    </a>
+  );
+}
+
 /**
  * @param {object} p
  * @param {string} p.channel  a key of CHANNELS
@@ -158,6 +185,7 @@ export default function ChannelHeader({ channel, onBack, search, sort, action, t
           </p>
           {!thread && (
             <div className="flex flex-shrink-0 items-center gap-2">
+              {c?.rule && <RulesLink rule={c.rule} />}
               {search && <SearchField search={search} className="w-44 xl:w-56" showKey />}
               {sort && <SortControl sort={sort} />}
               <ActionButton action={action} />
@@ -181,6 +209,7 @@ export default function ChannelHeader({ channel, onBack, search, sort, action, t
               <Icon name={c?.icon || "hash"} size={17} className="flex-shrink-0 text-ink-3" />
               <span className="truncate">{name}</span>
             </h1>
+            {c?.rule && <RulesLink rule={c.rule} compact />}
           </div>
           {tools && (
             <div className="flex items-center gap-2 px-4 pb-2.5">

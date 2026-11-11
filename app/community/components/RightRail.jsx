@@ -14,9 +14,9 @@ import { formatDate } from "../../../lib/i18n/format.mjs";
 import { relativeAgo } from "../../../lib/works/format.mjs";
 import { Icon } from "../../../lib/icons";
 import Avatar from "../../../lib/ui/Avatar";
-import { publicAsset } from "../../home/utils";
+import { publicAsset, withBase } from "../../home/utils";
 import { fetchCommunityRail } from "../../../lib/community/api";
-import { CHANNELS, channelForKind } from "./channels";
+import { CHANNELS, channelForKind, pushCommunity, ruleHref } from "./channels";
 
 const EMPTY = { pinned: [], popular: [], active: [] };
 
@@ -163,9 +163,17 @@ export default function RightRail({ channel, topic, onOpenTopic }) {
             </li>
           ))}
         </ul>
-        <Link href="/legal/community" className="mt-2.5 inline-block text-xs text-ink-3 underline hover:text-ink">
+        <a
+          href={withBase(ruleHref(CHANNELS[channel]?.rule))}
+          onClick={(e) => {
+            if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+            e.preventDefault();
+            pushCommunity(ruleHref(CHANNELS[channel]?.rule));
+          }}
+          className="mt-2.5 inline-block text-xs text-ink-3 underline hover:text-ink"
+        >
           {t("community.rail.rulesLink")}
-        </Link>
+        </a>
       </Block>
     </aside>
   );

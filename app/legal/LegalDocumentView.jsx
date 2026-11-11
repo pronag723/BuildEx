@@ -10,10 +10,7 @@ import { legalDocuments } from "./documents";
 import { legalDocumentsFor, legalEffectiveFor } from "./documents.ru";
 import { Icon } from "../../lib/icons";
 import { useT } from "../../lib/i18n/LanguageProvider";
-
-function sectionId(heading) {
-  return heading.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-}
+import { sectionId } from "./sectionId";
 
 export default function LegalDocumentView({ slug }) {
   const t = useT();

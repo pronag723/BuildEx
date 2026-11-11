@@ -4,8 +4,9 @@
 // The community is laid out like a Discord server: categories of channels.
 // A channel is a `?s=` key (the site is a static export, so query params play
 // the part of routes); its name, slug and one-line description live in the
-// dictionaries under `community.channels.<key>`. Two channels are plain links
-// (the rules, the updates thread in chats). The phone rail groups channels
+// dictionaries under `community.channels.<key>`. One channel is a plain link
+// (the updates thread in chats). `rule` is the channel's section of the
+// community rules: its header links to `?s=rules&r=<rule>`. The phone rail groups channels
 // into "spaces" (home, Showcase, Looking for a builder, Discussions, Mine).
 //
 // Old links keep working: `?s=discussions` is the all-discussions channel and
@@ -13,16 +14,17 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useCallback, useEffect, useState } from "react";
+import { withBase } from "../../home/utils";
 
 export const CHANNELS = {
-  rules: { key: "rules", icon: "shield", category: "important", href: "/legal/community" },
+  rules: { key: "rules", icon: "shield", category: "important" },
   updates: { key: "updates", icon: "verified", category: "important", href: "/chats?c=updates", auth: true },
-  showcase: { key: "showcase", icon: "grid", category: "community", space: "showcase", kind: "showcase" },
-  requests: { key: "requests", icon: "briefcase", category: "community", space: "requests" },
-  questions: { key: "questions", icon: "help", category: "discussions", space: "discussions", kind: "question" },
-  guides: { key: "guides", icon: "book", category: "discussions", space: "discussions", kind: "guide" },
-  ideas: { key: "ideas", icon: "bulb", category: "discussions", space: "discussions", kind: "idea" },
-  discussions: { key: "discussions", icon: "chat", category: "discussions", space: "discussions", kind: null },
+  showcase: { key: "showcase", icon: "grid", category: "community", space: "showcase", kind: "showcase", rule: "showcase" },
+  requests: { key: "requests", icon: "briefcase", category: "community", space: "requests", rule: "requests-and-responses" },
+  questions: { key: "questions", icon: "help", category: "discussions", space: "discussions", kind: "question", rule: "discussions" },
+  guides: { key: "guides", icon: "book", category: "discussions", space: "discussions", kind: "guide", rule: "discussions" },
+  ideas: { key: "ideas", icon: "bulb", category: "discussions", space: "discussions", kind: "idea", rule: "discussions" },
+  discussions: { key: "discussions", icon: "chat", category: "discussions", space: "discussions", kind: null, rule: "discussions" },
   saved: { key: "saved", icon: "bookmark", category: "mine", space: "mine", auth: true },
   mytopics: { key: "mytopics", icon: "pencil", category: "mine", space: "mine", auth: true },
 };
@@ -59,6 +61,22 @@ export function channelForKind(kind) {
   return Object.values(CHANNELS).find((c) => c.kind === kind)?.key || "discussions";
 }
 
+// The rules channel, scrolled to one section (an anchor from the English
+// heading, see app/legal/sectionId.js).
+export function ruleHref(anchor) {
+  return anchor ? `/community?s=rules&r=${anchor}` : "/community?s=rules";
+}
+
+// Move within the Community from a component that has no `navigate`: push the
+// address (one level deeper, like CommunityPage's own pushes) and let the
+// page's popstate listener pick it up.
+export function pushCommunity(url) {
+  const depth = Number(window.history.state?.cDepth) || 0;
+  window.history.pushState({ ...(window.history.state || {}), cDepth: depth + 1 }, "", withBase(url));
+  window.dispatchEvent(new PopStateEvent("popstate", { state: window.history.state }));
+  window.scrollTo({ top: 0 });
+}
+
 export function channelHref(key, topic = null) {
   const c = CHANNELS[key];
   if (c?.href) return c.href;
@@ -82,12 +100,13 @@ export function categoriesFor(space, signedIn) {
 // `?s=` and `&t=` from the address. channel is null when there is no `?s=`
 // (the phone shows its navigation screen, the desktop the default channel).
 export function readLocation() {
-  if (typeof window === "undefined") return { channel: null, topic: null };
+  if (typeof window === "undefined") return { channel: null, topic: null, rule: null };
   const params = new URLSearchParams(window.location.search);
   const s = params.get("s");
   const channel = s && CHANNELS[s] && !CHANNELS[s].href ? s : null;
   const topic = params.get("t");
-  return { channel, topic: channel && hasTopics(channel) && topic ? topic : null };
+  const rule = channel === "rules" ? params.get("r") : null;
+  return { channel, topic: channel && hasTopics(channel) && topic ? topic : null, rule };
 }
 
 // ─── Collapsed categories (a per-viewer convenience, kept in localStorage) ──
