@@ -5,10 +5,9 @@ import Toast from "../../../components/Toast";
 import { useAuth } from "../../../../lib/auth/AuthContext";
 import { useT } from "../../../../lib/i18n/LanguageProvider";
 import { serverMessage } from "../../../../lib/i18n/serverText.mjs";
-import { styleChipLabel } from "../../../../lib/i18n/labels.mjs";
 import { Icon } from "../../../../lib/icons";
 import { getSupabaseClient } from "../../../../lib/supabase/client";
-import { saveBuilderIdentity, saveBuilderStyles, saveHeaderBackground } from "../../../../lib/onboarding/api";
+import { saveBuilderIdentity, saveHeaderBackground } from "../../../../lib/onboarding/api";
 import { BUCKETS } from "../../../../lib/onboarding/constants";
 import { hasHeaderBg, storagePathFromUrl } from "../../../../lib/profile/headerBg.mjs";
 import { CONTACT_LINKS_MAX, buildContactLinks, readContactLinks } from "../../../../lib/onboarding/contactLinks";
@@ -31,7 +30,7 @@ import PriceTiersEditor from "../../../onboarding/components/PriceTiersEditor";
 import EditZone, { PenGlyph } from "./EditZone";
 import EditableAvatar from "./EditableAvatar";
 import HeaderBackgroundPicker from "./HeaderBackgroundPicker";
-import { BioEditor, NameEditor, StylesEditor } from "./InlineEditors";
+import { BioEditor, NameEditor } from "./InlineEditors";
 import LinkEditor from "./LinkEditor";
 import OwnerSidebar from "./OwnerSidebar";
 
@@ -95,7 +94,7 @@ export default function OwnerProfileEditor({ tabs, onSaved }) {
   const [tiers, setTiers] = useState([]);
   const [stats, setStats] = useState(null);
   const [tab, setTab] = useState("works");
-  // "name" | "bio" | "styles" | "link:<type>" | "link:new" | "bg" | null
+  // "name" | "bio" | "link:<type>" | "link:new" | "bg" | null
   const [editing, setEditing] = useState(null);
   const [arranging, setArranging] = useState(false);
   const [savingLayout, setSavingLayout] = useState(false);
@@ -206,16 +205,6 @@ export default function OwnerProfileEditor({ tabs, onSaved }) {
       return;
     }
     saved();
-  };
-
-  const saveStyles = async (list) => {
-    const supabase = getSupabaseClient();
-    if (!supabase || !userId) return t("account.errors.saveFailed");
-    const { error } = await saveBuilderStyles(supabase, userId, { specialties: list });
-    if (error) return serverMessage(error, "account.errors.saveFailed");
-    patch({ specialties: list, styles: list });
-    saved();
-    return null;
   };
 
   // ─── Header background ────────────────────────────────────────────────────
@@ -389,7 +378,6 @@ export default function OwnerProfileEditor({ tabs, onSaved }) {
   }
 
   const open = (what) => setEditing((current) => (current === what ? null : what));
-  const specialties = builder.specialties || [];
   const canAddLink = links.length < CONTACT_LINKS_MAX;
 
   const header = {
@@ -456,30 +444,7 @@ export default function OwnerProfileEditor({ tabs, onSaved }) {
         <div className="mt-3 flex flex-col items-start gap-3 lg:mt-3.5 lg:flex-row lg:flex-wrap lg:items-center lg:gap-x-[18px] lg:gap-y-2.5">
           <YearPicker value={builder.building_since} onChange={saveYear} />
           <Presence builder={builder} className="hidden lg:inline-flex" />
-          {editing !== "styles" && (
-            <EditZone
-              onClick={() => open("styles")}
-              label={t("account.editor.styles.edit")}
-              className="inline-flex flex-wrap items-center gap-1.5"
-            >
-              {specialties.map((key) => (
-                <span
-                  key={key}
-                  className="inline-flex h-7 items-center rounded-lg bg-line/[0.08] px-2.5 text-[12.5px] font-medium text-ink-2"
-                >
-                  {styleChipLabel(key, t.lang)}
-                </span>
-              ))}
-              {specialties.length === 0 && (
-                <span className="inline-flex h-7 items-center gap-1.5 text-[13px] text-ink-3">
-                  <Icon name="plus" size={14} strokeWidth={2.5} /> {t("account.editor.styles.edit")}
-                </span>
-              )}
-              <PenGlyph size={13} className="ml-0.5" />
-            </EditZone>
-          )}
         </div>
-        {editing === "styles" && <StylesEditor styles={specialties} onSave={saveStyles} />}
       </>
     ),
 

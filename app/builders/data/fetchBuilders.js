@@ -134,6 +134,9 @@ export function mapRow(row) {
     // now correctly reads as offline.
     online: isOnline(row.last_seen_at),
     member_since: row.created_at || null,
+    // The year they started building (migration 0106) — the card's experience
+    // line and the feed's experience filter.
+    building_since: bp.building_since ?? null,
     specialties,
 
     // Portfolio

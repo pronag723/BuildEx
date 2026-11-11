@@ -2,16 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useT } from "../../../../lib/i18n/LanguageProvider";
-import { BIO_MAX, DISPLAY_NAME_MAX, DISPLAY_NAME_MIN, STYLES } from "../../../../lib/onboarding/constants";
+import { BIO_MAX, DISPLAY_NAME_MAX, DISPLAY_NAME_MIN } from "../../../../lib/onboarding/constants";
 import HandleInput from "../../../onboarding/components/HandleInput";
-import ChipGrid from "../../../onboarding/components/ChipGrid";
 import { EditError, Spinner } from "./EditZone";
 
 // The inline editors that open in place of a profile block. Each one keeps
 // its own draft and hands it to `onSave`, which resolves to an error message
 // (shown here, editor stays open) or null (the owner closes it).
-
-export const STYLES_MAX = 5;
 
 function useSave(onSave) {
   const [saving, setSaving] = useState(false);
@@ -138,30 +135,3 @@ export function BioEditor({ bio, onSave, onCancel }) {
   );
 }
 
-// ─── Styles ─────────────────────────────────────────────────────────────────
-export function StylesEditor({ styles, onSave }) {
-  const t = useT();
-  const [draft, setDraft] = useState(styles || []);
-  const { saving, error, run } = useSave(onSave);
-
-  return (
-    <div className="edit-panel mt-3 max-w-[560px]">
-      <p className="text-xs font-medium text-ink-2">{t("account.editor.styles.hint", { max: STYLES_MAX })}</p>
-      <div className="mt-2.5">
-        <ChipGrid
-          options={STYLES.map((s) => ({ key: s.key, label: t(`styles.${s.key}`) }))}
-          value={draft}
-          onChange={setDraft}
-          multi
-          max={STYLES_MAX}
-          ariaLabel={t("onboarding.styles.label")}
-        />
-      </div>
-      <div className="mt-3 flex items-center justify-end gap-3">
-        {draft.length === 0 && <span className="mr-auto text-xs text-ink-3">{t("account.editor.styles.min")}</span>}
-        <DoneButton saving={saving} disabled={draft.length === 0} onClick={() => run(draft)} />
-      </div>
-      <EditError message={error} />
-    </div>
-  );
-}

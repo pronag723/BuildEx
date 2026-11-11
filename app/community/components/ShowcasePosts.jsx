@@ -1,7 +1,7 @@
 "use client";
 
 // # showcase: what people chose to publish to the community (migration 0118).
-// A 4:3 tile grid, newest or most liked, by style. A tile opens the post in
+// A 4:3 tile grid, newest or most liked. A tile opens the post in
 // the channel column (PostView). Hearts are likes (the forum's "helpful"),
 // the yellow bookmark saves the post (the forum's save).
 
@@ -9,14 +9,12 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "../../../lib/auth/AuthContext";
 import { useT } from "../../../lib/i18n/LanguageProvider";
-import { styleChipLabel } from "../../../lib/i18n/labels.mjs";
 import { serverMessage } from "../../../lib/i18n/serverText.mjs";
 import { Icon } from "../../../lib/icons";
 import Avatar from "../../../lib/ui/Avatar";
 import SaveButton from "../../../lib/ui/SaveButton";
 import { formatCount } from "../../../lib/works/format.mjs";
 import { fetchShowcasePosts, POSTS_PAGE, toggleHelpful, toggleTopicSave } from "../../../lib/community/api";
-import { STYLES } from "../../builders/data/offers";
 import Toast from "../../components/Toast";
 import ChannelHeader from "./ChannelHeader";
 import EmptyState from "./EmptyState";
@@ -139,7 +137,6 @@ export default function ShowcasePosts({ onBack, onOpenPost }) {
   const { status } = useAuth();
   const signedIn = status === "authenticated";
   const [sort, setSort] = useState("new");
-  const [style, setStyle] = useState(null);
   const [posts, setPosts] = useState(null);
   const [more, setMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -155,7 +152,7 @@ export default function ShowcasePosts({ onBack, onOpenPost }) {
   useEffect(() => {
     let cancelled = false;
     setPosts(null);
-    fetchShowcasePosts({ sort, style }).then(({ posts: rows }) => {
+    fetchShowcasePosts({ sort }).then(({ posts: rows }) => {
       if (cancelled) return;
       setPosts(rows);
       setMore(rows.length >= POSTS_PAGE);
@@ -163,11 +160,11 @@ export default function ShowcasePosts({ onBack, onOpenPost }) {
     return () => {
       cancelled = true;
     };
-  }, [sort, style, status]);
+  }, [sort, status]);
 
   async function loadMore() {
     setLoadingMore(true);
-    const { posts: rows } = await fetchShowcasePosts({ sort, style, offset: posts.length });
+    const { posts: rows } = await fetchShowcasePosts({ sort, offset: posts.length });
     setLoadingMore(false);
     setPosts((prev) => {
       const seen = new Set(prev.map((p) => p.id));
@@ -190,25 +187,14 @@ export default function ShowcasePosts({ onBack, onOpenPost }) {
       />
 
       <div className="px-4 pb-24 pt-4 sm:px-6 lg:pb-10">
-        <div className="chip-row -mx-4 mb-4 flex gap-1.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0 [&::-webkit-scrollbar]:hidden">
-          <button type="button" onClick={() => setStyle(null)} aria-pressed={!style} className="filter-chip">
-            {t("community.showcase.allStyles")}
-          </button>
-          {STYLES.map((s) => (
-            <button key={s.key} type="button" onClick={() => setStyle(style === s.key ? null : s.key)} aria-pressed={style === s.key} className="filter-chip">
-              {styleChipLabel(s.key, t.lang)}
-            </button>
-          ))}
-        </div>
-
         {posts === null ? (
           <PostGridSkeleton />
         ) : posts.length === 0 ? (
           <EmptyState
             icon="grid"
-            title={t(style ? "community.post.emptyStyleTitle" : "community.post.emptyTitle")}
-            body={t(style ? "community.post.emptyStyleBody" : "community.post.emptyBody")}
-            action={style ? { label: t("community.showcase.allStyles"), onClick: () => setStyle(null) } : action}
+            title={t("community.post.emptyTitle")}
+            body={t("community.post.emptyBody")}
+            action={action}
           />
         ) : (
           <>

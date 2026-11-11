@@ -1,115 +1,27 @@
 "use client";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Builder signup, step 2 of 3 — the styles you build in.
+// /onboarding/builder/styles — retired step.
 //
-// This screen used to also ask for tools, project types, response time and
-// availability. None of those are collected any more; the columns keep their
-// old values and simply stop being read. Styles stay because they are what the
-// /builders catalog filters on.
-// ─────────────────────────────────────────────────────────────────────────────
+// Builder signup used to ask for styles here. Styles are gone (builders say
+// what they build in their bio), so signup is identity → portfolio. The path
+// stays as a client redirect so a half-finished signup or an old link does not
+// 404: the identity step's OnboardingGate forwards to wherever the user
+// actually is.
 
-import { useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getSupabaseClient } from "../../../../lib/supabase/client";
-import { useAuth } from "../../../../lib/auth/AuthContext";
-import { saveBuilderStyles } from "../../../../lib/onboarding/api";
-import { STEPS } from "../../../../lib/onboarding/state";
-import { STYLES } from "../../../../lib/onboarding/constants";
-import OnboardingShell from "../../components/OnboardingShell";
-import OnboardingGate from "../../components/OnboardingGate";
-import OnboardingFooter from "../../components/OnboardingFooter";
-import ChipGrid from "../../components/ChipGrid";
-import { useT } from "../../../../lib/i18n/LanguageProvider";
+import { BUILDER_ONBOARDING_START } from "../../../../lib/onboarding/state";
 
-export default function BuilderStylesPage() {
-  return (
-    <OnboardingShell currentStep={STEPS.builderStyles} maxWidth="max-w-3xl">
-      <OnboardingGate expectedStep={STEPS.builderStyles}>
-        {(state) => <BuilderStylesStep state={state} />}
-      </OnboardingGate>
-    </OnboardingShell>
-  );
-}
-
-function BuilderStylesStep({ state }) {
+export default function RetiredStylesStep() {
   const router = useRouter();
-  const { user, refresh } = useAuth();
-  const t = useT();
-  const bp = state.builderProfile || {};
 
-  const [specialties, setSpecialties] = useState(
-    Array.isArray(bp.specialties) ? bp.specialties : []
-  );
-  const [error, setError] = useState(null);
-  const [saving, setSaving] = useState(false);
-
-  const canContinue = specialties.length >= 1;
-
-  async function handleContinue() {
-    if (!canContinue) return;
-    const supabase = getSupabaseClient();
-    if (!supabase || !user?.id) return;
-    setError(null);
-    setSaving(true);
-
-    // No `buildTypes` here on purpose — an existing builder's stored list is
-    // left exactly as it is.
-    const { error: saveErr } = await saveBuilderStyles(supabase, user.id, {
-      specialties,
-    });
-    setSaving(false);
-    if (saveErr) {
-      setError(saveErr.message || t("onboarding.errors.saveFailed"));
-      return;
-    }
-    await refresh?.();
-    router.push(STEPS.builderPortfolio);
-  }
+  useEffect(() => {
+    router.replace(BUILDER_ONBOARDING_START);
+  }, [router]);
 
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="onb-section-title">{t("onboarding.styles.title")}</h1>
-        <p className="onb-section-sub mt-2">
-          {t("onboarding.styles.subtitle")}
-        </p>
-      </div>
-
-      <div className="space-y-6">
-        <div className="onb-card">
-          <div className="mb-1 flex items-baseline justify-between gap-3">
-            <div className="onb-label">{t("onboarding.styles.label")}</div>
-            <span className="text-xs tabular-nums text-ink-3">
-              {t("onboarding.styles.selected", { count: specialties.length })}
-            </span>
-          </div>
-          <p className="mb-4 text-xs text-ink-3">
-            {t("onboarding.styles.hint")}
-          </p>
-          <ChipGrid
-            options={STYLES.map((s) => ({ ...s, label: t(`styles.${s.key}`) }))}
-            value={specialties}
-            onChange={setSpecialties}
-            multi
-            ariaLabel={t("onboarding.styles.label")}
-          />
-        </div>
-
-        {error && (
-          <div role="alert" className="auth-banner auth-banner-error">
-            {error}
-          </div>
-        )}
-      </div>
-
-      <OnboardingFooter
-        onBack={() => router.push(`${STEPS.builderIdentity}?revisit=1`)}
-        onNext={handleContinue}
-        nextDisabled={!canContinue}
-        isSaving={saving}
-        helper={canContinue ? null : t("onboarding.styles.helper")}
-      />
-    </div>
+    <main className="min-h-screen flex items-center justify-center px-4">
+      <div className="h-6 w-6 rounded-full border-2 border-line/20 border-t-accent animate-spin" role="status" />
+    </main>
   );
 }

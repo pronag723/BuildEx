@@ -8,7 +8,7 @@ import {
   sortBuilders,
   ITEMS_PER_PAGE,
   DEFAULT_SORT,
-  STYLES,
+  EXPERIENCE_OPTIONS,
 } from "../data/builders";
 import { fetchBuilders } from "../data/fetchBuilders";
 import { resolveFeedSeed } from "../data/feedOrder";
@@ -81,7 +81,8 @@ export default function CatalogPage() {
 
   // ── Derived filter values ──────────────────────────────────────────────────
   const query = params.get("q") || "";
-  const selectedStyles = useMemo(() => parseArray(params.get("style")), [params]);
+  // Only the offered thresholds count; anything else in ?exp= is ignored.
+  const minYears = EXPERIENCE_OPTIONS.includes(Number(params.get("exp"))) ? Number(params.get("exp")) : 0;
   const selectedBuildTypes = useMemo(() => parseArray(params.get("type")), [params]);
   const favoritesOnly = params.get("fav") === "1";
   const sort = params.get("sort") || DEFAULT_SORT;
@@ -170,14 +171,9 @@ export default function CatalogPage() {
     [updateURL]
   );
 
-  const handleStyleToggle = useCallback(
-    (style) => {
-      const next = selectedStyles.includes(style)
-        ? selectedStyles.filter((s) => s !== style)
-        : [...selectedStyles, style];
-      updateURL({ style: serializeArray(next) });
-    },
-    [selectedStyles, updateURL]
+  const handleExperienceChange = useCallback(
+    (years) => updateURL({ exp: years === minYears ? null : years }),
+    [minYears, updateURL]
   );
 
   const handleBuildTypeToggle = useCallback(
@@ -214,14 +210,14 @@ export default function CatalogPage() {
   const filteredBuilders = useMemo(() => {
     const filtered = filterBuilders(builders, {
       query,
-      styles: selectedStyles,
+      minYears,
       buildTypes: selectedBuildTypes,
     });
     const scoped = effectiveFavoritesOnly
       ? filtered.filter((b) => favoriteIds.has(`builder:${b.id}`))
       : filtered;
     return sortBuilders(scoped, sort, feedSeed);
-  }, [builders, query, selectedStyles, selectedBuildTypes, sort, feedSeed, effectiveFavoritesOnly, favoriteIds]);
+  }, [builders, query, minYears, selectedBuildTypes, sort, feedSeed, effectiveFavoritesOnly, favoriteIds]);
 
   const visibleBuilders = useMemo(
     () => filteredBuilders.slice(0, pageCount * ITEMS_PER_PAGE),
@@ -232,11 +228,11 @@ export default function CatalogPage() {
   // state, so it is not counted here.
   const activeFilterCount = useMemo(() => {
     let n = 0;
-    if (selectedStyles.length) n++;
+    if (minYears) n++;
     if (selectedBuildTypes.length) n++;
     if (effectiveFavoritesOnly) n++;
     return n;
-  }, [selectedStyles, selectedBuildTypes, effectiveFavoritesOnly]);
+  }, [minYears, selectedBuildTypes, effectiveFavoritesOnly]);
 
   const hasNarrowing = activeFilterCount > 0 || Boolean(query);
 
@@ -245,8 +241,8 @@ export default function CatalogPage() {
 
   // Shared filter props passed to the drawer
   const filterProps = {
-    selectedStyles,
-    onStyleToggle: handleStyleToggle,
+    minYears,
+    onExperienceChange: handleExperienceChange,
     selectedBuildTypes,
     onBuildTypeToggle: handleBuildTypeToggle,
     favoritesOnly,
@@ -298,23 +294,32 @@ export default function CatalogPage() {
             </button>
           </div>
 
-          {/* ── Style shortcuts ─────────────────────────────────────────────
-              The style filter is the one most people reach for, so it sits
-              out in the open; build type and favourites stay in the drawer. */}
+          {/* ── Experience shortcuts ────────────────────────────────────────
+              Styles are gone (builders describe theirs in the bio); how long
+              someone has been building is the quick filter now. Build type
+              and favourites stay in the drawer. */}
           <div
             className="quick-filters hide-scrollbar -mx-4 mt-3 flex gap-1.5 overflow-x-auto px-4 sm:mx-0 sm:px-0 lg:flex-wrap"
             role="group"
-            aria-label={t("catalog.style")}
+            aria-label={t("catalog.experience")}
           >
-            {STYLES.map((s) => (
+            <button
+              type="button"
+              className="tag-toggle"
+              aria-pressed={minYears === 0}
+              onClick={() => updateURL({ exp: null })}
+            >
+              {t("catalog.experienceAny")}
+            </button>
+            {EXPERIENCE_OPTIONS.map((y) => (
               <button
-                key={s.key}
+                key={y}
                 type="button"
                 className="tag-toggle"
-                aria-pressed={selectedStyles.includes(s.key)}
-                onClick={() => handleStyleToggle(s.key)}
+                aria-pressed={minYears === y}
+                onClick={() => handleExperienceChange(y)}
               >
-                {t(`styles.${s.key}`)}
+                {t("catalog.experienceAtLeast", { count: y })}
               </button>
             ))}
           </div>

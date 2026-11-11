@@ -1,6 +1,6 @@
 "use client";
 
-import { STYLES, BUILD_TYPES } from "../data/builders";
+import { BUILD_TYPES, EXPERIENCE_OPTIONS } from "../data/builders";
 import { Icon } from "../../../lib/icons";
 import { useT } from "../../../lib/i18n/LanguageProvider";
 
@@ -40,10 +40,10 @@ function FilterGroup({ label, children }) {
 
 // ─── Main panel ───────────────────────────────────────────────────────────────
 // Lives inside the filter drawer. Groups are always open — there are only two,
-// and collapsing a list of ten checkboxes saved nothing but a click.
+// and collapsing a short list of checkboxes saved nothing but a click.
 export default function CatalogFilters({
-  selectedStyles,
-  onStyleToggle,
+  minYears,
+  onExperienceChange,
   selectedBuildTypes,
   onBuildTypeToggle,
   favoritesOnly,
@@ -78,13 +78,13 @@ export default function CatalogFilters({
         </div>
       )}
 
-      <FilterGroup label={t("catalog.style")}>
-        {STYLES.map((s) => (
+      <FilterGroup label={t("catalog.experience")}>
+        {EXPERIENCE_OPTIONS.map((y) => (
           <FilterCheckbox
-            key={s.key}
-            label={t(`styles.${s.key}`)}
-            checked={selectedStyles.includes(s.key)}
-            onChange={() => onStyleToggle(s.key)}
+            key={y}
+            label={t("catalog.experienceAtLeast", { count: y })}
+            checked={minYears === y}
+            onChange={() => onExperienceChange(y)}
           />
         ))}
       </FilterGroup>

@@ -1,6 +1,6 @@
 "use client";
 
-// The Showcase (every public work, newest or most liked, by style) and Saved
+// The Showcase (every public work, newest or most liked) and Saved
 // (the works the viewer bookmarked). A tile opens the work on its builder's
 // profile, where the full viewer already lives. Hearts are likes; the yellow
 // bookmark saves a work so it can be attached to a brief later.
@@ -9,7 +9,6 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "../../../lib/auth/AuthContext";
 import { useT } from "../../../lib/i18n/LanguageProvider";
-import { styleChipLabel } from "../../../lib/i18n/labels.mjs";
 import { serverMessage } from "../../../lib/i18n/serverText.mjs";
 import { Icon } from "../../../lib/icons";
 import Avatar from "../../../lib/ui/Avatar";
@@ -17,7 +16,6 @@ import SaveButton from "../../../lib/ui/SaveButton";
 import { formatCount } from "../../../lib/works/format.mjs";
 import { toggleWorkLike } from "../../../lib/works/engagement";
 import { fetchSavedWorks, fetchShowcase, reportContent, SHOWCASE_PAGE, toggleWorkSave } from "../../../lib/community/api";
-import { STYLES } from "../../builders/data/offers";
 import Toast from "../../components/Toast";
 import ReportDialog from "./ReportDialog";
 import EmptyState from "./EmptyState";
@@ -95,7 +93,6 @@ export default function ShowcaseSection({ mode = "all", embedded = false }) {
   const signedIn = status === "authenticated";
   const saved = mode === "saved";
   const [sort, setSort] = useState("new");
-  const [style, setStyle] = useState(null);
   const [works, setWorks] = useState(null);
   const [more, setMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -110,7 +107,7 @@ export default function ShowcaseSection({ mode = "all", embedded = false }) {
   useEffect(() => {
     let cancelled = false;
     setWorks(null);
-    const run = saved ? fetchSavedWorks() : fetchShowcase({ sort, style });
+    const run = saved ? fetchSavedWorks() : fetchShowcase({ sort });
     run.then(({ works: rows }) => {
       if (cancelled) return;
       setWorks(rows);
@@ -119,11 +116,11 @@ export default function ShowcaseSection({ mode = "all", embedded = false }) {
     return () => {
       cancelled = true;
     };
-  }, [saved, sort, style, status]);
+  }, [saved, sort, status]);
 
   async function loadMore() {
     setLoadingMore(true);
-    const { works: rows } = await fetchShowcase({ sort, style, offset: works.length });
+    const { works: rows } = await fetchShowcase({ sort, offset: works.length });
     setLoadingMore(false);
     setWorks((prev) => {
       const seen = new Set(prev.map((w) => w.id));
@@ -181,22 +178,6 @@ export default function ShowcaseSection({ mode = "all", embedded = false }) {
                 }`}
               >
                 {t(`community.showcase.sort.${key}`)}
-              </button>
-            ))}
-          </div>
-          <div className="chip-row -mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0 [&::-webkit-scrollbar]:hidden">
-            <button type="button" onClick={() => setStyle(null)} aria-pressed={!style} className="filter-chip">
-              {t("community.showcase.allStyles")}
-            </button>
-            {STYLES.map((s) => (
-              <button
-                key={s.key}
-                type="button"
-                onClick={() => setStyle(style === s.key ? null : s.key)}
-                aria-pressed={style === s.key}
-                className="filter-chip"
-              >
-                {styleChipLabel(s.key, t.lang)}
               </button>
             ))}
           </div>

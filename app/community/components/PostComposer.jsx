@@ -1,7 +1,7 @@
 "use client";
 
-// "Show your build": pick or drop 1–10 photos (compressed in the browser and
-// put in community-media), write a caption, pick styles. A builder may also
+// "Create a post": pick or drop 1–10 photos (compressed in the browser and
+// put in community-media) and write a caption. A builder may also
 // copy the photos of one of their works into the post — a deliberate
 // publication, not an automatic feed. Posting goes through
 // create_showcase_post, which checks the count, the paths and the daily cap.
@@ -11,18 +11,15 @@ import { createPortal } from "react-dom";
 import { useAuth } from "../../../lib/auth/AuthContext";
 import { useIsBuilder } from "../../../lib/auth/useIsBuilder";
 import { useT } from "../../../lib/i18n/LanguageProvider";
-import { styleChipLabel } from "../../../lib/i18n/labels.mjs";
 import { serverMessage } from "../../../lib/i18n/serverText.mjs";
 import { useScrollLock } from "../../../lib/useScrollLock";
 import { Icon } from "../../../lib/icons";
 import { fetchWorks } from "../../../lib/works/api";
-import { STYLES } from "../../builders/data/offers";
 import {
   createShowcasePost,
   POST_CAPTION_MAX,
   POST_IMAGE_MAX_BYTES,
   POST_MAX_IMAGES,
-  POST_MAX_STYLES,
   uploadPostImage,
 } from "../../../lib/community/api";
 
@@ -44,7 +41,6 @@ export default function PostComposer({ open, onClose, onCreated }) {
   const isBuilder = useIsBuilder();
   const [items, setItems] = useState([]);
   const [caption, setCaption] = useState("");
-  const [styles, setStyles] = useState([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [dragging, setDragging] = useState(false);
@@ -59,7 +55,6 @@ export default function PostComposer({ open, onClose, onCreated }) {
     if (!open) return undefined;
     setItems([]);
     setCaption("");
-    setStyles([]);
     setError(null);
     setWorksOpen(false);
     return () => {
@@ -157,8 +152,7 @@ export default function PostComposer({ open, onClose, onCreated }) {
     setError(null);
     const { postId, error: e } = await createShowcasePost(
       caption.trim(),
-      ready.map((i) => i.path),
-      styles
+      ready.map((i) => i.path)
     );
     setBusy(false);
     if (e) {
@@ -280,30 +274,6 @@ export default function PostComposer({ open, onClose, onCreated }) {
               className="input h-auto resize-y py-2.5 leading-relaxed"
             />
           </label>
-
-          {/* Styles */}
-          <div>
-            <p className="mb-1.5 text-sm font-medium">
-              {t("community.post.styles")} <span className="font-normal text-ink-3">· {t("community.post.optional")}</span>
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {STYLES.map((s) => {
-                const on = styles.includes(s.key);
-                return (
-                  <button
-                    key={s.key}
-                    type="button"
-                    aria-pressed={on}
-                    disabled={!on && styles.length >= POST_MAX_STYLES}
-                    onClick={() => setStyles((prev) => (on ? prev.filter((k) => k !== s.key) : [...prev, s.key]))}
-                    className="filter-chip"
-                  >
-                    {styleChipLabel(s.key, t.lang)}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
 
           <p className="text-xs text-ink-3">{t("community.post.ownOnly")}</p>
           {error && <p className="text-sm text-danger">{error}</p>}

@@ -6,6 +6,7 @@
 
 import { STYLES, BUILD_TYPES, ITEMS_PER_PAGE } from "./offers";
 import { seededShuffle } from "./feedOrder";
+import { experienceYears } from "../../../lib/works/format.mjs";
 
 // Re-export shared constants so consumers only need one import.
 export { STYLES, BUILD_TYPES, ITEMS_PER_PAGE };
@@ -21,9 +22,12 @@ export const SORT_OPTIONS = [
 // The default ordering when no explicit sort is chosen.
 export const DEFAULT_SORT = "featured";
 
+// Experience filter: "at least N full years", from builder_profiles.building_since.
+export const EXPERIENCE_OPTIONS = [1, 3, 5];
+
 // ─── Pure filter / sort helpers (easy to move server-side) ──────────────────
 export function filterBuilders(builders, filters) {
-  const { query = "", styles = [], buildTypes = [] } = filters;
+  const { query = "", buildTypes = [], minYears = 0 } = filters;
 
   return builders.filter((b) => {
     if (query) {
@@ -32,13 +36,14 @@ export function filterBuilders(builders, filters) {
         b.display_name.toLowerCase().includes(q) ||
         b.username.toLowerCase().includes(q) ||
         (b.bio || "").toLowerCase().includes(q) ||
-        (b.specialties || []).some((s) => s.toLowerCase().includes(q)) ||
-        (b.styles || []).some((s) => s.toLowerCase().includes(q)) ||
         (b.build_types || []).some((t) => t.toLowerCase().includes(q));
       if (!match) return false;
     }
 
-    if (styles.length > 0 && !styles.some((s) => b.styles.includes(s))) return false;
+    if (minYears > 0) {
+      const years = experienceYears(b.building_since);
+      if (years === null || years < minYears) return false;
+    }
     if (buildTypes.length > 0 && !buildTypes.some((t) => b.build_types.includes(t))) return false;
 
     return true;

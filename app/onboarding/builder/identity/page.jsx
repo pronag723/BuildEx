@@ -125,7 +125,7 @@ function BuilderIdentityStep({ state }) {
       avatar_url: avatarUrl ?? null,
       bio: bio.trim() || null,
     });
-    router.replace(STEPS.builderStyles);
+    router.replace(STEPS.builderPortfolio);
     refresh?.();
   }
 

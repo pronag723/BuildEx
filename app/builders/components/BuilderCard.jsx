@@ -5,15 +5,15 @@ import Link from "next/link";
 import { publicAsset } from "../../home/utils";
 import { useFavorites } from "../../../lib/favorites/FavoritesContext";
 import { useT } from "../../../lib/i18n/LanguageProvider";
-import { styleChipLabel } from "../../../lib/i18n/labels.mjs";
 import { Icon } from "../../../lib/icons";
 import Avatar from "../../../lib/ui/Avatar";
 import SaveButton from "../../../lib/ui/SaveButton";
+import { experienceLabel } from "../profile/[username]/components/profileText";
 
 // One builder in the feed. The whole card is the link to their profile, so it
 // carries no separate "View profile" button: what it spends its space on is
 // the work (a swipeable strip of their portfolio) and the few facts a client
-// scans for — who they are, how much they have shown, what they build.
+// scans for — who they are, how much they have shown, how long they have built.
 export default function BuilderCard({ builder }) {
   const t = useT();
   const previews = builder.portfolio.slice(0, 6);
@@ -26,8 +26,8 @@ export default function BuilderCard({ builder }) {
   const { canFavorite, isFavorite, toggleFavorite } = useFavorites();
   const favorited = isFavorite(builder.id, "builder");
 
-  // Three tags fit from `sm` up; the rest collapse into a "+N".
-  const wideOverflow = Math.max(0, builder.specialties.length - 3);
+  // How long they have been building (builder_profiles.building_since).
+  const experience = experienceLabel(builder.building_since, t);
 
   // Everything inside the card that is interactive must not follow its link.
   const stop = (e) => {
@@ -193,22 +193,11 @@ export default function BuilderCard({ builder }) {
           </div>
         </div>
 
-        {builder.specialties.length > 0 && (
-          <>
-            {/* Phones: one muted line, so two-up cards keep an even height
-                however many styles a builder picked. */}
-            <p className="truncate text-xs text-ink-3 sm:hidden">
-              {builder.specialties.map((s) => styleChipLabel(s, t.lang)).join(" · ")}
-            </p>
-            <div className="hidden flex-wrap gap-1 sm:flex">
-              {builder.specialties.slice(0, 3).map((s) => (
-                <span key={s} className="tag">
-                  {styleChipLabel(s, t.lang)}
-                </span>
-              ))}
-              {wideOverflow > 0 && <span className="tag">+{wideOverflow}</span>}
-            </div>
-          </>
+        {experience && (
+          <p className="flex items-center gap-1.5 truncate text-xs text-ink-3">
+            <Icon name="briefcase" size={13} className="flex-shrink-0" />
+            {experience}
+          </p>
         )}
 
         {/* The wrapper carries the "not on the narrowest cards" rule. Putting

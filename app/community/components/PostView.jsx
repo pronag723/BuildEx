@@ -1,7 +1,7 @@
 "use client";
 
 // One Showcase post, opened in the channel column: the gallery (arrow keys
-// and thumbnails), the caption and styles, the author with a link to their
+// and thumbnails), the caption, the author with a link to their
 // profile if they are a builder, and the comments — which are forum replies,
 // so quoting, "helpful", editing, reports and moderation are the topic's.
 
@@ -9,7 +9,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "../../../lib/auth/AuthContext";
 import { useT } from "../../../lib/i18n/LanguageProvider";
-import { styleChipLabel } from "../../../lib/i18n/labels.mjs";
 import { serverMessage } from "../../../lib/i18n/serverText.mjs";
 import { relativeAgo } from "../../../lib/works/format.mjs";
 import { Icon } from "../../../lib/icons";
@@ -17,14 +16,12 @@ import Avatar from "../../../lib/ui/Avatar";
 import SaveButton from "../../../lib/ui/SaveButton";
 import SmartText from "../../../lib/ui/SmartText";
 import { publicAsset } from "../../home/utils";
-import { STYLES } from "../../builders/data/offers";
 import {
   communityImageUrl,
   editReply,
   editShowcasePost,
   fetchTopic,
   POST_CAPTION_MAX,
-  POST_MAX_STYLES,
   replyToTopic,
   reportContent,
   setForumHidden,
@@ -136,21 +133,10 @@ function Gallery({ images, caption }) {
 function EditPost({ post, onCancel, onSave }) {
   const t = useT();
   const [caption, setCaption] = useState(post.body || "");
-  const [styles, setStyles] = useState(Array.isArray(post.styles) ? post.styles : []);
   const [busy, setBusy] = useState(false);
   return (
     <div className="space-y-3">
       <textarea value={caption} onChange={(e) => setCaption(e.target.value.slice(0, POST_CAPTION_MAX))} rows={4} className="input h-auto resize-y py-2.5 leading-relaxed" />
-      <div className="flex flex-wrap gap-2">
-        {STYLES.map((s) => {
-          const on = styles.includes(s.key);
-          return (
-            <button key={s.key} type="button" aria-pressed={on} disabled={!on && styles.length >= POST_MAX_STYLES} onClick={() => setStyles((prev) => (on ? prev.filter((k) => k !== s.key) : [...prev, s.key]))} className="filter-chip">
-              {styleChipLabel(s.key, t.lang)}
-            </button>
-          );
-        })}
-      </div>
       <div className="flex justify-end gap-2">
         <button type="button" onClick={onCancel} disabled={busy} className="btn btn-ghost btn-sm">{t("common.cancel")}</button>
         <button
@@ -158,7 +144,7 @@ function EditPost({ post, onCancel, onSave }) {
           disabled={busy || !caption.trim()}
           onClick={async () => {
             setBusy(true);
-            await onSave(caption.trim(), styles);
+            await onSave(caption.trim());
             setBusy(false);
           }}
           className="btn btn-primary btn-sm"
@@ -268,7 +254,6 @@ export default function PostView({ postId, onBack, onLoaded }) {
   const mine = post.author_id === meId;
   const authorName = post.author_display_name || post.author_username || t("common.member");
   const images = (Array.isArray(post.images) ? post.images : []).map(communityImageUrl).filter(Boolean);
-  const styles = Array.isArray(post.styles) ? post.styles : [];
   const byId = Object.fromEntries(replies.map((r) => [r.id, r]));
 
   async function send() {
@@ -377,16 +362,15 @@ export default function PostView({ postId, onBack, onLoaded }) {
 
         {editing === "post" ? (
           <div className="mt-3">
-            <EditPost post={post} onCancel={() => setEditing(null)} onSave={async (caption, s) => { if (await run(() => editShowcasePost(post.id, caption, s))) setEditing(null); }} />
+            <EditPost post={post} onCancel={() => setEditing(null)} onSave={async (caption) => { if (await run(() => editShowcasePost(post.id, caption))) setEditing(null); }} />
           </div>
         ) : (
           <>
             <p className="mt-3 whitespace-pre-wrap break-words text-[15px] leading-relaxed text-ink">
               <SmartText>{post.body}</SmartText>
             </p>
-            {(styles.length > 0 || post.pinned || post.hidden) && (
+            {(post.pinned || post.hidden) && (
               <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                {styles.map((s) => <span key={s} className="tag">{styleChipLabel(s, t.lang)}</span>)}
                 {post.pinned && <span className="inline-flex items-center gap-1 text-xs text-ink-3"><Icon name="pin" size={12} />{t("community.topic.pinned")}</span>}
                 {post.hidden && <span className="text-xs font-medium text-danger">{t("community.requests.hiddenTag")}</span>}
               </div>
