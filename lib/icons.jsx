@@ -33,6 +33,8 @@ import {
   Box,
   // community: channels and the phone rail
   Hash, CircleHelp, BookOpen, Lightbulb, House,
+  // community: team search, contests, the Library, the global chat
+  UsersRound, Trophy, Download, FileArchive, MessagesSquare, Reply,
 } from "lucide-react";
 
 export const ICONS = {
@@ -123,8 +125,14 @@ export const ICONS = {
   hash: Hash,
   help: CircleHelp,  // questions
   book: BookOpen,    // guides
-  bulb: Lightbulb,   // ideas
+  bulb: Lightbulb,   // ideas / suggestions
   home: House,
+  team: UsersRound,  // team search
+  trophy: Trophy,    // contests
+  download: Download,
+  file: FileArchive, // a Library file
+  chatRoom: MessagesSquare, // the global chat
+  reply: Reply,
 };
 
 /**

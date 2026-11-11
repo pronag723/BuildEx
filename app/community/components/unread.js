@@ -18,7 +18,10 @@ import { getSupabaseClient } from "../../../lib/supabase/client";
 import { categoriesFor } from "./channels";
 
 const KEY = "buildex-community-seen";
-const KINDS = { questions: "question", guides: "guide", ideas: "idea" };
+// Channels that make up "all discussions" (its dot lights when any of them does).
+const KINDS = { questions: "question", guides: "guide", ideas: "idea", team: "team" };
+// Other topic channels with their own clock.
+const OTHER_KINDS = { contests: "contest" };
 // Pinned items sort first in every list, so a few rows are read and the
 // newest of them taken.
 const PEEK = 6;
@@ -74,18 +77,21 @@ async function fetchLatest(me) {
   const supabase = getSupabaseClient();
   if (!supabase) return {};
   const rpc = (name, args) => supabase.rpc(name, args).then(({ data, error }) => (error ? [] : data || []));
-  const [showcase, requests, ...topics] = await Promise.all([
+  const topicChannels = { ...KINDS, ...OTHER_KINDS };
+  const [showcase, requests, library, ...topics] = await Promise.all([
     rpc("list_showcase_posts", { p_sort: "new", p_style: null, p_scope: "all", p_limit: PEEK, p_offset: 0 }),
     rpc("list_public_briefs", { p_status: "open", p_type: null, p_mine: false, p_limit: 1, p_offset: 0 }),
-    ...Object.values(KINDS).map((kind) =>
+    rpc("list_library_items", { p_sort: "new", p_scope: "all", p_limit: PEEK, p_offset: 0 }),
+    ...Object.values(topicChannels).map((kind) =>
       rpc("list_forum_topics", { p_kind: kind, p_sort: "new", p_scope: "all", p_limit: PEEK, p_offset: 0 })
     ),
   ]);
   const out = {
     showcase: newest(showcase, me),
     requests: newest(requests.filter((b) => !b.is_mine), null),
+    library: newest(library, me),
   };
-  Object.keys(KINDS).forEach((key, i) => {
+  Object.keys(topicChannels).forEach((key, i) => {
     out[key] = newest(topics[i], me);
   });
   return out;

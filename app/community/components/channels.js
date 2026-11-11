@@ -7,7 +7,8 @@
 // dictionaries under `community.channels.<key>`. One channel is a plain link
 // (the updates thread in chats). `rule` is the channel's section of the
 // community rules: its header links to `?s=rules&r=<rule>`. The phone rail groups channels
-// into "spaces" (home, Showcase, Looking for a builder, Discussions, Mine).
+// into "spaces" (home, Builds — the Showcase, Library and Contests —,
+// Looking for a builder, Discussions, Mine).
 //
 // Old links keep working: `?s=discussions` is the all-discussions channel and
 // `?s=showcase` the Showcase, exactly as before.
@@ -20,9 +21,12 @@ export const CHANNELS = {
   rules: { key: "rules", icon: "shield", category: "important" },
   updates: { key: "updates", icon: "verified", category: "important", href: "/chats?c=updates", auth: true },
   showcase: { key: "showcase", icon: "grid", category: "community", space: "showcase", kind: "showcase", rule: "showcase" },
+  library: { key: "library", icon: "file", category: "community", space: "showcase", kind: "library", rule: "library" },
+  contests: { key: "contests", icon: "trophy", category: "community", space: "showcase", kind: "contest", rule: "contests" },
   requests: { key: "requests", icon: "briefcase", category: "community", space: "requests", rule: "requests-and-responses" },
   questions: { key: "questions", icon: "help", category: "discussions", space: "discussions", kind: "question", rule: "discussions" },
   guides: { key: "guides", icon: "book", category: "discussions", space: "discussions", kind: "guide", rule: "discussions" },
+  team: { key: "team", icon: "team", category: "discussions", space: "discussions", kind: "team", rule: "team-search" },
   ideas: { key: "ideas", icon: "bulb", category: "discussions", space: "discussions", kind: "idea", rule: "discussions" },
   discussions: { key: "discussions", icon: "chat", category: "discussions", space: "discussions", kind: null, rule: "discussions" },
   saved: { key: "saved", icon: "bookmark", category: "mine", space: "mine", auth: true },
@@ -32,8 +36,8 @@ export const CHANNELS = {
 // Labels: `community.categories.<key>`.
 export const CATEGORIES = [
   { key: "important", channels: ["rules", "updates"] },
-  { key: "community", channels: ["showcase", "requests"] },
-  { key: "discussions", channels: ["questions", "guides", "ideas", "discussions"] },
+  { key: "community", channels: ["showcase", "library", "contests", "requests"] },
+  { key: "discussions", channels: ["questions", "guides", "team", "ideas", "discussions"] },
   { key: "mine", channels: ["saved", "mytopics"], auth: true },
 ];
 
@@ -41,7 +45,7 @@ export const CATEGORIES = [
 // category; the others list one.
 export const SPACES = [
   { key: "home", icon: "home" },
-  { key: "showcase", icon: "grid", categories: ["community"], only: ["showcase"] },
+  { key: "showcase", icon: "grid", categories: ["community"], only: ["showcase", "library", "contests"] },
   { key: "requests", icon: "briefcase", categories: ["community"], only: ["requests"] },
   { key: "discussions", icon: "chat", categories: ["discussions"] },
   { key: "mine", icon: "user", categories: ["mine"], auth: true },

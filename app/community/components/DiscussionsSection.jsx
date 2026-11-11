@@ -1,7 +1,9 @@
 "use client";
 
-// A discussions channel: # questions, # guides, # ideas, # all-discussions and
-// # my-topics are all this component with a different `kind` / `scope`. Rows
+// A discussions channel: # questions, # guides, # suggestions, # team-search,
+// # contests, # all-discussions and # my-topics are all this component with a
+// different `kind` / `scope`. Contests get their own composer, a cover photo
+// and their state (running / ended / official) on the row. Rows
 // in one list divided by hairlines; a topic opens in place (?t=), see
 // TopicView.jsx. The channel search filters the rows already loaded (the RPC
 // has no text search), which is exact while a channel fits in a few pages.
@@ -15,12 +17,14 @@ import { useScrollLock } from "../../../lib/useScrollLock";
 import { Icon } from "../../../lib/icons";
 import { publicAsset } from "../../home/utils";
 import { relativeAgo } from "../../../lib/works/format.mjs";
-import { createTopic, fetchTopics, TOPIC_KINDS, TOPICS_PAGE } from "../../../lib/community/api";
+import { communityImageUrl, createTopic, fetchTopics, TOPIC_KINDS, TOPICS_PAGE } from "../../../lib/community/api";
 import Toast from "../../components/Toast";
 import ChannelHeader from "./ChannelHeader";
 import EmptyState from "./EmptyState";
 import FeedRow, { FeedList, FeedSkeleton } from "./FeedRow";
 import { CHANNELS, channelForKind, channelHref } from "./channels";
+import ContestComposer from "./ContestComposer";
+import { ContestBadges } from "./ContestBits";
 
 const TITLE_MAX = 120;
 const BODY_MAX = 10000;
@@ -165,9 +169,12 @@ export default function DiscussionsSection({ channel, kind = null, scope = "all"
   const q = query.trim().toLowerCase();
   const visible = useMemo(() => (topics || []).filter((x) => matches(x, q)), [topics, q]);
 
+  const contests = kind === "contest";
+  const actionLabel = t(contests ? "community.contest.new" : "community.discussions.new");
+  const actionIcon = contests ? "trophy" : "plus";
   const action = signedIn
-    ? { label: t("community.discussions.new"), icon: "plus", onClick: () => setComposer(true) }
-    : { label: t("community.discussions.new"), icon: "plus", href: `/login?redirect=${encodeURIComponent(channelHref(channel))}` };
+    ? { label: actionLabel, icon: actionIcon, onClick: () => setComposer(true) }
+    : { label: actionLabel, icon: actionIcon, href: `/login?redirect=${encodeURIComponent(channelHref(channel))}` };
 
   const sortLabels = Object.fromEntries(SORTS.map((k) => [k, t(`community.discussions.sort.${k}`)]));
 
@@ -187,7 +194,7 @@ export default function DiscussionsSection({ channel, kind = null, scope = "all"
         ) : topics.length === 0 ? (
           <EmptyState
             icon={CHANNELS[channel]?.icon || "chat"}
-            title={t(scope === "mine" ? "community.discussions.emptyMineTitle" : "community.discussions.emptyTitle")}
+            title={t(scope === "mine" ? "community.discussions.emptyMineTitle" : contests ? "community.contest.emptyTitle" : "community.discussions.emptyTitle")}
             body={t(kind ? `community.discussions.emptyBodyByKind.${kind}` : "community.discussions.emptyBody")}
             action={action}
           />
@@ -209,6 +216,7 @@ export default function DiscussionsSection({ channel, kind = null, scope = "all"
                     text={topic.excerpt}
                     pinned={topic.pinned}
                     muted={topic.hidden}
+                    image={topic.cover ? communityImageUrl(topic.cover) : undefined}
                     status={
                       topic.kind === "question" && topic.solved ? (
                         <span className="inline-flex items-center gap-1 font-medium text-accent-ink">
@@ -220,6 +228,7 @@ export default function DiscussionsSection({ channel, kind = null, scope = "all"
                     chips={
                       <>
                         {kind === null && <KindTag kind={topic.kind} />}
+                        {topic.kind === "contest" && <ContestBadges endsAt={topic.contest_ends_at} official={topic.pinned} prize={topic.contest_prize} />}
                         {topic.hidden && <span className="tag text-danger">{t("community.requests.hiddenTag")}</span>}
                       </>
                     }
@@ -240,6 +249,18 @@ export default function DiscussionsSection({ channel, kind = null, scope = "all"
         )}
       </div>
 
+      {contests ? (
+        <ContestComposer
+          open={composer}
+          onClose={() => setComposer(false)}
+          onCreated={(id) => {
+            setComposer(false);
+            setNotice(t("community.contest.published"));
+            window.setTimeout(() => setNotice(null), 3000);
+            onOpenTopic(id, "contests");
+          }}
+        />
+      ) : (
       <NewTopicDialog
         open={composer}
         initialKind={kind}
@@ -251,6 +272,7 @@ export default function DiscussionsSection({ channel, kind = null, scope = "all"
           onOpenTopic(id, channelForKind(createdKind));
         }}
       />
+      )}
       <Toast message={notice} />
     </>
   );

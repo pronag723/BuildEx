@@ -30,6 +30,7 @@ import {
 import Toast from "../../components/Toast";
 import ReportDialog from "./ReportDialog";
 import { KindTag } from "./DiscussionsSection";
+import TopicMedia from "./TopicMedia";
 import { CHANNELS } from "./channels";
 import { useForumToggles } from "./useForumToggles";
 
@@ -327,6 +328,7 @@ export default function TopicView({ topicId, channel = "discussions", onBack, on
               <p className="mt-4 whitespace-pre-wrap break-words text-sm leading-relaxed text-ink">
                 <SmartText>{topic.body}</SmartText>
               </p>
+              <TopicMedia topic={topic} />
             </>
           )}
           <div className="mt-4 flex flex-wrap items-center gap-1 border-t border-line/[0.06] pt-3">
