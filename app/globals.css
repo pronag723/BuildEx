@@ -2541,28 +2541,35 @@ a.social-link-row:hover {
 }
 
 /* =============================================================================
-   /about hero — the voxel studio
+   /about hero — the castle at night and by day
    -----------------------------------------------------------------------------
-   A white (day) or black (night) studio room with a few floating voxel
-   blocks and a Minecraft character, beside a stacked uppercase headline.
+   The same castle by night (dark theme) and by day (light theme), behind a
+   stacked uppercase headline on the left. Switching the theme plays the
+   change of time of day: the night picture fades into the day one through a
+   warm glow, while the moon sets to the right and the sun rises in its place
+   (and back again). It is all CSS transitions on the theme class, so a page
+   opened in either theme simply shows that scene at rest. Each moving part
+   takes its timing from the state it is heading to, so dawn and dusk run in
+   their own order.
 
-   On a phone the room is one portrait picture covering the hero, with the
-   character cut out and laid over himself so he stands in front of the
-   copy. From `sm` it is the same room on a wider wall: the picture's corner pieces
-   (cubes top left and top right, stairs bottom left, a box bottom right) and
-   its floor, drawn at one scale (--p), with the character cut out and
-   standing on the floor right of the copy and three blocks around him.
+   The sun and moon are cut out of the pictures (castle-sun.png and
+   castle-moon.png; their spots are painted over with sky), so they can set
+   and rise, masked to the sky (castle-sky-mask.png) so they sink behind the
+   forest and the towers instead of sliding over them. The pictures are
+   mirrored from the originals so the sky they hang in is on the right,
+   clear of the copy.
 
    The hero runs up under the header (which is see-through over it, see
    .site-header[data-over-scene]) and pads its content back down, so the
-   room starts at the top of the window. It is at least the LARGE viewport
-   tall (browser bars hidden), so the room reaches the bottom of the screen
-   in every browser, under a translucent toolbar too; the scroll arrow is
-   lifted by the toolbar's height so it stays in sight.
+   picture starts at the top of the window. It is at least the LARGE viewport
+   tall (browser bars hidden), so it reaches the bottom of the screen in
+   every browser, under a translucent toolbar too; the scroll arrow is lifted
+   by the toolbar's height so it stays in sight.
    ========================================================================== */
 .hero {
   --dawn: 1.4s;
   --dawn-ease: cubic-bezier(0.45, 0, 0.4, 1);
+  --title-size: clamp(2.5rem, 11.5vw, 4rem);
   position: relative;
   display: flex;
   align-items: flex-start;
@@ -2574,50 +2581,18 @@ a.social-link-row:hover {
   overflow: hidden;
 }
 
+@media (min-width: 640px) {
+  .hero {
+    --title-size: max(3.5rem, 6.25vw);
+  }
+}
+
 @media (min-width: 1024px) {
   .hero {
+    --title-size: clamp(4rem, 6.25vw, 7rem);
     align-items: center;
     padding-top: var(--header-h);
     padding-bottom: 0;
-  }
-}
-
-/* The foot of the hero melts into the page, so the room flows into the
-   sections below instead of stopping at a hard edge. The fade is eased (slow
-   to start, slow to finish) so neither of its ends shows as a line. */
-.hero::after {
-  content: "";
-  position: absolute;
-  inset: auto 0 0;
-  z-index: 1;
-  height: 22%;
-  background: linear-gradient(
-    to bottom,
-    rgb(var(--canvas) / 0) 0%,
-    rgb(var(--canvas) / 0.04) 14%,
-    rgb(var(--canvas) / 0.14) 28%,
-    rgb(var(--canvas) / 0.32) 42%,
-    rgb(var(--canvas) / 0.55) 56%,
-    rgb(var(--canvas) / 0.76) 70%,
-    rgb(var(--canvas) / 0.91) 84%,
-    rgb(var(--canvas)) 100%
-  );
-  pointer-events: none;
-}
-
-/* On a phone the fade goes over the laid-over character as well, as it does
-   over the picture under him, so his feet fade with the floor. From `sm` it
-   stays below his feet: the floor runs on under him, unfaded, as it does in
-   the picture, and the fade only ends the room at the hero's foot. */
-@media (max-width: 639px) {
-  .hero::after {
-    z-index: 2;
-  }
-}
-
-@media (min-width: 640px) {
-  .hero::after {
-    height: max(2rem, var(--floor));
   }
 }
 
@@ -2628,385 +2603,220 @@ a.social-link-row:hover {
   --ink-3: 150 152 158;
 }
 
-/* ── The studio scene ────────────────────────────────────────────────────
-   Night underneath, day on top. Switching the theme cross-fades every day
-   piece in and every night piece out together; it is all CSS on the theme
-   class, so a page opened in either theme shows its scene at rest. The
-   walls are painted to match the pictures' own walls (sampled from them). */
+/* ── The scene ─────────────────────────────────────────────────────────── */
 .hero-scene {
+  /* The two themes' --canvas. The scene cannot use --canvas itself: it
+     flips the moment the theme does, while the pictures are still fading. */
+  --canvas-night: 21 21 21;
+  --canvas-day: 240 241 237;
   position: absolute;
   inset: 0;
   z-index: 0;
   overflow: hidden;
   pointer-events: none;
-  background: linear-gradient(
-    180deg,
-    rgb(12 12 12) 0%,
-    rgb(11 11 11) 50%,
-    rgb(9 9 9) 70%,
-    rgb(12 12 12) 85%,
-    rgb(20 20 20) 90%,
-    rgb(37 37 39) 100%
-  );
+  container-type: size;
+  background: #1e2639;
+  transition: background-color var(--dawn) var(--dawn-ease);
 }
 
-.hero-scene::before {
-  content: "";
+:root.light .hero-scene {
+  background: #9fb6d8;
+}
+
+/* The picture's own box (1746x901), placed the way object-fit: cover would
+   place it, so the sun, the moon and the sky mask are laid out in the
+   picture's own coordinates (cqw/cqh of this box). Below `lg` the castle's
+   middle is kept in view (the sky the sun and moon hang in is cropped off
+   there). From `lg` the picture is centred unless that would crop the moon:
+   then it slides left just enough to keep the moon in view, never further
+   than the picture's own right edge. */
+.scene-stage {
+  --w: max(100cqw, 193.8cqh);
   position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    180deg,
-    rgb(243 243 244) 0%,
-    rgb(250 250 250) 18%,
-    rgb(252 251 252) 45%,
-    rgb(246 246 246) 62%,
-    rgb(240 240 242) 82%,
-    rgb(239 238 241) 90%,
-    rgb(241 241 243) 100%
-  );
-  opacity: 0;
-  transition: opacity var(--dawn) var(--dawn-ease);
+  left: calc((100cqw - var(--w)) * 0.5);
+  top: calc((100cqh - var(--w) / 1.938) * 0.35);
+  width: var(--w);
+  height: calc(var(--w) / 1.938);
+  container-type: size;
 }
 
-/* Day over night; the night piece goes out as well, so nothing darkens the
-   day one where it is faded or cut out. */
-.scene-day,
-.scene-night,
-.scene-piece::before,
-.scene-piece::after,
-.scene-floor::before,
-.scene-floor::after {
-  transition: opacity var(--dawn) var(--dawn-ease);
+@media (min-width: 1024px) {
+  .scene-stage {
+    left: max(100cqw - var(--w), min((100cqw - var(--w)) * 0.5, 100cqw - 0.955 * var(--w)));
+  }
 }
 
-.scene-day,
-.scene-piece::after,
-.scene-floor::after,
-:root.light .scene-night,
-:root.light .scene-piece::before,
-:root.light .scene-floor::before {
-  opacity: 0;
-}
-
-:root.light .hero-scene::before,
-:root.light .scene-day,
-:root.light .scene-piece::after,
-:root.light .scene-floor::after {
-  opacity: 1;
-}
-
-/* Phone: the whole picture, ending a little above the hero's foot so the
-   fade there does not eat the character's feet. The laid-over character
-   (.hero-figure-phone) takes the same box and the same cover fit, in front
-   of the copy. */
-.scene-full,
-.scene-blocks-phone,
-.hero-figure-phone {
-  position: absolute;
-  inset: 0 0 6%;
-  width: 100%;
-  height: 94%;
-}
-
-.scene-full {
-  object-fit: cover;
-  object-position: 50% 100%;
-  -webkit-mask-image: linear-gradient(to bottom, #000 95%, transparent);
-  mask-image: linear-gradient(to bottom, #000 95%, transparent);
-}
-
-.hero-figure-phone {
-  z-index: 2;
-  pointer-events: none;
-}
-
-.hero-figure-phone > svg {
+.scene-stage > img,
+.scene-glow,
+.scene-sky,
+.scene-shade {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
 }
 
-.scene-piece,
-.scene-floor,
-.scene-block,
-.hero-figure {
-  display: none;
+/* Day over night. */
+.scene-day {
+  opacity: 0;
+  transition: opacity var(--dawn) var(--dawn-ease) 0.15s;
 }
 
-/* From `sm` the room is laid out from a few measurements on .hero:
+:root.light .scene-day {
+  opacity: 1;
+}
 
-   --floor   where the character's feet and the stairs' base meet the floor,
-             up from the hero's foot (as in the wide reference picture).
-   --p       the CSS size of one pixel of the portrait picture (585x1280),
-             for the corner pieces cut from it: they take about the share of
-             the window the reference gives them, and never more than their
-             pixels (so nothing is upscaled).
-   --foot    the picture's own foot, 55 picture pixels below its floor line.
-   --fig-h   the character's box (hero-figure-*.webp, 303x640; he is about
-             89% of its height and his near sole is 5.3% up from its foot
-             in the night cut-out, 2% in the day one). He aims
-             for about 85% of the hero's height, keeps his head below the
-             header, keeps clear of the copy, and is never drawn larger than
-             his render (--fig-src).
-   --cx      his middle: at 68% of the width, unless that would put him over
-             the headline (whose widest line, "CATALOG FOR", is 6.83em) or
-             past the right gutter.
+/* The warm sky between the two pictures. Going to day it comes up fast over
+   the night and the day picture then covers it; going to night the day
+   picture fades off it and it lingers before going out: dawn early, dusk
+   late. At rest it is either off or hidden under the day picture. */
+.scene-glow {
+  background: radial-gradient(
+    ellipse 70% 55% at 88% 38%,
+    rgb(255 168 102 / 0.85),
+    rgb(240 120 110 / 0.4) 50%,
+    rgb(120 80 140 / 0) 80%
+  );
+  mix-blend-mode: screen;
+  opacity: 0;
+  transition: opacity 0.9s ease-in 0.7s;
+}
 
-   The three blocks around him are placed from the same numbers, as the
-   reference has them: one above and right of his head, one at his side at
-   shoulder height, and one low between him and the copy. */
+:root.light .scene-glow {
+  opacity: 1;
+  transition: opacity 0.55s ease-out;
+}
+
+.scene-sky {
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+/* Where the moon hangs at night and the sun by day: the spots they were cut
+   from. Each body is an outer element that slides sideways at an even pace
+   around an inner one that rises or sinks, eased, so together they trace an
+   arc. */
+.scene-orbit {
+  position: absolute;
+}
+
+.scene-moon,
+.scene-sun {
+  display: block;
+  max-width: none;
+  translate: -50% -50%;
+}
+
+.scene-moon {
+  width: 5.38cqw;
+  filter: drop-shadow(0 0 1.4cqw rgb(190 215 255 / 0.55));
+}
+
+.scene-sun {
+  width: 5.56cqw;
+  filter: drop-shadow(0 0 1.6cqw rgb(255 236 170 / 0.9)) drop-shadow(0 0 5cqw rgb(255 240 200 / 0.6));
+}
+
+/* The moon: up at night, rising from behind the forest on the way back... */
+.scene-orbit-moon {
+  left: 91.09%;
+  top: 26.28%;
+  translate: 0 0;
+  transition: translate 1.15s linear 0.45s;
+}
+
+.scene-orbit-moon .scene-rise {
+  translate: 0 0;
+  transition: translate 1.15s cubic-bezier(0.15, 0.6, 0.45, 1) 0.45s;
+}
+
+/* ...and setting to the right as day breaks. */
+:root.light .scene-orbit-moon {
+  translate: 9cqw 0;
+  transition: translate 1.15s linear;
+}
+
+:root.light .scene-orbit-moon .scene-rise {
+  translate: 0 48cqh;
+  transition: translate 1.15s cubic-bezier(0.55, 0, 0.85, 0.4);
+}
+
+/* The sun: below the forest at night, setting there first as night falls... */
+.scene-orbit-sun {
+  left: 90.52%;
+  top: 21.09%;
+  translate: -12cqw 0;
+  transition: translate 1.15s linear;
+}
+
+.scene-orbit-sun .scene-rise {
+  translate: 0 52cqh;
+  transition: translate 1.15s cubic-bezier(0.55, 0, 0.85, 0.4);
+}
+
+/* ...and rising from the left after the moon has started down. */
+:root.light .scene-orbit-sun {
+  translate: 0 0;
+  transition: translate 1.15s linear 0.45s;
+}
+
+:root.light .scene-orbit-sun .scene-rise {
+  translate: 0 0;
+  transition: translate 1.15s cubic-bezier(0.15, 0.6, 0.45, 1) 0.45s;
+}
+
+/* Over the picture (and the band it may leave at the hero's foot), one wash
+   per theme, crossfading with the pictures: a fade at the foot into that
+   theme's page colour, eased so neither end shows as a line, so the next
+   section starts without a seam; and behind the copy a dimmer by night, a
+   pale veil by day. On a phone the copy runs across the top, from `sm` it
+   sits on the left. */
+.scene-shade {
+  transition: opacity var(--dawn) var(--dawn-ease) 0.15s;
+}
+
+.scene-shade-night {
+  --foot: var(--canvas-night);
+  --veil: linear-gradient(180deg, rgb(5 7 14 / 0.55), rgb(5 7 14 / 0.25) 55%, rgb(5 7 14 / 0.15));
+}
+
+.scene-shade-day {
+  --foot: var(--canvas-day);
+  --veil: linear-gradient(180deg, rgb(255 255 255 / 0.45), rgb(255 255 255 / 0.15) 55%, rgb(255 255 255 / 0));
+  opacity: 0;
+}
+
+.scene-shade-night,
+.scene-shade-day {
+  background:
+    linear-gradient(
+      180deg,
+      rgb(var(--foot) / 0) 76%,
+      rgb(var(--foot) / 0.14) 81%,
+      rgb(var(--foot) / 0.45) 87%,
+      rgb(var(--foot) / 0.8) 93%,
+      rgb(var(--foot)) 100%
+    ),
+    var(--veil);
+}
+
+:root.light .scene-shade-night {
+  opacity: 0;
+}
+
+:root.light .scene-shade-day {
+  opacity: 1;
+}
+
 @media (min-width: 640px) {
-  .hero {
-    --floor: 8.5%;
-    --p: min(1px, 100lvh / 1013, 100vw / 1154);
-    --foot: calc(var(--floor) - 55 * var(--p));
-    --gutter: 1.5rem;
-    --title-size: max(3.5rem, 6.25vw);
-    --title-w: calc(6.9 * var(--title-size));
-    --fig-src: 640px;
-    --fig-h: min(
-      var(--fig-src),
-      90lvh,
-      96.8lvh - 1.058 * (var(--header-h) + 1.5rem),
-      (100vw - (100vw - min(100vw, 80rem)) / 2 - 2 * var(--gutter) - var(--title-w) - 2rem) / 0.4564
-    );
-    --cx: clamp(
-      (100% - min(100%, 80rem)) / 2 + var(--gutter) + var(--title-w) + 2rem + 0.2197 * var(--fig-h),
-      68%,
-      100% - var(--gutter) - 0.2367 * var(--fig-h)
-    );
+  .scene-shade-night {
+    --veil: linear-gradient(90deg, rgb(5 7 14 / 0.72), rgb(5 7 14 / 0.4) 38%, rgb(5 7 14 / 0) 62%);
   }
 
-  .scene-full,
-  .scene-blocks-phone,
-  .hero-figure-phone {
-    display: none;
-  }
-
-  /* The bare wall; the floor is its own band below. By day the wall
-     brightens toward the middle and darkens toward the floor as the
-     picture's wall does, row for row (lower stops placed in picture pixels
-     up from the picture's foot), so the pieces cut from it sit on a matching
-     wall. */
-  .hero-scene {
-    background: linear-gradient(180deg, rgb(12 12 12) 0%, rgb(11 11 11) 50%, rgb(9 9 9) 70%);
-  }
-
-  .hero-scene::before {
-    background: linear-gradient(
-      180deg,
-      rgb(243 243 244) 0%,
-      rgb(250 250 250) 18%,
-      rgb(252 251 252) calc(100% - var(--foot) - 690 * var(--p)),
-      rgb(250 250 250) calc(100% - var(--foot) - 630 * var(--p)),
-      rgb(247 247 247) calc(100% - var(--foot) - 530 * var(--p)),
-      rgb(243 243 243) calc(100% - var(--foot) - 430 * var(--p)),
-      rgb(240 239 242) calc(100% - var(--foot) - 330 * var(--p)),
-      rgb(239 238 241) 100%
-    );
-  }
-
-  /* The floor, across the whole hero: from the picture's horizon (130
-     picture pixels above its foot) down. Its shading is sampled from the
-     pictures: by night a lighter grey plane under a clear horizon, by day a
-     faint crease where wall meets floor. */
-  .scene-floor {
-    display: block;
-    position: absolute;
-    inset: auto 0 0;
-    height: calc(var(--foot) + 130 * var(--p));
-  }
-
-  .scene-floor::before,
-  .scene-floor::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-  }
-
-  .scene-floor::before {
-    background: linear-gradient(
-      180deg,
-      rgb(24 24 24) 0,
-      rgb(28 28 28) calc(10 * var(--p)),
-      rgb(33 33 35) calc(25 * var(--p)),
-      rgb(29 29 29) calc(42 * var(--p)),
-      rgb(37 37 39) calc(66 * var(--p)),
-      rgb(36 36 38) 100%
-    );
-  }
-
-  .scene-floor::after {
-    background: linear-gradient(
-      180deg,
-      rgb(239 238 241) 0,
-      rgb(243 243 245) calc(32 * var(--p)),
-      rgb(240 239 242) calc(48 * var(--p)),
-      rgb(218 217 222) calc(64 * var(--p)),
-      rgb(232 232 234) calc(80 * var(--p)),
-      rgb(241 241 243) calc(98 * var(--p)),
-      rgb(242 242 244) 100%
-    );
-  }
-
-  /* A rectangle of the picture: --x/--y/--w/--h in picture pixels. Night
-     underneath, day on top; each fades into the wall on its inner sides. */
-  .scene-piece {
-    display: block;
-    position: absolute;
-    width: calc(var(--w) * var(--p));
-    height: calc(var(--h) * var(--p));
-  }
-
-  .scene-piece::before,
-  .scene-piece::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background-image: var(--hero-night);
-    background-repeat: no-repeat;
-    background-size: calc(585 * var(--p)) calc(1280 * var(--p));
-    background-position: calc(var(--x) * var(--p) * -1) calc(var(--y) * var(--p) * -1);
-  }
-
-  .scene-piece::after {
-    background-image: var(--hero-day);
-  }
-
-  .scene-cubes-left {
-    --x: 0;
-    --y: 0;
-    --w: 200;
-    --h: 175;
-    top: 0;
-    left: 0;
-    -webkit-mask-image: linear-gradient(to right, #000 85%, transparent),
-      linear-gradient(to bottom, #000 85%, transparent);
-    -webkit-mask-composite: source-in;
-    mask-image: linear-gradient(to right, #000 85%, transparent),
-      linear-gradient(to bottom, #000 85%, transparent);
-    mask-composite: intersect;
-  }
-
-  /* Just the top cube of the picture's right edge (the one below it would
-     sit where the side block floats). */
-  .scene-cubes-right {
-    --x: 480;
-    --y: 0;
-    --w: 105;
-    --h: 215;
-    top: 0;
-    right: 0;
-    -webkit-mask-image: linear-gradient(to left, #000 80%, transparent),
-      linear-gradient(to bottom, #000 86%, transparent);
-    -webkit-mask-composite: source-in;
-    mask-image: linear-gradient(to left, #000 80%, transparent),
-      linear-gradient(to bottom, #000 86%, transparent);
-    mask-composite: intersect;
-  }
-
-  /* The stairs, standing on the floor line. The picture's floating block
-     sits just right of the top step, so the crop shows the top step's column
-     at full height and the rest only from below that block (the last two
-     masks added together); the whole crop fades into the wall on the right
-     and into the floor below the stairs' base. */
-  .scene-stairs {
-    --x: 0;
-    --y: 812;
-    --w: 240;
-    --h: 468;
-    left: 0;
-    bottom: var(--foot);
-    -webkit-mask-image: linear-gradient(to right, #000 88%, transparent),
-      linear-gradient(to bottom, #000 90%, transparent),
-      linear-gradient(to right, #000 38%, transparent 46%),
-      linear-gradient(to bottom, transparent 8%, #000 18%);
-    -webkit-mask-composite: source-in, source-in, source-over;
-    mask-image: linear-gradient(to right, #000 88%, transparent),
-      linear-gradient(to bottom, #000 90%, transparent),
-      linear-gradient(to right, #000 38%, transparent 46%),
-      linear-gradient(to bottom, transparent 8%, #000 18%);
-    mask-composite: intersect, intersect, add;
-  }
-
-  /* The box at the bottom right: the stairs' bottom step, mirrored, on the
-     same floor line. The masks are the stairs' own (mirrored with it), so it
-     fades into the wall on its inner side and into the floor below. */
-  .scene-box-right {
-    --x: 0;
-    --y: 1084;
-    --w: 240;
-    --h: 196;
-    right: 0;
-    bottom: var(--foot);
-    transform: scaleX(-1);
-    -webkit-mask-image: linear-gradient(to right, #000 88%, transparent),
-      linear-gradient(to bottom, #000 82%, transparent);
-    -webkit-mask-composite: source-in;
-    mask-image: linear-gradient(to right, #000 88%, transparent),
-      linear-gradient(to bottom, #000 82%, transparent);
-    mask-composite: intersect;
-  }
-
-  /* The three floating blocks, sharp, in front of the wall. Each is drawn at
-     the character's scale (so at most at its own size) and bobs on its own
-     clock. The head block stays below the header; the side block keeps at
-     least half of itself on screen. */
-  .scene-block {
-    display: block;
-    position: absolute;
-    z-index: 2;
-    height: auto;
-    pointer-events: none;
-    --sine: cubic-bezier(0.37, 0, 0.63, 1);
-    animation:
-      block-bob var(--bob) var(--sine) var(--delay) infinite alternate,
-      block-drift var(--drift) var(--sine) var(--delay) infinite alternate,
-      block-rock var(--rock) var(--sine) var(--delay) infinite alternate;
-  }
-
-  .scene-block-head {
-    --bob: 3.6s;
-    --drift: 5.7s;
-    --rock: 7.3s;
-    --sway: 1;
-    --delay: -2.1s;
-    width: calc(var(--fig-h) * 116 / 640);
-    left: calc(var(--cx) + 0.1315 * var(--fig-h));
-    bottom: min(
-      var(--floor) + 0.898 * var(--fig-h),
-      100% - var(--header-h) - 0.2 * var(--fig-h) - 0.5rem
-    );
-  }
-
-  .scene-block-side {
-    --bob: 4.3s;
-    --drift: 6.9s;
-    --rock: 8.1s;
-    --sway: -1;
-    --delay: -5.4s;
-    width: calc(var(--fig-h) * 96 / 640);
-    left: min(var(--cx) + 0.384 * var(--fig-h), 100% - 0.075 * var(--fig-h));
-    bottom: calc(var(--floor) + 0.55 * var(--fig-h));
-  }
-
-  .scene-block-low {
-    --bob: 3.9s;
-    --drift: 6.2s;
-    --rock: 7.7s;
-    --sway: -0.8;
-    --delay: -3.3s;
-    width: calc(var(--fig-h) * 94 / 640);
-    left: calc(var(--cx) - 0.511 * var(--fig-h));
-    bottom: calc(var(--floor) + 0.166 * var(--fig-h));
-  }
-}
-
-@media (min-width: 1024px) {
-  .hero {
-    --gutter: 2rem;
-    --title-size: clamp(4rem, 6.25vw, 7rem);
+  .scene-shade-day {
+    --veil: linear-gradient(90deg, rgb(255 255 255 / 0.62), rgb(255 255 255 / 0.3) 38%, rgb(255 255 255 / 0) 62%);
   }
 }
 
@@ -3041,51 +2851,6 @@ a.social-link-row:hover {
   to {
     rotate: calc(4.5deg * var(--sway, 1));
   }
-}
-
-/* Phone: the same three blocks, floating in the picture itself. Each is
-   lifted out of the picture (the picture, masked to the block) over a patch
-   of wall that hides where it was painted, and drifts on the same loop.
-   SVG user units are picture pixels, a little larger than CSS ones here, so
-   the loop is scaled up to travel about as far on screen. */
-.scene-blocks-phone {
-  z-index: 0;
-  pointer-events: none;
-}
-
-.phone-block {
-  /* Turns about the block's own middle (set inline, in picture pixels). */
-  transform-box: view-box;
-  --sine: cubic-bezier(0.37, 0, 0.63, 1);
-  --amp: 1.3;
-  animation:
-    block-bob var(--bob) var(--sine) var(--delay) infinite alternate,
-    block-drift var(--drift) var(--sine) var(--delay) infinite alternate,
-    block-rock var(--rock) var(--sine) var(--delay) infinite alternate;
-}
-
-.phone-block-1 {
-  --bob: 3.6s;
-  --drift: 5.7s;
-  --rock: 7.3s;
-  --sway: 1;
-  --delay: -2.1s;
-}
-
-.phone-block-2 {
-  --bob: 4.3s;
-  --drift: 6.9s;
-  --rock: 8.1s;
-  --sway: -1;
-  --delay: -5.4s;
-}
-
-.phone-block-3 {
-  --bob: 3.9s;
-  --drift: 6.2s;
-  --rock: 7.7s;
-  --sway: -0.8;
-  --delay: -3.3s;
 }
 
 /* ── Voxel cubes (VoxelCube in app/builders/components/FeedFloatingBlocks)
@@ -3284,29 +3049,27 @@ a.social-link-row:hover {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  font-size: clamp(2.5rem, 11.5vw, 4rem);
+  font-size: var(--title-size);
   font-weight: 800;
   line-height: 0.95;
   letter-spacing: -0.02em;
   text-transform: uppercase;
   color: rgb(var(--ink));
+  text-shadow: 0 2px 24px rgb(5 7 14 / 0.55);
 }
 
-/* From `sm` each line stays whole, so the character can be kept clear of
-   the widest one (see --cx). */
+/* From `sm` each line stays whole. */
 @media (min-width: 640px) {
-  .hero-title {
-    font-size: var(--title-size);
-  }
-
   .hero-title > span {
     white-space: nowrap;
   }
 }
 
-/* By day the headline is near-black so it holds up on the white wall. */
+/* By day the headline is near-black with a soft white halo, so it holds up
+   on the sunlit stone and sky. */
 :root.light .hero-title {
   color: rgb(17 17 17);
+  text-shadow: 0 0 28px rgb(255 255 255 / 0.7);
 }
 
 .hero-actions {
@@ -3317,10 +3080,18 @@ a.social-link-row:hover {
   margin-top: 2rem;
 }
 
+/* Frosted, so it reads over the busy stonework of the picture. */
 .hero-copy .btn-outline {
   min-width: 16rem;
   justify-content: flex-start;
   border-radius: 12px;
+  background: rgb(var(--canvas) / 0.55);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+.hero-copy .btn-outline:hover {
+  background: linear-gradient(rgb(var(--accent) / 0.12), rgb(var(--accent) / 0.12)), rgb(var(--canvas) / 0.7);
 }
 
 @media (min-width: 640px) {
@@ -3355,80 +3126,9 @@ a.social-link-row:hover {
 /* The headline changes colour with the theme: let it follow the light
    rather than flip while the night picture is still up. */
 .hero-title {
-  transition: color 1.4s cubic-bezier(0.45, 0, 0.4, 1);
-}
-
-/* ── The character ─────────────────────────────────────────────────────────
-   Cut out of the picture and standing on the floor line, his middle at
-   --cx. He is layered over the copy; --cx and --fig-h keep him clear of it.
-   Click-through, so nothing under him is blocked. */
-@media (min-width: 640px) {
-  .hero-figure {
-    display: block;
-    position: absolute;
-    z-index: 2;
-    left: calc(var(--cx) - 0.2367 * var(--fig-h));
-    bottom: calc(var(--floor) - 0.053 * var(--fig-h));
-    width: calc(var(--fig-h) * 303 / 640);
-    height: var(--fig-h);
-    pointer-events: none;
-  }
-
-  .hero-figure > .scene-day,
-  .hero-figure > .scene-night {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-  }
-
-  /* The day cut-out's soles sit lower in its box (about 2% up) than the
-     night one's (5.3%); raise it so both stand on the same line. */
-  .hero-figure > .scene-day {
-    translate: 0 -3.3%;
-  }
-
-  /* Contact shadows, behind him. In the night cut-out his far (left) shoe
-     ends 6.2% up the box, over x 12–52%, and his near (right) one 5.2% up,
-     over x 53–88%. A soft pool spreads back from the soles (up the screen,
-     into the floor behind him) and barely in front of them; under each shoe
-     a tight dark ellipse is centred on its sole, so only its lower half
-     shows, as a dark rim right where the shoe meets the floor. */
-  .hero-figure::before,
-  .hero-figure::after {
-    content: "";
-    position: absolute;
-    z-index: -1;
-  }
-
-  .hero-figure::before {
-    left: 2%;
-    right: 2%;
-    bottom: 4.4%;
-    height: 6%;
-    background: radial-gradient(closest-side, rgb(0 0 0 / 0.6), rgb(0 0 0 / 0.25) 60%, transparent);
-  }
-
-  .hero-figure::after {
-    left: 0;
-    right: 0;
-    bottom: 4.3%;
-    height: 3.1%;
-    background:
-      radial-gradient(closest-side, rgb(0 0 0 / 0.9), rgb(0 0 0 / 0.45) 55%, transparent) left 8% top 0 / 48% 70% no-repeat,
-      radial-gradient(closest-side, rgb(0 0 0 / 0.9), rgb(0 0 0 / 0.45) 55%, transparent) right 8% bottom 0 / 44% 70% no-repeat;
-  }
-
-  /* By day his cut-out brings its own soft shadow, so both are fainter. */
-  :root.light .hero-figure::before {
-    background: radial-gradient(closest-side, rgb(0 0 0 / 0.2), rgb(0 0 0 / 0.07) 60%, transparent);
-  }
-
-  :root.light .hero-figure::after {
-    background:
-      radial-gradient(closest-side, rgb(0 0 0 / 0.3), transparent) left 8% top 0 / 48% 70% no-repeat,
-      radial-gradient(closest-side, rgb(0 0 0 / 0.3), transparent) right 8% bottom 0 / 44% 70% no-repeat;
-  }
+  transition:
+    color 1.4s cubic-bezier(0.45, 0, 0.4, 1) 0.15s,
+    text-shadow 1.4s cubic-bezier(0.45, 0, 0.4, 1) 0.15s;
 }
 
 /* ── The scroll arrow ──────────────────────────────────────────────────── */

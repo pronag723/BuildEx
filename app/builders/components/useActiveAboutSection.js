@@ -4,12 +4,12 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { isAboutPath } from "./navItems";
 
-// Which /about section the header should mark as current: "projects",
-// "how-it-works", or null (the hero and "why BuildEx", which belong to the
+// Which /about section the header should mark as current: "how-it-works",
+// or null (the hero and "why BuildEx", which belong to the
 // plain "About" item). See isNavActive() in ./navItems.js.
 //
 // The URL can't tell us this: usePathname() carries no hash, and a same-page
-// <Link href="/about#projects"> moves the page with history.pushState, which
+// <Link href="/about#how-it-works"> moves the page with history.pushState, which
 // fires no `hashchange`. So it is a scroll-spy: an IntersectionObserver whose
 // root is shrunk to a one-pixel line part-way down the visible page, under the
 // sticky header. Whichever watched section crosses that line is current.
@@ -18,7 +18,7 @@ import { isAboutPath } from "./navItems";
 // it works" (the closing section is short), but what the reader has reached
 // is the end, which belongs to "About".
 
-export const ABOUT_SECTIONS = ["projects", "how-it-works"];
+export const ABOUT_SECTIONS = ["how-it-works"];
 
 // Where the detection line sits, as a fraction of the viewport below the header.
 const LINE = 0.38;
@@ -133,7 +133,7 @@ export function useActiveAboutSection() {
       }
     };
 
-    // A direct visit to /about#projects is right before the first callback.
+    // A direct visit to /about#how-it-works is right before the first callback.
     const fromHash = sectionFromHash(window.location.hash);
     if (fromHash) pin(fromHash);
     observe();

@@ -50,7 +50,7 @@ export const isAboutPath = (pathname) => (pathname || "").replace(/\/+$/, "") ==
 
 /**
  * Whether a nav item is the current one. `activeSection` is the /about section
- * in view ("projects" | "how-it-works" | null, from useActiveAboutSection), so
+ * in view ("how-it-works" | null, from useActiveAboutSection), so
  * on /about exactly one of Showcase / How it works / About is marked: the
  * section being read, or "About" for the hero and the closing section.
  */
