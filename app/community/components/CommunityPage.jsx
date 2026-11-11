@@ -35,6 +35,7 @@ import TopicView from "./TopicView";
 import PostView from "./PostView";
 import RulesSection from "./RulesSection";
 import LibrarySection from "./LibrarySection";
+import CommunityChat from "./CommunityChat";
 import { UnreadContext, useChannelUnread } from "./unread";
 
 const EDGE = 24; // px from the left edge where a back swipe may start
@@ -82,6 +83,9 @@ function ChannelContent({ channel, rule, onBack, onOpenTopic }) {
   }
   if (channel === "showcase") {
     return <ShowcasePosts onBack={onBack} onOpenPost={(id) => onOpenTopic(id, "showcase")} />;
+  }
+  if (channel === "chat") {
+    return <CommunityChat onBack={onBack} />;
   }
   if (channel === "library") {
     return <LibrarySection onBack={onBack} onOpenItem={(id) => onOpenTopic(id, "library")} />;

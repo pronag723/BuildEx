@@ -4,8 +4,8 @@
 // BuildEx — Moderator console: Community (migration 0116)
 //
 // Reports on public content — requests on "Looking for a builder", works,
-// discussion topics and replies (0117) and Showcase posts (0118, a topic of
-// kind 'showcase') — plus the list of every Showcase post, hidden ones
+// discussion topics and replies (0117), Showcase posts (0118, a topic of
+// kind 'showcase') and global-chat messages (0120) — plus the list of every Showcase post, hidden ones
 // included, so a post can be hidden or pinned without a report. A request can
 // be hidden from the board right here; a work is taken down from the Builders
 // tab, where the rest of that builder's works are.
@@ -14,6 +14,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { listAdminShowcasePosts, listCommunityReports, resolveCommunityReport, setBriefHidden, setForumHidden, setTopicPinned } from "../../../lib/community/api";
+import { setChatHidden } from "../../../lib/community/chat";
 import { useT } from "../../../lib/i18n/LanguageProvider";
 import { formatDateTime, errText, Spinner, EmptyState, ErrorLine, PillTabs, RefreshButton } from "./shared";
 
@@ -95,6 +96,16 @@ export default function CommunitySection() {
                         {t(r.target_kind === "showcase" ? "admin.community.openPost" : "admin.community.openTopic")}
                       </Link>
                     )}
+                  </>
+                )}
+                {r.target_type === "chat_message" && (
+                  <>
+                    <button type="button" onClick={() => act(() => setChatHidden(r.target_id, !r.target_hidden))} className="btn btn-secondary btn-sm">
+                      {r.target_hidden ? t("community.topic.unhide") : t("community.topic.hide")}
+                    </button>
+                    <Link href="/community?s=chat" className="btn btn-ghost btn-sm">
+                      {t("admin.community.openChat")}
+                    </Link>
                   </>
                 )}
                 {r.target_type === "brief" && (

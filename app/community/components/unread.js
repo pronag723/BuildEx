@@ -78,7 +78,8 @@ async function fetchLatest(me) {
   if (!supabase) return {};
   const rpc = (name, args) => supabase.rpc(name, args).then(({ data, error }) => (error ? [] : data || []));
   const topicChannels = { ...KINDS, ...OTHER_KINDS };
-  const [showcase, requests, library, ...topics] = await Promise.all([
+  const [chat, showcase, requests, library, ...topics] = await Promise.all([
+    rpc("list_community_chat", { p_before: null, p_limit: PEEK }),
     rpc("list_showcase_posts", { p_sort: "new", p_style: null, p_scope: "all", p_limit: PEEK, p_offset: 0 }),
     rpc("list_public_briefs", { p_status: "open", p_type: null, p_mine: false, p_limit: 1, p_offset: 0 }),
     rpc("list_library_items", { p_sort: "new", p_scope: "all", p_limit: PEEK, p_offset: 0 }),
@@ -90,6 +91,7 @@ async function fetchLatest(me) {
     showcase: newest(showcase, me),
     requests: newest(requests.filter((b) => !b.is_mine), null),
     library: newest(library, me),
+    chat: newest(chat, me),
   };
   Object.keys(topicChannels).forEach((key, i) => {
     out[key] = newest(topics[i], me);

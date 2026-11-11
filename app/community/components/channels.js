@@ -20,6 +20,7 @@ import { withBase } from "../../home/utils";
 export const CHANNELS = {
   rules: { key: "rules", icon: "shield", category: "important" },
   updates: { key: "updates", icon: "verified", category: "important", href: "/chats?c=updates", auth: true },
+  chat: { key: "chat", icon: "chatRoom", category: "community", space: "chat", rule: "global-chat" },
   showcase: { key: "showcase", icon: "grid", category: "community", space: "showcase", kind: "showcase", rule: "showcase" },
   library: { key: "library", icon: "file", category: "community", space: "showcase", kind: "library", rule: "library" },
   contests: { key: "contests", icon: "trophy", category: "community", space: "showcase", kind: "contest", rule: "contests" },
@@ -36,7 +37,7 @@ export const CHANNELS = {
 // Labels: `community.categories.<key>`.
 export const CATEGORIES = [
   { key: "important", channels: ["rules", "updates"] },
-  { key: "community", channels: ["showcase", "library", "contests", "requests"] },
+  { key: "community", channels: ["chat", "showcase", "library", "contests", "requests"] },
   { key: "discussions", channels: ["questions", "guides", "team", "ideas", "discussions"] },
   { key: "mine", channels: ["saved", "mytopics"], auth: true },
 ];
@@ -45,6 +46,7 @@ export const CATEGORIES = [
 // category; the others list one.
 export const SPACES = [
   { key: "home", icon: "home" },
+  { key: "chat", icon: "chatRoom", categories: ["community"], only: ["chat"] },
   { key: "showcase", icon: "grid", categories: ["community"], only: ["showcase", "library", "contests"] },
   { key: "requests", icon: "briefcase", categories: ["community"], only: ["requests"] },
   { key: "discussions", icon: "chat", categories: ["discussions"] },
