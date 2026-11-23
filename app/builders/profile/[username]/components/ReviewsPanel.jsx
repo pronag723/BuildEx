@@ -15,6 +15,7 @@ import {
   upsertReview,
 } from "../../../../../lib/reviews/api";
 import { Icon } from "../../../../../lib/icons";
+import styles from "./ReviewsPanel.module.css";
 
 const BODY_MIN = 20;
 const BODY_MAX = 1500;
@@ -299,9 +300,9 @@ export default function ReviewsPanel({ builderId, userId, isOwner, tiers, rating
             type="button"
             onClick={canSignIn ? onSignIn : () => setEditing(true)}
             disabled={signedInVisitor && (!reviewState || Boolean(reviewState.error))}
-            className="btn btn-primary w-full sm:w-auto"
+            className={`btn btn-primary w-full sm:w-auto ${styles.reviewAction}`}
           >
-            <Icon name={mine ? "pencil" : "star"} size={16} />
+            <Icon name={mine ? "pencil" : "star"} size={16} className={styles.reviewIcon} />
             {mine ? t("profile.reviews.edit") : t("profile.reviews.write")}
           </button>
         </div>
