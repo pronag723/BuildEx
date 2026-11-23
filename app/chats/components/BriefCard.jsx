@@ -185,16 +185,19 @@ function StarPicker({ value, onChange }) {
 
 function ReviewBlock({ order, peerName, review, onReview }) {
   const t = useT();
-  const [rating, setRating] = useState(review?.rating || 0);
-  const [body, setBody] = useState(review?.body || "");
+  const [draftRating, setDraftRating] = useState(null);
+  const [draftBody, setDraftBody] = useState(null);
   const [busy, setBusy] = useState(false);
-  const [editing, setEditing] = useState(!review || review.order_id !== order.id);
+  const [editing, setEditing] = useState(false);
+  const rating = draftRating ?? review?.rating ?? 0;
+  const body = draftBody ?? review?.body ?? "";
+  const isEditing = editing || draftRating !== null || draftBody !== null || review?.order_id !== order.id;
 
-  if (!editing) {
+  if (!isEditing) {
     return (
       <div className="flex items-center gap-2 text-[13px] text-ink-2">
         <Icon name="check" size={15} className="text-accent-ink" />
-        <span className="flex-1">{t("orders.review.thanks")}</span>
+        <span className="flex-1">{t(review?.hidden ? "profile.reviews.hiddenNotice" : "orders.review.thanks")}</span>
         <button type="button" onClick={() => setEditing(true)} className="btn btn-ghost btn-sm">
           {t("orders.review.edit")}
         </button>
@@ -208,11 +211,11 @@ function ReviewBlock({ order, peerName, review, onReview }) {
     <div>
       <p className="text-sm font-semibold">{t("orders.review.title", { name: peerName })}</p>
       <div className="mt-1.5">
-        <StarPicker value={rating} onChange={setRating} />
+        <StarPicker value={rating} onChange={setDraftRating} />
       </div>
       <textarea
         value={body}
-        onChange={(e) => setBody(e.target.value.slice(0, BODY_MAX))}
+        onChange={(e) => setDraftBody(e.target.value.slice(0, BODY_MAX))}
         rows={3}
         placeholder={t("orders.review.placeholder")}
         className="input mt-2 h-auto resize-none py-2.5 text-[13px]"
@@ -228,7 +231,11 @@ function ReviewBlock({ order, peerName, review, onReview }) {
             setBusy(true);
             const { error } = (await onReview(rating, trimmed)) || {};
             setBusy(false);
-            if (!error) setEditing(false);
+            if (!error) {
+              setDraftRating(null);
+              setDraftBody(null);
+              setEditing(false);
+            }
           }}
           className="btn btn-primary btn-sm"
         >
