@@ -55,7 +55,7 @@ function StarPicker({ value, onChange }) {
 
 // Write or edit the caller's review. The server re-checks everything shown
 // here and its message, mapped to the interface language, is what we display.
-function ReviewForm({ builderId, existing, tiers, onSaved, onCancel }) {
+function ReviewForm({ builderId, userId, existing, tiers, onSaved, onCancel }) {
   const t = useT();
   const [rating, setRating] = useState(existing?.rating ?? 0);
   const [body, setBody] = useState(existing?.body ?? "");
@@ -70,7 +70,7 @@ function ReviewForm({ builderId, existing, tiers, onSaved, onCancel }) {
     if (!valid || busy) return;
     setBusy(true);
     setError(null);
-    const { error: e } = await upsertReview(builderId, { rating, body: body.trim(), tierId: tierId || null });
+    const { error: e } = await upsertReview(builderId, { rating, body: body.trim(), tierId }, userId);
     setBusy(false);
     if (e) {
       setError(serverMessage(e, "profile.reviews.saveFailed"));
@@ -228,14 +228,13 @@ function ReviewItem({ review, canReport }) {
   );
 }
 
-// Reviews: a summary, the caller's own form when they qualify (a real chat
-// with this builder — the server decides), and the list.
+// Public reviews and the signed-in visitor's review form.
 export default function ReviewsPanel({ builderId, userId, isOwner, tiers, ratingAvg, onChanged, onSignIn }) {
   const t = useT();
   const [reviews, setReviews] = useState(null);
   const [total, setTotal] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [eligibility, setEligibility] = useState({ status: null, review: null });
+  const [eligibility, setEligibility] = useState(null);
   const [editing, setEditing] = useState(false);
 
   const loadFirstPage = useCallback(() => {
@@ -246,11 +245,9 @@ export default function ReviewsPanel({ builderId, userId, isOwner, tiers, rating
   }, [builderId]);
 
   const loadEligibility = useCallback(() => {
-    if (!userId || isOwner) {
-      setEligibility({ status: userId ? REVIEW_STATUS.self : REVIEW_STATUS.notSignedIn, review: null });
-      return;
-    }
-    canReview(builderId).then(({ status, review }) => setEligibility({ status, review }));
+    if (!userId || isOwner) return;
+    setEligibility(null);
+    canReview(builderId).then(setEligibility);
   }, [builderId, userId, isOwner]);
 
   useEffect(() => {
@@ -279,13 +276,8 @@ export default function ReviewsPanel({ builderId, userId, isOwner, tiers, rating
     onChanged?.();
   };
 
-  const { status, review: mine } = eligibility;
-  const canWrite = status === REVIEW_STATUS.ok;
-  const hintKey = {
-    [REVIEW_STATUS.notSignedIn]: "profile.reviews.hint.signIn",
-    [REVIEW_STATUS.noConversation]: "profile.reviews.hint.noConversation",
-    [REVIEW_STATUS.tooSoon]: "profile.reviews.hint.tooSoon",
-  }[status];
+  const mine = eligibility?.review;
+  const canWrite = eligibility?.status === REVIEW_STATUS.ok;
 
   return (
     <div className="space-y-3">
@@ -304,6 +296,7 @@ export default function ReviewsPanel({ builderId, userId, isOwner, tiers, rating
       {editing ? (
         <ReviewForm
           builderId={builderId}
+          userId={userId}
           existing={mine}
           tiers={tiers}
           onSaved={onSaved}
@@ -314,15 +307,20 @@ export default function ReviewsPanel({ builderId, userId, isOwner, tiers, rating
           <Icon name={mine ? "pencil" : "star"} size={16} />
           {mine ? t("profile.reviews.edit") : t("profile.reviews.write")}
         </button>
-      ) : hintKey ? (
+      ) : eligibility?.error ? (
         <div className="flex flex-wrap items-center gap-3 rounded-xl border border-line/[0.08] px-4 py-3 text-[13px] text-ink-2">
-          <Icon name="chat" size={16} className="text-ink-3" />
-          <span className="min-w-0 flex-1">{t(hintKey)}</span>
-          {status === REVIEW_STATUS.notSignedIn && (
-            <button type="button" onClick={onSignIn} className="btn btn-secondary btn-sm">
-              {t("profile.reviews.signIn")}
-            </button>
-          )}
+          <span role="status" className="min-w-0 flex-1">{t("profile.reviews.formLoadFailed")}</span>
+          <button type="button" onClick={loadEligibility} className="btn btn-secondary btn-sm">
+            {t("common.tryAgain")}
+          </button>
+        </div>
+      ) : !userId && onSignIn ? (
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-line/[0.08] px-4 py-3 text-[13px] text-ink-2">
+          <Icon name="star" size={16} className="text-ink-3" />
+          <span className="min-w-0 flex-1">{t("profile.reviews.hint.signIn")}</span>
+          <button type="button" onClick={onSignIn} className="btn btn-secondary btn-sm">
+            {t("profile.reviews.signIn")}
+          </button>
         </div>
       ) : null}
 
@@ -332,7 +330,7 @@ export default function ReviewsPanel({ builderId, userId, isOwner, tiers, rating
         </div>
       ) : reviews.length === 0 ? (
         <div className="block-grid flex min-h-[8rem] items-center justify-center rounded-xl px-6 text-center text-sm text-ink-3">
-          {isOwner ? t("profile.reviews.emptyOwn") : t("profile.reviews.empty")}
+          {t("profile.reviews.empty")}
         </div>
       ) : (
         <>

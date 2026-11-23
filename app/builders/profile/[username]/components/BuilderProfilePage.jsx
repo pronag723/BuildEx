@@ -451,6 +451,7 @@ export default function BuilderProfilePage({ builder }) {
                 {tab === "prices" && <PriceList tiers={tiers} />}
                 {tab === "reviews" && (
                   <ReviewsPanel
+                    key={`${builder.id}:${userId || "guest"}`}
                     builderId={builder.id}
                     userId={userId}
                     isOwner={isOwner}
