@@ -8,7 +8,6 @@ import { serverMessage } from "../../../../../lib/i18n/serverText.mjs";
 import { relativeAgo } from "../../../../../lib/works/format.mjs";
 import {
   REVIEWS_PAGE_SIZE,
-  REVIEW_STATUS,
   canReview,
   deleteMyReview,
   fetchReviews,
@@ -234,8 +233,10 @@ export default function ReviewsPanel({ builderId, userId, isOwner, tiers, rating
   const [reviews, setReviews] = useState(null);
   const [total, setTotal] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [eligibility, setEligibility] = useState(null);
+  const [reviewState, setReviewState] = useState(null);
   const [editing, setEditing] = useState(false);
+  const signedInVisitor = Boolean(userId) && !isOwner;
+  const canSignIn = !userId && Boolean(onSignIn);
 
   const loadFirstPage = useCallback(() => {
     fetchReviews(builderId).then(({ reviews: rows, count }) => {
@@ -244,19 +245,19 @@ export default function ReviewsPanel({ builderId, userId, isOwner, tiers, rating
     });
   }, [builderId]);
 
-  const loadEligibility = useCallback(() => {
-    if (!userId || isOwner) return;
-    setEligibility(null);
-    canReview(builderId).then(setEligibility);
-  }, [builderId, userId, isOwner]);
+  const loadMyReview = useCallback(() => {
+    if (!signedInVisitor) return;
+    setReviewState(null);
+    canReview(builderId).then(setReviewState);
+  }, [builderId, signedInVisitor]);
 
   useEffect(() => {
     loadFirstPage();
   }, [loadFirstPage]);
 
   useEffect(() => {
-    loadEligibility();
-  }, [loadEligibility]);
+    loadMyReview();
+  }, [loadMyReview]);
 
   const loadMore = async () => {
     if (loadingMore || !reviews) return;
@@ -272,15 +273,49 @@ export default function ReviewsPanel({ builderId, userId, isOwner, tiers, rating
   const onSaved = () => {
     setEditing(false);
     loadFirstPage();
-    loadEligibility();
+    loadMyReview();
     onChanged?.();
   };
 
-  const mine = eligibility?.review;
-  const canWrite = eligibility?.status === REVIEW_STATUS.ok;
+  const mine = reviewState?.review;
 
   return (
     <div className="space-y-3">
+      {editing ? (
+        <ReviewForm
+          builderId={builderId}
+          userId={userId}
+          existing={mine}
+          tiers={tiers}
+          onSaved={onSaved}
+          onCancel={() => setEditing(false)}
+        />
+      ) : signedInVisitor || canSignIn ? (
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          {canSignIn && (
+            <p className="mr-auto text-[13px] text-ink-2">{t("profile.reviews.hint.signIn")}</p>
+          )}
+          <button
+            type="button"
+            onClick={canSignIn ? onSignIn : () => setEditing(true)}
+            disabled={signedInVisitor && (!reviewState || Boolean(reviewState.error))}
+            className="btn btn-primary w-full sm:w-auto"
+          >
+            <Icon name={mine ? "pencil" : "star"} size={16} />
+            {mine ? t("profile.reviews.edit") : t("profile.reviews.write")}
+          </button>
+        </div>
+      ) : null}
+
+      {reviewState?.error && (
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-line/[0.08] px-4 py-3 text-[13px] text-ink-2">
+          <span role="status" className="min-w-0 flex-1">{t("profile.reviews.formLoadFailed")}</span>
+          <button type="button" onClick={loadMyReview} className="btn btn-secondary btn-sm">
+            {t("common.tryAgain")}
+          </button>
+        </div>
+      )}
+
       {total > 0 && ratingAvg != null && (
         <div className="card flex items-center gap-3.5 p-4">
           <span className="font-mark text-[2.125rem] font-bold leading-none text-ink">
@@ -292,37 +327,6 @@ export default function ReviewsPanel({ builderId, userId, isOwner, tiers, rating
           </div>
         </div>
       )}
-
-      {editing ? (
-        <ReviewForm
-          builderId={builderId}
-          userId={userId}
-          existing={mine}
-          tiers={tiers}
-          onSaved={onSaved}
-          onCancel={() => setEditing(false)}
-        />
-      ) : canWrite ? (
-        <button type="button" onClick={() => setEditing(true)} className="btn btn-secondary w-full">
-          <Icon name={mine ? "pencil" : "star"} size={16} />
-          {mine ? t("profile.reviews.edit") : t("profile.reviews.write")}
-        </button>
-      ) : eligibility?.error ? (
-        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-line/[0.08] px-4 py-3 text-[13px] text-ink-2">
-          <span role="status" className="min-w-0 flex-1">{t("profile.reviews.formLoadFailed")}</span>
-          <button type="button" onClick={loadEligibility} className="btn btn-secondary btn-sm">
-            {t("common.tryAgain")}
-          </button>
-        </div>
-      ) : !userId && onSignIn ? (
-        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-line/[0.08] px-4 py-3 text-[13px] text-ink-2">
-          <Icon name="star" size={16} className="text-ink-3" />
-          <span className="min-w-0 flex-1">{t("profile.reviews.hint.signIn")}</span>
-          <button type="button" onClick={onSignIn} className="btn btn-secondary btn-sm">
-            {t("profile.reviews.signIn")}
-          </button>
-        </div>
-      ) : null}
 
       {reviews === null ? (
         <div className="space-y-3">
